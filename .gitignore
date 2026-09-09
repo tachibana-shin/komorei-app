@@ -3,3 +3,7 @@
 build
 local.properties
 /gradle/gradle-daemon-jvm.properties
+
+# Signing keys
+*.jks
+*.keystore
