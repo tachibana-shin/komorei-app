@@ -109,8 +109,8 @@ fun SectionSkeleton(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(4) {
-                AnimeCardSkeleton()
+            items(30) {
+                AnimeCardSkeleton(modifier = Modifier.width(110.dp))
             }
         }
     }

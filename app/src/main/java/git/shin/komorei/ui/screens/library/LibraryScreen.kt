@@ -43,6 +43,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.ui.components.AnimeCard
+import git.shin.komorei.ui.components.AnimeSection
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.TextMuted
@@ -178,20 +179,32 @@ fun LibraryScreen(
                 }
             }
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                contentPadding = PaddingValues(start = 14.dp, top = 14.dp, end = 14.dp, bottom = 120.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(items = displayList, key = { it.id }) { anime ->
-                    AnimeCard(
-                        anime = anime,
-                        onClick = { onAnimeClick(anime) }
-                    )
-                }
-            }
+            AnimeSection(
+                title = tabTitles[selectedSubTab],
+                animeList = displayList,
+                onAnimeClick = onAnimeClick,
+                isGrid = true,
+                icon = if (selectedSubTab == 0) Icons.Default.Bookmark else Icons.Default.History,
+                rightContent = {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = TextMuted.copy(alpha = 0.15f),
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "${displayList.size}",
+                            color = TextMuted,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                modifier = Modifier.padding(bottom = 114.dp)
+            )
         }
     }
 }

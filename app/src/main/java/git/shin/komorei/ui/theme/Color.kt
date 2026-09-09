@@ -13,9 +13,11 @@ val AnimeGreenDark = Color(0xFF15803D)
 val AnimeGreenLight = Color(0xFF4ADE80)
 val AnimeGreenContainer = Color(0xFF0F3924)
 
+val Accent = Color(0xff8b85ff)
+
 val NeonViolet = Color(0xFFA855F7)
 val NeonCyan = Color(0xFF06B6D4)
-val GoldRating = Color(0xFFFFB800)
+val GoldRating = Color(0xFFFFd700)
 
 val BackgroundDark = Color(0xFF0A0D14)
 val SurfaceDark = Color(0xFF111520)

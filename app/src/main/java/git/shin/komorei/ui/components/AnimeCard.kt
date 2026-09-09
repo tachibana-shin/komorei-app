@@ -1,5 +1,6 @@
 package git.shin.komorei.ui.components
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,12 +15,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,6 +29,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,7 +38,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
-import git.shin.komorei.ui.theme.AnimeRed
+import git.shin.komorei.ui.theme.Accent
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.GoldRating
@@ -45,6 +46,7 @@ import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
 
+@SuppressLint("DefaultLocale")
 @Composable
 fun AnimeCard(
     anime: Anime,
@@ -64,8 +66,7 @@ fun AnimeCard(
                 .fillMaxWidth()
                 .aspectRatio(0.7f)
                 .clip(RoundedCornerShape(12.dp))
-                .background(CardDark)
-                .border(1.dp, CardBorderDark, RoundedCornerShape(12.dp))
+//                .background(CardDark)
         ) {
             // Poster Image
             AsyncImage(
@@ -89,55 +90,49 @@ fun AnimeCard(
             )
 
             // Top Badges Row: Left Green Quality Tag + Right Slim Compact Episode Badge
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopStart)
-                    .padding(horizontal = 5.dp, vertical = 5.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Green Quality Tag (e.g. FHD, 4K, BD)
-                if (!anime.qualityTag.isNullOrBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(Color(0xEE15803D)) // Solid Emerald Green
-                            .padding(horizontal = 4.dp, vertical = 1.5.dp)
-                    ) {
-                        Text(
-                            text = anime.qualityTag,
-                            color = Color.White,
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                    }
-                } else {
-                    Spacer(modifier = Modifier.width(1.dp))
-                }
 
-                // Top right slim compact episode badge (narrow, low vertical padding, subtle rounded corners)
-                Box(
+            // Green Quality Tag (e.g. FHD, 4K, BD)
+            if (!anime.qualityTag.isNullOrBlank()) {
+                Text(
+                    text = anime.qualityTag,
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    style = TextStyle(
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    ),
                     modifier = Modifier
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(AnimeRed.copy(alpha = 0.92f))
-                        .padding(horizontal = 4.5.dp, vertical = 1.5.dp)
-                ) {
-                    Text(
-                        text = anime.currentEpisodeBadge,
-                        color = Color.White,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
-                    )
-                }
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .background(Color(0xFF00C853).copy(alpha = .85f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+
             }
+
+            // Top right slim compact episode badge (narrow, low vertical padding, subtle rounded corners)
+            Text(
+                text = anime.currentEpisodeBadge,
+                color = Color.White,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                style = TextStyle(
+                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                ),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(6.dp)
+                    .background(Accent.copy(alpha = .85f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            )
+
 
             // Rating & Views on bottom
             Row(
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
+                    .align(Alignment.BottomEnd)
                     .padding(horizontal = 6.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -151,7 +146,7 @@ fun AnimeCard(
                 Text(
                     text = String.format("%.1f", anime.rating),
                     color = TextPrimary,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.width(6.dp))

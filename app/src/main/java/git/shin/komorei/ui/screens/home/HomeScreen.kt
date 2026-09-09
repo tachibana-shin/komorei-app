@@ -53,6 +53,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.ui.components.AnimeCard
+import git.shin.komorei.ui.components.AnimeSection
 import git.shin.komorei.ui.components.AppIcons
 import git.shin.komorei.ui.components.BannerCarousel
 import git.shin.komorei.ui.components.BannerCarouselSkeleton
@@ -218,54 +219,11 @@ fun HomeScreen(
                     // Sections / Categories for this source
                     sourceData.sections.forEach { (sectionTitle, animeList) ->
                         item(key = "${source.id}_$sectionTitle") {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 10.dp)
-                            ) {
-                                // Section Header with Icon
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = AppIcons.getCategoryIcon(sectionTitle),
-                                        contentDescription = sectionTitle,
-                                        tint = AnimeRed,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = sectionTitle,
-                                        color = TextPrimary,
-                                        fontSize = 17.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Spacer(modifier = Modifier.weight(1f))
-                                    Text(
-                                        text = stringResource(R.string.section_see_all),
-                                        color = TextSecondary,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-
-                                // LazyRow for horizontal anime cards in this category
-                                LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    items(items = animeList, key = { it.id }) { anime ->
-                                        AnimeCard(
-                                            anime = anime,
-                                            onClick = { onAnimeClick(anime) }
-                                        )
-                                    }
-                                }
-                            }
+                            AnimeSection(
+                                title = sectionTitle,
+                                animeList = animeList,
+                                onAnimeClick = onAnimeClick
+                            )
                         }
                     }
 

@@ -49,6 +49,7 @@ import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Genre
 import git.shin.komorei.model.SearchUiState
 import git.shin.komorei.ui.components.AnimeCard
+import git.shin.komorei.ui.components.AnimeSection
 import git.shin.komorei.ui.components.AppIcons
 import git.shin.komorei.ui.components.GenreChipCompact
 import git.shin.komorei.ui.components.GenreGridCard
@@ -293,31 +294,12 @@ fun SearchDiscoveryScreen(
                         state.resultsBySource.forEach { (source, animeList) ->
                             if (animeList.isNotEmpty()) {
                                 item {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 10.dp)
-                                    ) {
-                                        // Source Header badge
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 16.dp, vertical = 6.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                imageVector = AppIcons.getSourceIcon(source.id),
-                                                contentDescription = source.name,
-                                                tint = AnimeRed,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = source.name,
-                                                color = TextPrimary,
-                                                fontSize = 15.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
+                                    AnimeSection(
+                                        title = source.name,
+                                        animeList = animeList,
+                                        onAnimeClick = onAnimeClick,
+                                        icon = AppIcons.getSourceIcon(source.id),
+                                        rightContent = {
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Box(
                                                 modifier = Modifier
@@ -333,21 +315,7 @@ fun SearchDiscoveryScreen(
                                                 )
                                             }
                                         }
-
-                                        // Horizontal scroll of results for this specific source
-                                        LazyRow(
-                                            contentPadding = PaddingValues(horizontal = 16.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            items(items = animeList, key = { it.id }) { anime ->
-                                                AnimeCard(
-                                                    anime = anime,
-                                                    onClick = { onAnimeClick(anime) }
-                                                )
-                                            }
-                                        }
-                                    }
+                                    )
                                 }
                             }
                         }
