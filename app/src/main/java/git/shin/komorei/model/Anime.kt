@@ -33,5 +33,6 @@ data class Anime(
     val isFeatured: Boolean = false,
     val views: String = "1.2M",
     val section: String = "Mới Cập Nhật", // "Mới Cập Nhật", "Anime Bộ", "Anime Lẻ", "Xu Hướng Mùa Này"
-    val nextEpisodeAirInfo: String? = null // e.g. "Tập 13 sẽ phát lúc 23:00 Thứ Năm hàng tuần"
+    val nextEpisodeAirInfo: String? = null, // e.g. "Tập 13 sẽ phát lúc 23:00 Thứ Năm hàng tuần"
+    val qualityTag: String? = "FHD" // e.g. "FHD", "4K", "1080p", "BD"
 )

@@ -87,22 +87,50 @@ fun AnimeCard(
                     )
             )
 
-            // Episode Badge on top-right (As required in prompt: "hiển thị nhãn (Badge) số tập ở góc phim")
-            Box(
+            // Top Badges Row: Left Green Quality Tag + Right Slim Compact Episode Badge
+            Row(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(6.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(AnimeRed.copy(alpha = 0.92f))
-                    .padding(horizontal = 6.dp, vertical = 3.dp)
+                    .fillMaxWidth()
+                    .align(Alignment.TopStart)
+                    .padding(horizontal = 5.dp, vertical = 5.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = anime.currentEpisodeBadge,
-                    color = Color.White,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
+                // Green Quality Tag (e.g. FHD, 4K, BD)
+                if (!anime.qualityTag.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(Color(0xEE15803D)) // Solid Emerald Green
+                            .padding(horizontal = 4.dp, vertical = 1.5.dp)
+                    ) {
+                        Text(
+                            text = anime.qualityTag,
+                            color = Color.White,
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                    }
+                } else {
+                    Spacer(modifier = Modifier.width(1.dp))
+                }
+
+                // Top right slim compact episode badge (narrow, low vertical padding, subtle rounded corners)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(AnimeRed.copy(alpha = 0.92f))
+                        .padding(horizontal = 4.5.dp, vertical = 1.5.dp)
+                ) {
+                    Text(
+                        text = anime.currentEpisodeBadge,
+                        color = Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                }
             }
 
             // Rating & Views on bottom

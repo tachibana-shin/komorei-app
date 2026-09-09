@@ -38,11 +38,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -113,6 +116,7 @@ fun AnimeDetailView(
 ) {
     var showDescriptionSheet by remember { mutableStateOf(false) }
     var showEpisodesSheet by remember { mutableStateOf(false) }
+    var showCommentsSheet by remember { mutableStateOf(false) }
     var selectedServer by remember { mutableIntStateOf(0) }
 
     // Multi-Season / Parts support
@@ -467,7 +471,7 @@ fun AnimeDetailView(
             }
         }
 
-        // 5. BÌNH LUẬN PREVIEW
+        // 5. BÌNH LUẬN PREVIEW (Clickable to open Comments Bottom Sheet)
         item {
             Column(
                 modifier = Modifier
@@ -476,7 +480,9 @@ fun AnimeDetailView(
                     .clip(RoundedCornerShape(10.dp))
                     .background(SurfaceDark)
                     .border(1.dp, CardBorderDark, RoundedCornerShape(10.dp))
+                    .clickable { showCommentsSheet = true }
                     .padding(12.dp)
+                    .testTag("comments_preview_section")
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -499,19 +505,19 @@ fun AnimeDetailView(
                     }
 
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Xem bình luận",
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = "Xem tất cả bình luận",
                         tint = TextMuted,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(13.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(22.dp)
+                            .size(24.dp)
                             .clip(CircleShape)
                             .background(AnimeRedContainer),
                         contentAlignment = Alignment.Center
@@ -1433,21 +1439,48 @@ fun RelatedAnimePosterCard(
                     )
             )
 
-            // Top right compact episode badge
-            Box(
+            // Top Badges Row: Left Green Quality Tag + Right Slim Episode Badge
+            Row(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(5.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(AnimeRed.copy(alpha = 0.9f))
-                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                    .fillMaxWidth()
+                    .align(Alignment.TopStart)
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Tập ${anime.episodes.size}/${anime.episodeCount}",
-                    color = Color.White,
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                if (!anime.qualityTag.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(Color(0xEE15803D))
+                            .padding(horizontal = 3.5.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = anime.qualityTag,
+                            color = Color.White,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                    }
+                } else {
+                    Spacer(modifier = Modifier.width(1.dp))
+                }
+
+                // Top right compact slim episode badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(AnimeRed.copy(alpha = 0.92f))
+                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        text = "Tập ${anime.episodes.size}/${anime.episodeCount}",
+                        color = Color.White,
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             // Bottom left rating
