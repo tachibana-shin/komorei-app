@@ -2,7 +2,6 @@ package git.shin.komorei.ui.components
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,12 +38,9 @@ import coil.compose.AsyncImage
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.ui.theme.Accent
-import git.shin.komorei.ui.theme.CardBorderDark
-import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.GoldRating
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
-import git.shin.komorei.ui.theme.TextSecondary
 
 @SuppressLint("DefaultLocale")
 @Composable
@@ -52,11 +48,11 @@ fun AnimeCard(
     anime: Anime,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    cardWidth: androidx.compose.ui.unit.Dp = 140.dp
+    cardWidth: androidx.compose.ui.unit.Dp? = null
 ) {
     Column(
         modifier = modifier
-            .width(cardWidth)
+            .then(if (cardWidth != null) Modifier.width(cardWidth) else Modifier)
             .testTag("anime_card_${anime.id}")
             .clickable(onClick = onClick)
     ) {
@@ -130,31 +126,33 @@ fun AnimeCard(
 
 
             // Rating & Views on bottom
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = stringResource(R.string.cd_star_rating),
-                    tint = GoldRating,
-                    modifier = Modifier.size(12.dp)
-                )
-                Spacer(modifier = Modifier.width(3.dp))
-                Text(
-                    text = String.format("%.1f", anime.rating),
-                    color = TextPrimary,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = anime.views,
-                    color = TextSecondary,
-                    fontSize = 10.sp
-                )
+            if (anime.rating != null) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = stringResource(R.string.cd_star_rating),
+                        tint = GoldRating,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(1.dp))
+                    Text(
+                        text = String.format("%.1f", anime.rating),
+                        color = TextPrimary,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+//                Spacer(modifier = Modifier.width(6.dp))
+//                Text(
+//                    text = anime.views,
+//                    color = TextSecondary,
+//                    fontSize = 10.sp
+//                )
+                }
             }
         }
 

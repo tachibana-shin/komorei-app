@@ -541,55 +541,18 @@ fun AnimeDetailView(
             }
         }
 
-        // 6. ĐỀ XUẤT CHO BẠN (3 ITEMS PER ROW RECTANGULAR POSTER GRID - 0.7 ASPECT RATIO)
+        // 6. ĐỀ XUẤT CHO BẠN
         item {
             val relatedList = remember(anime.id, relatedAnimeList) {
                 relatedAnimeList.filter { it.id != anime.id }
             }
 
             if (relatedList.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Text(
-                    text = "Đề xuất cho bạn",
-                    color = TextPrimary,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                AnimeSection(
+                    title = "Đề xuất cho bạn",
+                    animeList = relatedList,
+                    onAnimeClick = onAnimeSelected
                 )
-
-                // 3-Column Grid with proper vertical poster ratio (0.7f ~ 2:3)
-                val chunkedTriplets = remember(relatedList) {
-                    relatedList.chunked(3)
-                }
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    chunkedTriplets.forEach { rowTriplet ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            rowTriplet.forEach { itemAnime ->
-                                Box(modifier = Modifier.weight(1f)) {
-                                    RelatedAnimePosterCard(
-                                        anime = itemAnime,
-                                        onClick = { onAnimeSelected(itemAnime) }
-                                    )
-                                }
-                            }
-                            // Fill remaining space if last row has fewer than 3 items
-                            val dummySlots = 3 - rowTriplet.size
-                            repeat(dummySlots) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
             }
         }
     }
@@ -1393,138 +1356,5 @@ fun DetailPillButton(
                 overflow = TextOverflow.Ellipsis
             )
         }
-    }
-}
-
-/**
- * Related Anime Portrait Card with 0.7 aspect ratio (2:3 standard anime poster)
- * Eliminates distortion and square stretching.
- */
-@Composable
-fun RelatedAnimePosterCard(
-    anime: Anime,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .testTag("related_anime_card_${anime.id}")
-    ) {
-        // 2:3 vertical poster box
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.7f)
-                .clip(RoundedCornerShape(10.dp))
-                .background(CardDark)
-                .border(1.dp, CardBorderDark, RoundedCornerShape(10.dp))
-        ) {
-            AsyncImage(
-                model = anime.posterUrl,
-                contentDescription = anime.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-
-            // Gradient shadow on bottom
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color(0xAA0A0D14))
-                        )
-                    )
-            )
-
-            // Top Badges Row: Left Green Quality Tag + Right Slim Episode Badge
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopStart)
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (!anime.qualityTag.isNullOrBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(Color(0xEE15803D))
-                            .padding(horizontal = 3.5.dp, vertical = 1.dp)
-                    ) {
-                        Text(
-                            text = anime.qualityTag,
-                            color = Color.White,
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                    }
-                } else {
-                    Spacer(modifier = Modifier.width(1.dp))
-                }
-
-                // Top right compact slim episode badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(AnimeRed.copy(alpha = 0.92f))
-                        .padding(horizontal = 4.dp, vertical = 1.dp)
-                ) {
-                    Text(
-                        text = "Tập ${anime.episodes.size}/${anime.episodeCount}",
-                        color = Color.White,
-                        fontSize = 8.5.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            // Bottom left rating
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    tint = GoldRating,
-                    modifier = Modifier.size(11.dp)
-                )
-                Spacer(modifier = Modifier.width(3.dp))
-                Text(
-                    text = String.format("%.1f", anime.rating),
-                    color = TextPrimary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(5.dp))
-
-        // Title
-        Text(
-            text = anime.title,
-            color = TextPrimary,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-
-        // Metadata
-        Text(
-            text = "${anime.releaseYear} • ${anime.sourceName}",
-            color = TextMuted,
-            fontSize = 10.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
