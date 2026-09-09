@@ -1,0 +1,96 @@
+<resources>
+    <string name="app_name">Komorei</string>
+    <string name="brand_komo">Komo</string>
+    <string name="brand_rei">rei</string>
+
+    <!-- Bottom Navigation Tabs -->
+    <string name="tab_home">Trang chủ</string>
+    <string name="tab_search">Khám phá</string>
+    <string name="tab_library">Tủ phim</string>
+
+    <!-- Home Screen -->
+    <string name="badge_hot">HOT</string>
+    <string name="section_see_all">Xem tất cả ›</string>
+    <string name="section_trending">Thịnh hành nhất</string>
+    <string name="section_new_releases">Tập mới cập nhật</string>
+    <string name="section_action_selected">Anime hành động chọn lọc</string>
+    <string name="active_source_label">Nguồn: %1$s</string>
+
+    <!-- Search & Discovery Screen -->
+    <string name="search_header_title">Khám Phá</string>
+    <string name="search_header_subtitle">Đa Nguồn</string>
+    <string name="search_hint">Tìm anime, nhân vật, tác giả…</string>
+    <string name="search_clear_cd">Xóa tìm kiếm</string>
+    <string name="search_icon_cd">Tìm kiếm</string>
+    <string name="filter_genre_label">Lọc thể loại: %1$s</string>
+    <string name="filter_genre_clear_cd">Hủy lọc</string>
+    <string name="genres_category_title">Danh Mục Thể Loại (Aidoku Style)</string>
+    <string name="search_results_title">Kết quả tìm kiếm cho \"%1$s\"</string>
+    <string name="genre_results_title">Anime thuộc thể loại %1$s</string>
+    <string name="no_results_title">Không tìm thấy anime phù hợp</string>
+    <string name="no_results_subtitle">Thử đổi từ khóa hoặc chọn nguồn phát khác</string>
+    <string name="anime_count_format">%1$d Anime</string>
+
+    <!-- Library Screen -->
+    <string name="library_title">Tủ Phim Của Bạn</string>
+    <string name="library_tab_following">Đang Theo Dõi</string>
+    <string name="library_tab_history">Lịch Sử Xem</string>
+    <string name="empty_following_title">Chưa có anime nào được lưu</string>
+    <string name="empty_following_subtitle">Nhấn nút \'Theo dõi\' khi xem anime để lưu vào đây</string>
+    <string name="empty_history_title">Chưa có lịch sử xem phim</string>
+    <string name="empty_history_subtitle">Các anime bạn đã xem sẽ tự động hiển thị tại đây</string>
+
+    <!-- Mini Player & Controller Overlay -->
+    <string name="player_play">Phát</string>
+    <string name="player_pause">Tạm dừng</string>
+    <string name="player_close">Đóng trình phát</string>
+    <string name="player_minimize">Thu nhỏ trình phát</string>
+    <string name="player_expand">Mở rộng trình phát</string>
+    <string name="player_rewind_10">Tua lùi 10s</string>
+    <string name="player_forward_10">Tua tiến 10s</string>
+    <string name="player_quality_badge">1080p FHD</string>
+    <string name="player_source_label">Nguồn: %1$s</string>
+    <string name="player_volume_title">Âm lượng</string>
+    <string name="player_brightness_title">Độ sáng</string>
+    <string name="player_fullscreen">Toàn màn hình</string>
+    <string name="player_exit_fullscreen">Thoát toàn màn hình</string>
+
+    <!-- Video Player Details Sheet -->
+    <string name="play_now">Xem ngay</string>
+    <string name="follow_anime">Theo dõi</string>
+    <string name="following_anime">Đang theo dõi</string>
+    <string name="share_anime">Chia sẻ</string>
+    <string name="download_anime">Tải về</string>
+    <string name="description_title">Giới thiệu nội dung</string>
+    <string name="episodes_header">Danh sách tập (%1$d tập)</string>
+    <string name="related_anime_header">Có thể bạn sẽ thích</string>
+    <string name="episode_format">Tập %1$d</string>
+    <string name="episode_title_format">Tập %1$d - %2$s</string>
+    <string name="episode_playing_indicator">ĐANG PHÁT</string>
+    <string name="badge_sub">Vietsub</string>
+    <string name="status_ongoing">Đang chiếu</string>
+    <string name="status_completed">Hoàn thành</string>
+
+    <string name="badge_live">LIVE</string>
+    <string name="desc_collapse">Thu gọn ▲</string>
+    <string name="desc_expand">Xem thêm ▼</string>
+    <string name="now_watching_ep">Đang xem: Tập %1$d</string>
+
+    <!-- Accessibility Content Descriptions -->
+    <string name="cd_app_logo">Biểu tượng Komorei</string>
+    <string name="cd_anime_poster">Poster anime</string>
+    <string name="cd_star_rating">Đánh giá sao</string>
+    <string name="cd_bookmark">Lưu phim</string>
+    <string name="cd_source_tab">Nguồn</string>
+    <string name="cd_genre_card">Thể loại</string>
+    <string name="cd_back">Quay lại</string>
+    <string name="cd_play">Phát</string>
+    <string name="cd_pause">Tạm dừng</string>
+    <string name="cd_close_player">Đóng trình phát</string>
+    <string name="cd_minimize_player">Thu nhỏ trình phát</string>
+    <string name="cd_rewind_10">Tua lùi 10s</string>
+    <string name="cd_forward_10">Tua tiến 10s</string>
+    <string name="cd_fullscreen">Toàn màn hình</string>
+    <string name="cd_brightness">Độ sáng</string>
+    <string name="cd_volume">Âm lượng</string>
+</resources>

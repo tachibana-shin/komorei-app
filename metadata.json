@@ -1,0 +1,6 @@
+{
+  "name": "Komorei",
+  "description": "Ứng dụng xem phim Anime đa nguồn với trình phát vuốt thu nhỏ YouTube và khám phá thể loại Aidoku/Stremio",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
