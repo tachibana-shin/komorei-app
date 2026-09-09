@@ -87,6 +87,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import git.shin.komorei.model.Anime
+import git.shin.komorei.ui.components.AnimeCard
+import git.shin.komorei.ui.components.AnimeSection
 import git.shin.komorei.model.AnimeSeason
 import git.shin.komorei.model.Episode
 import git.shin.komorei.ui.theme.AnimeRed
