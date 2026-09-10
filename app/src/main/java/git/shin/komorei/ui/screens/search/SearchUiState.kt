@@ -1,4 +1,7 @@
-package git.shin.komorei.model
+package git.shin.komorei.ui.screens.search
+
+import git.shin.komorei.model.Anime
+import git.shin.komorei.model.Source
 
 /**
  * UI State for multi-source search and discovery.

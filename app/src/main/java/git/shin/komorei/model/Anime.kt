@@ -2,6 +2,9 @@ package git.shin.komorei.model
 
 import com.squareup.moshi.JsonClass
 
+/**
+ * Global status of an anime series.
+ */
 enum class AnimeStatus(val value: String) {
     ONGOING("ongoing"),
     COMPLETED("completed"),
@@ -15,41 +18,19 @@ enum class AnimeStatus(val value: String) {
 }
 
 /**
- * Represents a season or part of an anime (e.g. Phần 1, Phần 2, OVA, Movie).
- * In many websites, seasons are different anime IDs linked together.
+ * Represents a specific season or part of a franchise.
+ * Note: Seasons are often separate anime IDs in many source extensions.
  */
 @JsonClass(generateAdapter = true)
 data class AnimeSeason(
     val animeId: String,
     val seasonNumber: Int,
-    val title: String,
-    val episodes: List<Episode> = emptyList()
+    val title: String
 )
 
-@JsonClass(generateAdapter = true)
-data class FilterOption(
-    val id: String,
-    val name: String
-)
-
-@JsonClass(generateAdapter = true)
-data class FilterGroup(
-    val id: String,
-    val name: String,
-    val options: List<FilterOption>,
-    val isMultiple: Boolean = false,
-    val default: String? = null
-)
-
-@JsonClass(generateAdapter = true)
-data class SelectedFilter(
-    val groupId: String,
-    val id: String,
-    val name: String,
-    val include: Boolean = true,
-    val exclude: Boolean = false
-)
-
+/**
+ * Interactive metadata link used for filtering (e.g., clicking a genre or studio).
+ */
 @JsonClass(generateAdapter = true)
 data class CategoryLink(
     val name: String,
@@ -57,7 +38,8 @@ data class CategoryLink(
 )
 
 /**
- * Main Anime entity representing metadata across sources.
+ * Main Anime entity representing consolidated metadata.
+ * Usually fetched in two stages: Lite (listing) and Full (details).
  */
 @JsonClass(generateAdapter = true)
 data class Anime(
@@ -70,23 +52,20 @@ data class Anime(
     val bannerUrl: String,
     val description: String,
     val episodeCount: Int,
-    val currentEpisode: String?, // e.g. "Tập 12/12", "Tập 24 End", "HD Vietsub"
-    val rating: Float?, // e.g. 4.9
+    val currentEpisode: String?, // e.g. "Ep 12/12", "HD Vietsub"
+    val rating: Float?,
     val ratingCount: Int?,
     val status: AnimeStatus,
-
     val releaseYear: CategoryLink?,
     val genres: List<CategoryLink>,
     val authors: List<CategoryLink>,
     val studio: CategoryLink?,
     val seasonOf: CategoryLink?,
     val countries: List<CategoryLink> = emptyList(),
-
     val episodes: List<Episode> = emptyList(),
     val seasons: List<AnimeSeason> = emptyList(),
     val isFeatured: Boolean = false,
-    val views: Int = 1200000,
-//    val section: String = "Mới Cập Nhật", // "Mới Cập Nhật", "Anime Bộ", "Anime Lẻ", "Xu Hướng Mùa Này" -- merged to genres
-    val nextEpisodeAirInfo: String? = null, // e.g. "Tập 13 sẽ phát lúc 23:00 Thứ Năm hàng tuần"
-    val qualityTag: String? = "FHD" // e.g. "FHD", "4K", "1080p", "BD"
+    val views: Int = 0,
+    val nextEpisodeAirInfo: String? = null,
+    val qualityTag: String? = "FHD"
 )

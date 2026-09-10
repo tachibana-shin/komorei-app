@@ -6,11 +6,15 @@ import git.shin.komorei.model.CategoryLink
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.Genre
 import git.shin.komorei.model.Source
+import git.shin.komorei.model.StreamData
+import git.shin.komorei.model.StreamInfo
+import git.shin.komorei.model.StreamType
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.random.Random
 
 @Singleton
 class AnimeRepository @Inject constructor() {
@@ -84,6 +88,57 @@ class AnimeRepository @Inject constructor() {
         "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
     )
 
+    /**
+     * Fetch full details or chapters for an anime.
+     * @param anime The lite or partial anime object.
+     * @param needsDetails Whether to fetch full metadata (description, studio, etc.).
+     * @param needsChapters Whether to fetch the episode list for the current animeId.
+     */
+    suspend fun getAnimeUpdate(
+        anime: Anime,
+        needsDetails: Boolean,
+        needsChapters: Boolean
+    ): Anime {
+        delay(200) // Simulation
+        // In a real app, this would perform a network call using anime.id and anime.sourceId
+        val fullAnime = allAnimes.find { it.id == anime.id } ?: anime
+        
+        return fullAnime.copy(
+            episodes = if (needsChapters) fullAnime.episodes else emptyList(),
+            description = if (needsDetails) fullAnime.description else anime.description
+            // ... apply other fields based on flags
+        )
+    }
+
+    /**
+     * Get available streaming servers for a specific episode.
+     */
+    suspend fun getStreamList(anime: Anime, episode: Episode): List<StreamInfo> {
+        delay(150)
+        return listOf(
+            StreamInfo("server_1", "Server VIP", "1080p FHD"),
+            StreamInfo("server_2", "Dự phòng 1", "720p"),
+            StreamInfo("server_fb", "Fembed", "Auto")
+        )
+    }
+
+    /**
+     * Get the actual stream data (URL, Type, Headers).
+     */
+    suspend fun getStream(anime: Anime, episode: Episode, stream: StreamInfo): StreamData {
+        delay(300)
+        // Simulation: Return a Google Storage URL or similar with custom headers
+        val url = videoUrls[Random.nextInt(videoUrls.size)]
+        return StreamData(
+            url = url,
+            type = if (url.endsWith(".m3u8")) StreamType.HLS else StreamType.MP4,
+            headers = mapOf(
+                "Referer" to "https://animevietsub.tv/",
+                "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ..."
+            )
+        )
+    }
+
     private fun generateEpisodes(
         animeId: String,
         sourceId: String,
@@ -98,11 +153,20 @@ class AnimeRepository @Inject constructor() {
                 sourceId = sourceId,
                 episodeNumber = epIndex.toString(),
                 title = "Tập $epIndex - $titlePrefix",
-                videoUrl = videoUrls[(epIndex - 1) % videoUrls.size],
-                durationSeconds = 1440L,
+                durationSeconds = null, // Unknown until streamed
                 quality = if (epIndex % 2 == 0) "1080p 60fps" else "1080p FHD"
             )
         }
+    }
+
+    /**
+     * Simulate fetching a dynamic stream URL for an episode.
+     * In a real extension, this would involve web scraping or calling an API.
+     */
+    suspend fun getStreamUrl(episode: Episode): String {
+        delay(300) // Simulate network latency
+        val index = episode.id.hashCode().coerceAtLeast(0) % videoUrls.size
+        return videoUrls[index]
     }
 
     val allAnimes: List<Anime> by lazy {

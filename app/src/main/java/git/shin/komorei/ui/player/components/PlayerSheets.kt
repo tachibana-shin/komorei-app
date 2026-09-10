@@ -61,6 +61,8 @@ import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.AnimeSeason
 import git.shin.komorei.model.Episode
+import git.shin.komorei.model.WatchHistory
+import git.shin.komorei.ui.components.EpisodeProgressBar
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeRedContainer
 import git.shin.komorei.ui.theme.BackgroundDark
@@ -76,6 +78,7 @@ fun EpisodesBottomSheet(
     anime: Anime,
     seasons: List<AnimeSeason>,
     currentEpisode: Episode,
+    watchHistory: List<WatchHistory>, // New parameter
     selectedSeasonNumber: Int,
     onSeasonChange: (Int) -> Unit,
     onEpisodeSelected: (Episode) -> Unit,
@@ -358,6 +361,7 @@ fun EpisodesBottomSheet(
                 ) {
                     items(filteredEpisodes) { ep ->
                         val isPlaying = ep.id == currentEpisode.id
+                        val history = watchHistory.find { it.episodeId == ep.id }
 
                         Surface(
                             onClick = { onEpisodeSelected(ep) },
@@ -368,38 +372,47 @@ fun EpisodesBottomSheet(
                                 if (isPlaying) AnimeRed else CardBorderDark
                             ),
                             modifier = Modifier
-                                .height(38.dp)
+                                .height(42.dp)
                                 .testTag("sheet_grid_ep_${ep.episodeNumber}")
                         ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                if (isPlaying) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                                            contentDescription = stringResource(R.string.episode_playing_indicator),
-                                            tint = AnimeRed,
-                                            modifier = Modifier.size(11.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(3.dp))
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.fillMaxWidth().weight(1f)
+                                ) {
+                                    if (isPlaying) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                                contentDescription = stringResource(R.string.episode_playing_indicator),
+                                                tint = AnimeRed,
+                                                modifier = Modifier.size(11.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(
+                                                text = ep.episodeNumber,
+                                                color = AnimeRed,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    } else {
                                         Text(
                                             text = ep.episodeNumber,
-                                            color = AnimeRed,
+                                            color = TextPrimary,
                                             fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold
+                                            fontWeight = FontWeight.Medium
                                         )
                                     }
-                                } else {
-                                    Text(
-                                        text = ep.episodeNumber,
-                                        color = TextPrimary,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium
+                                }
+                                
+                                history?.let {
+                                    EpisodeProgressBar(
+                                        progress = it.progressFraction,
+                                        modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, bottom = 2.dp)
                                     )
                                 }
                             }
@@ -414,11 +427,13 @@ fun EpisodesBottomSheet(
                 ) {
                     items(filteredEpisodes) { ep ->
                         val isPlaying = ep.id == currentEpisode.id
+                        val history = watchHistory.find { it.episodeId == ep.id }
 
                         EpisodeListItemCard(
                             episode = ep,
                             posterUrl = anime.posterUrl,
                             isPlaying = isPlaying,
+                            progress = history?.progressFraction ?: 0f,
                             onClick = { onEpisodeSelected(ep) }
                         )
                     }
@@ -433,6 +448,7 @@ fun EpisodeListItemCard(
     episode: Episode,
     posterUrl: String,
     isPlaying: Boolean,
+    progress: Float = 0f,
     onClick: () -> Unit
 ) {
     Surface(
@@ -488,6 +504,13 @@ fun EpisodeListItemCard(
                         .padding(horizontal = 4.dp, vertical = 1.dp)
                 ) {
                     Text(text = "24:00", color = Color.White, fontSize = 9.sp)
+                }
+
+                if (progress > 0f) {
+                    EpisodeProgressBar(
+                        progress = progress,
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    )
                 }
             }
 

@@ -46,16 +46,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
-import git.shin.komorei.model.PlayerSheetValue
+import git.shin.komorei.model.WatchHistory
 import git.shin.komorei.ui.navigation.Screen
 import git.shin.komorei.ui.player.PlayerViewModel
+import git.shin.komorei.ui.player.PlayerSheetValue
 import git.shin.komorei.ui.player.VideoPlayerSheet
 import git.shin.komorei.ui.screens.home.HomeScreen
-import git.shin.komorei.ui.screens.home.HomeViewModel
 import git.shin.komorei.ui.screens.library.LibraryScreen
-import git.shin.komorei.ui.screens.library.LibraryViewModel
 import git.shin.komorei.ui.screens.search.SearchDiscoveryScreen
-import git.shin.komorei.ui.screens.search.SearchViewModel
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.SurfaceDark
@@ -65,9 +63,6 @@ import git.shin.komorei.ui.theme.TextPrimary
 @Composable
 fun MainScreen(
     playerViewModel: PlayerViewModel = hiltViewModel(),
-    homeViewModel: HomeViewModel = hiltViewModel(),
-    searchViewModel: SearchViewModel = hiltViewModel(),
-    libraryViewModel: LibraryViewModel = hiltViewModel(),
     navController: NavHostController = rememberNavController()
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -75,10 +70,11 @@ fun MainScreen(
 
     val playbackState by playerViewModel.playbackState.collectAsState()
     val bookmarkedIds by playerViewModel.bookmarkedAnimeIds.collectAsState()
+    val watchHistory by playerViewModel.watchHistory.collectAsState(initial = emptyList())
 
-    val onAnimeSelect: (Anime) -> Unit = { anime ->
+    val onAnimeSelected: (Anime) -> Unit = { anime ->
         playerViewModel.openAnime(anime)
-        libraryViewModel.addToHistory(anime)
+        // libraryViewModel.addToHistory(anime) // Will move this logic to a better place later
     }
 
     BoxWithConstraints(modifier = Modifier
@@ -180,39 +176,22 @@ fun MainScreen(
                 }
 
                 // Main Content
-                Box(modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()) {
-                    NavHost(
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                ) {
+                    MainNavigationHost(
                         navController = navController,
-                        startDestination = Screen.Home.route,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        composable(Screen.Home.route) {
-                            HomeScreen(
-                                onAnimeClick = onAnimeSelect,
-                                viewModel = homeViewModel
-                            )
-                        }
-                        composable(Screen.Search.route) {
-                            SearchDiscoveryScreen(
-                                onAnimeClick = onAnimeSelect,
-                                viewModel = searchViewModel
-                            )
-                        }
-                        composable(Screen.Library.route) {
-                            LibraryScreen(
-                                onAnimeClick = onAnimeSelect,
-                                viewModel = libraryViewModel
-                            )
-                        }
-                    }
+                        onAnimeSelect = onAnimeSelected
+                    )
 
                     // Video Player Overlay Sheet
                     if (playbackState.sheetValue != PlayerSheetValue.HIDDEN) {
                         VideoPlayerSheet(
                             playbackState = playbackState,
                             isBookmarked = playbackState.currentAnime?.id in bookmarkedIds,
+                            watchHistory = watchHistory,
                             relatedAnimeList = playerViewModel.allAnimes,
                             onStateChange = { playerViewModel.setPlayerSheetValue(it) },
                             onPlayPauseToggle = { playerViewModel.togglePlayPause() },
@@ -221,11 +200,10 @@ fun MainScreen(
                             onToggleBookmark = {
                                 playbackState.currentAnime?.id?.let { id ->
                                     playerViewModel.toggleBookmark(id)
-                                    libraryViewModel.toggleBookmark(id)
                                 }
                             },
                             onDismiss = { playerViewModel.dismissPlayer() },
-                            onAnimeSelected = { onAnimeSelect(it) },
+                            onAnimeSelected = onAnimeSelected,
                             onNavigateToCategory = { filters ->
                                 // navController.navigate(...)
                             },
@@ -361,30 +339,10 @@ fun MainScreen(
                             .fillMaxSize()
                             .padding(bottom = actualBottomNavHeight + (if (isMiniPlayerShowing) 64.dp else 0.dp))
                     ) {
-                        NavHost(
+                        MainNavigationHost(
                             navController = navController,
-                            startDestination = Screen.Home.route,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            composable(Screen.Home.route) {
-                                HomeScreen(
-                                    onAnimeClick = onAnimeSelect,
-                                    viewModel = homeViewModel
-                                )
-                            }
-                            composable(Screen.Search.route) {
-                                SearchDiscoveryScreen(
-                                    onAnimeClick = onAnimeSelect,
-                                    viewModel = searchViewModel
-                                )
-                            }
-                            composable(Screen.Library.route) {
-                                LibraryScreen(
-                                    onAnimeClick = onAnimeSelect,
-                                    viewModel = libraryViewModel
-                                )
-                            }
-                        }
+                            onAnimeSelect = onAnimeSelected
+                        )
                     }
 
                     // Floating YouTube Swipe-Down Minimize Player Sheet
@@ -392,6 +350,7 @@ fun MainScreen(
                         VideoPlayerSheet(
                             playbackState = playbackState,
                             isBookmarked = playbackState.currentAnime?.id in bookmarkedIds,
+                            watchHistory = watchHistory,
                             relatedAnimeList = playerViewModel.allAnimes,
                             onStateChange = { playerViewModel.setPlayerSheetValue(it) },
                             onPlayPauseToggle = { playerViewModel.togglePlayPause() },
@@ -400,11 +359,10 @@ fun MainScreen(
                             onToggleBookmark = {
                                 playbackState.currentAnime?.id?.let { id ->
                                     playerViewModel.toggleBookmark(id)
-                                    libraryViewModel.toggleBookmark(id)
                                 }
                             },
                             onDismiss = { playerViewModel.dismissPlayer() },
-                            onAnimeSelected = { onAnimeSelect(it) },
+                            onAnimeSelected = onAnimeSelected,
                             onNavigateToCategory = { filters ->
                                 // navController.navigate(...)
                             },
@@ -413,6 +371,29 @@ fun MainScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun MainNavigationHost(
+    navController: NavHostController,
+    onAnimeSelect: (Anime) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Home.route,
+        modifier = modifier.fillMaxSize()
+    ) {
+        composable(Screen.Home.route) {
+            HomeScreen(onAnimeClick = onAnimeSelect)
+        }
+        composable(Screen.Search.route) {
+            SearchDiscoveryScreen(onAnimeClick = onAnimeSelect)
+        }
+        composable(Screen.Library.route) {
+            LibraryScreen(onAnimeClick = onAnimeSelect)
         }
     }
 }

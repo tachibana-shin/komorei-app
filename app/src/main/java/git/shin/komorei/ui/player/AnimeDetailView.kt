@@ -64,7 +64,10 @@ import git.shin.komorei.model.AnimeSeason
 import git.shin.komorei.model.AnimeStatus
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.SelectedFilter
+import git.shin.komorei.model.WatchHistory
 import git.shin.komorei.ui.components.AnimeSection
+import git.shin.komorei.ui.components.EpisodeProgressBar
+import git.shin.komorei.ui.theme.Accent
 import git.shin.komorei.ui.components.Badge
 import git.shin.komorei.ui.components.DetailPillButton
 import git.shin.komorei.ui.components.MetadataDetailRow
@@ -95,6 +98,7 @@ fun AnimeDetailView(
     anime: Anime,
     currentEpisode: Episode,
     isBookmarked: Boolean,
+    watchHistory: List<WatchHistory>, // New parameter
     relatedAnimeList: List<Anime>,
     onEpisodeSelected: (Episode) -> Unit,
     onToggleBookmark: () -> Unit,
@@ -508,6 +512,8 @@ fun AnimeDetailView(
                     items(currentSeason.episodes) { ep ->
                         val isSelected = ep.id == currentEpisode.id
 
+                        val history = watchHistory.find { it.episodeId == ep.id }
+                        
                         Box(
                             modifier = Modifier
                                 .size(width = 46.dp, height = 34.dp)
@@ -522,32 +528,44 @@ fun AnimeDetailView(
                                 .testTag("episode_chip_${ep.episodeNumber}"),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (isSelected) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                                        contentDescription = "Đang phát",
-                                        tint = AnimeRed,
-                                        modifier = Modifier.size(11.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(2.dp))
-                                    Text(
-                                        text = ep.episodeNumber,
-                                        color = AnimeRed,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                if (isSelected) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                            contentDescription = "Playing",
+                                            tint = AnimeRed,
+                                            modifier = Modifier.size(11.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Text(
+                                            text = ep.episodeNumber,
+                                            color = AnimeRed,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                } else {
+                                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = ep.episodeNumber,
+                                            color = TextPrimary,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                                
+                                history?.let {
+                                    EpisodeProgressBar(
+                                        progress = it.progressFraction,
+                                        modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, bottom = 2.dp)
                                     )
                                 }
-                            } else {
-                                Text(
-                                    text = ep.episodeNumber,
-                                    color = TextPrimary,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
                             }
                         }
                     }
@@ -679,6 +697,7 @@ fun AnimeDetailView(
             anime = anime,
             seasons = effectiveSeasons,
             currentEpisode = currentEpisode,
+            watchHistory = watchHistory, // Pass it here
             selectedSeasonNumber = selectedSeasonNumber,
             onSeasonChange = { selectedSeasonNumber = it },
             onEpisodeSelected = { ep ->

@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.model.Genre
-import git.shin.komorei.model.SearchUiState
+import git.shin.komorei.model.Source
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow

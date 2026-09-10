@@ -3,7 +3,7 @@ package git.shin.komorei.model
 import com.squareup.moshi.JsonClass
 
 /**
- * Represents a genre category in Aidoku/Stremio discovery tab.
+ * Represents a genre or category found in the discovery/hub tabs.
  */
 @JsonClass(generateAdapter = true)
 data class Genre(

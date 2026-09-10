@@ -31,9 +31,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Episode
-import git.shin.komorei.model.PlayerPlaybackState
-import git.shin.komorei.model.PlayerSheetValue
 import git.shin.komorei.model.SelectedFilter
+import git.shin.komorei.model.WatchHistory
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.CardBorderDark
 import kotlin.math.roundToInt
@@ -42,6 +41,7 @@ import kotlin.math.roundToInt
 fun VideoPlayerSheet(
     playbackState: PlayerPlaybackState,
     isBookmarked: Boolean,
+    watchHistory: List<WatchHistory>, // New parameter
     relatedAnimeList: List<Anime>,
     onStateChange: (PlayerSheetValue) -> Unit,
     onPlayPauseToggle: () -> Unit,
@@ -167,7 +167,7 @@ fun VideoPlayerSheet(
                         ) {
                             // Media3 ExoPlayer surface
                             Media3VideoPlayer(
-                                videoUrl = currentEp.videoUrl,
+                                videoUrl = "https://example.com/stream.m3u8", // Dynamic fetch required
                                 isPlaying = playbackState.isPlaying,
                                 onPositionChanged = { _, _, _ -> },
                                 modifier = Modifier.fillMaxSize()
@@ -209,6 +209,7 @@ fun VideoPlayerSheet(
                         anime = anime,
                         currentEpisode = currentEp,
                         isBookmarked = isBookmarked,
+                        watchHistory = watchHistory,
                         relatedAnimeList = relatedAnimeList,
                         onEpisodeSelected = onEpisodeSelected,
                         onToggleBookmark = onToggleBookmark,
