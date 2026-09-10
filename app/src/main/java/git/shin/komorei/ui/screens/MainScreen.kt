@@ -69,8 +69,6 @@ fun MainScreen(
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Home.route
 
     val playbackState by playerViewModel.playbackState.collectAsState()
-    val bookmarkedIds by playerViewModel.bookmarkedAnimeIds.collectAsState()
-    val watchHistory by playerViewModel.watchHistory.collectAsState(initial = emptyList())
 
     val onAnimeSelected: (Anime) -> Unit = { anime ->
         playerViewModel.openAnime(anime)
@@ -190,18 +188,11 @@ fun MainScreen(
                     if (playbackState.sheetValue != PlayerSheetValue.HIDDEN) {
                         VideoPlayerSheet(
                             playbackState = playbackState,
-                            isBookmarked = playbackState.currentAnime?.id in bookmarkedIds,
-                            watchHistory = watchHistory,
                             relatedAnimeList = playerViewModel.allAnimes,
                             onStateChange = { playerViewModel.setPlayerSheetValue(it) },
                             onPlayPauseToggle = { playerViewModel.togglePlayPause() },
                             onSeekTo = { playerViewModel.seekTo(it) },
                             onEpisodeSelected = { playerViewModel.selectEpisode(it) },
-                            onToggleBookmark = {
-                                playbackState.currentAnime?.id?.let { id ->
-                                    playerViewModel.toggleBookmark(id)
-                                }
-                            },
                             onDismiss = { playerViewModel.dismissPlayer() },
                             onAnimeSelected = onAnimeSelected,
                             onNavigateToCategory = { filters ->
@@ -349,18 +340,11 @@ fun MainScreen(
                     if (playbackState.sheetValue != PlayerSheetValue.HIDDEN) {
                         VideoPlayerSheet(
                             playbackState = playbackState,
-                            isBookmarked = playbackState.currentAnime?.id in bookmarkedIds,
-                            watchHistory = watchHistory,
                             relatedAnimeList = playerViewModel.allAnimes,
                             onStateChange = { playerViewModel.setPlayerSheetValue(it) },
                             onPlayPauseToggle = { playerViewModel.togglePlayPause() },
                             onSeekTo = { playerViewModel.seekTo(it) },
                             onEpisodeSelected = { playerViewModel.selectEpisode(it) },
-                            onToggleBookmark = {
-                                playbackState.currentAnime?.id?.let { id ->
-                                    playerViewModel.toggleBookmark(id)
-                                }
-                            },
                             onDismiss = { playerViewModel.dismissPlayer() },
                             onAnimeSelected = onAnimeSelected,
                             onNavigateToCategory = { filters ->

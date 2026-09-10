@@ -295,6 +295,7 @@ fun SearchDiscoveryScreen(
                                         animeList = animeList,
                                         onAnimeClick = onAnimeClick,
                                         icon = AppIcons.getSourceIcon(source.id),
+                                        getSourceName = { viewModel.getSourceName(it) },
                                         rightContent = {
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Box(

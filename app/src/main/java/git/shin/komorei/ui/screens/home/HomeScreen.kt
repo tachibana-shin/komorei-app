@@ -214,7 +214,8 @@ fun HomeScreen(
                             AnimeSection(
                                 title = sectionTitle,
                                 animeList = animeList,
-                                onAnimeClick = onAnimeClick
+                                onAnimeClick = onAnimeClick,
+                                getSourceName = { viewModel.getSourceName(it) }
                             )
                         }
                     }

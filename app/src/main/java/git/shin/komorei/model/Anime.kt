@@ -24,7 +24,6 @@ enum class AnimeStatus(val value: String) {
 @JsonClass(generateAdapter = true)
 data class AnimeSeason(
     val animeId: String,
-    val seasonNumber: Int,
     val title: String
 )
 
@@ -45,7 +44,6 @@ data class CategoryLink(
 data class Anime(
     val id: String,
     val sourceId: String,
-    val sourceName: String,
     val title: String,
     val originalTitle: String,
     val posterUrl: String,

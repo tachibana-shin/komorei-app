@@ -40,14 +40,11 @@ import kotlin.math.roundToInt
 @Composable
 fun VideoPlayerSheet(
     playbackState: PlayerPlaybackState,
-    isBookmarked: Boolean,
-    watchHistory: List<WatchHistory>, // New parameter
     relatedAnimeList: List<Anime>,
     onStateChange: (PlayerSheetValue) -> Unit,
     onPlayPauseToggle: () -> Unit,
     onSeekTo: (Long) -> Unit,
     onEpisodeSelected: (Episode) -> Unit,
-    onToggleBookmark: () -> Unit,
     onDismiss: () -> Unit,
     onAnimeSelected: (Anime) -> Unit,
     onNavigateToCategory: (List<SelectedFilter>) -> Unit,
@@ -208,11 +205,8 @@ fun VideoPlayerSheet(
                     AnimeDetailView(
                         anime = anime,
                         currentEpisode = currentEp,
-                        isBookmarked = isBookmarked,
-                        watchHistory = watchHistory,
                         relatedAnimeList = relatedAnimeList,
                         onEpisodeSelected = onEpisodeSelected,
-                        onToggleBookmark = onToggleBookmark,
                         onAnimeSelected = onAnimeSelected,
                         onNavigateToCategory = onNavigateToCategory,
                         modifier = Modifier

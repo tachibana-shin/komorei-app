@@ -48,7 +48,8 @@ fun AnimeCard(
     anime: Anime,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    cardWidth: androidx.compose.ui.unit.Dp? = null
+    cardWidth: androidx.compose.ui.unit.Dp? = null,
+    getSourceName: (String) -> String = { it }
 ) {
     Column(
         modifier = modifier
@@ -175,7 +176,7 @@ fun AnimeCard(
 
         // Studio / Release Year / Genre hint
         Text(
-            text = "${anime.releaseYear} • ${anime.genres.firstOrNull() ?: anime.sourceName}",
+            text = "${anime.releaseYear?.name ?: ""} • ${anime.genres.firstOrNull()?.name ?: getSourceName(anime.sourceId)}",
             color = TextMuted,
             fontSize = 11.sp,
             maxLines = 1,

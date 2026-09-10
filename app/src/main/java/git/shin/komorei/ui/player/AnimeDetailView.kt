@@ -41,6 +41,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -57,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
@@ -66,10 +69,9 @@ import git.shin.komorei.model.Episode
 import git.shin.komorei.model.SelectedFilter
 import git.shin.komorei.model.WatchHistory
 import git.shin.komorei.ui.components.AnimeSection
-import git.shin.komorei.ui.components.EpisodeProgressBar
-import git.shin.komorei.ui.theme.Accent
 import git.shin.komorei.ui.components.Badge
 import git.shin.komorei.ui.components.DetailPillButton
+import git.shin.komorei.ui.components.EpisodeProgressBar
 import git.shin.komorei.ui.components.MetadataDetailRow
 import git.shin.komorei.ui.components.ServerOptionChip
 import git.shin.komorei.ui.player.components.EpisodesBottomSheet
@@ -97,41 +99,34 @@ import git.shin.komorei.ui.utils.formatNumber
 fun AnimeDetailView(
     anime: Anime,
     currentEpisode: Episode,
-    isBookmarked: Boolean,
-    watchHistory: List<WatchHistory>, // New parameter
     relatedAnimeList: List<Anime>,
     onEpisodeSelected: (Episode) -> Unit,
-    onToggleBookmark: () -> Unit,
     onAnimeSelected: (Anime) -> Unit,
     onNavigateToCategory: (List<SelectedFilter>) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: AnimeDetailViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    val isBookmarked by viewModel.isBookmarked.collectAsState()
+    val watchHistory by viewModel.watchHistory.collectAsState()
+
+    LaunchedEffect(anime.id) {
+        viewModel.loadInitialData(anime)
+    }
+
+    val displayAnime = uiState.masterAnime ?: anime
+    val episodes = uiState.currentSeasonEpisodes
+    val selectedSeason = uiState.selectedSeason
+
     var showDescriptionSheet by remember { mutableStateOf(false) }
     var showEpisodesSheet by remember { mutableStateOf(false) }
     var showCommentsSheet by remember { mutableStateOf(false) }
     var selectedServer by remember { mutableIntStateOf(0) }
 
-    // Multi-Season / Parts support
-    val effectiveSeasons = remember(anime.id, anime.seasons, anime.episodes) {
-        if (anime.seasons.isNotEmpty()) {
-            anime.seasons
-        } else {
-            listOf(AnimeSeason(anime.id, 1, "Full Season", anime.episodes))
-        }
+    val effectiveSeasons = displayAnime.seasons.ifEmpty {
+        listOf(AnimeSeason(displayAnime.id, "Full Season"))
     }
-
-    var selectedSeasonNumber by remember(anime.id) {
-        val initialSeason = effectiveSeasons.find { season ->
-            season.episodes.any { it.id == currentEpisode.id }
-        } ?: effectiveSeasons.firstOrNull()
-        mutableIntStateOf(initialSeason?.seasonNumber ?: 1)
-    }
-
-    val currentSeason = remember(selectedSeasonNumber, effectiveSeasons) {
-        effectiveSeasons.find { it.seasonNumber == selectedSeasonNumber }
-            ?: effectiveSeasons.first()
-    }
-
+    
     val descSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LazyColumn(
@@ -141,14 +136,12 @@ fun AnimeDetailView(
             .testTag("anime_detail_view"),
         contentPadding = PaddingValues(bottom = 40.dp)
     ) {
-        // 1. ANIME TITLE & METADATA BLOCK (Clickable to open YouTube-style Description Bottom Sheet)
         item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { showDescriptionSheet = true }
                     .padding(horizontal = 16.dp, vertical = 10.dp)
-                    .testTag("anime_header_info_block")
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -156,7 +149,7 @@ fun AnimeDetailView(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = anime.title,
+                        text = displayAnime.title,
                         color = TextPrimary,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
@@ -165,7 +158,7 @@ fun AnimeDetailView(
                     )
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "Xem giới thiệu",
+                        contentDescription = "Show introduction",
                         tint = TextMuted,
                         modifier = Modifier.size(20.dp)
                     )
@@ -173,253 +166,187 @@ fun AnimeDetailView(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // View + next time play
-                Row(
-                    modifier = Modifier.padding(top = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = stringResource(R.string.views_count, formatNumber(anime.views)),
+                        text = stringResource(R.string.views_count, formatNumber(displayAnime.views)),
                         color = TextGrey,
                         fontSize = 14.sp,
                         style = NoPaddingTextStyle
                     )
-
-                    anime.nextEpisodeAirInfo?.let { text ->
+                    displayAnime.nextEpisodeAirInfo?.let { text ->
+                        Text(text = " • ", color = TextGrey, fontSize = 14.sp)
                         Text(
-                            text = " • ",
+                            text = "⏰ $text",
+                            color = NeonCyan,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            style = NoPaddingTextStyle
+                        )
+                    }
+                }
+            }
+
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (displayAnime.authors.isNotEmpty()) {
+                        Text(text = stringResource(R.string.author_label) + " ", color = TextGrey, fontSize = 14.sp)
+                        Text(
+                            text = displayAnime.authors.first().name,
+                            color = if (displayAnime.authors.first().filters.isNotEmpty()) AnimeGreen else TextPrimary,
+                            fontSize = 14.sp,
+                            modifier = Modifier.clickable(enabled = displayAnime.authors.first().filters.isNotEmpty()) {
+                                onNavigateToCategory(displayAnime.authors.first().filters)
+                            }
+                        )
+                        Text(text = " | ", color = TextGrey, fontSize = 14.sp)
+                    }
+
+                    Text(
+                        text = stringResource(R.string.studio_prefix, displayAnime.studio?.name ?: stringResource(R.string.unknown)),
+                        color = if (displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) AnimeGreen else TextGrey,
+                        fontSize = 14.sp,
+                        modifier = Modifier.clickable(enabled = displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) {
+                            displayAnime.studio?.let { onNavigateToCategory(it.filters) }
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    displayAnime.qualityTag?.let {
+                        Text(
+                            text = it,
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .padding(6.dp)
+                                .background(Color(0xFF00C853).copy(alpha = .85f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    displayAnime.releaseYear?.let {
+                        Badge(text = it.name, modifier = Modifier.clickable { onNavigateToCategory(it.filters) })
+                    }
+                    if (!displayAnime.currentEpisode.isNullOrEmpty()) {
+                        Badge(text = stringResource(R.string.updated_to_episode, displayAnime.currentEpisode))
+                    }
+                    displayAnime.countries.forEach { country ->
+                        Text(
+                            text = country.name,
+                            color = if (country.filters.isNotEmpty()) AnimeGreen else TextPrimary,
+                            fontSize = 14.sp,
+                            style = NoPaddingTextStyle,
+                            modifier = Modifier.clickable(enabled = country.filters.isNotEmpty()) {
+                                onNavigateToCategory(country.filters)
+                            }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Rating info (Stars + Rating Count + SeasonOf Link)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    Text(
+                        text = String.format("%.1f", displayAnime.rating ?: 0f),
+                        color = TextPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        style = NoPaddingTextStyle
+                    )
+                    Icon(
+                        Icons.Default.Star,
+                        null,
+                        tint = GoldRating,
+                        modifier = Modifier.size(14.dp)
+                    )
+
+                    displayAnime.ratingCount?.let {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.rating_count, formatNumber(it)),
+                            color = TextGrey,
+                            fontSize = 14.sp,
+                            style = NoPaddingTextStyle
+                        )
+                    }
+
+                    displayAnime.seasonOf?.let {
+                        Text(
+                            text = " | ",
                             color = TextGrey,
                             fontSize = 14.sp,
                             style = NoPaddingTextStyle
                         )
 
                         Text(
-                            text = text,
-                            color = Accent,
-                            fontSize = 14.sp,
-                            style = NoPaddingTextStyle
-                        )
-                    }
-                }
-            }
-
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    // Author and Studio Section
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (anime.authors.isNotEmpty()) {
-                            Text(
-                                text = stringResource(R.string.author_label) + " ",
-                                color = TextGrey,
-                                fontSize = 14.sp,
-                                style = NoPaddingTextStyle
-                            )
-
-                            Text(
-                                text = anime.authors.first().name,
-                                color = if (anime.authors.first().filters.isNotEmpty()) AnimeGreen else TextPrimary,
-                                fontSize = 14.sp,
-                                style = NoPaddingTextStyle,
-                                modifier = Modifier.clickable(enabled = anime.authors.first().filters.isNotEmpty()) {
-                                    onNavigateToCategory(anime.authors.first().filters)
-                                }
-                            )
-
-                            Text(
-                                text = " | ",
-                                color = TextGrey,
-                                fontSize = 14.sp,
-                                style = NoPaddingTextStyle
-                            )
-                        }
-
-                        Text(
-                            text = stringResource(
-                                R.string.studio_prefix,
-                                anime.studio?.name ?: stringResource(R.string.unknown)
-                            ),
-                            color = if (anime.studio != null && anime.studio.filters.isNotEmpty()) AnimeGreen else TextGrey,
+                            text = it.name,
+                            color = if (it.filters.isNotEmpty()) AnimeGreen else TextPrimary,
                             fontSize = 14.sp,
                             style = NoPaddingTextStyle,
-                            modifier = Modifier.clickable(enabled = anime.studio != null && anime.studio.filters.isNotEmpty()) {
-                                anime.studio?.let {
-                                    onNavigateToCategory(it.filters)
-                                }
+                            modifier = Modifier.clickable(enabled = it.filters.isNotEmpty()) {
+                                onNavigateToCategory(it.filters)
                             }
                         )
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                    // Badges row
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (!anime.qualityTag.isNullOrEmpty()) {
-                            Text(
-                                text = anime.qualityTag,
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                style = NoPaddingTextStyle,
-                                modifier = Modifier
-                                    .padding(6.dp)
-                                    .background(
-                                        Color(0xFF00C853).copy(alpha = .85f),
-                                        RoundedCornerShape(4.dp)
-                                    )
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                        if (anime.releaseYear != null) {
-                            Badge(
-                                text = anime.releaseYear.name,
-                                textStyle = NoPaddingTextStyle,
-                                modifier = Modifier.clickable(enabled = anime.releaseYear.filters.isNotEmpty()) {
-                                    onNavigateToCategory(anime.releaseYear.filters)
-                                }
-                            )
-                        }
-                        if (!anime.currentEpisode.isNullOrEmpty()) {
-                            Badge(
-                                text = stringResource(
-                                    R.string.updated_to_episode,
-                                    anime.currentEpisode
-                                ),
-                                textStyle = NoPaddingTextStyle
-                            )
-                        }
-                        if (anime.countries.isNotEmpty()) {
-                            Text(
-                                text = anime.countries.first().name,
-                                color = if (anime.countries.first().filters.isNotEmpty()) AnimeGreen else TextPrimary,
-                                fontSize = 14.sp,
-                                style = NoPaddingTextStyle,
-                                modifier = Modifier.clickable(enabled = anime.countries.first().filters.isNotEmpty()) {
-                                    onNavigateToCategory(anime.countries.first().filters)
-                                }
-                            )
-                        }
-                    }
-
-                    // Rating info (Stars on new line)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 8.dp)
-                    ) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    displayAnime.genres.forEach { genre ->
                         Text(
-                            text = anime.rating.toString(),
-                            color = TextPrimary,
+                            text = "#${genre.name}",
+                            color = if (genre.filters.isNotEmpty()) AnimeGreen else TextSecondary,
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            style = NoPaddingTextStyle
+                            style = SmallTextStyle,
+                            modifier = Modifier.clickable(enabled = genre.filters.isNotEmpty()) {
+                                onNavigateToCategory(genre.filters)
+                            }
                         )
-                        Icon(
-                            Icons.Default.Star,
-                            null,
-                            tint = GoldRating,
-                            modifier = Modifier.size(14.dp)
-                        )
-
-                        anime.ratingCount?.let {
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            Text(
-                                text = stringResource(
-                                    R.string.rating_count,
-                                    formatNumber(it)
-                                ),
-                                color = TextGrey,
-                                fontSize = 14.sp,
-                                style = NoPaddingTextStyle
-                            )
-                        }
-                        anime.seasonOf?.let {
-                            Text(
-                                text = " | ",
-                                color = TextGrey,
-                                fontSize = 14.sp,
-                                style = NoPaddingTextStyle
-                            )
-
-                            Text(
-                                text = it.name,
-                                color = if (it.filters.isNotEmpty()) AnimeGreen else TextPrimary,
-                                fontSize = 14.sp,
-                                style = NoPaddingTextStyle,
-                                modifier = Modifier.clickable(enabled = it.filters.isNotEmpty()) {
-                                    onNavigateToCategory(it.filters)
-                                }
-                            )
-                        }
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Tags/Genres
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        anime.genres.forEach { genre ->
-                            Text(
-                                text = "#${genre.name}",
-                                color = if (genre.filters.isNotEmpty()) AnimeGreen else TextSecondary,
-                                fontSize = 14.sp,
-                                style = SmallTextStyle,
-                                modifier = Modifier
-                                    .padding(vertical = 1.dp)
-                                    .clickable(enabled = genre.filters.isNotEmpty()) {
-                                        onNavigateToCategory(genre.filters)
-                                    }
-                            )
-                        }
-                    }
-
                 }
             }
         }
 
-        // 2. ACTION BUTTONS ROW: [=+ Lưu] [✨ Tóm tắt] [🚩 Báo cáo] (Wrap content width according to text)
         item {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 DetailPillButton(
                     icon = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkAdd,
-                    label = if (isBookmarked) stringResource(R.string.following_anime) else stringResource(
-                        R.string.follow_anime
-                    ),
+                    label = if (isBookmarked) stringResource(R.string.following_anime) else stringResource(R.string.follow_anime),
                     isActive = isBookmarked,
-                    onClick = onToggleBookmark,
-                    tag = "btn_bookmark"
+                    onClick = { viewModel.toggleBookmark() },
+                    tag = "bookmark"
                 )
-
                 DetailPillButton(
                     icon = Icons.Default.AutoAwesome,
                     label = stringResource(R.string.description_title),
                     isActive = false,
                     onClick = { showDescriptionSheet = true },
-                    tag = "btn_summary"
+                    tag = "summary"
                 )
-
                 DetailPillButton(
                     icon = Icons.Default.Flag,
                     label = stringResource(R.string.report_anime),
                     isActive = false,
                     onClick = { },
-                    tag = "btn_report"
+                    tag = "report"
                 )
             }
         }
 
-        // 3. MÁY CHỦ PHÁT (STREAMING SERVERS)
         item {
             Column(
                 modifier = Modifier
@@ -455,149 +382,84 @@ fun AnimeDetailView(
             }
         }
 
-        // 4. TẬP PHIM (EPISODE SELECTOR & SEASONS/PARTS BELOW EPISODES)
         item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp, bottom = 6.dp)
-            ) {
-                // Header: Clickable to open Fullscreen Drag Bottom Sheet
+            Column(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showEpisodesSheet = true }
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                        .testTag("btn_open_episodes_sheet"),
+                    modifier = Modifier.fillMaxWidth().clickable { showEpisodesSheet = true }.padding(horizontal = 16.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Text(
+                        text = stringResource(R.string.episodes_header, displayAnime.episodeCount),
+                        color = TextPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = stringResource(
-                                R.string.episodes_header,
-                                currentSeason.episodes.size
-                            ),
-                            color = TextPrimary,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = stringResource(R.string.section_see_all),
-                            color = AnimeRed,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                            contentDescription = stringResource(R.string.section_see_all),
-                            tint = AnimeRed,
-                            modifier = Modifier.size(11.dp)
-                        )
+                        Text(text = stringResource(R.string.section_see_all), color = AnimeRed, fontSize = 12.sp)
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = AnimeRed, modifier = Modifier.size(11.dp))
                     }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // 1. Episode Number Chips (01, 02, 03...) - Displayed FIRST
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(currentSeason.episodes) { ep ->
-                        val isSelected = ep.id == currentEpisode.id
-
-                        val history = watchHistory.find { it.episodeId == ep.id }
-                        
-                        Box(
-                            modifier = Modifier
-                                .size(width = 46.dp, height = 34.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) AnimeRedContainer else CardDark)
-                                .border(
-                                    width = if (isSelected) 1.5.dp else 1.dp,
-                                    color = if (isSelected) AnimeRed else CardBorderDark,
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .clickable { onEpisodeSelected(ep) }
-                                .testTag("episode_chip_${ep.episodeNumber}"),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                if (isSelected) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                                            contentDescription = "Playing",
-                                            tint = AnimeRed,
-                                            modifier = Modifier.size(11.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(2.dp))
-                                        Text(
-                                            text = ep.episodeNumber,
-                                            color = AnimeRed,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                } else {
+                    if (uiState.isLoadingEpisodes) {
+                        items(5) {
+                            Box(modifier = Modifier.size(width = 46.dp, height = 34.dp).clip(RoundedCornerShape(8.dp)).background(CardDark.copy(alpha = 0.5f)))
+                        }
+                    } else {
+                        items(episodes) { ep ->
+                            val isSelected = ep.id == currentEpisode.id
+                            val history = watchHistory.find { it.episodeId == ep.id }
+                            
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 46.dp, height = 34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSelected) AnimeRedContainer else CardDark)
+                                    .border(width = if (isSelected) 1.5.dp else 1.dp, color = if (isSelected) AnimeRed else CardBorderDark, shape = RoundedCornerShape(8.dp))
+                                    .clickable { onEpisodeSelected(ep) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = ep.episodeNumber,
-                                            color = TextPrimary,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
+                                        if (isSelected) {
+                                            Icon(imageVector = Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null, tint = AnimeRed, modifier = Modifier.size(14.dp))
+                                        } else {
+                                            Text(text = ep.episodeNumber, color = TextPrimary, fontSize = 12.sp)
+                                        }
                                     }
-                                }
-                                
-                                history?.let {
-                                    EpisodeProgressBar(
-                                        progress = it.progressFraction,
-                                        modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, bottom = 2.dp)
-                                    )
+                                    history?.let {
+                                        EpisodeProgressBar(progress = it.progressFraction, modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, bottom = 2.dp))
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                // 2. Seasons / Parts Selector - Placed BELOW the episode list on screen
                 if (effectiveSeasons.size > 1) {
                     Spacer(modifier = Modifier.height(10.dp))
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp)
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         items(effectiveSeasons) { season ->
-                            val isSeasonSelected = season.seasonNumber == selectedSeasonNumber
+                            val isSeasonSelected = season.animeId == selectedSeason?.animeId
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(if (isSeasonSelected) AnimeRedContainer else CardDark)
-                                    .border(
-                                        width = 1.dp,
-                                        color = if (isSeasonSelected) AnimeRed else CardBorderDark,
-                                        shape = RoundedCornerShape(6.dp)
-                                    )
-                                    .clickable { selectedSeasonNumber = season.seasonNumber }
+                                    .border(width = 1.dp, color = if (isSeasonSelected) AnimeRed else CardBorderDark, shape = RoundedCornerShape(6.dp))
+                                    .clickable { viewModel.selectSeason(season) }
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
-                                    .testTag("season_tab_${season.seasonNumber}")
                             ) {
                                 Text(
-                                    text = "${season.title} (${season.episodes.size} tập)",
+                                    text = season.title,
                                     color = if (isSeasonSelected) AnimeRed else TextSecondary,
                                     fontSize = 12.sp,
                                     fontWeight = if (isSeasonSelected) FontWeight.Bold else FontWeight.Medium
@@ -609,7 +471,6 @@ fun AnimeDetailView(
             }
         }
 
-        // 5. BÌNH LUẬN PREVIEW (Clickable to open Comments Bottom Sheet)
         item {
             Column(
                 modifier = Modifier
@@ -620,7 +481,6 @@ fun AnimeDetailView(
                     .border(1.dp, CardBorderDark, RoundedCornerShape(10.dp))
                     .clickable { showCommentsSheet = true }
                     .padding(12.dp)
-                    .testTag("comments_preview_section")
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -644,7 +504,7 @@ fun AnimeDetailView(
 
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                        contentDescription = "Xem tất cả bình luận",
+                        contentDescription = "View all comments",
                         tint = TextMuted,
                         modifier = Modifier.size(13.dp)
                     )
@@ -669,7 +529,7 @@ fun AnimeDetailView(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Bộ này chuyển thể từ manga nét vẽ đỉnh chóp, nhạc nền xuất sắc!",
+                        text = "Great adaptation, the soundtrack is amazing!",
                         color = TextSecondary,
                         fontSize = 12.sp,
                         maxLines = 1,
@@ -679,7 +539,6 @@ fun AnimeDetailView(
             }
         }
 
-        // 6. ĐỀ XUẤT CHO BẠN
         item {
             if (relatedAnimeList.isNotEmpty()) {
                 AnimeSection(
@@ -691,15 +550,17 @@ fun AnimeDetailView(
         }
     }
 
-    // 7. FULLSCREEN-CAPABLE EPISODES & SEASONS BOTTOM SHEET
     if (showEpisodesSheet) {
         EpisodesBottomSheet(
-            anime = anime,
+            anime = displayAnime,
             seasons = effectiveSeasons,
             currentEpisode = currentEpisode,
-            watchHistory = watchHistory, // Pass it here
-            selectedSeasonNumber = selectedSeasonNumber,
-            onSeasonChange = { selectedSeasonNumber = it },
+            watchHistory = watchHistory,
+            selectedSeasonId = selectedSeason?.animeId ?: displayAnime.id,
+            onSeasonChange = { id -> 
+                effectiveSeasons.find { it.animeId == id }?.let { viewModel.selectSeason(it) }
+            },
+            episodes = episodes,
             onEpisodeSelected = { ep ->
                 onEpisodeSelected(ep)
                 showEpisodesSheet = false
@@ -708,7 +569,6 @@ fun AnimeDetailView(
         )
     }
 
-    // 8. YOUTUBE-STYLE DESCRIPTION MODAL BOTTOM SHEET (WITH VERTICAL POSTER)
     if (showDescriptionSheet) {
         ModalBottomSheet(
             onDismissRequest = { showDescriptionSheet = false },
@@ -750,7 +610,7 @@ fun AnimeDetailView(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Đóng",
+                                contentDescription = "Close",
                                 tint = TextSecondary,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -774,8 +634,8 @@ fun AnimeDetailView(
                                 .border(1.dp, CardBorderDark, RoundedCornerShape(8.dp))
                         ) {
                             AsyncImage(
-                                model = anime.posterUrl,
-                                contentDescription = anime.title,
+                                model = displayAnime.posterUrl,
+                                contentDescription = displayAnime.title,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -797,7 +657,7 @@ fun AnimeDetailView(
                                     )
                                     Spacer(modifier = Modifier.width(2.dp))
                                     Text(
-                                        text = String.format("%.1f", anime.rating),
+                                        text = String.format("%.1f", displayAnime.rating ?: 0f),
                                         color = TextPrimary,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold
@@ -811,7 +671,7 @@ fun AnimeDetailView(
                         // Title, original name, studio & views
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = anime.title,
+                                text = displayAnime.title,
                                 color = TextPrimary,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
@@ -819,7 +679,7 @@ fun AnimeDetailView(
                             )
                             Spacer(modifier = Modifier.height(3.dp))
                             Text(
-                                text = anime.originalTitle,
+                                text = displayAnime.originalTitle,
                                 color = TextMuted,
                                 fontSize = 12.sp,
                                 fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
@@ -828,7 +688,7 @@ fun AnimeDetailView(
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Text(
-                                text = "${stringResource(R.string.metadata_year)} ${anime.releaseYear} • Studio: ${anime.studio}",
+                                text = "${stringResource(R.string.metadata_year)} ${displayAnime.releaseYear?.name ?: ""} • Studio: ${displayAnime.studio?.name ?: ""}",
                                 color = TextSecondary,
                                 fontSize = 12.sp
                             )
@@ -836,16 +696,16 @@ fun AnimeDetailView(
                             Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
-                                text = stringResource(R.string.views_format, anime.views),
+                                text = stringResource(R.string.views_format, formatNumber(displayAnime.views)),
                                 color = AnimeRed,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium
                             )
 
-                            if (!anime.nextEpisodeAirInfo.isNullOrBlank()) {
-                                Spacer(modifier = Modifier.height(6.dp))
+                            displayAnime.nextEpisodeAirInfo?.let { text ->
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "⏰ ${anime.nextEpisodeAirInfo}",
+                                    text = "⏰ $text",
                                     color = NeonCyan,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
@@ -867,7 +727,7 @@ fun AnimeDetailView(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = anime.description,
+                        text = displayAnime.description,
                         color = TextSecondary,
                         fontSize = 13.sp,
                         lineHeight = 20.sp
@@ -877,10 +737,10 @@ fun AnimeDetailView(
                     HorizontalDivider(color = CardBorderDark)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    MetadataDetailRow(stringResource(R.string.metadata_source), anime.sourceName)
+                    MetadataDetailRow(stringResource(R.string.metadata_source), uiState.sourceName)
                     MetadataDetailRow(
                         stringResource(R.string.metadata_status),
-                        when (anime.status) {
+                        when (displayAnime.status) {
                             AnimeStatus.ONGOING -> stringResource(R.string.status_ongoing)
                             AnimeStatus.COMPLETED -> stringResource(R.string.status_completed)
                             else -> stringResource(R.string.unknown)
@@ -888,19 +748,26 @@ fun AnimeDetailView(
                     )
                     MetadataDetailRow(
                         stringResource(R.string.metadata_episodes),
-                        anime.currentEpisode ?: "??/??"
+                        displayAnime.currentEpisode ?: "??/??"
                     )
                     MetadataDetailRow(
                         stringResource(R.string.metadata_seasons),
                         stringResource(R.string.metadata_seasons_count, effectiveSeasons.size)
                     )
+                    displayAnime.seasonOf?.let {
+                        MetadataDetailRow("Thuộc series", it.name)
+                    }
                     MetadataDetailRow(
                         stringResource(R.string.metadata_year),
-                        "${anime.releaseYear}"
+                        displayAnime.releaseYear?.name ?: stringResource(R.string.unknown)
+                    )
+                    MetadataDetailRow(
+                        "Quốc gia",
+                        displayAnime.countries.joinToString(", ") { it.name }
                     )
                     MetadataDetailRow(
                         stringResource(R.string.metadata_genres),
-                        anime.genres.joinToString(", ")
+                        displayAnime.genres.joinToString(", ") { it.name }
                     )
                 }
             }

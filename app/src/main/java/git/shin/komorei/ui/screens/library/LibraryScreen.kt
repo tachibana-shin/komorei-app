@@ -176,6 +176,7 @@ fun LibraryScreen(
                 onAnimeClick = onAnimeClick,
                 isGrid = true,
                 icon = if (selectedSubTab == 0) Icons.Default.Bookmark else Icons.Default.History,
+                getSourceName = { viewModel.getSourceName(it) },
                 rightContent = {
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(

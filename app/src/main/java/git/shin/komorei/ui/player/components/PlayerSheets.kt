@@ -78,9 +78,10 @@ fun EpisodesBottomSheet(
     anime: Anime,
     seasons: List<AnimeSeason>,
     currentEpisode: Episode,
-    watchHistory: List<WatchHistory>, // New parameter
-    selectedSeasonNumber: Int,
-    onSeasonChange: (Int) -> Unit,
+    watchHistory: List<WatchHistory>,
+    selectedSeasonId: String, // Changed to animeId
+    episodes: List<Episode>,
+    onSeasonChange: (String) -> Unit, // Changed to animeId
     onEpisodeSelected: (Episode) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -89,16 +90,13 @@ fun EpisodesBottomSheet(
     var searchQuery by remember { mutableStateOf("") }
     var isAscending by remember { mutableStateOf(true) }
 
-    val activeSeason = remember(selectedSeasonNumber, seasons) {
-        seasons.find { it.seasonNumber == selectedSeasonNumber } ?: seasons.firstOrNull()
-        ?: AnimeSeason(anime.id, 1, "Phần 1", anime.episodes)
-    }
+    val activeSeason = seasons.find { it.animeId == selectedSeasonId } ?: seasons.firstOrNull() ?: AnimeSeason(anime.id, "Phần 1")
 
-    val filteredEpisodes = remember(activeSeason.episodes, searchQuery, isAscending) {
+    val filteredEpisodes = remember(episodes, searchQuery, isAscending) {
         val list = if (searchQuery.isBlank()) {
-            activeSeason.episodes
+            episodes
         } else {
-            activeSeason.episodes.filter { ep ->
+            episodes.filter { ep ->
                 ep.episodeNumber.contains(searchQuery.trim()) ||
                         ep.title.contains(searchQuery.trim(), ignoreCase = true)
             }
@@ -192,16 +190,16 @@ fun EpisodesBottomSheet(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(seasons) { season ->
-                        val isSelected = season.seasonNumber == selectedSeasonNumber
+                        val isSelected = season.animeId == selectedSeasonId
                         Surface(
-                            onClick = { onSeasonChange(season.seasonNumber) },
+                            onClick = { onSeasonChange(season.animeId) },
                             color = if (isSelected) AnimeRedContainer else SurfaceDark,
                             shape = RoundedCornerShape(20.dp),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
                                 if (isSelected) AnimeRed else CardBorderDark
                             ),
-                            modifier = Modifier.testTag("sheet_season_tab_${season.seasonNumber}")
+                            modifier = Modifier.testTag("sheet_season_tab_${season.animeId}")
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -217,7 +215,7 @@ fun EpisodesBottomSheet(
                                     Spacer(modifier = Modifier.width(6.dp))
                                 }
                                 Text(
-                                    text = "${season.title} (${season.episodes.size})",
+                                    text = season.title,
                                     color = if (isSelected) AnimeRed else TextSecondary,
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium

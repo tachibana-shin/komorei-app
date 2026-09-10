@@ -3,6 +3,7 @@ package git.shin.komorei.ui.screens.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.LibraryRepository
 import git.shin.komorei.model.Anime
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,8 +14,13 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
-    private val libraryRepository: LibraryRepository
+    private val libraryRepository: LibraryRepository,
+    private val animeRepository: AnimeRepository
 ) : ViewModel() {
+
+    fun getSourceName(sourceId: String): String {
+        return animeRepository.getSourceName(sourceId)
+    }
 
     val bookmarkedAnimes: StateFlow<List<Anime>> = libraryRepository.bookmarkedAnimes
         .stateIn(

@@ -26,7 +26,8 @@ fun AnimeSection(
     modifier: Modifier = Modifier,
     isGrid: Boolean = false,
     icon: ImageVector? = null,
-    rightContent: (@Composable () -> Unit)? = null
+    rightContent: (@Composable () -> Unit)? = null,
+    getSourceName: (String) -> String = { it }
 ) {
     Column(
         modifier = modifier
@@ -50,7 +51,8 @@ fun AnimeSection(
                 items(items = animeList, key = { it.id }) { anime ->
                     AnimeCard(
                         anime = anime,
-                        onClick = { onAnimeClick(anime) }
+                        onClick = { onAnimeClick(anime) },
+                        getSourceName = getSourceName
                     )
                 }
             }
@@ -65,7 +67,8 @@ fun AnimeSection(
                     AnimeCard(
                         anime = anime,
                         onClick = { onAnimeClick(anime) },
-                        modifier = Modifier.width(110.dp)
+                        modifier = Modifier.width(110.dp),
+                        getSourceName = getSourceName
                     )
                 }
             }

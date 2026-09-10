@@ -22,39 +22,11 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
-    private val repository: AnimeRepository,
-    private val libraryRepository: LibraryRepository
+    private val repository: AnimeRepository
 ) : ViewModel() {
 
     private val _playbackState = MutableStateFlow(PlayerPlaybackState())
     val playbackState: StateFlow<PlayerPlaybackState> = _playbackState.asStateFlow()
-
-    val bookmarkedAnimeIds: StateFlow<Set<String>> = libraryRepository.bookmarkedAnimes
-        .map { list -> list.map { it.id }.toSet() }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
-
-    val watchHistory: StateFlow<List<WatchHistory>> = _playbackState
-        .flatMapLatest { state ->
-            val anime = state.currentAnime
-            if (anime != null) {
-                libraryRepository.getWatchHistoryForAnime(anime.id, anime.sourceId)
-                    .map { entities ->
-                        entities.map { entity ->
-                            WatchHistory(
-                                animeId = entity.animeId,
-                                sourceId = entity.sourceId,
-                                episodeId = entity.episodeId,
-                                progressMs = entity.progressMs,
-                                durationMs = entity.durationMs,
-                                lastWatchedAt = entity.lastWatchedAt
-                            )
-                        }
-                    }
-            } else {
-                flowOf(emptyList())
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val allAnimes: List<Anime> = repository.sources.flatMap { src ->
         repository.getFeaturedAnime(src.id) + repository.getSectionsForSource(src.id).values.flatten()
@@ -81,15 +53,6 @@ class PlayerViewModel @Inject constructor(
                 sheetValue = PlayerSheetValue.EXPANDED
             )
         }
-
-        viewModelScope.launch {
-            libraryRepository.saveProgress(
-                anime = anime,
-                episode = targetEp,
-                progressMs = 0L,
-                durationMs = durationMs
-            )
-        }
     }
 
     fun setPlayerSheetValue(sheetValue: PlayerSheetValue) {
@@ -105,21 +68,12 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun selectEpisode(episode: Episode) {
-        val anime = _playbackState.value.currentAnime ?: return
         val durationMs = (episode.durationSeconds ?: 1440L) * 1000L
         _playbackState.update { current ->
             current.copy(
                 currentEpisode = episode,
                 isPlaying = true,
                 currentPositionMs = 0L,
-                durationMs = durationMs
-            )
-        }
-        viewModelScope.launch {
-            libraryRepository.saveProgress(
-                anime = anime,
-                episode = episode,
-                progressMs = 0L,
                 durationMs = durationMs
             )
         }
@@ -135,11 +89,6 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun toggleBookmark(animeId: String) {
-        val anime = _playbackState.value.currentAnime ?: return
-        if (anime.id != animeId) return
-        
-        viewModelScope.launch {
-            libraryRepository.toggleBookmark(anime)
-        }
+        // Handled by AnimeDetailViewModel or LibraryViewModel now
     }
 }

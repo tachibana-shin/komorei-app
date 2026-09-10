@@ -72,6 +72,10 @@ class SearchViewModel @Inject constructor(
         }
     }
 
+    fun getSourceName(sourceId: String): String {
+        return repository.getSourceName(sourceId)
+    }
+
     private fun executeSearch(query: String, genre: Genre?) {
         if (query.isBlank() && genre == null) {
             _searchUiState.value = SearchUiState.Idle

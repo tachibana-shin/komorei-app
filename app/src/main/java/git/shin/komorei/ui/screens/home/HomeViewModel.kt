@@ -36,6 +36,10 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun getSourceName(sourceId: String): String {
+        return repository.getSourceName(sourceId)
+    }
+
     fun loadSourceData(sourceId: String) {
         viewModelScope.launch {
             _sourceDataMap.update { map ->
