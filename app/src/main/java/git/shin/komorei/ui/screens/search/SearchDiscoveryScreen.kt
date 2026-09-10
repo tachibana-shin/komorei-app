@@ -247,7 +247,7 @@ fun SearchDiscoveryScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Đang tìm kiếm trên các nguồn...",
+                        text = stringResource(R.string.search_loading_message),
                         color = TextSecondary,
                         fontSize = 13.sp
                     )
@@ -284,7 +284,7 @@ fun SearchDiscoveryScreen(
                     ) {
                         item {
                             Text(
-                                text = "Tìm thấy ${state.totalCount} kết quả trên các nguồn:",
+                                text = stringResource(R.string.search_results_count, state.totalCount),
                                 color = TextSecondary,
                                 fontSize = 13.sp,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)

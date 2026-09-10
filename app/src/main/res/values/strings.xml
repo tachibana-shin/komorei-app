@@ -30,6 +30,8 @@
     <string name="no_results_title">Không tìm thấy anime phù hợp</string>
     <string name="no_results_subtitle">Thử đổi từ khóa hoặc chọn nguồn phát khác</string>
     <string name="anime_count_format">%1$d Anime</string>
+    <string name="search_loading_message">Đang tìm kiếm trên các nguồn…</string>
+    <string name="search_results_count">Tìm thấy %1$d kết quả trên các nguồn:</string>
 
     <!-- Library Screen -->
     <string name="library_title">Tủ Phim Của Bạn</string>
@@ -61,12 +63,14 @@
     <string name="following_anime">Đang theo dõi</string>
     <string name="share_anime">Chia sẻ</string>
     <string name="download_anime">Tải về</string>
+    <string name="report_anime">Báo cáo</string>
     <string name="description_title">Giới thiệu nội dung</string>
     <string name="episodes_header">Danh sách tập (%1$d tập)</string>
     <string name="related_anime_header">Có thể bạn sẽ thích</string>
     <string name="episode_format">Tập %1$d</string>
     <string name="episode_title_format">Tập %1$d - %2$s</string>
     <string name="episode_playing_indicator">ĐANG PHÁT</string>
+    <string name="current_playing">Đang phát</string>
     <string name="badge_sub">Vietsub</string>
     <string name="status_ongoing">Đang chiếu</string>
     <string name="status_completed">Hoàn thành</string>
@@ -75,6 +79,25 @@
     <string name="desc_collapse">Thu gọn ▲</string>
     <string name="desc_expand">Xem thêm ▼</string>
     <string name="now_watching_ep">Đang xem: Tập %1$d</string>
+    <string name="comments_title">Bình luận</string>
+    <string name="episode_search_hint">Tìm theo số tập…</string>
+    <string name="episode_display_count">Hiển thị %1$d tập</string>
+    <string name="sort_oldest">Cũ nhất trước</string>
+    <string name="sort_newest">Mới nhất trước</string>
+    <string name="info_summary_title">Thông tin &amp; Giới thiệu</string>
+    <string name="plot_summary_title">Tóm tắt cốt truyện</string>
+    <string name="metadata_source">Nguồn phát:</string>
+    <string name="metadata_status">Tình trạng:</string>
+    <string name="metadata_episodes">Số tập hiện tại:</string>
+    <string name="metadata_seasons">Số phần (Seasons):</string>
+    <string name="metadata_seasons_count">%1$d phần</string>
+    <string name="metadata_year">Năm phát hành:</string>
+    <string name="metadata_genres">Thể loại:</string>
+    <string name="streaming_server_header">Máy chủ phát</string>
+    <string name="views_format">%1$s lượt xem</string>
+    <string name="server_name_fhd">Server 1 (FHD)</string>
+    <string name="server_name_vip">Storage VIP</string>
+    <string name="server_name_backup">Dự phòng</string>
 
     <!-- Accessibility Content Descriptions -->
     <string name="cd_app_logo">Biểu tượng Komorei</string>
