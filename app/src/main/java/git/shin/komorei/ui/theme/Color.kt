@@ -28,6 +28,7 @@ val CardBorderDark = Color(0xFF263248)
 val TextPrimary = Color(0xFFF8FAFC)
 val TextSecondary = Color(0xFF94A3B8)
 val TextMuted = Color(0xFF64748B)
+val TextGrey = Color(0xFF9E9E9E)
 
 val ShimmerBase = Color(0xFF1A2234)
 val ShimmerHighlight = Color(0xFF2E3D5C)

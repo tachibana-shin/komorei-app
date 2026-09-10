@@ -1,23 +1,17 @@
 package git.shin.komorei.ui.player
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,45 +20,27 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.ViewList
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -73,30 +49,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
-import git.shin.komorei.ui.components.AnimeCard
+import git.shin.komorei.model.AnimeStatus
+import git.shin.komorei.model.AnimeSeason
+import git.shin.komorei.model.Episode
+import git.shin.komorei.model.SelectedFilter
 import git.shin.komorei.ui.components.AnimeSection
+import git.shin.komorei.ui.components.Badge
 import git.shin.komorei.ui.components.DetailPillButton
 import git.shin.komorei.ui.components.MetadataDetailRow
 import git.shin.komorei.ui.components.ServerOptionChip
 import git.shin.komorei.ui.player.components.EpisodesBottomSheet
-import git.shin.komorei.model.AnimeSeason
-import git.shin.komorei.model.Episode
+import git.shin.komorei.ui.theme.Accent
+import git.shin.komorei.ui.theme.AnimeGreen
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeRedContainer
 import git.shin.komorei.ui.theme.BackgroundDark
@@ -104,12 +79,16 @@ import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.GoldRating
 import git.shin.komorei.ui.theme.NeonCyan
+import git.shin.komorei.ui.theme.NoPaddingTextStyle
+import git.shin.komorei.ui.theme.SmallTextStyle
 import git.shin.komorei.ui.theme.SurfaceDark
-import git.shin.komorei.ui.theme.SurfaceVariantDark
+import git.shin.komorei.ui.theme.TextGrey
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.utils.formatNumber
 
+@SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnimeDetailView(
@@ -120,6 +99,7 @@ fun AnimeDetailView(
     onEpisodeSelected: (Episode) -> Unit,
     onToggleBookmark: () -> Unit,
     onAnimeSelected: (Anime) -> Unit,
+    onNavigateToCategory: (List<SelectedFilter>) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showDescriptionSheet by remember { mutableStateOf(false) }
@@ -132,7 +112,7 @@ fun AnimeDetailView(
         if (anime.seasons.isNotEmpty()) {
             anime.seasons
         } else {
-            listOf(AnimeSeason(1, "Phần 1", anime.episodes))
+            listOf(AnimeSeason(anime.id, 1, "Full Season", anime.episodes))
         }
     }
 
@@ -144,7 +124,8 @@ fun AnimeDetailView(
     }
 
     val currentSeason = remember(selectedSeasonNumber, effectiveSeasons) {
-        effectiveSeasons.find { it.seasonNumber == selectedSeasonNumber } ?: effectiveSeasons.first()
+        effectiveSeasons.find { it.seasonNumber == selectedSeasonNumber }
+            ?: effectiveSeasons.first()
     }
 
     val descSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -188,79 +169,208 @@ fun AnimeDetailView(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Standard clean metadata text line: Năm • Số tập • Nguồn • Trạng thái
+                // View + next time play
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.padding(top = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${anime.releaseYear}",
-                        color = TextMuted,
-                        fontSize = 12.sp
+                        text = stringResource(R.string.views_count, formatNumber(anime.views)),
+                        color = TextGrey,
+                        fontSize = 14.sp,
+                        style = NoPaddingTextStyle
                     )
-                    Text(text = " • ", color = TextMuted, fontSize = 12.sp)
-                    Text(
-                        text = anime.currentEpisodeBadge,
-                        color = TextMuted,
-                        fontSize = 12.sp
-                    )
-                    Text(text = " • ", color = TextMuted, fontSize = 12.sp)
-                    Text(
-                        text = anime.sourceName,
-                        color = AnimeRed,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(text = " • ", color = TextMuted, fontSize = 12.sp)
-                    Text(
-                        text = anime.status,
-                        color = TextSecondary,
-                        fontSize = 12.sp
-                    )
+
+                    anime.nextEpisodeAirInfo?.let { text ->
+                        Text(
+                            text = " • ",
+                            color = TextGrey,
+                            fontSize = 14.sp,
+                            style = NoPaddingTextStyle
+                        )
+
+                        Text(
+                            text = text,
+                            color = Accent,
+                            fontSize = 14.sp,
+                            style = NoPaddingTextStyle
+                        )
+                    }
                 }
+            }
 
-                // Next Episode Air schedule if available (plain uncolored text without icon)
-                if (!anime.nextEpisodeAirInfo.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = anime.nextEpisodeAirInfo,
-                        color = TextMuted,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Normal
-                    )
-                }
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    // Author and Studio Section
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (anime.authors.isNotEmpty()) {
+                            Text(
+                                text = stringResource(R.string.author_label) + " ",
+                                color = TextGrey,
+                                fontSize = 14.sp,
+                                style = NoPaddingTextStyle
+                            )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = anime.authors.first().name,
+                                color = if (anime.authors.first().filters.isNotEmpty()) AnimeGreen else TextPrimary,
+                                fontSize = 14.sp,
+                                style = NoPaddingTextStyle,
+                                modifier = Modifier.clickable(enabled = anime.authors.first().filters.isNotEmpty()) {
+                                    onNavigateToCategory(anime.authors.first().filters)
+                                }
+                            )
 
-                // Rating & Genres
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        tint = GoldRating,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text(
-                        text = String.format("%.1f", anime.rating),
-                        color = TextPrimary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "${stringResource(R.string.views_format, anime.views)} • ${anime.studio}",
-                        color = TextMuted,
-                        fontSize = 11.sp
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "• " + anime.genres.take(2).joinToString(", "),
-                        color = TextMuted,
-                        fontSize = 11.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                            Text(
+                                text = " | ",
+                                color = TextGrey,
+                                fontSize = 14.sp,
+                                style = NoPaddingTextStyle
+                            )
+                        }
+
+                        Text(
+                            text = stringResource(
+                                R.string.studio_prefix,
+                                anime.studio?.name ?: stringResource(R.string.unknown)
+                            ),
+                            color = if (anime.studio != null && anime.studio.filters.isNotEmpty()) AnimeGreen else TextGrey,
+                            fontSize = 14.sp,
+                            style = NoPaddingTextStyle,
+                            modifier = Modifier.clickable(enabled = anime.studio != null && anime.studio.filters.isNotEmpty()) {
+                                anime.studio?.let {
+                                    onNavigateToCategory(it.filters)
+                                }
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Badges row
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (!anime.qualityTag.isNullOrEmpty()) {
+                            Text(
+                                text = anime.qualityTag,
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                style = NoPaddingTextStyle,
+                                modifier = Modifier
+                                    .padding(6.dp)
+                                    .background(
+                                        Color(0xFF00C853).copy(alpha = .85f),
+                                        RoundedCornerShape(4.dp)
+                                    )
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        if (anime.releaseYear != null) {
+                            Badge(
+                                text = anime.releaseYear.name,
+                                textStyle = NoPaddingTextStyle,
+                                modifier = Modifier.clickable(enabled = anime.releaseYear.filters.isNotEmpty()) {
+                                    onNavigateToCategory(anime.releaseYear.filters)
+                                }
+                            )
+                        }
+                        if (!anime.currentEpisode.isNullOrEmpty()) {
+                            Badge(
+                                text = stringResource(R.string.updated_to_episode, anime.currentEpisode),
+                                textStyle = NoPaddingTextStyle
+                            )
+                        }
+                        if (anime.countries.isNotEmpty()) {
+                            Text(
+                                text = anime.countries.first().name,
+                                color = if (anime.countries.first().filters.isNotEmpty()) AnimeGreen else TextPrimary,
+                                fontSize = 14.sp,
+                                style = NoPaddingTextStyle,
+                                modifier = Modifier.clickable(enabled = anime.countries.first().filters.isNotEmpty()) {
+                                    onNavigateToCategory(anime.countries.first().filters)
+                                }
+                            )
+                        }
+                    }
+
+                    // Rating info (Stars on new line)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Text(
+                            text = anime.rating.toString(),
+                            color = TextPrimary,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            style = NoPaddingTextStyle
+                        )
+                        Icon(
+                            Icons.Default.Star,
+                            null,
+                            tint = GoldRating,
+                            modifier = Modifier.size(14.dp)
+                        )
+
+                        anime.ratingCount?.let {
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Text(
+                                text = stringResource(
+                                    R.string.rating_count,
+                                    formatNumber(it)
+                                ),
+                                color = TextGrey,
+                                fontSize = 14.sp,
+                                style = NoPaddingTextStyle
+                            )
+                        }
+                        anime.seasonOf?.let {
+                            Text(
+                                text = " | ",
+                                color = TextGrey,
+                                fontSize = 14.sp,
+                                style = NoPaddingTextStyle
+                            )
+
+                            Text(
+                                text = it.name,
+                                color = if (it.filters.isNotEmpty()) AnimeGreen else TextPrimary,
+                                fontSize = 14.sp,
+                                style = NoPaddingTextStyle,
+                                modifier = Modifier.clickable(enabled = it.filters.isNotEmpty()) {
+                                    onNavigateToCategory(it.filters)
+                                }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Tags/Genres
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        anime.genres.forEach { genre ->
+                            Text(
+                                text = "#${genre.name}",
+                                color = if (genre.filters.isNotEmpty()) AnimeGreen else TextSecondary,
+                                fontSize = 14.sp,
+                                style = SmallTextStyle,
+                                modifier = Modifier
+                                    .padding(vertical = 1.dp)
+                                    .clickable(enabled = genre.filters.isNotEmpty()) {
+                                        onNavigateToCategory(genre.filters)
+                                    }
+                            )
+                        }
+                    }
+
                 }
             }
         }
@@ -276,7 +386,9 @@ fun AnimeDetailView(
             ) {
                 DetailPillButton(
                     icon = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkAdd,
-                    label = if (isBookmarked) stringResource(R.string.following_anime) else stringResource(R.string.follow_anime),
+                    label = if (isBookmarked) stringResource(R.string.following_anime) else stringResource(
+                        R.string.follow_anime
+                    ),
                     isActive = isBookmarked,
                     onClick = onToggleBookmark,
                     tag = "btn_bookmark"
@@ -355,7 +467,10 @@ fun AnimeDetailView(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = stringResource(R.string.episodes_header, currentSeason.episodes.size),
+                            text = stringResource(
+                                R.string.episodes_header,
+                                currentSeason.episodes.size
+                            ),
                             color = TextPrimary,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
@@ -545,14 +660,10 @@ fun AnimeDetailView(
 
         // 6. ĐỀ XUẤT CHO BẠN
         item {
-            val relatedList = remember(anime.id, relatedAnimeList) {
-                relatedAnimeList.filter { it.id != anime.id }
-            }
-
-            if (relatedList.isNotEmpty()) {
+            if (relatedAnimeList.isNotEmpty()) {
                 AnimeSection(
                     title = stringResource(R.string.related_anime_header),
-                    animeList = relatedList,
+                    animeList = relatedAnimeList,
                     onAnimeClick = onAnimeSelected
                 )
             }
@@ -745,11 +856,30 @@ fun AnimeDetailView(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     MetadataDetailRow(stringResource(R.string.metadata_source), anime.sourceName)
-                    MetadataDetailRow(stringResource(R.string.metadata_status), anime.status)
-                    MetadataDetailRow(stringResource(R.string.metadata_episodes), anime.currentEpisodeBadge)
-                    MetadataDetailRow(stringResource(R.string.metadata_seasons), stringResource(R.string.metadata_seasons_count, effectiveSeasons.size))
-                    MetadataDetailRow(stringResource(R.string.metadata_year), "${anime.releaseYear}")
-                    MetadataDetailRow(stringResource(R.string.metadata_genres), anime.genres.joinToString(", "))
+                    MetadataDetailRow(
+                        stringResource(R.string.metadata_status),
+                        when (anime.status) {
+                            AnimeStatus.ONGOING -> stringResource(R.string.status_ongoing)
+                            AnimeStatus.COMPLETED -> stringResource(R.string.status_completed)
+                            else -> stringResource(R.string.unknown)
+                        }
+                    )
+                    MetadataDetailRow(
+                        stringResource(R.string.metadata_episodes),
+                        anime.currentEpisode ?: "??/??"
+                    )
+                    MetadataDetailRow(
+                        stringResource(R.string.metadata_seasons),
+                        stringResource(R.string.metadata_seasons_count, effectiveSeasons.size)
+                    )
+                    MetadataDetailRow(
+                        stringResource(R.string.metadata_year),
+                        "${anime.releaseYear}"
+                    )
+                    MetadataDetailRow(
+                        stringResource(R.string.metadata_genres),
+                        anime.genres.joinToString(", ")
+                    )
                 }
             }
         }

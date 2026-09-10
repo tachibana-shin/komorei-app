@@ -44,9 +44,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.PlayerSheetValue
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import git.shin.komorei.ui.navigation.Screen
 import git.shin.komorei.ui.player.PlayerViewModel
 import git.shin.komorei.ui.player.VideoPlayerSheet
 import git.shin.komorei.ui.screens.home.HomeScreen
@@ -63,12 +70,14 @@ import git.shin.komorei.ui.theme.TextPrimary
 
 @Composable
 fun MainScreen(
-    playerViewModel: PlayerViewModel = viewModel(),
-    homeViewModel: HomeViewModel = viewModel(),
-    searchViewModel: SearchViewModel = viewModel(),
-    libraryViewModel: LibraryViewModel = viewModel()
+    playerViewModel: PlayerViewModel = hiltViewModel(),
+    homeViewModel: HomeViewModel = hiltViewModel(),
+    searchViewModel: SearchViewModel = hiltViewModel(),
+    libraryViewModel: LibraryViewModel = hiltViewModel(),
+    navController: NavHostController = rememberNavController()
 ) {
-    var currentTab by rememberSaveable { mutableIntStateOf(0) }
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Home.route
 
     val playbackState by playerViewModel.playbackState.collectAsState()
     val bookmarkedIds by playerViewModel.bookmarkedAnimeIds.collectAsState()
@@ -81,7 +90,6 @@ fun MainScreen(
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(BackgroundDark)) {
         val isWideScreen = maxWidth > 600.dp
         val isPlayerExpanded = playbackState.sheetValue == PlayerSheetValue.EXPANDED
-        val bottomNavHeight = if (isWideScreen) 0.dp else 74.dp
 
         if (isWideScreen) {
             // TABLET / LANDSCAPE: Navigation Rail on the left
@@ -94,11 +102,18 @@ fun MainScreen(
                         .testTag("main_navigation_rail")
                 ) {
                     NavigationRailItem(
-                        selected = currentTab == 0,
-                        onClick = { currentTab = 0 },
+                        selected = currentRoute == Screen.Home.route,
+                        onClick = {
+                            if (currentRoute != Screen.Home.route) {
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(navController.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+                        },
                         icon = {
                             Icon(
-                                imageVector = if (currentTab == 0) Icons.Filled.Home else Icons.Outlined.Home,
+                                imageVector = if (currentRoute == Screen.Home.route) Icons.Filled.Home else Icons.Outlined.Home,
                                 contentDescription = stringResource(R.string.tab_home)
                             )
                         },
@@ -114,11 +129,18 @@ fun MainScreen(
                     )
 
                     NavigationRailItem(
-                        selected = currentTab == 1,
-                        onClick = { currentTab = 1 },
+                        selected = currentRoute == Screen.Search.route,
+                        onClick = {
+                            if (currentRoute != Screen.Search.route) {
+                                navController.navigate(Screen.Search.route) {
+                                    popUpTo(navController.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+                        },
                         icon = {
                             Icon(
-                                imageVector = if (currentTab == 1) Icons.Filled.Explore else Icons.Outlined.Explore,
+                                imageVector = if (currentRoute == Screen.Search.route) Icons.Filled.Explore else Icons.Outlined.Explore,
                                 contentDescription = stringResource(R.string.tab_search)
                             )
                         },
@@ -134,11 +156,18 @@ fun MainScreen(
                     )
 
                     NavigationRailItem(
-                        selected = currentTab == 2,
-                        onClick = { currentTab = 2 },
+                        selected = currentRoute == Screen.Library.route,
+                        onClick = {
+                            if (currentRoute != Screen.Library.route) {
+                                navController.navigate(Screen.Library.route) {
+                                    popUpTo(navController.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+                        },
                         icon = {
                             Icon(
-                                imageVector = if (currentTab == 2) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                                imageVector = if (currentRoute == Screen.Library.route) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
                                 contentDescription = stringResource(R.string.tab_library)
                             )
                         },
@@ -156,21 +185,25 @@ fun MainScreen(
 
                 // Main Content
                 Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    Crossfade(
-                        targetState = currentTab,
-                        animationSpec = tween(250),
-                        label = "tab_crossfade"
-                    ) { page ->
-                        when (page) {
-                            0 -> HomeScreen(
+                    NavHost(
+                        navController = navController,
+                        startDestination = Screen.Home.route,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        composable(Screen.Home.route) {
+                            HomeScreen(
                                 onAnimeClick = onAnimeSelect,
                                 viewModel = homeViewModel
                             )
-                            1 -> SearchDiscoveryScreen(
+                        }
+                        composable(Screen.Search.route) {
+                            SearchDiscoveryScreen(
                                 onAnimeClick = onAnimeSelect,
                                 viewModel = searchViewModel
                             )
-                            2 -> LibraryScreen(
+                        }
+                        composable(Screen.Library.route) {
+                            LibraryScreen(
                                 onAnimeClick = onAnimeSelect,
                                 viewModel = libraryViewModel
                             )
@@ -195,6 +228,9 @@ fun MainScreen(
                             },
                             onDismiss = { playerViewModel.dismissPlayer() },
                             onAnimeSelected = { onAnimeSelect(it) },
+                            onNavigateToCategory = { filters ->
+                                // navController.navigate(...)
+                            },
                             bottomNavHeight = 0.dp
                         )
                     }
@@ -217,11 +253,18 @@ fun MainScreen(
                                 .testTag("main_bottom_navigation")
                         ) {
                             NavigationBarItem(
-                                selected = currentTab == 0,
-                                onClick = { currentTab = 0 },
+                                selected = currentRoute == Screen.Home.route,
+                                onClick = {
+                                    if (currentRoute != Screen.Home.route) {
+                                        navController.navigate(Screen.Home.route) {
+                                            popUpTo(navController.graph.startDestinationId)
+                                            launchSingleTop = true
+                                        }
+                                    }
+                                },
                                 icon = {
                                     Icon(
-                                        imageVector = if (currentTab == 0) Icons.Filled.Home else Icons.Outlined.Home,
+                                        imageVector = if (currentRoute == Screen.Home.route) Icons.Filled.Home else Icons.Outlined.Home,
                                         contentDescription = stringResource(R.string.tab_home)
                                     )
                                 },
@@ -237,11 +280,18 @@ fun MainScreen(
                             )
 
                             NavigationBarItem(
-                                selected = currentTab == 1,
-                                onClick = { currentTab = 1 },
+                                selected = currentRoute == Screen.Search.route,
+                                onClick = {
+                                    if (currentRoute != Screen.Search.route) {
+                                        navController.navigate(Screen.Search.route) {
+                                            popUpTo(navController.graph.startDestinationId)
+                                            launchSingleTop = true
+                                        }
+                                    }
+                                },
                                 icon = {
                                     Icon(
-                                        imageVector = if (currentTab == 1) Icons.Filled.Explore else Icons.Outlined.Explore,
+                                        imageVector = if (currentRoute == Screen.Search.route) Icons.Filled.Explore else Icons.Outlined.Explore,
                                         contentDescription = stringResource(R.string.tab_search)
                                     )
                                 },
@@ -257,11 +307,18 @@ fun MainScreen(
                             )
 
                             NavigationBarItem(
-                                selected = currentTab == 2,
-                                onClick = { currentTab = 2 },
+                                selected = currentRoute == Screen.Library.route,
+                                onClick = {
+                                    if (currentRoute != Screen.Library.route) {
+                                        navController.navigate(Screen.Library.route) {
+                                            popUpTo(navController.graph.startDestinationId)
+                                            launchSingleTop = true
+                                        }
+                                    }
+                                },
                                 icon = {
                                     Icon(
-                                        imageVector = if (currentTab == 2) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                                        imageVector = if (currentRoute == Screen.Library.route) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
                                         contentDescription = stringResource(R.string.tab_library)
                                     )
                                 },
@@ -291,21 +348,25 @@ fun MainScreen(
                             .fillMaxSize()
                             .padding(bottom = actualBottomNavHeight + (if (isMiniPlayerShowing) 64.dp else 0.dp))
                     ) {
-                        Crossfade(
-                            targetState = currentTab,
-                            animationSpec = tween(250),
-                            label = "tab_crossfade"
-                        ) { page ->
-                            when (page) {
-                                0 -> HomeScreen(
+                        NavHost(
+                            navController = navController,
+                            startDestination = Screen.Home.route,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            composable(Screen.Home.route) {
+                                HomeScreen(
                                     onAnimeClick = onAnimeSelect,
                                     viewModel = homeViewModel
                                 )
-                                1 -> SearchDiscoveryScreen(
+                            }
+                            composable(Screen.Search.route) {
+                                SearchDiscoveryScreen(
                                     onAnimeClick = onAnimeSelect,
                                     viewModel = searchViewModel
                                 )
-                                2 -> LibraryScreen(
+                            }
+                            composable(Screen.Library.route) {
+                                LibraryScreen(
                                     onAnimeClick = onAnimeSelect,
                                     viewModel = libraryViewModel
                                 )
@@ -331,6 +392,9 @@ fun MainScreen(
                             },
                             onDismiss = { playerViewModel.dismissPlayer() },
                             onAnimeSelected = { onAnimeSelect(it) },
+                            onNavigateToCategory = { filters ->
+                                // navController.navigate(...)
+                            },
                             bottomNavHeight = if (isPlayerExpanded) 0.dp else actualBottomNavHeight
                         )
                     }

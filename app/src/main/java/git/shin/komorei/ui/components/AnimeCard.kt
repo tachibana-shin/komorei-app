@@ -108,21 +108,23 @@ fun AnimeCard(
             }
 
             // Top right slim compact episode badge (narrow, low vertical padding, subtle rounded corners)
-            Text(
-                text = anime.currentEpisodeBadge,
-                color = Color.White,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                style = TextStyle(
-                    platformStyle = PlatformTextStyle(includeFontPadding = false)
-                ),
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(6.dp)
-                    .background(Accent.copy(alpha = .85f), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-            )
+            anime.currentEpisode?.let { episode ->
+                Text(
+                    text = episode,
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    style = TextStyle(
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    ),
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(6.dp)
+                        .background(Accent.copy(alpha = .85f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
 
 
             // Rating & Views on bottom

@@ -164,14 +164,16 @@ fun BannerCarousel(
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(modifier = Modifier.width(8.dp))
+                            anime.currentEpisode?.let { episode ->
+                                Text(
+                                    text = episode,
+                                    color = TextSecondary,
+                                    fontSize = 11.sp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
                             Text(
-                                text = anime.currentEpisodeBadge,
-                                color = TextSecondary,
-                                fontSize = 11.sp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = anime.studio,
+                                text = anime.studio?.name ?: "",
                                 color = TextSecondary,
                                 fontSize = 11.sp
                             )

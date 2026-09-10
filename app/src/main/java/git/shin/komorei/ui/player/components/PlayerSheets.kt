@@ -59,7 +59,7 @@ fun EpisodesBottomSheet(
     var isAscending by remember { mutableStateOf(true) }
 
     val activeSeason = remember(selectedSeasonNumber, seasons) {
-        seasons.find { it.seasonNumber == selectedSeasonNumber } ?: seasons.firstOrNull() ?: AnimeSeason(1, "Phần 1", anime.episodes)
+        seasons.find { it.seasonNumber == selectedSeasonNumber } ?: seasons.firstOrNull() ?: AnimeSeason(anime.id, 1, "Phần 1", anime.episodes)
     }
 
     val filteredEpisodes = remember(activeSeason.episodes, searchQuery, isAscending) {
@@ -95,7 +95,7 @@ fun EpisodesBottomSheet(
                 .padding(horizontal = 16.dp)
                 .testTag("episodes_full_bottom_sheet")
         ) {
-            Row(
+            /*Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 12.dp),
@@ -135,25 +135,25 @@ fun EpisodesBottomSheet(
                     )
                 }
 
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(SurfaceDark)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = stringResource(R.string.cd_close_player),
-                        tint = TextSecondary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+//                IconButton(
+//                    onClick = onDismiss,
+//                    modifier = Modifier
+//                        .size(32.dp)
+//                        .clip(CircleShape)
+//                        .background(SurfaceDark)
+//                ) {
+//                    Icon(
+//                        imageVector = Icons.Default.Close,
+//                        contentDescription = stringResource(R.string.cd_close_player),
+//                        tint = TextSecondary,
+//                        modifier = Modifier.size(16.dp)
+//                    )
+//                }
             }
 
             HorizontalDivider(color = CardBorderDark.copy(alpha = 0.6f))
             Spacer(modifier = Modifier.height(10.dp))
-
+*/
             if (seasons.isNotEmpty()) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),

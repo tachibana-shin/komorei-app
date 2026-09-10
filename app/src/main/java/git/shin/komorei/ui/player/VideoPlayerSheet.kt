@@ -33,6 +33,7 @@ import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.PlayerPlaybackState
 import git.shin.komorei.model.PlayerSheetValue
+import git.shin.komorei.model.SelectedFilter
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.CardBorderDark
 import kotlin.math.roundToInt
@@ -49,6 +50,7 @@ fun VideoPlayerSheet(
     onToggleBookmark: () -> Unit,
     onDismiss: () -> Unit,
     onAnimeSelected: (Anime) -> Unit,
+    onNavigateToCategory: (List<SelectedFilter>) -> Unit,
     bottomNavHeight: androidx.compose.ui.unit.Dp = 80.dp,
     modifier: Modifier = Modifier
 ) {
@@ -197,6 +199,7 @@ fun VideoPlayerSheet(
                         onEpisodeSelected = onEpisodeSelected,
                         onToggleBookmark = onToggleBookmark,
                         onAnimeSelected = onAnimeSelected,
+                        onNavigateToCategory = onNavigateToCategory,
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)

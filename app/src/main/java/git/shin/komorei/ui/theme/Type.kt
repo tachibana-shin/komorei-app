@@ -1,6 +1,7 @@
 package git.shin.komorei.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -34,3 +35,10 @@ val Typography =
     )
     */
   )
+
+val NoPaddingTextStyle = TextStyle(
+  platformStyle = PlatformTextStyle(includeFontPadding = false)
+)
+val SmallTextStyle = NoPaddingTextStyle.copy(
+    lineHeight = 14.sp
+)

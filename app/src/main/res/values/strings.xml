@@ -10,7 +10,7 @@
 
     <!-- Home Screen -->
     <string name="badge_hot">HOT</string>
-    <string name="section_see_all">Xem tất cả ›</string>
+    <string name="section_see_all">Xem tất cả</string>
     <string name="section_trending">Thịnh hành nhất</string>
     <string name="section_new_releases">Tập mới cập nhật</string>
     <string name="section_action_selected">Anime hành động chọn lọc</string>
@@ -116,4 +116,24 @@
     <string name="cd_fullscreen">Toàn màn hình</string>
     <string name="cd_brightness">Độ sáng</string>
     <string name="cd_volume">Âm lượng</string>
+    <string name="views_count">%1$s lượt xem</string>
+    <string name="million_suffix">M</string>
+    <string name="thousand_suffix">T</string>
+    <string name="today_text">Hôm nay</string>
+    <string name="sunday_text">Chủ nhật</string>
+    <string name="day_of_week_format">Thứ %1$s</string>
+    <string name="this_week_text">Tuần này</string>
+    <string name="next_week_text">Tuần sau</string>
+    <string name="schedule_update_format">Tập mới chiếu vào %1$s %2$s %3$s</string>
+    <string name="just_now">Vừa xong</string>
+    <string name="minutes_ago">%1$d phút trước</string>
+    <string name="hours_ago">%1$d giờ trước</string>
+    <string name="days_ago">%1$d ngày trước</string>
+    <string name="months_ago">%1$d tháng trước</string>
+    <string name="years_ago">%1$d năm trước</string>
+    <string name="author_label">Tác giả</string>
+    <string name="updated_to_episode">Cập nhật tới tập %1$s</string>
+    <string name="studio_prefix">Studio %1$s</string>
+    <string name="unknown">không rõ</string>
+    <string name="rating_count">%1$s người đánh giá</string>
 </resources>

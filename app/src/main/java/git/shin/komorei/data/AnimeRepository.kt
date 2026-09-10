@@ -1,6 +1,8 @@
 package git.shin.komorei.data
 
 import git.shin.komorei.model.Anime
+import git.shin.komorei.model.AnimeStatus
+import git.shin.komorei.model.CategoryLink
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.Genre
 import git.shin.komorei.model.Source
@@ -13,7 +15,7 @@ import javax.inject.Singleton
 @Singleton
 class AnimeRepository @Inject constructor() {
 
-    // Available Sources (WASM plugin style like Aidoku/Stremio)
+    // Available Sources
     val sources: List<Source> = listOf(
         Source(
             id = "all",
@@ -57,7 +59,7 @@ class AnimeRepository @Inject constructor() {
         )
     )
 
-    // Curated discovery genres
+    // discovery genres
     val genres: List<Genre> = listOf(
         Genre("action", "Hành Động", "⚔️", 0xFFE53935, 142),
         Genre("isekai", "Chuyển Sinh", "🌀", 0xFF8E24AA, 98),
@@ -73,7 +75,6 @@ class AnimeRepository @Inject constructor() {
         Genre("mecha", "Mecha", "🤖", 0xFF546E7A, 42)
     )
 
-    // Standard high-reliability public video streams for ExoPlayer
     private val videoUrls = listOf(
         "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
         "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
@@ -104,21 +105,21 @@ class AnimeRepository @Inject constructor() {
         }
     }
 
-    private val allAnimes: List<Anime> by lazy {
-        val soloS1Eps = generateEpisodes("solo_leveling_s2", "animevietsub", 12, "Thợ Săn Hạng E", 1)
+    val allAnimes: List<Anime> by lazy {
+        val soloS1Eps = generateEpisodes("solo_leveling", "animevietsub", 12, "Thợ Săn Hạng E", 1)
         val soloS2Eps = generateEpisodes("solo_leveling_s2", "animevietsub", 13, "Chúa Tể Bóng Tối", 2)
 
         val dandadanS1Eps = generateEpisodes("dandadan", "animevietsub", 12, "Chạm Trán Siêu Nhiên", 1)
-        val dandadanS2Eps = generateEpisodes("dandadan", "animevietsub", 12, "Cuộc Chiến Quỷ Ác Tà", 2)
+        val dandadanS2Eps = generateEpisodes("dandadan_s2", "animevietsub", 12, "Cuộc Chiến Quỷ Ác Tà", 2)
 
-        val jjkS1Eps = generateEpisodes("jujutsu_kaisen_s2", "gogoanime", 24, "Ngón Tay Sukuna", 1)
+        val jjkS1Eps = generateEpisodes("jujutsu_kaisen", "gogoanime", 24, "Ngón Tay Sukuna", 1)
         val jjkS2Eps = generateEpisodes("jujutsu_kaisen_s2", "gogoanime", 23, "Thảm Kịch Shibuya", 2)
 
-        val dsS1Eps = generateEpisodes("demon_slayer_hashira", "vuighe", 11, "Phố Đèn Đỏ", 1)
-        val dsS2Eps = generateEpisodes("demon_slayer_hashira", "vuighe", 11, "Làng Thợ Rèn", 2)
+        val dsS1Eps = generateEpisodes("demon_slayer_s1", "vuighe", 11, "Phố Đèn Đỏ", 1)
+        val dsS2Eps = generateEpisodes("demon_slayer_s2", "vuighe", 11, "Làng Thợ Rèn", 2)
         val dsS3Eps = generateEpisodes("demon_slayer_hashira", "vuighe", 8, "Khóa Huấn Luyện", 3)
 
-        val mushokuS1Eps = generateEpisodes("mushoku_tensei_s2", "hidive", 12, "Học Viện Phép Thuật", 1)
+        val mushokuS1Eps = generateEpisodes("mushoku_tensei", "hidive", 12, "Học Viện Phép Thuật", 1)
         val mushokuS2Eps = generateEpisodes("mushoku_tensei_s2", "hidive", 12, "Mê Cung Rapan", 2)
 
         listOf(
@@ -132,20 +133,22 @@ class AnimeRepository @Inject constructor() {
                 bannerUrl = "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&auto=format&fit=crop&q=80",
                 description = "Sung Jin-woo tiếp tục hành trình thức tỉnh sức mạnh Chúa Tể Bóng Tối, đối mặt với các Thợ Săn Cấp Quốc Gia và giải cứu thế giới khỏi hiểm họa hầm ngục.",
                 episodeCount = 13,
-                currentEpisodeBadge = "Tập 10/13",
+                currentEpisode = "Tập 10/13",
                 rating = 4.95f,
-                releaseYear = 2025,
-                genres = listOf("Hành Động", "Siêu Nhiên", "Chuyển Sinh", "Shounen"),
-                status = "Đang Phát Sóng",
-                studio = "A-1 Pictures",
+                ratingCount = 12500,
+                releaseYear = CategoryLink("2025"),
+                genres = listOf(CategoryLink("Hành Động"), CategoryLink("Siêu Nhiên")),
+                authors = listOf(CategoryLink("Chugong")),
+                studio = CategoryLink("A-1 Pictures"),
+                seasonOf = null,
+                status = AnimeStatus.ONGOING,
                 isFeatured = true,
-                views = "2.8M",
-                section = "Xu Hướng Mùa Này",
+                views = 2800000,
                 nextEpisodeAirInfo = "Tập 11 phát sóng lúc 22:30 Thứ Bảy ngày 12/10",
                 episodes = soloS2Eps,
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason(1, "Phần 1: Thức Tỉnh", soloS1Eps),
-                    git.shin.komorei.model.AnimeSeason(2, "Phần 2: Arise", soloS2Eps)
+                    git.shin.komorei.model.AnimeSeason("solo_leveling", 1, "Phần 1: Thức Tỉnh", soloS1Eps),
+                    git.shin.komorei.model.AnimeSeason("solo_leveling_s2", 2, "Phần 2: Arise", soloS2Eps)
                 )
             ),
             Anime(
@@ -158,18 +161,20 @@ class AnimeRepository @Inject constructor() {
                 bannerUrl = "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1200&auto=format&fit=crop&q=80",
                 description = "Hành trình sâu lắng của pháp sư Elf Frieren sau khi Đội Anh Hùng đánh bại Quỷ Vương, đi tìm ý nghĩa của cuộc sống và sự hữu hạn của thời gian.",
                 episodeCount = 28,
-                currentEpisodeBadge = "Tập 28/28 End",
+                currentEpisode = "Tập 28/28 End",
                 rating = 4.98f,
-                releaseYear = 2024,
-                genres = listOf("Phiêu Lưu", "Giả Tưởng", "Hài Hước"),
-                status = "Hoàn Tất",
-                studio = "Madhouse",
+                ratingCount = 8500,
+                releaseYear = CategoryLink("2024"),
+                genres = listOf(CategoryLink("Phiêu Lưu"), CategoryLink("Giả Tưởng")),
+                authors = listOf(CategoryLink("Kanehito Yamada")),
+                studio = CategoryLink("Madhouse"),
+                seasonOf = null,
+                status = AnimeStatus.COMPLETED,
                 isFeatured = true,
-                views = "4.1M",
-                section = "Anime Bộ",
+                views = 4100000,
                 episodes = generateEpisodes("frieren_journey", "vuighe", 28, "Hành Trình Mới", 1),
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason(1, "Phần 1: Hành Trình Mới", generateEpisodes("frieren_journey", "vuighe", 28, "Hành Trình Mới", 1))
+                    git.shin.komorei.model.AnimeSeason("frieren_journey", 1, "Phần 1: Hành Trình Mới", generateEpisodes("frieren_journey", "vuighe", 28, "Hành Trình Mới", 1))
                 )
             ),
             Anime(
@@ -182,20 +187,22 @@ class AnimeRepository @Inject constructor() {
                 bannerUrl = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1200&auto=format&fit=crop&q=80",
                 description = "Momo Ayase tin vào ma quỷ nhưng không tin người ngoài hành tinh. Okarun ngược lại. Một vụ cá cược định mệnh đưa họ vào thế giới hỗn loạn của quái vật và thế lực kỳ bí.",
                 episodeCount = 24,
-                currentEpisodeBadge = "Tập 12/24",
+                currentEpisode = "Tập 12/24",
                 rating = 4.91f,
-                releaseYear = 2024,
-                genres = listOf("Hành Động", "Siêu Nhiên", "Hài Hước", "Học Đường"),
-                status = "Đang Phát Sóng",
-                studio = "Science SARU",
+                ratingCount = 5200,
+                releaseYear = CategoryLink("2024"),
+                genres = listOf(CategoryLink("Hành Động"), CategoryLink("Siêu Nhiên")),
+                authors = listOf(CategoryLink("Yukinobu Tatsu")),
+                studio = CategoryLink("Science SARU"),
+                seasonOf = null,
+                status = AnimeStatus.ONGOING,
                 isFeatured = true,
-                views = "1.9M",
-                section = "Mới Cập Nhật",
+                views = 1900000,
                 nextEpisodeAirInfo = "Tập tiếp theo (Tập 13) phát lúc 23:00 Thứ Năm hàng tuần",
                 episodes = dandadanS1Eps,
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason(1, "Phần 1: Chạm Trán", dandadanS1Eps),
-                    git.shin.komorei.model.AnimeSeason(2, "Phần 2: Quỷ Ác Tà", dandadanS2Eps)
+                    git.shin.komorei.model.AnimeSeason("dandadan", 1, "Phần 1: Chạm Trán", dandadanS1Eps),
+                    git.shin.komorei.model.AnimeSeason("dandadan_s2", 2, "Phần 2: Quỷ Ác Tà", dandadanS2Eps)
                 )
             ),
             Anime(
@@ -208,19 +215,21 @@ class AnimeRepository @Inject constructor() {
                 bannerUrl = "https://images.unsplash.com/photo-1563089145-599997674d42?w=1200&auto=format&fit=crop&q=80",
                 description = "Cuộc chiến khốc liệt nhất lịch sử Chú Thuật Sư tại ngã tư Shibuya khi Gojo Satoru bị phong ấn trong Ngục Môn Cương.",
                 episodeCount = 23,
-                currentEpisodeBadge = "Tập 23/23 End",
+                currentEpisode = "Tập 23/23 End",
                 rating = 4.96f,
-                releaseYear = 2023,
-                genres = listOf("Hành Động", "Siêu Nhiên", "Shounen"),
-                status = "Hoàn Tất",
-                studio = "MAPPA",
+                ratingCount = 15000,
+                releaseYear = CategoryLink("2023"),
+                genres = listOf(CategoryLink("Hành Động"), CategoryLink("Shounen")),
+                authors = listOf(CategoryLink("Gege Akutami")),
+                studio = CategoryLink("MAPPA"),
+                seasonOf = null,
+                status = AnimeStatus.COMPLETED,
                 isFeatured = false,
-                views = "5.6M",
-                section = "Anime Bộ",
+                views = 5600000,
                 episodes = jjkS2Eps,
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason(1, "Phần 1: Chú Thuật", jjkS1Eps),
-                    git.shin.komorei.model.AnimeSeason(2, "Phần 2: Sự Cố Shibuya", jjkS2Eps)
+                    git.shin.komorei.model.AnimeSeason("jujutsu_kaisen", 1, "Phần 1: Chú Thuật", jjkS1Eps),
+                    git.shin.komorei.model.AnimeSeason("jujutsu_kaisen_s2", 2, "Phần 2: Sự Cố Shibuya", jjkS2Eps)
                 )
             ),
             Anime(
@@ -233,20 +242,22 @@ class AnimeRepository @Inject constructor() {
                 bannerUrl = "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1200&auto=format&fit=crop&q=80",
                 description = "Tanjiro và Sát Quỷ Đội bắt đầu đợt tập huấn khắc nghiệt dưới sự hướng dẫn của các Trụ Cột trước trận quyết chiến tại Vô Hạn Thành.",
                 episodeCount = 8,
-                currentEpisodeBadge = "Tập 8/8 End",
+                currentEpisode = "Tập 8/8 End",
                 rating = 4.88f,
-                releaseYear = 2024,
-                genres = listOf("Hành Động", "Shounen", "Siêu Nhiên"),
-                status = "Hoàn Tất",
-                studio = "ufotable",
+                ratingCount = 9800,
+                releaseYear = CategoryLink("2024"),
+                genres = listOf(CategoryLink("Hành Động"), CategoryLink("Shounen")),
+                authors = listOf(CategoryLink("Koyoharu Gotouge")),
+                studio = CategoryLink("ufotable"),
+                seasonOf = null,
+                status = AnimeStatus.COMPLETED,
                 isFeatured = true,
-                views = "3.4M",
-                section = "Mới Cập Nhật",
+                views = 3400000,
                 episodes = dsS3Eps,
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason(1, "Phần 1: Phố Đèn Đỏ", dsS1Eps),
-                    git.shin.komorei.model.AnimeSeason(2, "Phần 2: Làng Thợ Rèn", dsS2Eps),
-                    git.shin.komorei.model.AnimeSeason(3, "Phần 3: Đại Trụ Đặc Huấn", dsS3Eps)
+                    git.shin.komorei.model.AnimeSeason("demon_slayer_s1", 1, "Phần 1: Phố Đèn Đỏ", dsS1Eps),
+                    git.shin.komorei.model.AnimeSeason("demon_slayer_s2", 2, "Phần 2: Làng Thợ Rèn", dsS2Eps),
+                    git.shin.komorei.model.AnimeSeason("demon_slayer_hashira", 3, "Phần 3: Đại Trụ Đặc Huấn", dsS3Eps)
                 )
             ),
             Anime(
@@ -259,19 +270,21 @@ class AnimeRepository @Inject constructor() {
                 bannerUrl = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200&auto=format&fit=crop&q=80",
                 description = "Rudeus Greyrat đến Mê Cung Rapan để giải cứu mẹ Zenith cùng cha Paul và sư phụ Roxy, trải qua thử thách đầy cảm xúc.",
                 episodeCount = 12,
-                currentEpisodeBadge = "Tập 12/12 End",
+                currentEpisode = "Tập 12/12 End",
                 rating = 4.93f,
-                releaseYear = 2024,
-                genres = listOf("Chuyển Sinh", "Phiêu Lưu", "Giả Tưởng", "Harem"),
-                status = "Hoàn Tất",
-                studio = "Studio Bind",
+                ratingCount = 11000,
+                releaseYear = CategoryLink("2024"),
+                genres = listOf(CategoryLink("Chuyển Sinh"), CategoryLink("Phiêu Lưu")),
+                authors = listOf(CategoryLink("Rifujin na Magonote")),
+                studio = CategoryLink("Studio Bind"),
+                seasonOf = null,
+                status = AnimeStatus.COMPLETED,
                 isFeatured = false,
-                views = "2.2M",
-                section = "Anime Bộ",
+                views = 2200000,
                 episodes = mushokuS2Eps,
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason(1, "Phần 1: Học Viện", mushokuS1Eps),
-                    git.shin.komorei.model.AnimeSeason(2, "Phần 2: Mê Cung Rapan", mushokuS2Eps)
+                    git.shin.komorei.model.AnimeSeason("mushoku_tensei", 1, "Phần 1: Học Viện", mushokuS1Eps),
+                    git.shin.komorei.model.AnimeSeason("mushoku_tensei_s2", 2, "Phần 2: Mê Cung Rapan", mushokuS2Eps)
                 )
             ),
             Anime(
@@ -284,18 +297,20 @@ class AnimeRepository @Inject constructor() {
                 bannerUrl = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1200&auto=format&fit=crop&q=80",
                 description = "Kiệt tác điện ảnh của đạo diễn Makoto Shinkai kể về cuộc hoán đổi thân xác kỳ diệu giữa Mitsuha ở vùng quê Itomori và Taki ở Tokyo náo nhiệt.",
                 episodeCount = 1,
-                currentEpisodeBadge = "Bản Chiếu Rạp FHD",
+                currentEpisode = "Bản Chiếu Rạp FHD",
                 rating = 4.99f,
-                releaseYear = 2016,
-                genres = listOf("Romance", "Siêu Nhiên", "Học Đường"),
-                status = "Hoàn Tất",
-                studio = "CoMix Wave Films",
+                ratingCount = 25000,
+                releaseYear = CategoryLink("2016"),
+                genres = listOf(CategoryLink("Romance"), CategoryLink("Siêu Nhiên")),
+                authors = listOf(CategoryLink("Makoto Shinkai")),
+                studio = CategoryLink("CoMix Wave Films"),
+                seasonOf = null,
+                status = AnimeStatus.COMPLETED,
                 isFeatured = false,
-                views = "8.9M",
-                section = "Anime Lẻ",
+                views = 8900000,
                 episodes = generateEpisodes("kimi_no_na_wa", "animevietsub", 1, "Bản Chiếu Rạp Full HD Vietsub", 1),
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason(1, "Bản Chiếu Rạp", generateEpisodes("kimi_no_na_wa", "animevietsub", 1, "Bản Chiếu Rạp Full HD Vietsub", 1))
+                    git.shin.komorei.model.AnimeSeason("kimi_no_na_wa", 1, "Bản Chiếu Rạp", generateEpisodes("kimi_no_na_wa", "animevietsub", 1, "Bản Chiếu Rạp Full HD Vietsub", 1))
                 )
             ),
             Anime(
@@ -308,18 +323,20 @@ class AnimeRepository @Inject constructor() {
                 bannerUrl = "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1200&auto=format&fit=crop&q=80",
                 description = "Cô gái 17 tuổi Suzume tình cờ gặp một thanh niên bí ẩn tìm kiếm một cánh cửa. Hai người cùng lên đường khóa những cánh cửa tai họa khắp Nhật Bản.",
                 episodeCount = 1,
-                currentEpisodeBadge = "Bản Chiếu Rạp FHD",
+                currentEpisode = "Bản Chiếu Rạp FHD",
                 rating = 4.92f,
-                releaseYear = 2022,
-                genres = listOf("Phiêu Lưu", "Siêu Nhiên", "Romance"),
-                status = "Hoàn Tất",
-                studio = "CoMix Wave Films",
+                ratingCount = 18000,
+                releaseYear = CategoryLink("2022"),
+                genres = listOf(CategoryLink("Phiêu Lưu"), CategoryLink("Siêu Nhiên")),
+                authors = listOf(CategoryLink("Makoto Shinkai")),
+                studio = CategoryLink("CoMix Wave Films"),
+                seasonOf = null,
+                status = AnimeStatus.COMPLETED,
                 isFeatured = false,
-                views = "4.7M",
-                section = "Anime Lẻ",
+                views = 4700000,
                 episodes = generateEpisodes("suzume_no_tojimari", "vuighe", 1, "Bản Chiếu Rạp Chuẩn Rạp", 1),
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason(1, "Bản Chiếu Rạp", generateEpisodes("suzume_no_tojimari", "vuighe", 1, "Bản Chiếu Rạp Chuẩn Rạp", 1))
+                    git.shin.komorei.model.AnimeSeason("suzume_no_tojimari", 1, "Bản Chiếu Rạp", generateEpisodes("suzume_no_tojimari", "vuighe", 1, "Bản Chiếu Rạp Chuẩn Rạp", 1))
                 )
             ),
             Anime(
@@ -332,25 +349,27 @@ class AnimeRepository @Inject constructor() {
                 bannerUrl = "https://images.unsplash.com/photo-1563089145-599997674d42?w=1200&auto=format&fit=crop&q=80",
                 description = "Kafka Hibino 32 tuổi biến thành quái thú Kaiju Số 8 nhưng vẫn nuôi ước mơ gia nhập Lực Lượng Phòng Vệ Nhật Bản.",
                 episodeCount = 12,
-                currentEpisodeBadge = "Tập 12/12 End",
+                currentEpisode = "Tập 12/12 End",
                 rating = 4.87f,
-                releaseYear = 2024,
-                genres = listOf("Hành Động", "Sci-Fi", "Shounen"),
-                status = "Hoàn Tất",
-                studio = "Production I.G",
+                ratingCount = 7600,
+                releaseYear = CategoryLink("2024"),
+                genres = listOf(CategoryLink("Hành Động"), CategoryLink("Sci-Fi")),
+                authors = listOf(CategoryLink("Naoya Matsumoto")),
+                studio = CategoryLink("Production I.G"),
+                seasonOf = null,
+                status = AnimeStatus.COMPLETED,
                 isFeatured = false,
-                views = "2.5M",
-                section = "Mới Cập Nhật",
+                views = 2500000,
                 episodes = generateEpisodes("kaiju_no_8", "gogoanime", 12, "Thức Tỉnh Kaiju", 1),
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason(1, "Phần 1: Thức Tỉnh", generateEpisodes("kaiju_no_8", "gogoanime", 12, "Thức Tỉnh Kaiju", 1))
+                    git.shin.komorei.model.AnimeSeason("kaiju_no_8", 1, "Phần 1: Thức Tỉnh", generateEpisodes("kaiju_no_8", "gogoanime", 12, "Thức Tỉnh Kaiju", 1))
                 )
             )
         )
     }
 
     /**
-     * Get banner carousel anime for Home tab
+     * Get featured anime for Home tab
      */
     fun getFeaturedAnime(sourceId: String): List<Anime> {
         val list = if (sourceId == "all") allAnimes else allAnimes.filter { it.sourceId == sourceId }
@@ -364,18 +383,18 @@ class AnimeRepository @Inject constructor() {
     fun getSectionsForSource(sourceId: String): Map<String, List<Anime>> {
         val baseList = if (sourceId == "all") allAnimes else allAnimes.filter { it.sourceId == sourceId }
         return linkedMapOf(
-            "Mới Cập Nhật" to baseList.filter { it.section == "Mới Cập Nhật" || it.id in listOf("dandadan", "demon_slayer_hashira", "kaiju_no_8") },
-            "Xu Hướng Mùa Này" to baseList.filter { it.section == "Xu Hướng Mùa Này" || it.id in listOf("solo_leveling_s2", "frieren_journey") },
-            "Anime Bộ Hot" to baseList.filter { it.section == "Anime Bộ" || it.id in listOf("jujutsu_kaisen_s2", "mushoku_tensei_s2", "frieren_journey") },
-            "Anime Lẻ Chiếu Rạp" to baseList.filter { it.section == "Anime Lẻ" || it.id in listOf("kimi_no_na_wa", "suzume_no_tojimari") }
+            "Mới Cập Nhật" to baseList.filter { it.id in listOf("dandadan", "demon_slayer_hashira") },
+            "Xu Hướng Mùa Này" to baseList.filter { it.id in listOf("solo_leveling_s2", "frieren_journey") },
+            "Anime Bộ Hot" to baseList.filter { it.id in listOf("jujutsu_kaisen_s2", "mushoku_tensei_s2", "frieren_journey") },
+            "Anime Lẻ Chiếu Rạp" to baseList.filter { it.id in listOf("kimi_no_na_wa", "suzume_no_tojimari") }
         )
     }
 
     /**
-     * Parallel multi-source search using coroutines async/await (Aidoku/Stremio multi-source engine)
+     * Parallel multi-source search
      */
     suspend fun searchMultiSource(query: String, selectedGenreId: String? = null): Map<Source, List<Anime>> = coroutineScope {
-        delay(120) // Slight network delay simulation
+        delay(120) // simulation
 
         val activeSources = sources.filter { !it.isAggregator }
 
@@ -389,9 +408,8 @@ class AnimeRepository @Inject constructor() {
                     val matchesSource = anime.sourceId == source.id || anime.sourceId == "all"
                     val matchesQuery = query.isBlank() ||
                             anime.title.contains(query, ignoreCase = true) ||
-                            anime.originalTitle.contains(query, ignoreCase = true) ||
-                            anime.genres.any { it.contains(query, ignoreCase = true) }
-                    val matchesGenre = genreName == null || anime.genres.any { it.equals(genreName, ignoreCase = true) }
+                            anime.originalTitle.contains(query, ignoreCase = true)
+                    val matchesGenre = genreName == null || anime.genres.any { it.name.equals(genreName, ignoreCase = true) }
 
                     matchesSource && matchesQuery && matchesGenre
                 }
