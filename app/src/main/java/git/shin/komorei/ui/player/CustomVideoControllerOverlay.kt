@@ -160,7 +160,9 @@ fun CustomVideoControllerOverlay(
             visible = showBrightnessHud,
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier.align(Alignment.CenterStart).padding(start = 24.dp)
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 24.dp)
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -190,7 +192,9 @@ fun CustomVideoControllerOverlay(
             visible = showVolumeHud,
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier.align(Alignment.CenterEnd).padding(end = 24.dp)
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 24.dp)
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,

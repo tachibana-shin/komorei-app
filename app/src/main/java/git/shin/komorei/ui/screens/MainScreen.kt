@@ -1,8 +1,6 @@
 package git.shin.komorei.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
@@ -34,25 +32,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import git.shin.komorei.R
-import git.shin.komorei.model.Anime
-import git.shin.komorei.model.PlayerSheetValue
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import git.shin.komorei.R
+import git.shin.komorei.model.Anime
+import git.shin.komorei.model.PlayerSheetValue
 import git.shin.komorei.ui.navigation.Screen
 import git.shin.komorei.ui.player.PlayerViewModel
 import git.shin.komorei.ui.player.VideoPlayerSheet
@@ -87,7 +81,9 @@ fun MainScreen(
         libraryViewModel.addToHistory(anime)
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(BackgroundDark)) {
+    BoxWithConstraints(modifier = Modifier
+        .fillMaxSize()
+        .background(BackgroundDark)) {
         val isWideScreen = maxWidth > 600.dp
         val isPlayerExpanded = playbackState.sheetValue == PlayerSheetValue.EXPANDED
 
@@ -184,7 +180,9 @@ fun MainScreen(
                 }
 
                 // Main Content
-                Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                Box(modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()) {
                     NavHost(
                         navController = navController,
                         startDestination = Screen.Home.route,
@@ -268,7 +266,12 @@ fun MainScreen(
                                         contentDescription = stringResource(R.string.tab_home)
                                     )
                                 },
-                                label = { Text(stringResource(R.string.tab_home), fontSize = 11.sp) },
+                                label = {
+                                    Text(
+                                        stringResource(R.string.tab_home),
+                                        fontSize = 11.sp
+                                    )
+                                },
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = Color.White,
                                     selectedTextColor = AnimeRed,
@@ -295,7 +298,12 @@ fun MainScreen(
                                         contentDescription = stringResource(R.string.tab_search)
                                     )
                                 },
-                                label = { Text(stringResource(R.string.tab_search), fontSize = 11.sp) },
+                                label = {
+                                    Text(
+                                        stringResource(R.string.tab_search),
+                                        fontSize = 11.sp
+                                    )
+                                },
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = Color.White,
                                     selectedTextColor = AnimeRed,
@@ -322,7 +330,12 @@ fun MainScreen(
                                         contentDescription = stringResource(R.string.tab_library)
                                     )
                                 },
-                                label = { Text(stringResource(R.string.tab_library), fontSize = 11.sp) },
+                                label = {
+                                    Text(
+                                        stringResource(R.string.tab_library),
+                                        fontSize = 11.sp
+                                    )
+                                },
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = Color.White,
                                     selectedTextColor = AnimeRed,

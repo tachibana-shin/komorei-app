@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
@@ -40,8 +41,7 @@ class SearchViewModel @Inject constructor(
     init {
         // Debounce 300ms search flow to prevent excessive query calls
         _searchQuery
-            .debounce(300)
-            .distinctUntilChanged()
+            .debounce(300.milliseconds)
             .onEach { query ->
                 executeSearch(query, _selectedGenre.value)
             }

@@ -1,14 +1,11 @@
 package git.shin.komorei.ui.screens.home
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,8 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,7 +46,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
-import git.shin.komorei.ui.components.AnimeCard
 import git.shin.komorei.ui.components.AnimeSection
 import git.shin.komorei.ui.components.AppIcons
 import git.shin.komorei.ui.components.BannerCarousel
@@ -62,7 +55,6 @@ import git.shin.komorei.ui.components.SourceTabBar
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.TextPrimary
-import git.shin.komorei.ui.theme.TextSecondary
 import kotlinx.coroutines.launch
 
 @Composable

@@ -45,9 +45,21 @@ object AppIcons {
 
     fun getCategoryIcon(category: String): ImageVector {
         return when {
-            category.contains("Thịnh hành", ignoreCase = true) || category.contains("Trending", ignoreCase = true) -> Icons.Default.LocalFireDepartment
-            category.contains("Mới", ignoreCase = true) || category.contains("New", ignoreCase = true) -> Icons.Default.AutoAwesome
-            category.contains("Hành động", ignoreCase = true) || category.contains("Action", ignoreCase = true) -> Icons.Default.FlashOn
+            category.contains("Thịnh hành", ignoreCase = true) || category.contains(
+                "Trending",
+                ignoreCase = true
+            ) -> Icons.Default.LocalFireDepartment
+
+            category.contains("Mới", ignoreCase = true) || category.contains(
+                "New",
+                ignoreCase = true
+            ) -> Icons.Default.AutoAwesome
+
+            category.contains("Hành động", ignoreCase = true) || category.contains(
+                "Action",
+                ignoreCase = true
+            ) -> Icons.Default.FlashOn
+
             else -> Icons.Default.Movie
         }
     }

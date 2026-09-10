@@ -10,5 +10,6 @@ sealed interface SearchUiState {
         val resultsBySource: Map<Source, List<Anime>>,
         val totalCount: Int
     ) : SearchUiState
+
     data class Error(val message: String) : SearchUiState
 }

@@ -15,19 +15,19 @@ import git.shin.komorei.ui.theme.MyApplicationTheme
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    enableEdgeToEdge()
-    setContent {
-      MyApplicationTheme {
-        Surface(
-          modifier = Modifier.fillMaxSize(),
-          color = BackgroundDark
-        ) {
-          MainScreen()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            MyApplicationTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = BackgroundDark
+                ) {
+                    MainScreen()
+                }
+            }
         }
-      }
     }
-  }
 }
 

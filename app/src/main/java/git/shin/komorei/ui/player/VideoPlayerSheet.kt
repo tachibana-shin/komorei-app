@@ -63,8 +63,10 @@ fun VideoPlayerSheet(
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val fullHeightPx = constraints.maxHeight.toFloat()
-        val miniPlayerHeightPx = with(androidx.compose.ui.platform.LocalDensity.current) { 64.dp.toPx() }
-        val bottomNavHeightPx = with(androidx.compose.ui.platform.LocalDensity.current) { bottomNavHeight.toPx() }
+        val miniPlayerHeightPx =
+            with(androidx.compose.ui.platform.LocalDensity.current) { 64.dp.toPx() }
+        val bottomNavHeightPx =
+            with(androidx.compose.ui.platform.LocalDensity.current) { bottomNavHeight.toPx() }
 
         // Max drag offset when collapsed: screen height minus (miniPlayerHeight + bottomNavHeight)
         val maxOffset = (fullHeightPx - miniPlayerHeightPx - bottomNavHeightPx).coerceAtLeast(0f)
@@ -136,7 +138,11 @@ fun VideoPlayerSheet(
                         .fillMaxWidth()
                         .align(Alignment.TopCenter)
                         .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                        .border(1.dp, CardBorderDark, RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                        .border(
+                            1.dp,
+                            CardBorderDark,
+                            RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                        )
                 )
             } else {
                 // Expanded YouTube Style Player & Details Screen
@@ -177,10 +183,18 @@ fun VideoPlayerSheet(
                                 onPlayPauseToggle = onPlayPauseToggle,
                                 onSeekTo = onSeekTo,
                                 onRewind10 = {
-                                    onSeekTo((playbackState.currentPositionMs - 10000L).coerceAtLeast(0L))
+                                    onSeekTo(
+                                        (playbackState.currentPositionMs - 10000L).coerceAtLeast(
+                                            0L
+                                        )
+                                    )
                                 },
                                 onForward10 = {
-                                    onSeekTo((playbackState.currentPositionMs + 10000L).coerceAtMost(playbackState.durationMs))
+                                    onSeekTo(
+                                        (playbackState.currentPositionMs + 10000L).coerceAtMost(
+                                            playbackState.durationMs
+                                        )
+                                    )
                                 },
                                 onMinimizeClick = {
                                     onStateChange(PlayerSheetValue.COLLAPSED)

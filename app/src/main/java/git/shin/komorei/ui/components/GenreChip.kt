@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
 import git.shin.komorei.model.Genre
-import git.shin.komorei.ui.components.AppIcons
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.CardDark

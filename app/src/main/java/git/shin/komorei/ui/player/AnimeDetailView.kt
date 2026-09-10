@@ -60,8 +60,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
-import git.shin.komorei.model.AnimeStatus
 import git.shin.komorei.model.AnimeSeason
+import git.shin.komorei.model.AnimeStatus
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.SelectedFilter
 import git.shin.komorei.ui.components.AnimeSection
@@ -281,7 +281,10 @@ fun AnimeDetailView(
                         }
                         if (!anime.currentEpisode.isNullOrEmpty()) {
                             Badge(
-                                text = stringResource(R.string.updated_to_episode, anime.currentEpisode),
+                                text = stringResource(
+                                    R.string.updated_to_episode,
+                                    anime.currentEpisode
+                                ),
                                 textStyle = NoPaddingTextStyle
                             )
                         }

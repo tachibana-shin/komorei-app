@@ -107,19 +107,24 @@ class AnimeRepository @Inject constructor() {
 
     val allAnimes: List<Anime> by lazy {
         val soloS1Eps = generateEpisodes("solo_leveling", "animevietsub", 12, "Thợ Săn Hạng E", 1)
-        val soloS2Eps = generateEpisodes("solo_leveling_s2", "animevietsub", 13, "Chúa Tể Bóng Tối", 2)
+        val soloS2Eps =
+            generateEpisodes("solo_leveling_s2", "animevietsub", 13, "Chúa Tể Bóng Tối", 2)
 
-        val dandadanS1Eps = generateEpisodes("dandadan", "animevietsub", 12, "Chạm Trán Siêu Nhiên", 1)
-        val dandadanS2Eps = generateEpisodes("dandadan_s2", "animevietsub", 12, "Cuộc Chiến Quỷ Ác Tà", 2)
+        val dandadanS1Eps =
+            generateEpisodes("dandadan", "animevietsub", 12, "Chạm Trán Siêu Nhiên", 1)
+        val dandadanS2Eps =
+            generateEpisodes("dandadan_s2", "animevietsub", 12, "Cuộc Chiến Quỷ Ác Tà", 2)
 
         val jjkS1Eps = generateEpisodes("jujutsu_kaisen", "gogoanime", 24, "Ngón Tay Sukuna", 1)
-        val jjkS2Eps = generateEpisodes("jujutsu_kaisen_s2", "gogoanime", 23, "Thảm Kịch Shibuya", 2)
+        val jjkS2Eps =
+            generateEpisodes("jujutsu_kaisen_s2", "gogoanime", 23, "Thảm Kịch Shibuya", 2)
 
         val dsS1Eps = generateEpisodes("demon_slayer_s1", "vuighe", 11, "Phố Đèn Đỏ", 1)
         val dsS2Eps = generateEpisodes("demon_slayer_s2", "vuighe", 11, "Làng Thợ Rèn", 2)
         val dsS3Eps = generateEpisodes("demon_slayer_hashira", "vuighe", 8, "Khóa Huấn Luyện", 3)
 
-        val mushokuS1Eps = generateEpisodes("mushoku_tensei", "hidive", 12, "Học Viện Phép Thuật", 1)
+        val mushokuS1Eps =
+            generateEpisodes("mushoku_tensei", "hidive", 12, "Học Viện Phép Thuật", 1)
         val mushokuS2Eps = generateEpisodes("mushoku_tensei_s2", "hidive", 12, "Mê Cung Rapan", 2)
 
         listOf(
@@ -147,8 +152,18 @@ class AnimeRepository @Inject constructor() {
                 nextEpisodeAirInfo = "Tập 11 phát sóng lúc 22:30 Thứ Bảy ngày 12/10",
                 episodes = soloS2Eps,
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("solo_leveling", 1, "Phần 1: Thức Tỉnh", soloS1Eps),
-                    git.shin.komorei.model.AnimeSeason("solo_leveling_s2", 2, "Phần 2: Arise", soloS2Eps)
+                    git.shin.komorei.model.AnimeSeason(
+                        "solo_leveling",
+                        1,
+                        "Phần 1: Thức Tỉnh",
+                        soloS1Eps
+                    ),
+                    git.shin.komorei.model.AnimeSeason(
+                        "solo_leveling_s2",
+                        2,
+                        "Phần 2: Arise",
+                        soloS2Eps
+                    )
                 )
             ),
             Anime(
@@ -174,7 +189,12 @@ class AnimeRepository @Inject constructor() {
                 views = 4100000,
                 episodes = generateEpisodes("frieren_journey", "vuighe", 28, "Hành Trình Mới", 1),
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("frieren_journey", 1, "Phần 1: Hành Trình Mới", generateEpisodes("frieren_journey", "vuighe", 28, "Hành Trình Mới", 1))
+                    git.shin.komorei.model.AnimeSeason(
+                        "frieren_journey",
+                        1,
+                        "Phần 1: Hành Trình Mới",
+                        generateEpisodes("frieren_journey", "vuighe", 28, "Hành Trình Mới", 1)
+                    )
                 )
             ),
             Anime(
@@ -201,8 +221,18 @@ class AnimeRepository @Inject constructor() {
                 nextEpisodeAirInfo = "Tập tiếp theo (Tập 13) phát lúc 23:00 Thứ Năm hàng tuần",
                 episodes = dandadanS1Eps,
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("dandadan", 1, "Phần 1: Chạm Trán", dandadanS1Eps),
-                    git.shin.komorei.model.AnimeSeason("dandadan_s2", 2, "Phần 2: Quỷ Ác Tà", dandadanS2Eps)
+                    git.shin.komorei.model.AnimeSeason(
+                        "dandadan",
+                        1,
+                        "Phần 1: Chạm Trán",
+                        dandadanS1Eps
+                    ),
+                    git.shin.komorei.model.AnimeSeason(
+                        "dandadan_s2",
+                        2,
+                        "Phần 2: Quỷ Ác Tà",
+                        dandadanS2Eps
+                    )
                 )
             ),
             Anime(
@@ -228,8 +258,18 @@ class AnimeRepository @Inject constructor() {
                 views = 5600000,
                 episodes = jjkS2Eps,
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("jujutsu_kaisen", 1, "Phần 1: Chú Thuật", jjkS1Eps),
-                    git.shin.komorei.model.AnimeSeason("jujutsu_kaisen_s2", 2, "Phần 2: Sự Cố Shibuya", jjkS2Eps)
+                    git.shin.komorei.model.AnimeSeason(
+                        "jujutsu_kaisen",
+                        1,
+                        "Phần 1: Chú Thuật",
+                        jjkS1Eps
+                    ),
+                    git.shin.komorei.model.AnimeSeason(
+                        "jujutsu_kaisen_s2",
+                        2,
+                        "Phần 2: Sự Cố Shibuya",
+                        jjkS2Eps
+                    )
                 )
             ),
             Anime(
@@ -255,9 +295,24 @@ class AnimeRepository @Inject constructor() {
                 views = 3400000,
                 episodes = dsS3Eps,
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("demon_slayer_s1", 1, "Phần 1: Phố Đèn Đỏ", dsS1Eps),
-                    git.shin.komorei.model.AnimeSeason("demon_slayer_s2", 2, "Phần 2: Làng Thợ Rèn", dsS2Eps),
-                    git.shin.komorei.model.AnimeSeason("demon_slayer_hashira", 3, "Phần 3: Đại Trụ Đặc Huấn", dsS3Eps)
+                    git.shin.komorei.model.AnimeSeason(
+                        "demon_slayer_s1",
+                        1,
+                        "Phần 1: Phố Đèn Đỏ",
+                        dsS1Eps
+                    ),
+                    git.shin.komorei.model.AnimeSeason(
+                        "demon_slayer_s2",
+                        2,
+                        "Phần 2: Làng Thợ Rèn",
+                        dsS2Eps
+                    ),
+                    git.shin.komorei.model.AnimeSeason(
+                        "demon_slayer_hashira",
+                        3,
+                        "Phần 3: Đại Trụ Đặc Huấn",
+                        dsS3Eps
+                    )
                 )
             ),
             Anime(
@@ -283,8 +338,18 @@ class AnimeRepository @Inject constructor() {
                 views = 2200000,
                 episodes = mushokuS2Eps,
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("mushoku_tensei", 1, "Phần 1: Học Viện", mushokuS1Eps),
-                    git.shin.komorei.model.AnimeSeason("mushoku_tensei_s2", 2, "Phần 2: Mê Cung Rapan", mushokuS2Eps)
+                    git.shin.komorei.model.AnimeSeason(
+                        "mushoku_tensei",
+                        1,
+                        "Phần 1: Học Viện",
+                        mushokuS1Eps
+                    ),
+                    git.shin.komorei.model.AnimeSeason(
+                        "mushoku_tensei_s2",
+                        2,
+                        "Phần 2: Mê Cung Rapan",
+                        mushokuS2Eps
+                    )
                 )
             ),
             Anime(
@@ -308,9 +373,26 @@ class AnimeRepository @Inject constructor() {
                 status = AnimeStatus.COMPLETED,
                 isFeatured = false,
                 views = 8900000,
-                episodes = generateEpisodes("kimi_no_na_wa", "animevietsub", 1, "Bản Chiếu Rạp Full HD Vietsub", 1),
+                episodes = generateEpisodes(
+                    "kimi_no_na_wa",
+                    "animevietsub",
+                    1,
+                    "Bản Chiếu Rạp Full HD Vietsub",
+                    1
+                ),
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("kimi_no_na_wa", 1, "Bản Chiếu Rạp", generateEpisodes("kimi_no_na_wa", "animevietsub", 1, "Bản Chiếu Rạp Full HD Vietsub", 1))
+                    git.shin.komorei.model.AnimeSeason(
+                        "kimi_no_na_wa",
+                        1,
+                        "Bản Chiếu Rạp",
+                        generateEpisodes(
+                            "kimi_no_na_wa",
+                            "animevietsub",
+                            1,
+                            "Bản Chiếu Rạp Full HD Vietsub",
+                            1
+                        )
+                    )
                 )
             ),
             Anime(
@@ -334,9 +416,26 @@ class AnimeRepository @Inject constructor() {
                 status = AnimeStatus.COMPLETED,
                 isFeatured = false,
                 views = 4700000,
-                episodes = generateEpisodes("suzume_no_tojimari", "vuighe", 1, "Bản Chiếu Rạp Chuẩn Rạp", 1),
+                episodes = generateEpisodes(
+                    "suzume_no_tojimari",
+                    "vuighe",
+                    1,
+                    "Bản Chiếu Rạp Chuẩn Rạp",
+                    1
+                ),
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("suzume_no_tojimari", 1, "Bản Chiếu Rạp", generateEpisodes("suzume_no_tojimari", "vuighe", 1, "Bản Chiếu Rạp Chuẩn Rạp", 1))
+                    git.shin.komorei.model.AnimeSeason(
+                        "suzume_no_tojimari",
+                        1,
+                        "Bản Chiếu Rạp",
+                        generateEpisodes(
+                            "suzume_no_tojimari",
+                            "vuighe",
+                            1,
+                            "Bản Chiếu Rạp Chuẩn Rạp",
+                            1
+                        )
+                    )
                 )
             ),
             Anime(
@@ -362,7 +461,12 @@ class AnimeRepository @Inject constructor() {
                 views = 2500000,
                 episodes = generateEpisodes("kaiju_no_8", "gogoanime", 12, "Thức Tỉnh Kaiju", 1),
                 seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("kaiju_no_8", 1, "Phần 1: Thức Tỉnh", generateEpisodes("kaiju_no_8", "gogoanime", 12, "Thức Tỉnh Kaiju", 1))
+                    git.shin.komorei.model.AnimeSeason(
+                        "kaiju_no_8",
+                        1,
+                        "Phần 1: Thức Tỉnh",
+                        generateEpisodes("kaiju_no_8", "gogoanime", 12, "Thức Tỉnh Kaiju", 1)
+                    )
                 )
             )
         )
@@ -372,7 +476,8 @@ class AnimeRepository @Inject constructor() {
      * Get featured anime for Home tab
      */
     fun getFeaturedAnime(sourceId: String): List<Anime> {
-        val list = if (sourceId == "all") allAnimes else allAnimes.filter { it.sourceId == sourceId }
+        val list =
+            if (sourceId == "all") allAnimes else allAnimes.filter { it.sourceId == sourceId }
         val featured = list.filter { it.isFeatured }
         return if (featured.isNotEmpty()) featured else list.take(3)
     }
@@ -381,19 +486,44 @@ class AnimeRepository @Inject constructor() {
      * Get grouped sections for the Home Hub by source
      */
     fun getSectionsForSource(sourceId: String): Map<String, List<Anime>> {
-        val baseList = if (sourceId == "all") allAnimes else allAnimes.filter { it.sourceId == sourceId }
+        val baseList =
+            if (sourceId == "all") allAnimes else allAnimes.filter { it.sourceId == sourceId }
         return linkedMapOf(
-            "Mới Cập Nhật" to baseList.filter { it.id in listOf("dandadan", "demon_slayer_hashira") },
-            "Xu Hướng Mùa Này" to baseList.filter { it.id in listOf("solo_leveling_s2", "frieren_journey") },
-            "Anime Bộ Hot" to baseList.filter { it.id in listOf("jujutsu_kaisen_s2", "mushoku_tensei_s2", "frieren_journey") },
-            "Anime Lẻ Chiếu Rạp" to baseList.filter { it.id in listOf("kimi_no_na_wa", "suzume_no_tojimari") }
+            "Mới Cập Nhật" to baseList.filter {
+                it.id in listOf(
+                    "dandadan",
+                    "demon_slayer_hashira"
+                )
+            },
+            "Xu Hướng Mùa Này" to baseList.filter {
+                it.id in listOf(
+                    "solo_leveling_s2",
+                    "frieren_journey"
+                )
+            },
+            "Anime Bộ Hot" to baseList.filter {
+                it.id in listOf(
+                    "jujutsu_kaisen_s2",
+                    "mushoku_tensei_s2",
+                    "frieren_journey"
+                )
+            },
+            "Anime Lẻ Chiếu Rạp" to baseList.filter {
+                it.id in listOf(
+                    "kimi_no_na_wa",
+                    "suzume_no_tojimari"
+                )
+            }
         )
     }
 
     /**
      * Parallel multi-source search
      */
-    suspend fun searchMultiSource(query: String, selectedGenreId: String? = null): Map<Source, List<Anime>> = coroutineScope {
+    suspend fun searchMultiSource(
+        query: String,
+        selectedGenreId: String? = null
+    ): Map<Source, List<Anime>> = coroutineScope {
         delay(120) // simulation
 
         val activeSources = sources.filter { !it.isAggregator }
@@ -409,7 +539,12 @@ class AnimeRepository @Inject constructor() {
                     val matchesQuery = query.isBlank() ||
                             anime.title.contains(query, ignoreCase = true) ||
                             anime.originalTitle.contains(query, ignoreCase = true)
-                    val matchesGenre = genreName == null || anime.genres.any { it.name.equals(genreName, ignoreCase = true) }
+                    val matchesGenre = genreName == null || anime.genres.any {
+                        it.name.equals(
+                            genreName,
+                            ignoreCase = true
+                        )
+                    }
 
                     matchesSource && matchesQuery && matchesGenre
                 }

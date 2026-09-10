@@ -1,10 +1,8 @@
 package git.shin.komorei.ui.screens.library
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,17 +12,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,7 +36,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
-import git.shin.komorei.ui.components.AnimeCard
 import git.shin.komorei.ui.components.AnimeSection
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
@@ -90,18 +83,16 @@ fun LibraryScreen(
         Spacer(modifier = Modifier.height(14.dp))
 
         // Segmented Sub-Tab (Following vs History)
-        TabRow(
+        SecondaryTabRow(
             selectedTabIndex = selectedSubTab,
             containerColor = BackgroundDark,
             contentColor = TextPrimary,
-            indicator = { tabPositions ->
-                if (selectedSubTab < tabPositions.size) {
-                    TabRowDefaults.SecondaryIndicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedSubTab]),
-                        color = AnimeRed,
-                        height = 3.dp
-                    )
-                }
+            indicator = {
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(selectedTabIndex = selectedSubTab, matchContentSize = true),
+                    color = AnimeRed,
+                    height = 3.dp
+                )
             },
             divider = {},
             modifier = Modifier

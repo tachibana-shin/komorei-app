@@ -9,6 +9,7 @@ sealed class Screen(val route: String) {
             return if (episodeId != null) "player/$animeId/$episodeId" else "player/$animeId"
         }
     }
+
     data object Category : Screen("category/{filters}") {
         fun createRoute(filtersJson: String): String {
             return "category/$filtersJson"

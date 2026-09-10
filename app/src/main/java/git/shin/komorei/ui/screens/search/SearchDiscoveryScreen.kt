@@ -16,9 +16,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -46,14 +43,11 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
-import git.shin.komorei.model.Genre
 import git.shin.komorei.model.SearchUiState
-import git.shin.komorei.ui.components.AnimeCard
 import git.shin.komorei.ui.components.AnimeSection
 import git.shin.komorei.ui.components.AppIcons
 import git.shin.komorei.ui.components.GenreChipCompact
 import git.shin.komorei.ui.components.GenreGridCard
-import git.shin.komorei.ui.components.SectionSkeleton
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.CardBorderDark
@@ -284,7 +278,10 @@ fun SearchDiscoveryScreen(
                     ) {
                         item {
                             Text(
-                                text = stringResource(R.string.search_results_count, state.totalCount),
+                                text = stringResource(
+                                    R.string.search_results_count,
+                                    state.totalCount
+                                ),
                                 color = TextSecondary,
                                 fontSize = 13.sp,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)

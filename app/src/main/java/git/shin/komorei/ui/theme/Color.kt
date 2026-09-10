@@ -1,5 +1,6 @@
 package git.shin.komorei.ui.theme
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.ui.graphics.Color
 
 // AnimeVsub Cinema Dark Theme Palette

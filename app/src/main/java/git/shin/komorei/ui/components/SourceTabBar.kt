@@ -11,9 +11,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -36,23 +36,21 @@ fun SourceTabBar(
     onTabSelected: (Int, Source) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    ScrollableTabRow(
+    SecondaryScrollableTabRow(
         selectedTabIndex = selectedIndex.coerceIn(0, (sources.size - 1).coerceAtLeast(0)),
         containerColor = BackgroundDark,
         contentColor = TextPrimary,
         edgePadding = 16.dp,
         divider = {},
-        indicator = { tabPositions ->
-            if (selectedIndex < tabPositions.size) {
-                Box(
-                    modifier = Modifier
-                        .tabIndicatorOffset(tabPositions[selectedIndex])
-                        .height(3.dp)
-                        .padding(horizontal = 14.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(AnimeRed)
-                )
-            }
+        indicator = {
+            Box(
+                modifier = Modifier
+                    .tabIndicatorOffset(selectedTabIndex = selectedIndex, matchContentSize = true)
+                    .height(3.dp)
+                    .padding(horizontal = 14.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(AnimeRed)
+            )
         },
         modifier = modifier
             .fillMaxWidth()
