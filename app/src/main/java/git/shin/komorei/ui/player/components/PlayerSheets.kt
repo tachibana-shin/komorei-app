@@ -1,13 +1,21 @@
 package git.shin.komorei.ui.player.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,8 +34,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.PlayArrow
@@ -96,8 +106,14 @@ fun EpisodesBottomSheet(
     var isGridView by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var isAscending by remember { mutableStateOf(true) }
+    // When true the episode list is hidden and a vertical, scrollable list of every
+    // season is shown instead (for huge seasons split into 50-episode chunks).
+    var showSeasonList by remember { mutableStateOf(false) }
 
-    val activeSeason = seasons.find { it.animeId == selectedSeasonId } ?: seasons.firstOrNull() ?: AnimeSeason(anime.id, "Phần 1")
+    val activeSeason = seasons.find { it.id == selectedSeasonId } ?: seasons.firstOrNull() ?: AnimeSeason(
+        anime.id,
+        stringResource(R.string.season_fallback_first)
+    )
 
     val filteredEpisodes = remember(episodes, searchQuery, isAscending) {
         val list = if (searchQuery.isBlank()) {
@@ -191,50 +207,82 @@ fun EpisodesBottomSheet(
             HorizontalDivider(color = CardBorderDark.copy(alpha = 0.6f))
             Spacer(modifier = Modifier.height(10.dp))
 */
+            SeasonVsEpisodePane(
+                modifier = Modifier.weight(1f),
+                showSeasonList = showSeasonList,
+                seasons = seasons,
+                selectedSeasonId = selectedSeasonId,
+                onSeasonChange = onSeasonChange,
+                onCloseSeasonList = { showSeasonList = false }
+            ) {
             if (seasons.isNotEmpty()) {
                 val seasonsRowState = rememberLazyListState()
-                val activeSeasonIndex = seasons.indexOfFirst { it.animeId == selectedSeasonId }
+                val activeSeasonIndex = seasons.indexOfFirst { it.id == selectedSeasonId }
                 LaunchedEffect(selectedSeasonId, seasons.size) {
                     seasonsRowState.animateScrollToItemCentered(activeSeasonIndex)
                 }
 
-                LazyRow(
-                    state = seasonsRowState,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(seasons) { season ->
-                        val isSelected = season.animeId == selectedSeasonId
-                        Surface(
-                            onClick = { onSeasonChange(season.animeId) },
-                            color = if (isSelected) AnimeRedContainer else SurfaceDark,
-                            shape = RoundedCornerShape(20.dp),
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (isSelected) AnimeRed else CardBorderDark
-                            ),
-                            modifier = Modifier.testTag("sheet_season_tab_${season.animeId}")
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    LazyRow(
+                        state = seasonsRowState,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        items(seasons) { season ->
+                            val isSelected = season.id == selectedSeasonId
+                            Surface(
+                                onClick = { onSeasonChange(season.id) },
+                                color = if (isSelected) AnimeRedContainer else SurfaceDark,
+                                shape = RoundedCornerShape(20.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    if (isSelected) AnimeRed else CardBorderDark
+                                ),
+                                modifier = Modifier.testTag("sheet_season_tab_${season.id}")
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(if (isSelected) AnimeRed else Color.Transparent)
-                                )
-                                if (isSelected) {
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(if (isSelected) AnimeRed else Color.Transparent)
+                                    )
+                                    if (isSelected) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                    }
+                                    Text(
+                                        text = season.title,
+                                        color = if (isSelected) AnimeRed else TextSecondary,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    )
                                 }
-                                Text(
-                                    text = season.title,
-                                    color = if (isSelected) AnimeRed else TextSecondary,
-                                    fontSize = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                )
                             }
+                        }
+                    }
+
+                    // Opens the full-height vertical season list (hides the episode list).
+                    Surface(
+                        onClick = { showSeasonList = true },
+                        color = SurfaceDark,
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderDark),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.List,
+                                contentDescription = stringResource(R.string.cd_season_list),
+                                tint = TextSecondary,
+                                modifier = Modifier.size(17.dp)
+                            )
                         }
                     }
                 }
@@ -278,14 +326,19 @@ fun EpisodesBottomSheet(
                             singleLine = true,
                             modifier = Modifier.weight(1f),
                             decorationBox = { innerTextField ->
-                                if (searchQuery.isEmpty()) {
-                                    Text(
-                                        text = stringResource(R.string.episode_search_hint),
-                                        color = TextMuted,
-                                        fontSize = 12.sp
-                                    )
+                                Box(
+                                    modifier = Modifier.fillMaxHeight(),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    if (searchQuery.isEmpty()) {
+                                        Text(
+                                            text = stringResource(R.string.episode_search_hint),
+                                            color = TextMuted,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                    innerTextField()
                                 }
-                                innerTextField()
                             }
                         )
                         if (searchQuery.isNotEmpty()) {
@@ -295,7 +348,7 @@ fun EpisodesBottomSheet(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Xóa",
+                                    contentDescription = stringResource(R.string.search_clear_cd),
                                     tint = TextMuted,
                                     modifier = Modifier.size(14.dp)
                                 )
@@ -314,7 +367,7 @@ fun EpisodesBottomSheet(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Sort,
-                            contentDescription = "Sắp xếp",
+                            contentDescription = stringResource(R.string.cd_sort),
                             tint = if (isAscending) TextSecondary else AnimeRed,
                             modifier = Modifier.size(17.dp)
                         )
@@ -334,7 +387,7 @@ fun EpisodesBottomSheet(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (isGridView) Icons.Default.GridView else Icons.Default.ViewList,
-                            contentDescription = "Đổi kiểu hiển thị",
+                            contentDescription = stringResource(R.string.cd_toggle_view),
                             tint = if (isGridView) AnimeRed else TextSecondary,
                             modifier = Modifier.size(17.dp)
                         )
@@ -503,6 +556,136 @@ fun EpisodesBottomSheet(
         }
     }
 }
+}
+
+/**
+ * Swaps the vertical season picker with the episode list (fade + horizontal slide).
+ * Lives in its own composable so the [AnimatedVisibility] calls are not in a
+ * ColumnScope (their extension overload would conflict inside the sheet's Column).
+ */
+@Composable
+private fun SeasonVsEpisodePane(
+    modifier: Modifier = Modifier,
+    showSeasonList: Boolean,
+    seasons: List<AnimeSeason>,
+    selectedSeasonId: String,
+    onSeasonChange: (String) -> Unit,
+    onCloseSeasonList: () -> Unit,
+    episodesContent: @Composable ColumnScope.() -> Unit
+) {
+    Box(modifier = modifier) {
+        // Vertical season picker: replaces the episode list while visible.
+        AnimatedVisibility(
+            visible = showSeasonList,
+            enter = fadeIn(animationSpec = tween(200)) + slideInHorizontally(initialOffsetX = { it }),
+            exit = fadeOut(animationSpec = tween(160)) + slideOutHorizontally(targetOffsetX = { it }),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            SeasonPickerPane(
+                seasons = seasons,
+                selectedSeasonId = selectedSeasonId,
+                onSeasonChange = onSeasonChange,
+                onClose = onCloseSeasonList
+            )
+        }
+        AnimatedVisibility(
+            visible = !showSeasonList,
+            enter = fadeIn(animationSpec = tween(200)) + slideInHorizontally(initialOffsetX = { -it }),
+            exit = fadeOut(animationSpec = tween(160)) + slideOutHorizontally(targetOffsetX = { -it }),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                episodesContent()
+            }
+        }
+    }
+}
+
+/**
+ * Full-height vertical list of every season (real + virtual chunks), used when the
+ * episode list has grown too large for horizontal chips to navigate comfortably.
+ */
+@Composable
+private fun SeasonPickerPane(
+    seasons: List<AnimeSeason>,
+    selectedSeasonId: String,
+    onSeasonChange: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = stringResource(R.string.season_picker_title, seasons.size),
+                color = TextPrimary,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
+            IconButton(onClick = onClose, modifier = Modifier.size(30.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(R.string.cd_close),
+                    tint = TextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(seasons, key = { it.id }) { season ->
+                val isSelected = season.id == selectedSeasonId
+                Surface(
+                    onClick = {
+                        onSeasonChange(season.id)
+                        onClose()
+                    },
+                    color = if (isSelected) AnimeRedContainer else SurfaceDark,
+                    shape = RoundedCornerShape(10.dp),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (isSelected) AnimeRed else CardBorderDark
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("sheet_season_row_${season.id}")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = season.title,
+                            color = if (isSelected) AnimeRed else TextSecondary,
+                            fontSize = 13.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (isSelected) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = AnimeRed,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun EpisodeListItemCard(
@@ -564,7 +747,7 @@ fun EpisodeListItemCard(
                         .background(Color(0xCC000000))
                         .padding(horizontal = 4.dp, vertical = 1.dp)
                 ) {
-                    Text(text = "24:00", color = Color.White, fontSize = 9.sp)
+                    Text(text = stringResource(R.string.episode_duration_placeholder), color = Color.White, fontSize = 9.sp)
                 }
 
                 if (progress > 0f) {

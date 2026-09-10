@@ -1,8 +1,11 @@
 package git.shin.komorei.ui.screens.search
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import git.shin.komorei.R
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.model.Genre
 import git.shin.komorei.model.Source
@@ -22,6 +25,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class SearchViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: AnimeRepository
 ) : ViewModel() {
 
@@ -101,7 +105,7 @@ class SearchViewModel @Inject constructor(
                     totalCount = totalCount
                 )
             } catch (e: Exception) {
-                _searchUiState.value = SearchUiState.Error(e.localizedMessage ?: "Lỗi tìm kiếm")
+                _searchUiState.value = SearchUiState.Error(e.localizedMessage ?: appContext.getString(R.string.error_search))
             }
         }
     }

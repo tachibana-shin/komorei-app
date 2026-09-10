@@ -287,7 +287,7 @@ fun CustomVideoControllerOverlay(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh",
+                            contentDescription = stringResource(R.string.cd_refresh),
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -299,7 +299,7 @@ fun CustomVideoControllerOverlay(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
+                            contentDescription = stringResource(R.string.cd_settings),
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -407,7 +407,7 @@ fun CustomVideoControllerOverlay(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = "AI Summary",
+                                        contentDescription = stringResource(R.string.cd_ai_summary),
                                         tint = Color.White,
                                         modifier = Modifier.size(19.dp)
                                     )

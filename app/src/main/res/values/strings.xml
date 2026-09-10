@@ -89,6 +89,21 @@
     <string name="sort_oldest">Cũ nhất trước</string>
     <string name="sort_newest">Mới nhất trước</string>
     <string name="action_retry">Thử lại</string>
+
+    <!-- Errors & fallback labels (display messages, not values) -->
+    <string name="error_load_data">Lỗi tải dữ liệu</string>
+    <string name="error_source_playback">Lỗi tải nguồn phát</string>
+    <string name="error_search">Lỗi tìm kiếm</string>
+    <string name="season_fallback_full">Full Season</string>
+    <string name="season_fallback_first">Phần 1</string>
+    <string name="episode_fallback_title">Tập 1 - Khởi đầu</string>
+    <string name="episode_range_unknown">??/??</string>
+    <string name="episode_duration_placeholder">24:00</string>
+    <string name="virtual_season_title_format">Tập %1$s-%2$s</string>
+    <string name="placeholder_loading">Đang tải</string>
+
+    <!-- Episodes bottom sheet: vertical season picker -->
+    <string name="season_picker_title">Chọn phần (%1$d)</string>
     <string name="info_summary_title">Thông tin &amp; Giới thiệu</string>
     <string name="plot_summary_title">Tóm tắt cốt truyện</string>
     <string name="metadata_source">Nguồn phát:</string>
@@ -98,6 +113,8 @@
     <string name="metadata_seasons_count">%1$d phần</string>
     <string name="metadata_year">Năm phát hành:</string>
     <string name="metadata_genres">Thể loại:</string>
+    <string name="metadata_belongs_to_series">Thuộc series</string>
+    <string name="metadata_country">Quốc gia</string>
     <string name="streaming_server_header">Máy chủ phát</string>
     <string name="views_format">%1$s lượt xem</string>
 
@@ -118,6 +135,15 @@
     <string name="cd_fullscreen">Toàn màn hình</string>
     <string name="cd_brightness">Độ sáng</string>
     <string name="cd_volume">Âm lượng</string>
+    <string name="cd_introduction">Xem giới thiệu</string>
+    <string name="cd_view_comments">Xem tất cả bình luận</string>
+    <string name="cd_close">Đóng</string>
+    <string name="cd_sort">Sắp xếp</string>
+    <string name="cd_toggle_view">Đổi kiểu hiển thị</string>
+    <string name="cd_season_list">Danh sách phần</string>
+    <string name="cd_refresh">Làm mới</string>
+    <string name="cd_settings">Cài đặt</string>
+    <string name="cd_ai_summary">Tóm tắt AI</string>
     <string name="views_count">%1$s lượt xem</string>
     <string name="million_suffix">M</string>
     <string name="thousand_suffix">T</string>

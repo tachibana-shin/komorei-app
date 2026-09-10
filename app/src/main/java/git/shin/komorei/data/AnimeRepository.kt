@@ -430,6 +430,31 @@ class AnimeRepository @Inject constructor() {
                     git.shin.komorei.model.AnimeSeason("solo_leveling", "Phần 1: Thức Tỉnh"),
                     git.shin.komorei.model.AnimeSeason("solo_leveling_s2", "Phần 2: Arise")
                 )
+            ),
+            Anime(
+                id = "/conan-phan-1/",
+                sourceId = "gogoanime",
+                title = "Thám Tử Lừng Danh Conan",
+                originalTitle = "Detective Conan",
+                posterUrl = "https://images.unsplash.com/photo-1528459584353-5297db1a9c01?w=600",
+                bannerUrl = "https://images.unsplash.com/photo-1528459584353-5297db1a9c01?w=1200",
+                description = "Kudo Shinichi bị teo nhỏ thành cậu học sinh tiểu học sau khi trúng độc của tổ chức Áo Đen, mang tên Conan Edogawa tiếp tục phá án và truy tìm tổ chức bí ẩn.",
+                episodeCount = 1000,
+                currentEpisode = "Tập 973/1000",
+                rating = 4.85f,
+                ratingCount = 25000,
+                status = AnimeStatus.ONGOING,
+                releaseYear = CategoryLink("1996"),
+                genres = listOf(CategoryLink("Trinh Thám"), CategoryLink("Shounen")),
+                authors = listOf(CategoryLink("Aoyama Gosho")),
+                studio = CategoryLink("TMS Entertainment"),
+                seasonOf = null,
+                isFeatured = true,
+                views = 58000000,
+                episodes = generateEpisodes("/conan-phan-1/", "gogoanime", 1000, "Phiên Tòa"),
+                seasons = listOf(
+                    git.shin.komorei.model.AnimeSeason("/conan-phan-1/", "Phần 1: Thám Tử Nhí")
+                )
             )
         )
     }
@@ -449,7 +474,7 @@ class AnimeRepository @Inject constructor() {
     fun getSectionsForSource(sourceId: String): Map<String, List<Anime>> {
         val baseList = if (sourceId == "all") allAnimes else allAnimes.filter { it.sourceId == sourceId }
         return linkedMapOf(
-            "Mới Cập Nhật" to baseList.filter { it.id in listOf("dandadan", "demon_slayer_hashira", "kaiju_no_8") },
+            "Mới Cập Nhật" to baseList.filter { it.id in listOf("dandadan", "demon_slayer_hashira", "kaiju_no_8", "/conan-phan-1/") },
             "Xu Hướng Mùa Này" to baseList.filter { it.id in listOf("solo_leveling_s2", "frieren_journey") },
             "Anime Bộ Hot" to baseList.filter { it.id in listOf("jujutsu_kaisen_s2", "mushoku_tensei_s2", "frieren_journey") },
             "Anime Lẻ Chiếu Rạp" to baseList.filter { it.id in listOf("kimi_no_na_wa", "suzume_no_tojimari") }

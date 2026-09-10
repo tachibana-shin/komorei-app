@@ -1,8 +1,11 @@
 package git.shin.komorei.ui.player
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import git.shin.komorei.R
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.LibraryRepository
 import git.shin.komorei.model.Anime
@@ -23,6 +26,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: AnimeRepository
 ) : ViewModel() {
 
@@ -39,7 +43,7 @@ class PlayerViewModel @Inject constructor(
             animeId = anime.id,
             sourceId = anime.sourceId,
             episodeNumber = "1",
-            title = "Tập 1 - Khởi đầu"
+            title = appContext.getString(R.string.episode_fallback_title)
         )
 
         val durationMs = (targetEp.durationSeconds ?: 1440L) * 1000L
@@ -124,7 +128,7 @@ class PlayerViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     _playbackState.update {
-                        it.copy(isLoadingStreams = false, streamError = e.message ?: "Lỗi tải nguồn phát")
+                        it.copy(isLoadingStreams = false, streamError = e.message ?: appContext.getString(R.string.error_source_playback))
                     }
                 }
         }
@@ -159,7 +163,7 @@ class PlayerViewModel @Inject constructor(
             }
         }.onFailure { e ->
             _playbackState.update {
-                it.copy(isLoadingStreams = false, streamError = e.message ?: "Lỗi tải nguồn phát")
+                it.copy(isLoadingStreams = false, streamError = e.message ?: appContext.getString(R.string.error_source_playback))
             }
         }
     }

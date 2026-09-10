@@ -1,8 +1,11 @@
 package git.shin.komorei.ui.player
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import git.shin.komorei.R
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.LibraryRepository
 import git.shin.komorei.model.Anime
@@ -24,8 +27,14 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AnimeDetailUiState(
-    val masterAnime: Anime? = null, 
+    val masterAnime: Anime? = null,
     val selectedSeason: AnimeSeason? = null,
+    /** Full episode list of the selected real season, before virtual-season splitting. */
+    val fullSeasonEpisodes: List<Episode> = emptyList(),
+    /** 50-episode chunks of the selected real season. Empty when it has <= [AnimeDetailViewModel.VIRTUAL_SEASON_MAX_EPISODES]. */
+    val virtualSeasons: List<AnimeSeason> = emptyList(),
+    /** Id of the selected virtual season (chunk). Null when no split is active. */
+    val selectedVirtualSeasonId: String? = null,
     val currentSeasonEpisodes: List<Episode> = emptyList(),
     val isLoadingEpisodes: Boolean = false,
     val episodeError: String? = null,
@@ -35,6 +44,7 @@ data class AnimeDetailUiState(
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class AnimeDetailViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val animeRepository: AnimeRepository,
     private val libraryRepository: LibraryRepository
 ) : ViewModel() {
@@ -94,7 +104,10 @@ class AnimeDetailViewModel @Inject constructor(
                 // 2. Select initial season (usually the one provided by liteAnime or the first in list)
                 val initialSeason = fullMetadata.seasons.find { it.animeId == liteAnime.id }
                     ?: fullMetadata.seasons.firstOrNull()
-                    ?: AnimeSeason(liteAnime.id, "Full Season")
+                    ?: AnimeSeason(
+                        liteAnime.id,
+                        appContext.getString(R.string.season_fallback_full)
+                    )
 
                 _uiState.update {
                     it.copy(masterAnime = fullMetadata, selectedSeason = initialSeason, sourceName = sourceName)
@@ -104,23 +117,53 @@ class AnimeDetailViewModel @Inject constructor(
                 fetchEpisodesForSeason(initialSeason, liteAnime.sourceId)
             }.onFailure { e ->
                 _uiState.update {
-                    it.copy(isLoadingEpisodes = false, episodeError = e.message ?: LOAD_ERROR_MESSAGE)
+                    it.copy(
+                        isLoadingEpisodes = false,
+                        episodeError = e.message ?: appContext.getString(R.string.error_load_data)
+                    )
                 }
             }
         }
     }
 
     /**
-     * Switches season: Upgrades a minimal Anime object (ID/Source) to its chapter list.
+     * Switches season. Real seasons (different animeId) trigger a fetch; virtual
+     * seasons (50-episode chunks of the current real season) switch locally.
      */
     fun selectSeason(season: AnimeSeason) {
-        val master = _uiState.value.masterAnime ?: return
-        if (_uiState.value.selectedSeason?.animeId == season.animeId) return
-        
-        _uiState.update {
-            it.copy(selectedSeason = season, currentSeasonEpisodes = emptyList(), episodeError = null)
+        val state = _uiState.value
+        val master = state.masterAnime ?: return
+
+        // Virtual chunk switch — fully local, no network.
+        if (state.virtualSeasons.any { it.id == season.id }) {
+            val chunkIndex = season.id.substringAfterLast('#').toIntOrNull() ?: return
+            val chunk = state.fullSeasonEpisodes
+                .chunked(VIRTUAL_SEASON_MAX_EPISODES)
+                .getOrNull(chunkIndex) ?: return
+            _uiState.update {
+                it.copy(
+                    selectedVirtualSeasonId = season.id,
+                    currentSeasonEpisodes = chunk,
+                    episodeError = null
+                )
+            }
+            return
         }
-        
+
+        // Real season switch.
+        if (state.selectedSeason?.animeId == season.animeId) return
+
+        _uiState.update {
+            it.copy(
+                selectedSeason = season,
+                fullSeasonEpisodes = emptyList(),
+                virtualSeasons = emptyList(),
+                selectedVirtualSeasonId = null,
+                currentSeasonEpisodes = emptyList(),
+                episodeError = null
+            )
+        }
+
         viewModelScope.launch {
             fetchEpisodesForSeason(season, master.sourceId)
         }
@@ -157,9 +200,32 @@ class AnimeDetailViewModel @Inject constructor(
                 needsChapters = true
             )
         }.onSuccess { updatedWithChapters ->
+            val full = updatedWithChapters.episodes
+            val chunks = full.chunked(VIRTUAL_SEASON_MAX_EPISODES)
+            // Split huge seasons (e.g. Conan, 1000+ eps) into 50-episode "virtual seasons".
+            val virtual = if (chunks.size > 1) {
+                chunks.mapIndexed { index, chunk ->
+                    AnimeSeason(
+                        animeId = season.animeId,
+                        title = appContext.getString(
+                            R.string.virtual_season_title_format,
+                            chunk.first().episodeNumber,
+                            chunk.last().episodeNumber
+                        ),
+                        id = "${season.animeId}#$index"
+                    )
+                }
+            } else {
+                emptyList()
+            }
             _uiState.update {
                 it.copy(
-                    currentSeasonEpisodes = updatedWithChapters.episodes,
+                    fullSeasonEpisodes = full,
+                    virtualSeasons = virtual,
+                    selectedVirtualSeasonId = virtual.firstOrNull()?.id,
+                    currentSeasonEpisodes = virtual.firstOrNull()?.run {
+                        chunks[id.substringAfterLast('#').toInt()]
+                    } ?: full,
                     isLoadingEpisodes = false,
                     episodeError = null
                 )
@@ -169,7 +235,7 @@ class AnimeDetailViewModel @Inject constructor(
                 it.copy(
                     currentSeasonEpisodes = emptyList(),
                     isLoadingEpisodes = false,
-                    episodeError = e.message ?: LOAD_ERROR_MESSAGE
+                    episodeError = e.message ?: appContext.getString(R.string.error_load_data)
                 )
             }
         }
@@ -201,6 +267,7 @@ class AnimeDetailViewModel @Inject constructor(
     }
 
     companion object {
-        private const val LOAD_ERROR_MESSAGE = "Lỗi tải dữ liệu"
+        /** Episodes per virtual season when a real season has too many to display at once. */
+        private const val VIRTUAL_SEASON_MAX_EPISODES = 50
     }
 }

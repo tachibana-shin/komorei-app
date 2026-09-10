@@ -1,5 +1,6 @@
 package git.shin.komorei.ui.components
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -45,10 +46,13 @@ import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.GoldRating
+import git.shin.komorei.ui.theme.NoPaddingTextStyle
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
+@SuppressLint("DefaultLocale")
 @Composable
 fun BannerCarousel(
     featuredList: List<Anime>,
@@ -62,7 +66,7 @@ fun BannerCarousel(
     // Auto-scroll carousel every 4.5 seconds
     LaunchedEffect(pagerState.pageCount) {
         while (true) {
-            delay(4500)
+            delay(4500.milliseconds)
             val nextPage = (pagerState.currentPage + 1) % featuredList.size
             pagerState.animateScrollToPage(nextPage)
         }
@@ -163,19 +167,35 @@ fun BannerCarousel(
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
+
+                            anime.qualityTag?.let {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = it,
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    style = NoPaddingTextStyle,
+                                    modifier = Modifier
+                                        .background(
+                                            Color(0xFF00C853).copy(alpha = .85f),
+                                            RoundedCornerShape(4.dp)
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+
                             Spacer(modifier = Modifier.width(8.dp))
                             anime.currentEpisode?.let { episode ->
-                                Text(
+                                Badge(
                                     text = episode,
-                                    color = TextSecondary,
-                                    fontSize = 11.sp
+                                    textStyle = NoPaddingTextStyle,
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
-                            Text(
+                            Badge(
                                 text = anime.studio?.name ?: "",
-                                color = TextSecondary,
-                                fontSize = 11.sp
+                                textStyle = NoPaddingTextStyle,
                             )
                         }
 

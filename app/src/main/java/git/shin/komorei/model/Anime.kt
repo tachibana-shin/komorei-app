@@ -24,7 +24,9 @@ enum class AnimeStatus(val value: String) {
 @JsonClass(generateAdapter = true)
 data class AnimeSeason(
     val animeId: String,
-    val title: String
+    val title: String,
+    /** Unique identity. Defaults to [animeId]; virtual 50-episode seasons override it. */
+    val id: String = animeId
 )
 
 /**

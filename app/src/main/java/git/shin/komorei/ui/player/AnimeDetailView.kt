@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -130,8 +131,19 @@ fun AnimeDetailView(
     var showEpisodesSheet by remember { mutableStateOf(false) }
     var showCommentsSheet by remember { mutableStateOf(false) }
 
-    val effectiveSeasons = displayAnime.seasons.ifEmpty {
-        listOf(AnimeSeason(displayAnime.id, "Full Season"))
+    val realSeasons = displayAnime.seasons.ifEmpty {
+        listOf(AnimeSeason(displayAnime.id, stringResource(R.string.season_fallback_full)))
+    }
+    // A huge real season (e.g. Conan, 1000+ episodes) is expanded in the picker into
+    // 50-episode "virtual seasons" (same animeId, distinct id), so its single chip is
+    // replaced by the chunk chips while the other real seasons stay as they are.
+    val effectiveSeasons = if (uiState.virtualSeasons.isEmpty()) {
+        realSeasons
+    } else {
+        val parentId = uiState.selectedSeason?.animeId ?: displayAnime.id
+        realSeasons.flatMap { season ->
+            if (season.animeId == parentId) uiState.virtualSeasons else listOf(season)
+        }
     }
 
     val descSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -165,7 +177,7 @@ fun AnimeDetailView(
                     )
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "Show introduction",
+                        contentDescription = stringResource(R.string.cd_introduction),
                         tint = TextMuted,
                         modifier = Modifier.size(20.dp)
                     )
@@ -409,9 +421,11 @@ fun AnimeDetailView(
                                     .padding(horizontal = 14.dp, vertical = 7.dp)
                             ) {
                                 Text(
-                                    text = "Đang tải",
+                                    text = stringResource(R.string.placeholder_loading),
                                     color = Color.Transparent,
-                                    fontSize = 12.sp
+                                    fontSize = 12.sp,
+                                    // Invisible measurement text — keep TalkBack quiet about it.
+                                    modifier = Modifier.clearAndSetSemantics { }
                                 )
                             }
                         }
@@ -615,9 +629,18 @@ fun AnimeDetailView(
                 if (effectiveSeasons.size > 1) {
                     Spacer(modifier = Modifier.height(10.dp))
                     val seasonsRowState = rememberLazyListState()
-                    val activeSeasonIndex =
-                        effectiveSeasons.indexOfFirst { it.animeId == selectedSeason?.animeId }
-                    LaunchedEffect(selectedSeason?.animeId, effectiveSeasons.size) {
+                    val activeSeasonIndex = effectiveSeasons.indexOfFirst { season ->
+                        if (uiState.selectedVirtualSeasonId != null) {
+                            season.id == uiState.selectedVirtualSeasonId
+                        } else {
+                            season.animeId == uiState.selectedSeason?.animeId
+                        }
+                    }
+                    LaunchedEffect(
+                        uiState.selectedSeason?.animeId,
+                        uiState.selectedVirtualSeasonId,
+                        effectiveSeasons.size
+                    ) {
                         seasonsRowState.animateScrollToItemCentered(activeSeasonIndex)
                     }
                     LazyRow(
@@ -627,7 +650,11 @@ fun AnimeDetailView(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         items(effectiveSeasons) { season ->
-                            val isSeasonSelected = season.animeId == selectedSeason?.animeId
+                            val isSeasonSelected = if (uiState.selectedVirtualSeasonId != null) {
+                                season.id == uiState.selectedVirtualSeasonId
+                            } else {
+                                season.animeId == uiState.selectedSeason?.animeId
+                            }
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
@@ -686,7 +713,7 @@ fun AnimeDetailView(
 
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                        contentDescription = "View all comments",
+                        contentDescription = stringResource(R.string.cd_view_comments),
                         tint = TextMuted,
                         modifier = Modifier.size(13.dp)
                     )
@@ -760,9 +787,9 @@ fun AnimeDetailView(
             seasons = effectiveSeasons,
             currentEpisode = currentEpisode,
             watchHistory = watchHistory,
-            selectedSeasonId = selectedSeason?.animeId ?: displayAnime.id,
+            selectedSeasonId = uiState.selectedVirtualSeasonId ?: selectedSeason?.animeId ?: displayAnime.id,
             onSeasonChange = { id ->
-                effectiveSeasons.find { it.animeId == id }?.let { viewModel.selectSeason(it) }
+                effectiveSeasons.find { it.id == id }?.let { viewModel.selectSeason(it) }
             },
             episodes = episodes,
             episodesError = uiState.episodeError,
@@ -816,7 +843,7 @@ fun AnimeDetailView(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
+                                contentDescription = stringResource(R.string.cd_close),
                                 tint = TextSecondary,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -957,21 +984,21 @@ fun AnimeDetailView(
                     )
                     MetadataDetailRow(
                         stringResource(R.string.metadata_episodes),
-                        displayAnime.currentEpisode ?: "??/??"
+                        displayAnime.currentEpisode ?: stringResource(R.string.episode_range_unknown)
                     )
                     MetadataDetailRow(
                         stringResource(R.string.metadata_seasons),
-                        stringResource(R.string.metadata_seasons_count, effectiveSeasons.size)
+                        stringResource(R.string.metadata_seasons_count, realSeasons.size)
                     )
                     displayAnime.seasonOf?.let {
-                        MetadataDetailRow("Thuộc series", it.name)
+                        MetadataDetailRow(stringResource(R.string.metadata_belongs_to_series), it.name)
                     }
                     MetadataDetailRow(
                         stringResource(R.string.metadata_year),
                         displayAnime.releaseYear?.name ?: stringResource(R.string.unknown)
                     )
                     MetadataDetailRow(
-                        "Quốc gia",
+                        stringResource(R.string.metadata_country),
                         displayAnime.countries.joinToString(", ") { it.name }
                     )
                     MetadataDetailRow(

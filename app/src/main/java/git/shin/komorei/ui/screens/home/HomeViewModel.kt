@@ -1,8 +1,11 @@
 package git.shin.komorei.ui.screens.home
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import git.shin.komorei.R
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Source
@@ -22,6 +25,7 @@ data class SourceHomeData(
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: AnimeRepository
 ) : ViewModel() {
 
@@ -63,7 +67,7 @@ class HomeViewModel @Inject constructor(
                     val existing = map[sourceId] ?: SourceHomeData()
                     map + (sourceId to existing.copy(
                         isLoading = false,
-                        error = e.message ?: "Lỗi tải dữ liệu"
+                        error = e.message ?: appContext.getString(R.string.error_load_data)
                     ))
                 }
             }
