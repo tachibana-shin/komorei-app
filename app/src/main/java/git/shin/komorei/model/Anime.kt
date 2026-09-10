@@ -1,5 +1,7 @@
 package git.shin.komorei.model
 
+import com.squareup.moshi.JsonClass
+
 enum class AnimeStatus(val value: String) {
     ONGOING("ongoing"),
     COMPLETED("completed"),
@@ -16,6 +18,7 @@ enum class AnimeStatus(val value: String) {
  * Represents a season or part of an anime (e.g. Phần 1, Phần 2, OVA, Movie).
  * In many websites, seasons are different anime IDs linked together.
  */
+@JsonClass(generateAdapter = true)
 data class AnimeSeason(
     val animeId: String,
     val seasonNumber: Int,
@@ -23,11 +26,13 @@ data class AnimeSeason(
     val episodes: List<Episode> = emptyList()
 )
 
+@JsonClass(generateAdapter = true)
 data class FilterOption(
     val id: String,
     val name: String
 )
 
+@JsonClass(generateAdapter = true)
 data class FilterGroup(
     val id: String,
     val name: String,
@@ -36,6 +41,7 @@ data class FilterGroup(
     val default: String? = null
 )
 
+@JsonClass(generateAdapter = true)
 data class SelectedFilter(
     val groupId: String,
     val id: String,
@@ -44,6 +50,7 @@ data class SelectedFilter(
     val exclude: Boolean = false
 )
 
+@JsonClass(generateAdapter = true)
 data class CategoryLink(
     val name: String,
     val filters: List<SelectedFilter> = emptyList()
@@ -52,6 +59,7 @@ data class CategoryLink(
 /**
  * Main Anime entity representing metadata across sources.
  */
+@JsonClass(generateAdapter = true)
 data class Anime(
     val id: String,
     val sourceId: String,

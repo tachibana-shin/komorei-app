@@ -1,8 +1,11 @@
 package git.shin.komorei.model
 
+import com.squareup.moshi.JsonClass
+
 /**
  * Represents a single episode of an anime.
  */
+@JsonClass(generateAdapter = true)
 data class Episode(
     val id: String,
     val animeId: String,

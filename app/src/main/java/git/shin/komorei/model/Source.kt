@@ -1,8 +1,11 @@
 package git.shin.komorei.model
 
+import com.squareup.moshi.JsonClass
+
 /**
  * Represents an anime source provider (Aidoku / Stremio WASM plugin architecture pattern)
  */
+@JsonClass(generateAdapter = true)
 data class Source(
     val id: String,
     val name: String,
