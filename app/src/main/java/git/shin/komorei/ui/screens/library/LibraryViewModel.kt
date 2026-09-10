@@ -1,8 +1,8 @@
 package git.shin.komorei.ui.screens.library
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.model.Anime
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,19 +12,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import javax.inject.Inject
 
-class LibraryViewModel(
-    private val repository: AnimeRepository = AnimeRepository()
+@HiltViewModel
+class LibraryViewModel @Inject constructor(
+    private val repository: AnimeRepository
 ) : ViewModel() {
-
-    companion object {
-        fun Factory(repository: AnimeRepository): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return LibraryViewModel(repository) as T
-            }
-        }
-    }
 
     private val _allAnimes = repository.sources.flatMap { src ->
         repository.getFeaturedAnime(src.id) + repository.getSectionsForSource(src.id).values.flatten()

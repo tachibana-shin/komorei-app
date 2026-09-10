@@ -1,8 +1,8 @@
 package git.shin.komorei.ui.screens.home
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Source
@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class SourceHomeData(
     val featured: List<Anime> = emptyList(),
@@ -18,18 +19,10 @@ data class SourceHomeData(
     val isLoading: Boolean = false
 )
 
-class HomeViewModel(
-    private val repository: AnimeRepository = AnimeRepository()
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val repository: AnimeRepository
 ) : ViewModel() {
-
-    companion object {
-        fun Factory(repository: AnimeRepository): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return HomeViewModel(repository) as T
-            }
-        }
-    }
 
     val sources: List<Source> = repository.sources
 

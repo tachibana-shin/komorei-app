@@ -39,7 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.ui.components.AnimeCard
@@ -53,7 +53,7 @@ import git.shin.komorei.ui.theme.TextPrimary
 fun LibraryScreen(
     onAnimeClick: (Anime) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: LibraryViewModel = viewModel()
+    viewModel: LibraryViewModel = hiltViewModel()
 ) {
     var selectedSubTab by remember { mutableIntStateOf(0) }
     val followingTitle = stringResource(R.string.library_tab_following)

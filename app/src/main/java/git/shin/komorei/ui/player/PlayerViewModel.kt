@@ -1,7 +1,7 @@
 package git.shin.komorei.ui.player
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import dagger.hilt.android.lifecycle.HiltViewModel
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Episode
@@ -11,19 +11,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import javax.inject.Inject
 
-class PlayerViewModel(
-    private val repository: AnimeRepository = AnimeRepository()
+@HiltViewModel
+class PlayerViewModel @Inject constructor(
+    private val repository: AnimeRepository
 ) : ViewModel() {
-
-    companion object {
-        fun Factory(repository: AnimeRepository): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return PlayerViewModel(repository) as T
-            }
-        }
-    }
 
     private val _playbackState = MutableStateFlow(PlayerPlaybackState())
     val playbackState: StateFlow<PlayerPlaybackState> = _playbackState.asStateFlow()

@@ -1,8 +1,8 @@
 package git.shin.komorei.ui.screens.search
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.model.Genre
 import git.shin.komorei.model.SearchUiState
@@ -16,20 +16,13 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @OptIn(FlowPreview::class)
-class SearchViewModel(
-    private val repository: AnimeRepository = AnimeRepository()
+@HiltViewModel
+class SearchViewModel @Inject constructor(
+    private val repository: AnimeRepository
 ) : ViewModel() {
-
-    companion object {
-        fun Factory(repository: AnimeRepository): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return SearchViewModel(repository) as T
-            }
-        }
-    }
 
     val genres: List<Genre> = repository.genres
 
