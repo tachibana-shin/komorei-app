@@ -61,12 +61,12 @@ class AnimeRepository @Inject constructor() {
     )
 
     private val videoUrls = listOf(
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
+        "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
+        "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4",
+        "https://test-videos.co.uk/vids/sintel/mp4/h264/720/Sintel_720_10s_1MB.mp4",
+        "https://test-videos.co.uk/vids/jellyfish/mp4/h264/720/Jellyfish_720_10s_5MB.mp4",
+        "https://vjs.zencdn.net/v/oceans.mp4",
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
     )
 
     /**
@@ -125,7 +125,7 @@ class AnimeRepository @Inject constructor() {
         delay(300)
         val isHls = stream.id.contains("hls", ignoreCase = true)
         val url = if (isHls) {
-            "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8"
+            "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
         } else {
             videoUrls[Random.nextInt(videoUrls.size)]
         }
