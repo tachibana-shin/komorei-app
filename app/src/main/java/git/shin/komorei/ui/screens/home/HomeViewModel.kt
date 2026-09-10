@@ -16,7 +16,8 @@ import javax.inject.Inject
 data class SourceHomeData(
     val featured: List<Anime> = emptyList(),
     val sections: Map<String, List<Anime>> = emptyMap(),
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val error: String? = null
 )
 
 @HiltViewModel
@@ -44,16 +45,27 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _sourceDataMap.update { map ->
                 val existing = map[sourceId] ?: SourceHomeData()
-                map + (sourceId to existing.copy(isLoading = true))
+                map + (sourceId to existing.copy(isLoading = true, error = null))
             }
-            val featured = repository.getFeaturedAnime(sourceId)
-            val sections = repository.getSectionsForSource(sourceId)
-            _sourceDataMap.update { map ->
-                map + (sourceId to SourceHomeData(
-                    featured = featured,
-                    sections = sections,
-                    isLoading = false
-                ))
+            runCatching {
+                val featured = repository.getFeaturedAnime(sourceId)
+                val sections = repository.getSectionsForSource(sourceId)
+                _sourceDataMap.update { map ->
+                    map + (sourceId to SourceHomeData(
+                        featured = featured,
+                        sections = sections,
+                        isLoading = false,
+                        error = null
+                    ))
+                }
+            }.onFailure { e ->
+                _sourceDataMap.update { map ->
+                    val existing = map[sourceId] ?: SourceHomeData()
+                    map + (sourceId to existing.copy(
+                        isLoading = false,
+                        error = e.message ?: "Lỗi tải dữ liệu"
+                    ))
+                }
             }
         }
     }

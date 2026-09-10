@@ -86,6 +86,8 @@ fun EpisodesBottomSheet(
     watchHistory: List<WatchHistory>,
     selectedSeasonId: String, // Changed to animeId
     episodes: List<Episode>,
+    episodesError: String?,
+    onRetryEpisodes: () -> Unit,
     onSeasonChange: (String) -> Unit, // Changed to animeId
     onEpisodeSelected: (Episode) -> Unit,
     onDismiss: () -> Unit
@@ -361,7 +363,42 @@ fun EpisodesBottomSheet(
                 )
             }
 
-            if (isGridView) {
+            if (filteredEpisodes.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = when {
+                                episodesError != null -> episodesError
+                                searchQuery.isBlank() -> stringResource(R.string.episodes_empty)
+                                else -> stringResource(R.string.episodes_empty_search)
+                            },
+                            color = TextMuted,
+                            fontSize = 13.sp
+                        )
+                        if (episodesError != null) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Surface(
+                                onClick = onRetryEpisodes,
+                                color = AnimeRedContainer,
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.action_retry),
+                                    color = AnimeRed,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            } else if (isGridView) {
                 val gridState = rememberLazyGridState()
                 val activeGridIndex = filteredEpisodes.indexOfFirst { it.id == currentEpisode.id }
                 LaunchedEffect(activeGridIndex, filteredEpisodes.size) {

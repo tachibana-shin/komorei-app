@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -48,6 +49,7 @@ import git.shin.komorei.ui.components.AppIcons
 import git.shin.komorei.ui.components.GenreChipCompact
 import git.shin.komorei.ui.components.GenreGridCard
 import git.shin.komorei.ui.theme.AnimeRed
+import git.shin.komorei.ui.theme.AnimeRedContainer
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.CardDark
@@ -333,6 +335,20 @@ fun SearchDiscoveryScreen(
                         color = AnimeRed,
                         fontSize = 14.sp
                     )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Surface(
+                        onClick = { viewModel.retrySearch() },
+                        color = AnimeRedContainer,
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.action_retry),
+                            color = AnimeRed,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                        )
+                    }
                 }
             }
         }

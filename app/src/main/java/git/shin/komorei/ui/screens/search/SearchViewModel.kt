@@ -76,6 +76,11 @@ class SearchViewModel @Inject constructor(
         return repository.getSourceName(sourceId)
     }
 
+    /** Re-runs the last search after an error. */
+    fun retrySearch() {
+        executeSearch(_searchQuery.value, _selectedGenre.value)
+    }
+
     private fun executeSearch(query: String, genre: Genre?) {
         if (query.isBlank() && genre == null) {
             _searchUiState.value = SearchUiState.Idle

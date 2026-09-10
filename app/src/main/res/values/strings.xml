@@ -15,6 +15,8 @@
     <string name="section_new_releases">Tập mới cập nhật</string>
     <string name="section_action_selected">Anime hành động chọn lọc</string>
     <string name="active_source_label">Nguồn: %1$s</string>
+    <string name="home_source_empty">Không có nội dung từ nguồn này</string>
+    <string name="home_source_error">Không thể tải nội dung từ nguồn này</string>
 
     <!-- Search & Discovery Screen -->
     <string name="search_header_title">Khám Phá</string>
@@ -81,9 +83,12 @@
     <string name="now_watching_ep">Đang xem: Tập %1$d</string>
     <string name="comments_title">Bình luận</string>
     <string name="episode_search_hint">Tìm theo số tập…</string>
+    <string name="episodes_empty">Season này chưa có tập nào</string>
+    <string name="episodes_empty_search">Không tìm thấy tập nào khớp với từ khóa</string>
     <string name="episode_display_count">Hiển thị %1$d tập</string>
     <string name="sort_oldest">Cũ nhất trước</string>
     <string name="sort_newest">Mới nhất trước</string>
+    <string name="action_retry">Thử lại</string>
     <string name="info_summary_title">Thông tin &amp; Giới thiệu</string>
     <string name="plot_summary_title">Tóm tắt cốt truyện</string>
     <string name="metadata_source">Nguồn phát:</string>

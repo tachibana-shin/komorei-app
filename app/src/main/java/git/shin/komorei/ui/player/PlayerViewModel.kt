@@ -164,6 +164,16 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Re-resolves servers + first stream after a failure (streamError shown in the UI).
+     */
+    fun retryStreams() {
+        val state = _playbackState.value
+        val anime = state.fullAnime ?: state.currentAnime ?: return
+        val episode = state.currentEpisode ?: return
+        viewModelScope.launch { loadStreams(anime, episode) }
+    }
+
     fun dismissPlayer() {
         _playbackState.update {
             it.copy(

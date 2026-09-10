@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -67,12 +68,13 @@ import git.shin.komorei.model.AnimeStatus
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.SelectedFilter
 import git.shin.komorei.model.StreamInfo
-import git.shin.komorei.ui.components.AnimeSection
+import git.shin.komorei.ui.components.AnimeCard
 import git.shin.komorei.ui.components.Badge
 import git.shin.komorei.ui.components.DetailPillButton
 import git.shin.komorei.ui.components.EpisodeProgressBar
 import git.shin.komorei.ui.components.MetadataDetailRow
 import git.shin.komorei.ui.components.ServerOptionChip
+import git.shin.komorei.ui.components.SectionHeader
 import git.shin.komorei.ui.player.components.EpisodesBottomSheet
 import git.shin.komorei.ui.theme.Accent
 import git.shin.komorei.ui.theme.AnimeGreen
@@ -106,6 +108,7 @@ fun AnimeDetailView(
     streamError: String?,
     onEpisodeSelected: (Episode) -> Unit,
     onStreamSelected: (StreamInfo) -> Unit,
+    onRetryStreams: () -> Unit,
     onAnimeSelected: (Anime) -> Unit,
     onNavigateToCategory: (List<SelectedFilter>) -> Unit,
     modifier: Modifier = Modifier,
@@ -342,7 +345,7 @@ fun AnimeDetailView(
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
@@ -394,21 +397,47 @@ fun AnimeDetailView(
 
                 when {
                     // Server list is fetched dynamically via getStreamList(fullAnime, episode).
+                    // Skeleton uses the SAME padding + 12sp label as ServerOptionChip so the
+                    // swap doesn't jump vertically (a fixed 30dp box is ~8dp shorter than the
+                    // real chip, whose line box is 24sp + 7dp x2 padding).
                     isLoadingStreams -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        repeat(3) {
+                        repeat(serverSkeletonCount(displayAnime.sourceId)) {
                             Box(
                                 modifier = Modifier
-                                    .size(width = 96.dp, height = 30.dp)
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(CardDark.copy(alpha = 0.5f))
-                            )
+                                    .padding(horizontal = 14.dp, vertical = 7.dp)
+                            ) {
+                                Text(
+                                    text = "Đang tải",
+                                    color = Color.Transparent,
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
                     }
-                    streamError != null -> Text(
-                        text = streamError,
-                        color = TextGrey,
-                        fontSize = 12.sp
-                    )
+                    streamError != null -> Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = streamError,
+                            color = TextGrey,
+                            fontSize = 12.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = stringResource(R.string.action_retry),
+                            color = AnimeRed,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { onRetryStreams() }
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                     else -> FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -481,6 +510,55 @@ fun AnimeDetailView(
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(CardDark.copy(alpha = 0.5f))
                             )
+                        }
+                    } else if (uiState.episodeError != null) {
+                        // Season load failed — keep the row visible with the error + retry.
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(CardDark.copy(alpha = 0.3f))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = uiState.episodeError ?: "",
+                                    color = TextGrey,
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.widthIn(max = 220.dp)
+                                )
+                                Text(
+                                    text = stringResource(R.string.action_retry),
+                                    color = AnimeRed,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .clickable { viewModel.retryEpisodes() }
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    } else if (episodes.isEmpty()) {
+                        // Season has no episodes yet — keep the row visible instead of collapsing.
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .height(34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(CardDark.copy(alpha = 0.3f))
+                                    .padding(horizontal = 14.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.episodes_empty),
+                                    color = TextMuted,
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
                     } else {
                         items(episodes) { ep ->
@@ -645,12 +723,33 @@ fun AnimeDetailView(
 
         item {
             if (relatedAnimeList.isNotEmpty()) {
-                AnimeSection(
-                    title = stringResource(R.string.related_anime_header),
-                    isGrid = true,
-                    animeList = relatedAnimeList,
-                    onAnimeClick = onAnimeSelected
-                )
+                // 3-column grid, rendered NON-lazily: a LazyVerticalGrid nested inside
+                // this LazyColumn item would be measured with an infinite max-height
+                // (items of LazyColumn get unbounded height), which crashes Compose.
+                val rows = relatedAnimeList.chunked(3)
+                SectionHeader(title = stringResource(R.string.related_anime_header))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    rows.forEachIndexed { index, rowAnimes ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = if (index < rows.lastIndex) 14.dp else 0.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            rowAnimes.forEach { anime ->
+                                AnimeCard(
+                                    anime = anime,
+                                    onClick = { onAnimeSelected(anime) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -666,6 +765,8 @@ fun AnimeDetailView(
                 effectiveSeasons.find { it.animeId == id }?.let { viewModel.selectSeason(it) }
             },
             episodes = episodes,
+            episodesError = uiState.episodeError,
+            onRetryEpisodes = { viewModel.retryEpisodes() },
             onEpisodeSelected = { ep ->
                 onEpisodeSelected(ep)
                 showEpisodesSheet = false
@@ -881,4 +982,15 @@ fun AnimeDetailView(
             }
         }
     }
+}
+
+/**
+ * Mirrors `AnimeRepository.getStreamList()` so the server-list loading skeleton shows the
+ * same number of chips the source will actually return (avoids a layout shift on swap).
+ */
+private fun serverSkeletonCount(sourceId: String): Int = when (sourceId) {
+    "gogoanime" -> 2
+    "hidive" -> 1
+    "vuighe" -> 2
+    else -> 3 // animevietsub
 }

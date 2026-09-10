@@ -45,7 +45,7 @@ fun DetailPillButton(
             if (isActive) AnimeRed else CardBorderDark
         ),
         modifier = modifier
-            .height(36.dp)
+//            .height(36.dp)
             .testTag(tag)
     ) {
         Row(

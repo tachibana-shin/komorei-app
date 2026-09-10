@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -24,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -53,7 +55,9 @@ import git.shin.komorei.ui.components.BannerCarouselSkeleton
 import git.shin.komorei.ui.components.SectionSkeleton
 import git.shin.komorei.ui.components.SourceTabBar
 import git.shin.komorei.ui.theme.AnimeRed
+import git.shin.komorei.ui.theme.AnimeRedContainer
 import git.shin.komorei.ui.theme.BackgroundDark
+import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import kotlinx.coroutines.launch
 
@@ -185,43 +189,91 @@ fun HomeScreen(
             val source = sources[pageIndex]
             val sourceData = sourceDataMap[source.id] ?: SourceHomeData(isLoading = true)
 
-            if (sourceData.isLoading && sourceData.featured.isEmpty()) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 120.dp)
-                ) {
-                    item { BannerCarouselSkeleton() }
-                    items(3) { SectionSkeleton() }
+            when {
+                // Load failed — show error + retry instead of an infinite skeleton / blank page.
+                sourceData.error != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = stringResource(R.string.home_source_error),
+                                color = TextMuted,
+                                fontSize = 13.sp
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Surface(
+                                onClick = { viewModel.loadSourceData(source.id) },
+                                color = AnimeRedContainer,
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.action_retry),
+                                    color = AnimeRed,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 120.dp)
-                ) {
-                    // Banner Carousel displaying Hot Spotlights with Anime Description
-                    if (sourceData.featured.isNotEmpty()) {
+
+                sourceData.isLoading && sourceData.featured.isEmpty() -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 120.dp)
+                    ) {
+                        item { BannerCarouselSkeleton() }
+                        items(3) { SectionSkeleton() }
+                    }
+                }
+
+                // Loaded successfully but the source has nothing to show.
+                sourceData.featured.isEmpty() && sourceData.sections.values.all { it.isEmpty() } -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.home_source_empty),
+                            color = TextMuted,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 120.dp)
+                    ) {
+                        // Banner Carousel displaying Hot Spotlights with Anime Description
+                        if (sourceData.featured.isNotEmpty()) {
+                            item {
+                                BannerCarousel(
+                                    featuredList = sourceData.featured,
+                                    onAnimeClick = onAnimeClick
+                                )
+                            }
+                        }
+
+                        // Sections / Categories for this source (skip empty sections)
+                        sourceData.sections.filterValues { it.isNotEmpty() }.forEach { (sectionTitle, animeList) ->
+                            item(key = "${source.id}_$sectionTitle") {
+                                AnimeSection(
+                                    title = sectionTitle,
+                                    animeList = animeList,
+                                    onAnimeClick = onAnimeClick,
+                                    getSourceName = { viewModel.getSourceName(it) }
+                                )
+                            }
+                        }
+
                         item {
-                            BannerCarousel(
-                                featuredList = sourceData.featured,
-                                onAnimeClick = onAnimeClick
-                            )
+                            Spacer(modifier = Modifier.height(24.dp))
                         }
-                    }
-
-                    // Sections / Categories for this source
-                    sourceData.sections.forEach { (sectionTitle, animeList) ->
-                        item(key = "${source.id}_$sectionTitle") {
-                            AnimeSection(
-                                title = sectionTitle,
-                                animeList = animeList,
-                                onAnimeClick = onAnimeClick,
-                                getSourceName = { viewModel.getSourceName(it) }
-                            )
-                        }
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
             }

@@ -28,6 +28,7 @@ data class AnimeDetailUiState(
     val selectedSeason: AnimeSeason? = null,
     val currentSeasonEpisodes: List<Episode> = emptyList(),
     val isLoadingEpisodes: Boolean = false,
+    val episodeError: String? = null,
     val sourceName: String = ""
 )
 
@@ -40,6 +41,9 @@ class AnimeDetailViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(AnimeDetailUiState())
     val uiState: StateFlow<AnimeDetailUiState> = _uiState.asStateFlow()
+
+    // Remembers the Lite anime for retry when the initial metadata fetch failed.
+    private var lastLiteAnime: Anime? = null
 
     // Observe bookmark status for the master anime
     val isBookmarked: StateFlow<Boolean> = _uiState
@@ -76,23 +80,33 @@ class AnimeDetailViewModel @Inject constructor(
      */
     fun loadInitialData(liteAnime: Anime) {
         if (_uiState.value.masterAnime?.id == liteAnime.id) return
+        lastLiteAnime = liteAnime
         
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingEpisodes = true) }
+            _uiState.update { it.copy(isLoadingEpisodes = true, episodeError = null) }
             
             // 1. Fetch FULL metadata (including all available seasons)
-            val fullMetadata = animeRepository.getAnimeUpdate(liteAnime, needsDetails = true, needsChapters = false)
-            val sourceName = animeRepository.getSourceName(liteAnime.sourceId)
+            runCatching {
+                animeRepository.getAnimeUpdate(liteAnime, needsDetails = true, needsChapters = false)
+            }.onSuccess { fullMetadata ->
+                val sourceName = animeRepository.getSourceName(liteAnime.sourceId)
 
-            // 2. Select initial season (usually the one provided by liteAnime or the first in list)
-            val initialSeason = fullMetadata.seasons.find { it.animeId == liteAnime.id } 
-                ?: fullMetadata.seasons.firstOrNull() 
-                ?: AnimeSeason(liteAnime.id, "Full Season")
-                
-            _uiState.update { it.copy(masterAnime = fullMetadata, selectedSeason = initialSeason, sourceName = sourceName) }
-            
-            // 3. Fetch episodes for THIS specific season
-            fetchEpisodesForSeason(initialSeason, liteAnime.sourceId)
+                // 2. Select initial season (usually the one provided by liteAnime or the first in list)
+                val initialSeason = fullMetadata.seasons.find { it.animeId == liteAnime.id }
+                    ?: fullMetadata.seasons.firstOrNull()
+                    ?: AnimeSeason(liteAnime.id, "Full Season")
+
+                _uiState.update {
+                    it.copy(masterAnime = fullMetadata, selectedSeason = initialSeason, sourceName = sourceName)
+                }
+
+                // 3. Fetch episodes for THIS specific season
+                fetchEpisodesForSeason(initialSeason, liteAnime.sourceId)
+            }.onFailure { e ->
+                _uiState.update {
+                    it.copy(isLoadingEpisodes = false, episodeError = e.message ?: LOAD_ERROR_MESSAGE)
+                }
+            }
         }
     }
 
@@ -103,7 +117,9 @@ class AnimeDetailViewModel @Inject constructor(
         val master = _uiState.value.masterAnime ?: return
         if (_uiState.value.selectedSeason?.animeId == season.animeId) return
         
-        _uiState.update { it.copy(selectedSeason = season, currentSeasonEpisodes = emptyList()) }
+        _uiState.update {
+            it.copy(selectedSeason = season, currentSeasonEpisodes = emptyList(), episodeError = null)
+        }
         
         viewModelScope.launch {
             fetchEpisodesForSeason(season, master.sourceId)
@@ -111,7 +127,7 @@ class AnimeDetailViewModel @Inject constructor(
     }
 
     private suspend fun fetchEpisodesForSeason(season: AnimeSeason, sourceId: String) {
-        _uiState.update { it.copy(isLoadingEpisodes = true) }
+        _uiState.update { it.copy(isLoadingEpisodes = true, episodeError = null) }
         
         // Reconstruct minimal Anime for the update call
         val liteSeasonAnime = Anime(
@@ -134,17 +150,46 @@ class AnimeDetailViewModel @Inject constructor(
             seasonOf = null
         )
         
-        val updatedWithChapters = animeRepository.getAnimeUpdate(
-            liteSeasonAnime, 
-            needsDetails = false, 
-            needsChapters = true
-        )
-        
-        _uiState.update { 
-            it.copy(
-                currentSeasonEpisodes = updatedWithChapters.episodes,
-                isLoadingEpisodes = false
-            ) 
+        runCatching {
+            animeRepository.getAnimeUpdate(
+                liteSeasonAnime,
+                needsDetails = false,
+                needsChapters = true
+            )
+        }.onSuccess { updatedWithChapters ->
+            _uiState.update {
+                it.copy(
+                    currentSeasonEpisodes = updatedWithChapters.episodes,
+                    isLoadingEpisodes = false,
+                    episodeError = null
+                )
+            }
+        }.onFailure { e ->
+            _uiState.update {
+                it.copy(
+                    currentSeasonEpisodes = emptyList(),
+                    isLoadingEpisodes = false,
+                    episodeError = e.message ?: LOAD_ERROR_MESSAGE
+                )
+            }
+        }
+    }
+
+    /**
+     * Re-runs the last failed load: full metadata if it never arrived, otherwise the
+     * current season's episode list.
+     */
+    fun retryEpisodes() {
+        val state = _uiState.value
+        val master = state.masterAnime
+        when {
+            master == null -> {
+                lastLiteAnime?.let { loadInitialData(it) }
+            }
+            state.selectedSeason != null -> {
+                val season = state.selectedSeason
+                viewModelScope.launch { fetchEpisodesForSeason(season, master.sourceId) }
+            }
         }
     }
 
@@ -153,5 +198,9 @@ class AnimeDetailViewModel @Inject constructor(
         viewModelScope.launch {
             libraryRepository.toggleBookmark(anime)
         }
+    }
+
+    companion object {
+        private const val LOAD_ERROR_MESSAGE = "Lỗi tải dữ liệu"
     }
 }

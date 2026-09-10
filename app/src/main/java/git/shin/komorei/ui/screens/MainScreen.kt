@@ -194,6 +194,7 @@ fun MainScreen(
                             onSeekTo = { playerViewModel.seekTo(it) },
                             onEpisodeSelected = { playerViewModel.selectEpisode(it) },
                             onStreamSelected = { playerViewModel.selectStream(it) },
+                            onRetryStreams = { playerViewModel.retryStreams() },
                             onDismiss = { playerViewModel.dismissPlayer() },
                             onAnimeSelected = onAnimeSelected,
                             onNavigateToCategory = { filters ->
@@ -347,6 +348,7 @@ fun MainScreen(
                             onSeekTo = { playerViewModel.seekTo(it) },
                             onEpisodeSelected = { playerViewModel.selectEpisode(it) },
                             onStreamSelected = { playerViewModel.selectStream(it) },
+                            onRetryStreams = { playerViewModel.retryStreams() },
                             onDismiss = { playerViewModel.dismissPlayer() },
                             onAnimeSelected = onAnimeSelected,
                             onNavigateToCategory = { filters ->

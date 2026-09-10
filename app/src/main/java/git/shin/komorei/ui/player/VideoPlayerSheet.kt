@@ -52,6 +52,7 @@ fun VideoPlayerSheet(
     onSeekTo: (Long) -> Unit,
     onEpisodeSelected: (Episode) -> Unit,
     onStreamSelected: (StreamInfo) -> Unit,
+    onRetryStreams: () -> Unit,
     onDismiss: () -> Unit,
     onAnimeSelected: (Anime) -> Unit,
     onNavigateToCategory: (List<SelectedFilter>) -> Unit,
@@ -246,6 +247,7 @@ fun VideoPlayerSheet(
                         streamError = playbackState.streamError,
                         onEpisodeSelected = onEpisodeSelected,
                         onStreamSelected = onStreamSelected,
+                        onRetryStreams = onRetryStreams,
                         onAnimeSelected = onAnimeSelected,
                         onNavigateToCategory = onNavigateToCategory,
                         modifier = Modifier
