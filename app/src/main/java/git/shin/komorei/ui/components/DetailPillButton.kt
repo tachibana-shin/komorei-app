@@ -24,6 +24,7 @@ import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeRedContainer
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.CardDark
+import git.shin.komorei.ui.theme.NoPaddingTextStyle
 import git.shin.komorei.ui.theme.TextPrimary
 
 @Composable
@@ -66,7 +67,8 @@ fun DetailPillButton(
                 fontSize = 12.sp,
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                style = NoPaddingTextStyle
             )
         }
     }

@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkAdd
@@ -67,7 +66,6 @@ import git.shin.komorei.model.AnimeSeason
 import git.shin.komorei.model.AnimeStatus
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.SelectedFilter
-import git.shin.komorei.model.WatchHistory
 import git.shin.komorei.ui.components.AnimeSection
 import git.shin.komorei.ui.components.Badge
 import git.shin.komorei.ui.components.DetailPillButton
@@ -126,7 +124,7 @@ fun AnimeDetailView(
     val effectiveSeasons = displayAnime.seasons.ifEmpty {
         listOf(AnimeSeason(displayAnime.id, "Full Season"))
     }
-    
+
     val descSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LazyColumn(
@@ -168,7 +166,10 @@ fun AnimeDetailView(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = stringResource(R.string.views_count, formatNumber(displayAnime.views)),
+                        text = stringResource(
+                            R.string.views_count,
+                            formatNumber(displayAnime.views)
+                        ),
                         color = TextGrey,
                         fontSize = 14.sp,
                         style = NoPaddingTextStyle
@@ -176,10 +177,9 @@ fun AnimeDetailView(
                     displayAnime.nextEpisodeAirInfo?.let { text ->
                         Text(text = " • ", color = TextGrey, fontSize = 14.sp)
                         Text(
-                            text = "⏰ $text",
-                            color = NeonCyan,
+                            text = "$text",
+                            color = Accent,
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
                             style = NoPaddingTextStyle
                         )
                     }
@@ -189,10 +189,9 @@ fun AnimeDetailView(
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (displayAnime.authors.isNotEmpty()) {
-                        Text(text = stringResource(R.string.author_label) + " ", color = TextGrey, fontSize = 14.sp)
                         Text(
-                            text = displayAnime.authors.first().name,
-                            color = if (displayAnime.authors.first().filters.isNotEmpty()) AnimeGreen else TextPrimary,
+                            text = stringResource(R.string.author_label) + " " + displayAnime.authors.first().name,
+                            color = if (displayAnime.authors.first().filters.isNotEmpty()) AnimeGreen else TextSecondary,
                             fontSize = 14.sp,
                             modifier = Modifier.clickable(enabled = displayAnime.authors.first().filters.isNotEmpty()) {
                                 onNavigateToCategory(displayAnime.authors.first().filters)
@@ -202,8 +201,11 @@ fun AnimeDetailView(
                     }
 
                     Text(
-                        text = stringResource(R.string.studio_prefix, displayAnime.studio?.name ?: stringResource(R.string.unknown)),
-                        color = if (displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) AnimeGreen else TextGrey,
+                        text = stringResource(
+                            R.string.studio_prefix,
+                            displayAnime.studio?.name ?: stringResource(R.string.unknown)
+                        ),
+                        color = if (displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) AnimeGreen else TextSecondary,
                         fontSize = 14.sp,
                         modifier = Modifier.clickable(enabled = displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) {
                             displayAnime.studio?.let { onNavigateToCategory(it.filters) }
@@ -224,22 +226,34 @@ fun AnimeDetailView(
                             color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
+                            style = NoPaddingTextStyle,
                             modifier = Modifier
-                                .padding(6.dp)
-                                .background(Color(0xFF00C853).copy(alpha = .85f), RoundedCornerShape(4.dp))
+                                .background(
+                                    Color(0xFF00C853).copy(alpha = .85f),
+                                    RoundedCornerShape(4.dp)
+                                )
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                     displayAnime.releaseYear?.let {
-                        Badge(text = it.name, modifier = Modifier.clickable { onNavigateToCategory(it.filters) })
+                        Badge(
+                            text = it.name,
+                            textStyle = NoPaddingTextStyle,
+                            modifier = Modifier.clickable { onNavigateToCategory(it.filters) })
                     }
                     if (!displayAnime.currentEpisode.isNullOrEmpty()) {
-                        Badge(text = stringResource(R.string.updated_to_episode, displayAnime.currentEpisode))
+                        Badge(
+                            text = stringResource(
+                                R.string.updated_to_episode,
+                                displayAnime.currentEpisode
+                            ),
+                            textStyle = NoPaddingTextStyle,
+                        )
                     }
                     displayAnime.countries.forEach { country ->
                         Text(
                             text = country.name,
-                            color = if (country.filters.isNotEmpty()) AnimeGreen else TextPrimary,
+                            color = if (country.filters.isNotEmpty()) AnimeGreen else TextSecondary,
                             fontSize = 14.sp,
                             style = NoPaddingTextStyle,
                             modifier = Modifier.clickable(enabled = country.filters.isNotEmpty()) {
@@ -319,31 +333,41 @@ fun AnimeDetailView(
         }
 
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                DetailPillButton(
-                    icon = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkAdd,
-                    label = if (isBookmarked) stringResource(R.string.following_anime) else stringResource(R.string.follow_anime),
-                    isActive = isBookmarked,
-                    onClick = { viewModel.toggleBookmark() },
-                    tag = "bookmark"
-                )
-                DetailPillButton(
-                    icon = Icons.Default.AutoAwesome,
-                    label = stringResource(R.string.description_title),
-                    isActive = false,
-                    onClick = { showDescriptionSheet = true },
-                    tag = "summary"
-                )
-                DetailPillButton(
-                    icon = Icons.Default.Flag,
-                    label = stringResource(R.string.report_anime),
-                    isActive = false,
-                    onClick = { },
-                    tag = "report"
-                )
+                item {
+                    DetailPillButton(
+                        icon = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkAdd,
+                        label = if (isBookmarked) stringResource(R.string.following_anime) else stringResource(
+                            R.string.follow_anime
+                        ),
+                        isActive = isBookmarked,
+                        onClick = { viewModel.toggleBookmark() },
+                        tag = "bookmark"
+                    )
+                }
+                item {
+                    DetailPillButton(
+                        icon = Icons.Default.AutoAwesome,
+                        label = stringResource(R.string.description_title),
+                        isActive = false,
+                        onClick = { showDescriptionSheet = true },
+                        tag = "summary"
+                    )
+                }
+                item {
+                    DetailPillButton(
+                        icon = Icons.Default.Flag,
+                        label = stringResource(R.string.report_anime),
+                        isActive = false,
+                        onClick = { },
+                        tag = "report"
+                    )
+                }
             }
         }
 
@@ -383,9 +407,16 @@ fun AnimeDetailView(
         }
 
         item {
-            Column(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().clickable { showEpisodesSheet = true }.padding(horizontal = 16.dp, vertical = 6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showEpisodesSheet = true }
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -396,8 +427,17 @@ fun AnimeDetailView(
                         fontWeight = FontWeight.Bold
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = stringResource(R.string.section_see_all), color = AnimeRed, fontSize = 12.sp)
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, tint = AnimeRed, modifier = Modifier.size(11.dp))
+                        Text(
+                            text = stringResource(R.string.section_see_all),
+                            color = AnimeRed,
+                            fontSize = 12.sp
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                            contentDescription = null,
+                            tint = AnimeRed,
+                            modifier = Modifier.size(11.dp)
+                        )
                     }
                 }
 
@@ -408,32 +448,58 @@ fun AnimeDetailView(
                 ) {
                     if (uiState.isLoadingEpisodes) {
                         items(5) {
-                            Box(modifier = Modifier.size(width = 46.dp, height = 34.dp).clip(RoundedCornerShape(8.dp)).background(CardDark.copy(alpha = 0.5f)))
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 46.dp, height = 34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(CardDark.copy(alpha = 0.5f))
+                            )
                         }
                     } else {
                         items(episodes) { ep ->
                             val isSelected = ep.id == currentEpisode.id
                             val history = watchHistory.find { it.episodeId == ep.id }
-                            
+
                             Box(
                                 modifier = Modifier
                                     .size(width = 46.dp, height = 34.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(if (isSelected) AnimeRedContainer else CardDark)
-                                    .border(width = if (isSelected) 1.5.dp else 1.dp, color = if (isSelected) AnimeRed else CardBorderDark, shape = RoundedCornerShape(8.dp))
+                                    .border(
+                                        width = if (isSelected) 1.5.dp else 1.dp,
+                                        color = if (isSelected) AnimeRed else CardBorderDark,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
                                     .clickable { onEpisodeSelected(ep) },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                        if (isSelected) {
-                                            Icon(imageVector = Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null, tint = AnimeRed, modifier = Modifier.size(14.dp))
-                                        } else {
-                                            Text(text = ep.episodeNumber, color = TextPrimary, fontSize = 12.sp)
-                                        }
+                                    Box(
+                                        modifier = Modifier.weight(1f),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+//                                        if (isSelected) {
+//                                            Icon(
+//                                                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+//                                                contentDescription = null,
+//                                                tint = AnimeRed,
+//                                                modifier = Modifier.size(14.dp)
+//                                            )
+//                                        } else {
+                                        Text(
+                                            text = ep.episodeNumber,
+                                            color = TextPrimary,
+                                            fontSize = 12.sp
+                                        )
+//                                        }
                                     }
                                     history?.let {
-                                        EpisodeProgressBar(progress = it.progressFraction, modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, bottom = 2.dp))
+                                        EpisodeProgressBar(
+                                            progress = it.progressFraction,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(start = 4.dp, end = 4.dp, bottom = 2.dp)
+                                        )
                                     }
                                 }
                             }
@@ -454,7 +520,11 @@ fun AnimeDetailView(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(if (isSeasonSelected) AnimeRedContainer else CardDark)
-                                    .border(width = 1.dp, color = if (isSeasonSelected) AnimeRed else CardBorderDark, shape = RoundedCornerShape(6.dp))
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isSeasonSelected) AnimeRed else CardBorderDark,
+                                        shape = RoundedCornerShape(6.dp)
+                                    )
                                     .clickable { viewModel.selectSeason(season) }
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
@@ -543,6 +613,7 @@ fun AnimeDetailView(
             if (relatedAnimeList.isNotEmpty()) {
                 AnimeSection(
                     title = stringResource(R.string.related_anime_header),
+                    isGrid = true,
                     animeList = relatedAnimeList,
                     onAnimeClick = onAnimeSelected
                 )
@@ -557,7 +628,7 @@ fun AnimeDetailView(
             currentEpisode = currentEpisode,
             watchHistory = watchHistory,
             selectedSeasonId = selectedSeason?.animeId ?: displayAnime.id,
-            onSeasonChange = { id -> 
+            onSeasonChange = { id ->
                 effectiveSeasons.find { it.animeId == id }?.let { viewModel.selectSeason(it) }
             },
             episodes = episodes,
@@ -696,7 +767,10 @@ fun AnimeDetailView(
                             Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
-                                text = stringResource(R.string.views_format, formatNumber(displayAnime.views)),
+                                text = stringResource(
+                                    R.string.views_format,
+                                    formatNumber(displayAnime.views)
+                                ),
                                 color = AnimeRed,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium
