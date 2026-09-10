@@ -193,6 +193,7 @@ fun MainScreen(
                             onPlayPauseToggle = { playerViewModel.togglePlayPause() },
                             onSeekTo = { playerViewModel.seekTo(it) },
                             onEpisodeSelected = { playerViewModel.selectEpisode(it) },
+                            onStreamSelected = { playerViewModel.selectStream(it) },
                             onDismiss = { playerViewModel.dismissPlayer() },
                             onAnimeSelected = onAnimeSelected,
                             onNavigateToCategory = { filters ->
@@ -345,6 +346,7 @@ fun MainScreen(
                             onPlayPauseToggle = { playerViewModel.togglePlayPause() },
                             onSeekTo = { playerViewModel.seekTo(it) },
                             onEpisodeSelected = { playerViewModel.selectEpisode(it) },
+                            onStreamSelected = { playerViewModel.selectStream(it) },
                             onDismiss = { playerViewModel.dismissPlayer() },
                             onAnimeSelected = onAnimeSelected,
                             onNavigateToCategory = { filters ->

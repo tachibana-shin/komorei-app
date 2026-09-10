@@ -15,19 +15,31 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
+import git.shin.komorei.KomoreiApplication
+import git.shin.komorei.data.remote.SegmentDataInterceptor
+import git.shin.komorei.data.remote.SegmentUrlInterceptor
+import git.shin.komorei.model.StreamData
 import kotlinx.coroutines.delay
 
 @OptIn(UnstableApi::class)
 @Composable
 fun Media3VideoPlayer(
-    videoUrl: String,
+    streamData: StreamData?,
     isPlaying: Boolean,
     onPositionChanged: (currentMs: Long, durationMs: Long, bufferedMs: Long) -> Unit,
     onPlayerReady: (ExoPlayer) -> Unit = {},
+    segmentUrlInterceptor: SegmentUrlInterceptor? = null,
+    segmentDataInterceptor: SegmentDataInterceptor? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+
+    // Shared OkHttp backed factory: injects stream headers + optional segment transformers.
+    val dataSourceFactory = remember {
+        (context.applicationContext as KomoreiApplication).dataSourceFactory
+    }
 
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
@@ -36,15 +48,27 @@ fun Media3VideoPlayer(
         }
     }
 
-    // Set media item when videoUrl changes
-    LaunchedEffect(videoUrl) {
-        if (videoUrl.isNotBlank()) {
-            val mediaItem = MediaItem.fromUri(videoUrl)
-            exoPlayer.setMediaItem(mediaItem)
-            exoPlayer.prepare()
-            exoPlayer.play()
-            onPlayerReady(exoPlayer)
+    // (Re)build the media source whenever the resolved stream changes.
+    LaunchedEffect(streamData, segmentUrlInterceptor, segmentDataInterceptor) {
+        val sd = streamData
+        if (sd == null || sd.url.isBlank() || !sd.isContent) {
+            // Nothing playable yet: URL needs source-side resolution (isContent == false)
+            // or we're still waiting for the first getStream(...) result.
+            exoPlayer.stop()
+            exoPlayer.clearMediaItems()
+            return@LaunchedEffect
         }
+
+        // Headers (Referer, Cookie, User-Agent...) + optional segment transformers.
+        dataSourceFactory.configure(sd, segmentUrlInterceptor, segmentDataInterceptor)
+
+        // DefaultMediaSourceFactory auto-detects HLS vs progressive; both go through
+        // our data source factory so headers/transformers apply to every sub-request.
+        val sourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+        exoPlayer.setMediaSource(sourceFactory.createMediaSource(MediaItem.fromUri(sd.url)))
+        exoPlayer.prepare()
+        exoPlayer.play()
+        onPlayerReady(exoPlayer)
     }
 
     // Sync play/pause state

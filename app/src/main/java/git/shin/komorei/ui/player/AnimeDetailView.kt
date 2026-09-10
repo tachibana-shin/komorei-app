@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -43,7 +44,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -66,6 +66,7 @@ import git.shin.komorei.model.AnimeSeason
 import git.shin.komorei.model.AnimeStatus
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.SelectedFilter
+import git.shin.komorei.model.StreamInfo
 import git.shin.komorei.ui.components.AnimeSection
 import git.shin.komorei.ui.components.Badge
 import git.shin.komorei.ui.components.DetailPillButton
@@ -89,6 +90,7 @@ import git.shin.komorei.ui.theme.TextGrey
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.utils.animateScrollToItemCentered
 import git.shin.komorei.ui.utils.formatNumber
 
 @SuppressLint("DefaultLocale")
@@ -98,7 +100,12 @@ fun AnimeDetailView(
     anime: Anime,
     currentEpisode: Episode,
     relatedAnimeList: List<Anime>,
+    streams: List<StreamInfo>,
+    selectedStreamId: String?,
+    isLoadingStreams: Boolean,
+    streamError: String?,
     onEpisodeSelected: (Episode) -> Unit,
+    onStreamSelected: (StreamInfo) -> Unit,
     onAnimeSelected: (Anime) -> Unit,
     onNavigateToCategory: (List<SelectedFilter>) -> Unit,
     modifier: Modifier = Modifier,
@@ -119,7 +126,6 @@ fun AnimeDetailView(
     var showDescriptionSheet by remember { mutableStateOf(false) }
     var showEpisodesSheet by remember { mutableStateOf(false) }
     var showCommentsSheet by remember { mutableStateOf(false) }
-    var selectedServer by remember { mutableIntStateOf(0) }
 
     val effectiveSeasons = displayAnime.seasons.ifEmpty {
         listOf(AnimeSeason(displayAnime.id, "Full Season"))
@@ -386,22 +392,36 @@ fun AnimeDetailView(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ServerOptionChip(
-                        name = stringResource(R.string.server_name_fhd),
-                        isSelected = selectedServer == 0,
-                        onClick = { selectedServer = 0 }
+                when {
+                    // Server list is fetched dynamically via getStreamList(fullAnime, episode).
+                    isLoadingStreams -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        repeat(3) {
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 96.dp, height = 30.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(CardDark.copy(alpha = 0.5f))
+                            )
+                        }
+                    }
+                    streamError != null -> Text(
+                        text = streamError,
+                        color = TextGrey,
+                        fontSize = 12.sp
                     )
-                    ServerOptionChip(
-                        name = stringResource(R.string.server_name_vip),
-                        isSelected = selectedServer == 1,
-                        onClick = { selectedServer = 1 }
-                    )
-                    ServerOptionChip(
-                        name = stringResource(R.string.server_name_backup),
-                        isSelected = selectedServer == 2,
-                        onClick = { selectedServer = 2 }
-                    )
+                    else -> FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        streams.forEach { stream ->
+                            ServerOptionChip(
+                                name = stream.name,
+                                isSelected = stream.id == selectedStreamId,
+                                onClick = { onStreamSelected(stream) }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -441,7 +461,14 @@ fun AnimeDetailView(
                     }
                 }
 
+                val episodesRowState = rememberLazyListState()
+                val activeEpisodeIndex = episodes.indexOfFirst { it.id == currentEpisode.id }
+                LaunchedEffect(activeEpisodeIndex, episodes.size) {
+                    episodesRowState.animateScrollToItemCentered(activeEpisodeIndex)
+                }
+
                 LazyRow(
+                    state = episodesRowState,
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -509,7 +536,14 @@ fun AnimeDetailView(
 
                 if (effectiveSeasons.size > 1) {
                     Spacer(modifier = Modifier.height(10.dp))
+                    val seasonsRowState = rememberLazyListState()
+                    val activeSeasonIndex =
+                        effectiveSeasons.indexOfFirst { it.animeId == selectedSeason?.animeId }
+                    LaunchedEffect(selectedSeason?.animeId, effectiveSeasons.size) {
+                        seasonsRowState.animateScrollToItemCentered(activeSeasonIndex)
+                    }
                     LazyRow(
+                        state = seasonsRowState,
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -29,10 +30,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.SelectedFilter
+import git.shin.komorei.model.StreamInfo
 import git.shin.komorei.model.WatchHistory
+import git.shin.komorei.ui.theme.AnimeGreen
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.CardBorderDark
 import kotlin.math.roundToInt
@@ -45,6 +51,7 @@ fun VideoPlayerSheet(
     onPlayPauseToggle: () -> Unit,
     onSeekTo: (Long) -> Unit,
     onEpisodeSelected: (Episode) -> Unit,
+    onStreamSelected: (StreamInfo) -> Unit,
     onDismiss: () -> Unit,
     onAnimeSelected: (Anime) -> Unit,
     onNavigateToCategory: (List<SelectedFilter>) -> Unit,
@@ -162,13 +169,40 @@ fun VideoPlayerSheet(
                                 .background(Color.Black)
                                 .testTag("expanded_video_container")
                         ) {
-                            // Media3 ExoPlayer surface
+                            // Media3 ExoPlayer surface — fed with the resolved StreamData
+                            // (URL + headers + optional segment transformers).
                             Media3VideoPlayer(
-                                videoUrl = "https://example.com/stream.m3u8", // Dynamic fetch required
+                                streamData = playbackState.streamData,
                                 isPlaying = playbackState.isPlaying,
                                 onPositionChanged = { _, _, _ -> },
+                                segmentUrlInterceptor = playbackState.segmentUrlInterceptor,
+                                segmentDataInterceptor = playbackState.segmentDataInterceptor,
                                 modifier = Modifier.fillMaxSize()
                             )
+
+                            // Loading / error overlay while a stream is being resolved.
+                            if (playbackState.streamData == null) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    when {
+                                        playbackState.isLoadingStreams -> CircularProgressIndicator(
+                                            color = AnimeGreen,
+                                            modifier = Modifier
+                                                .testTag("stream_loading_indicator")
+                                                .size(36.dp)
+                                        )
+                                        playbackState.streamError != null -> Text(
+                                            text = playbackState.streamError ?: "",
+                                            color = Color.White,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                }
+                            }
 
                             // Custom Video Controller Overlay
                             CustomVideoControllerOverlay(
@@ -206,7 +240,12 @@ fun VideoPlayerSheet(
                         anime = anime,
                         currentEpisode = currentEp,
                         relatedAnimeList = relatedAnimeList,
+                        streams = playbackState.streams,
+                        selectedStreamId = playbackState.selectedStreamId,
+                        isLoadingStreams = playbackState.isLoadingStreams,
+                        streamError = playbackState.streamError,
                         onEpisodeSelected = onEpisodeSelected,
+                        onStreamSelected = onStreamSelected,
                         onAnimeSelected = onAnimeSelected,
                         onNavigateToCategory = onNavigateToCategory,
                         modifier = Modifier

@@ -19,7 +19,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -39,6 +41,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,6 +74,8 @@ import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.utils.animateScrollToItemCentered
+import git.shin.komorei.ui.utils.scrollToItemVisible
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -185,7 +190,14 @@ fun EpisodesBottomSheet(
             Spacer(modifier = Modifier.height(10.dp))
 */
             if (seasons.isNotEmpty()) {
+                val seasonsRowState = rememberLazyListState()
+                val activeSeasonIndex = seasons.indexOfFirst { it.animeId == selectedSeasonId }
+                LaunchedEffect(selectedSeasonId, seasons.size) {
+                    seasonsRowState.animateScrollToItemCentered(activeSeasonIndex)
+                }
+
                 LazyRow(
+                    state = seasonsRowState,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -350,7 +362,14 @@ fun EpisodesBottomSheet(
             }
 
             if (isGridView) {
+                val gridState = rememberLazyGridState()
+                val activeGridIndex = filteredEpisodes.indexOfFirst { it.id == currentEpisode.id }
+                LaunchedEffect(activeGridIndex, filteredEpisodes.size) {
+                    gridState.scrollToItemVisible(activeGridIndex)
+                }
+
                 LazyVerticalGrid(
+                    state = gridState,
                     columns = GridCells.Adaptive(minSize = 56.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -418,7 +437,14 @@ fun EpisodesBottomSheet(
                     }
                 }
             } else {
+                val episodesListState = rememberLazyListState()
+                val activeListIndex = filteredEpisodes.indexOfFirst { it.id == currentEpisode.id }
+                LaunchedEffect(activeListIndex, filteredEpisodes.size) {
+                    episodesListState.scrollToItemVisible(activeListIndex)
+                }
+
                 LazyColumn(
+                    state = episodesListState,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 36.dp),
                     modifier = Modifier.fillMaxSize()

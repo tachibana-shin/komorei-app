@@ -7,6 +7,7 @@ import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.LibraryRepository
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Episode
+import git.shin.komorei.model.StreamInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -50,9 +51,16 @@ class PlayerViewModel @Inject constructor(
                 isPlaying = true,
                 currentPositionMs = 0L,
                 durationMs = durationMs,
-                sheetValue = PlayerSheetValue.EXPANDED
+                sheetValue = PlayerSheetValue.EXPANDED,
+                streams = emptyList(),
+                selectedStreamId = null,
+                streamData = null,
+                streamError = null
             )
         }
+
+        // Resolve servers + first stream for the target episode.
+        viewModelScope.launch { loadStreams(anime, targetEp) }
     }
 
     fun setPlayerSheetValue(sheetValue: PlayerSheetValue) {
@@ -74,8 +82,85 @@ class PlayerViewModel @Inject constructor(
                 currentEpisode = episode,
                 isPlaying = true,
                 currentPositionMs = 0L,
-                durationMs = durationMs
+                durationMs = durationMs,
+                streams = emptyList(),
+                selectedStreamId = null,
+                streamData = null,
+                streamError = null
             )
+        }
+        val anime = _playbackState.value.fullAnime ?: _playbackState.value.currentAnime ?: return
+        viewModelScope.launch { loadStreams(anime, episode) }
+    }
+
+    /**
+     * User picks a streaming server for the current episode.
+     */
+    fun selectStream(stream: StreamInfo) {
+        val state = _playbackState.value
+        val anime = state.fullAnime ?: state.currentAnime ?: return
+        val episode = state.currentEpisode ?: return
+
+        _playbackState.update {
+            it.copy(
+                selectedStreamId = stream.id,
+                streamData = null,
+                isLoadingStreams = true,
+                streamError = null
+            )
+        }
+
+        viewModelScope.launch {
+            runCatching { repository.getStream(anime, episode, stream) }
+                .onSuccess { resolved ->
+                    _playbackState.update {
+                        it.copy(
+                            streamData = resolved,
+                            selectedStreamId = stream.id,
+                            isLoadingStreams = false,
+                            streamError = null
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _playbackState.update {
+                        it.copy(isLoadingStreams = false, streamError = e.message ?: "Lỗi tải nguồn phát")
+                    }
+                }
+        }
+    }
+
+    /**
+     * Resolve the streaming servers for [episode].
+     *
+     * The list-API [anime] is a Lite card with almost no data, so per source contract we
+     * upgrade it via getAnimeUpdate(needsDetails = true, needsChapters = false) before
+     * asking the source for servers. The first server is auto-resolved via getStream(...).
+     */
+    private suspend fun loadStreams(anime: Anime, episode: Episode) {
+        _playbackState.update { it.copy(isLoadingStreams = true, streamError = null) }
+        runCatching {
+            val full = repository.getAnimeUpdate(anime, needsDetails = true, needsChapters = false)
+            val streams = repository.getStreamList(full, episode)
+            val first = streams.firstOrNull()
+            val resolved = first?.let { repository.getStream(full, episode, it) }
+
+            _playbackState.update {
+                it.copy(
+                    fullAnime = full,
+                    streams = streams,
+                    selectedStreamId = first?.id,
+                    streamData = resolved,
+                    isLoadingStreams = false,
+                    streamError = null,
+                    segmentUrlInterceptor = repository.segmentUrlInterceptor,
+                    segmentDataInterceptor = repository.segmentDataInterceptor
+                )
+            }
+        }.onFailure { e ->
+            _playbackState.update {
+                it.copy(isLoadingStreams = false, streamError = e.message ?: "Lỗi tải nguồn phát")
+            }
         }
     }
 

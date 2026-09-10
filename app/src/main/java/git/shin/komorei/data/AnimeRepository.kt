@@ -1,5 +1,7 @@
 package git.shin.komorei.data
 
+import git.shin.komorei.data.remote.SegmentDataInterceptor
+import git.shin.komorei.data.remote.SegmentUrlInterceptor
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.AnimeStatus
 import git.shin.komorei.model.CategoryLink
@@ -27,6 +29,13 @@ class AnimeRepository @Inject constructor() {
         Source("gogoanime", "GogoAnime", "🌏", "1.9.5", "https://anitaku.to", true, false, 0xFF2979FF),
         Source("hidive", "Hidive", "💎", "1.4.1", "https://hidive.com", true, false, 0xFFAA00FF)
     )
+
+    /**
+     * Per-source media transformers. Real sources override these to de-obfuscate/rewrite
+     * HLS segments. Null here means plain, untouched requests.
+     */
+    open val segmentUrlInterceptor: SegmentUrlInterceptor? = null
+    open val segmentDataInterceptor: SegmentDataInterceptor? = null
 
     fun getSource(sourceId: String): Source? {
         return sources.find { it.id == sourceId }
@@ -90,29 +99,45 @@ class AnimeRepository @Inject constructor() {
     }
 
     suspend fun getStreamList(anime: Anime, episode: Episode): List<StreamInfo> {
-        delay(200)
-        return listOf(
-            StreamInfo("server_fhd", "Server 1 (FHD)", "1080p"),
-            StreamInfo("server_vip", "Storage VIP", "1080p"),
-            StreamInfo("server_hls", "HLS Stream", "720p")
-        )
+        delay(250) // Simulating network
+        // Server list is source-specific: varies per source (and in real sources, per episode).
+        return when (anime.sourceId) {
+            "gogoanime" -> listOf(
+                StreamInfo("server_gogo_hls", "Gogo HLS", "720p"),
+                StreamInfo("server_gogo_mp4", "Gogo MP4", "1080p")
+            )
+            "hidive" -> listOf(
+                StreamInfo("server_hidive_hls", "HiDive HLS", "1080p")
+            )
+            "vuighe" -> listOf(
+                StreamInfo("server_vuighe_mp4", "VuiGhe MP4", "1080p"),
+                StreamInfo("server_vuighe_vip", "VuiGhe VIP", "1080p")
+            )
+            else -> listOf( // animevietsub
+                StreamInfo("server_fhd", "Server 1 (FHD)", "1080p"),
+                StreamInfo("server_vip", "Storage VIP", "1080p"),
+                StreamInfo("server_hls", "HLS Stream", "720p")
+            )
+        }
     }
 
     suspend fun getStream(anime: Anime, episode: Episode, stream: StreamInfo): StreamData {
-        delay(400)
-        val url = if (stream.id == "server_hls") {
+        delay(300)
+        val isHls = stream.id.contains("hls", ignoreCase = true)
+        val url = if (isHls) {
             "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8"
         } else {
             videoUrls[Random.nextInt(videoUrls.size)]
         }
-        
+
         return StreamData(
             url = url,
-            type = if (url.endsWith(".m3u8")) StreamType.HLS else StreamType.MP4,
+            type = if (isHls) StreamType.HLS else StreamType.MP4,
             headers = mapOf(
                 "Referer" to (sources.find { it.id == anime.sourceId }?.name ?: "Komorei"),
                 "User-Agent" to "Komorei/1.0"
-            )
+            ),
+            isContent = true
         )
     }
 

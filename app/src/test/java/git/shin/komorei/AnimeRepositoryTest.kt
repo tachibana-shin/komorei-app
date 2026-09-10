@@ -25,7 +25,7 @@ class AnimeRepositoryTest {
         assertTrue("Featured anime should have items", featured.isNotEmpty())
         val first = featured.first()
         assertNotNull(first.title)
-        assertTrue(first.rating > 0.0)
+        assertTrue((first.rating ?: 0f) > 0.0f)
     }
 
     @Test
