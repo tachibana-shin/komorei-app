@@ -96,7 +96,7 @@ fun EpisodesBottomSheet(
             activeSeason.episodes
         } else {
             activeSeason.episodes.filter { ep ->
-                ep.episodeNumber.toString().contains(searchQuery.trim()) ||
+                ep.episodeNumber.contains(searchQuery.trim()) ||
                         ep.title.contains(searchQuery.trim(), ignoreCase = true)
             }
         }
@@ -388,7 +388,7 @@ fun EpisodesBottomSheet(
                                         )
                                         Spacer(modifier = Modifier.width(3.dp))
                                         Text(
-                                            text = String.format("%02d", ep.episodeNumber),
+                                            text = ep.episodeNumber,
                                             color = AnimeRed,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold
@@ -396,7 +396,7 @@ fun EpisodesBottomSheet(
                                     }
                                 } else {
                                     Text(
-                                        text = String.format("%02d", ep.episodeNumber),
+                                        text = ep.episodeNumber,
                                         color = TextPrimary,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium

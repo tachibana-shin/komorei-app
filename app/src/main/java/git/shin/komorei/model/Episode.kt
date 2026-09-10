@@ -7,7 +7,7 @@ data class Episode(
     val id: String,
     val animeId: String,
     val sourceId: String,
-    val episodeNumber: Int,
+    val episodeNumber: String,
     val title: String,
     val videoUrl: String,
     val durationSeconds: Long = 1440L, // e.g. 24 minutes standard

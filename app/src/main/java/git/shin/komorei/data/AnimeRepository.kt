@@ -96,7 +96,7 @@ class AnimeRepository @Inject constructor() {
                 id = "${animeId}_s${seasonNumber}_ep_$epIndex",
                 animeId = animeId,
                 sourceId = sourceId,
-                episodeNumber = epIndex,
+                episodeNumber = epIndex.toString(),
                 title = "Tập $epIndex - $titlePrefix",
                 videoUrl = videoUrls[(epIndex - 1) % videoUrls.size],
                 durationSeconds = 1440L,

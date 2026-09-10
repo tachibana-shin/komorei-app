@@ -535,7 +535,7 @@ fun AnimeDetailView(
                                     )
                                     Spacer(modifier = Modifier.width(2.dp))
                                     Text(
-                                        text = String.format("%02d", ep.episodeNumber),
+                                        text = ep.episodeNumber,
                                         color = AnimeRed,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
@@ -543,7 +543,7 @@ fun AnimeDetailView(
                                 }
                             } else {
                                 Text(
-                                    text = String.format("%02d", ep.episodeNumber),
+                                    text = ep.episodeNumber,
                                     color = TextPrimary,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium

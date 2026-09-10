@@ -35,7 +35,7 @@ class PlayerViewModel @Inject constructor(
             id = "${anime.id}_ep_1",
             animeId = anime.id,
             sourceId = anime.sourceId,
-            episodeNumber = 1,
+            episodeNumber = "1",
             title = "Tập 1 - Khởi đầu",
             videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
         )
