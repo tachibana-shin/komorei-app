@@ -20,9 +20,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import javax.inject.Inject
@@ -77,6 +82,10 @@ class PlayerViewModel @Inject constructor(
                     it.copy(error = appContext.getString(R.string.error_source_playback))
                 }
             }
+
+            override fun onTracksChanged(tracks: Tracks) {
+                _playbackState.update { it.copy(availableTracks = tracks) }
+            }
         })
 
         // Poll position/duration/buffer so the timeline scrubber stays live without
@@ -86,7 +95,8 @@ class PlayerViewModel @Inject constructor(
                 _playbackState.update {
                     it.copy(
                         currentPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L),
-                        durationMs = exoPlayer.duration.coerceAtLeast(0L)
+                        durationMs = exoPlayer.duration.coerceAtLeast(0L),
+                        bufferedPositionMs = exoPlayer.bufferedPosition.coerceAtLeast(0L)
                     )
                 }
                 delay(250)
@@ -171,6 +181,37 @@ class PlayerViewModel @Inject constructor(
 
     fun toggleFullscreen() {
         _playbackState.update { it.copy(isFullscreen = !it.isFullscreen) }
+    }
+
+    fun toggleLock() {
+        _playbackState.update { it.copy(isLocked = !it.isLocked) }
+    }
+
+    fun setVideoResizeMode(mode: Int) {
+        _playbackState.update { it.copy(videoResizeMode = mode) }
+    }
+
+    fun selectTrack(group: Tracks.Group, trackIndex: Int) {
+        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+            .buildUpon()
+            .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, trackIndex))
+            .build()
+    }
+
+    fun clearTrackType(type: Int) {
+        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+            .buildUpon()
+            .clearOverridesOfType(type)
+            .build()
+    }
+
+    fun toggleSubtitles() {
+        val newState = !_playbackState.value.isSubtitleEnabled
+        _playbackState.update { it.copy(isSubtitleEnabled = newState) }
+        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+            .buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !newState)
+            .build()
     }
 
     fun selectEpisode(episode: Episode) {
@@ -261,7 +302,13 @@ class PlayerViewModel @Inject constructor(
                     isLoadingStreams = false,
                     streamError = null,
                     segmentUrlInterceptor = repository.segmentUrlInterceptor,
-                    segmentDataInterceptor = repository.segmentDataInterceptor
+                    segmentDataInterceptor = repository.segmentDataInterceptor,
+                    introRange = if (resolved?.introStartMs != null && resolved.introEndMs != null) {
+                        resolved.introStartMs..resolved.introEndMs
+                    } else null,
+                    outroRange = if (resolved?.outroStartMs != null && resolved.outroEndMs != null) {
+                        resolved.outroStartMs..resolved.outroEndMs
+                    } else null
                 )
             }
 
@@ -288,8 +335,31 @@ class PlayerViewModel @Inject constructor(
             state.segmentUrlInterceptor,
             state.segmentDataInterceptor
         )
+
+        val mediaItemBuilder = MediaItem.Builder()
+            .setUri(streamData.url)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(state.currentAnime?.title)
+                    .setSubtitle(state.currentEpisode?.title)
+                    .setArtworkUri(state.currentAnime?.posterUrl?.let { android.net.Uri.parse(it) })
+                    .build()
+            )
+
+        if (streamData.subtitles.isNotEmpty()) {
+            val subtitleConfigurations = streamData.subtitles.map { sub ->
+                MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(sub.url))
+                    .setMimeType(MimeTypes.TEXT_VTT) // Defaulting to VTT for mock, real sources should provide mime
+                    .setLanguage(sub.language)
+                    .setLabel(sub.label)
+                    .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                    .build()
+            }
+            mediaItemBuilder.setSubtitleConfigurations(subtitleConfigurations)
+        }
+
         val sourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
-        exoPlayer.setMediaSource(sourceFactory.createMediaSource(MediaItem.fromUri(streamData.url)))
+        exoPlayer.setMediaSource(sourceFactory.createMediaSource(mediaItemBuilder.build()))
         exoPlayer.prepare()
         exoPlayer.play()
     }

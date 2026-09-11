@@ -11,6 +11,7 @@ import git.shin.komorei.model.Source
 import git.shin.komorei.model.StreamData
 import git.shin.komorei.model.StreamInfo
 import git.shin.komorei.model.StreamType
+import git.shin.komorei.model.SubtitleInfo
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -137,7 +138,15 @@ class AnimeRepository @Inject constructor() {
                 "Referer" to (sources.find { it.id == anime.sourceId }?.name ?: "Komorei"),
                 "User-Agent" to "Komorei/1.0"
             ),
-            isContent = true
+            isContent = true,
+            subtitles = listOf(
+                SubtitleInfo("https://example.com/vi.vtt", "vi", "Tiếng Việt"),
+                SubtitleInfo("https://example.com/en.vtt", "en", "English")
+            ),
+            introStartMs = 10_000L,
+            introEndMs = 90_000L,
+            outroStartMs = (episode.durationSeconds?.toLong() ?: 1440L) * 1000L - 120_000L,
+            outroEndMs = (episode.durationSeconds?.toLong() ?: 1440L) * 1000L - 30_000L
         )
     }
 

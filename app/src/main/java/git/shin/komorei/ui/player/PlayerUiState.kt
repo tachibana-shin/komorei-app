@@ -1,5 +1,6 @@
 package git.shin.komorei.ui.player
 
+import androidx.media3.common.Tracks
 import git.shin.komorei.data.remote.SegmentDataInterceptor
 import git.shin.komorei.data.remote.SegmentUrlInterceptor
 import git.shin.komorei.model.Anime
@@ -16,11 +17,28 @@ data class PlayerPlaybackState(
     val isPlaying: Boolean = false,
     val currentPositionMs: Long = 0L,
     val durationMs: Long = 0L,
+    val bufferedPositionMs: Long = 0L,
     val isFullscreen: Boolean = false,
     val playbackSpeed: Float = 1f,
     val isLoading: Boolean = false,
     val error: String? = null,
     val sheetValue: PlayerSheetValue = PlayerSheetValue.HIDDEN,
+
+    // Lock mode: disables all controls except unlock button
+    val isLocked: Boolean = false,
+
+    // Aspect ratio / Resize mode (matching Media3 AspectRatioFrameLayout.RESIZE_MODE_*)
+    val videoResizeMode: Int = 0, // RESIZE_MODE_FIT
+
+    // Tracks: Subtitles and Audio
+    val availableTracks: Tracks? = null,
+    val selectedAudioTrackId: String? = null,
+    val selectedSubtitleTrackId: String? = null,
+    val isSubtitleEnabled: Boolean = true,
+
+    // Intro/Outro segments
+    val introRange: LongRange? = null,
+    val outroRange: LongRange? = null,
 
     // Full (details-upgraded) anime used for stream resolution.
     // List-API anime cards are "Lite" and are upgraded via getAnimeUpdate(needsDetails = true).

@@ -46,7 +46,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
-import git.shin.komorei.model.WatchHistory
 import git.shin.komorei.ui.navigation.Screen
 import git.shin.komorei.ui.player.PlayerViewModel
 import git.shin.komorei.ui.player.PlayerSheetValue
@@ -72,7 +71,6 @@ fun MainScreen(
 
     val onAnimeSelected: (Anime) -> Unit = { anime ->
         playerViewModel.openAnime(anime)
-        // libraryViewModel.addToHistory(anime) // Will move this logic to a better place later
     }
 
     BoxWithConstraints(modifier = Modifier
@@ -80,292 +78,255 @@ fun MainScreen(
         .background(BackgroundDark)) {
         val isWideScreen = maxWidth > 600.dp
         val isPlayerExpanded = playbackState.sheetValue == PlayerSheetValue.EXPANDED
+        val isFullscreen = playbackState.isFullscreen
 
-        if (isWideScreen) {
-            // TABLET / LANDSCAPE: Navigation Rail on the left
-            Row(modifier = Modifier.fillMaxSize()) {
-                NavigationRail(
-                    containerColor = SurfaceDark,
-                    contentColor = TextPrimary,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .testTag("main_navigation_rail")
-                ) {
-                    NavigationRailItem(
-                        selected = currentRoute == Screen.Home.route,
-                        onClick = {
-                            if (currentRoute != Screen.Home.route) {
-                                navController.navigate(Screen.Home.route) {
-                                    popUpTo(navController.graph.startDestinationId)
-                                    launchSingleTop = true
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (isWideScreen) {
+                // TABLET / LANDSCAPE: Navigation Rail on the left
+                Row(modifier = Modifier.fillMaxSize()) {
+                    NavigationRail(
+                        containerColor = SurfaceDark,
+                        contentColor = TextPrimary,
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .testTag("main_navigation_rail")
+                    ) {
+                        NavigationRailItem(
+                            selected = currentRoute == Screen.Home.route,
+                            onClick = {
+                                if (currentRoute != Screen.Home.route) {
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
                                 }
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = if (currentRoute == Screen.Home.route) Icons.Filled.Home else Icons.Outlined.Home,
-                                contentDescription = stringResource(R.string.tab_home)
-                            )
-                        },
-                        label = { Text(stringResource(R.string.tab_home), fontSize = 11.sp) },
-                        colors = NavigationRailItemDefaults.colors(
-                            selectedIconColor = Color.White,
-                            selectedTextColor = AnimeRed,
-                            indicatorColor = AnimeRed,
-                            unselectedIconColor = TextMuted,
-                            unselectedTextColor = TextMuted
-                        ),
-                        modifier = Modifier.testTag("rail_tab_home")
-                    )
-
-                    NavigationRailItem(
-                        selected = currentRoute == Screen.Search.route,
-                        onClick = {
-                            if (currentRoute != Screen.Search.route) {
-                                navController.navigate(Screen.Search.route) {
-                                    popUpTo(navController.graph.startDestinationId)
-                                    launchSingleTop = true
-                                }
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = if (currentRoute == Screen.Search.route) Icons.Filled.Explore else Icons.Outlined.Explore,
-                                contentDescription = stringResource(R.string.tab_search)
-                            )
-                        },
-                        label = { Text(stringResource(R.string.tab_search), fontSize = 11.sp) },
-                        colors = NavigationRailItemDefaults.colors(
-                            selectedIconColor = Color.White,
-                            selectedTextColor = AnimeRed,
-                            indicatorColor = AnimeRed,
-                            unselectedIconColor = TextMuted,
-                            unselectedTextColor = TextMuted
-                        ),
-                        modifier = Modifier.testTag("rail_tab_search")
-                    )
-
-                    NavigationRailItem(
-                        selected = currentRoute == Screen.Library.route,
-                        onClick = {
-                            if (currentRoute != Screen.Library.route) {
-                                navController.navigate(Screen.Library.route) {
-                                    popUpTo(navController.graph.startDestinationId)
-                                    launchSingleTop = true
-                                }
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = if (currentRoute == Screen.Library.route) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
-                                contentDescription = stringResource(R.string.tab_library)
-                            )
-                        },
-                        label = { Text(stringResource(R.string.tab_library), fontSize = 11.sp) },
-                        colors = NavigationRailItemDefaults.colors(
-                            selectedIconColor = Color.White,
-                            selectedTextColor = AnimeRed,
-                            indicatorColor = AnimeRed,
-                            unselectedIconColor = TextMuted,
-                            unselectedTextColor = TextMuted
-                        ),
-                        modifier = Modifier.testTag("rail_tab_library")
-                    )
-                }
-
-                // Main Content
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                ) {
-                    MainNavigationHost(
-                        navController = navController,
-                        onAnimeSelect = onAnimeSelected
-                    )
-
-                    // Video Player Overlay Sheet
-                    if (playbackState.sheetValue != PlayerSheetValue.HIDDEN) {
-                        VideoPlayerSheet(
-                            playbackState = playbackState,
-                            player = playerViewModel.player,
-                            relatedAnimeList = playerViewModel.allAnimes,
-                            onStateChange = { playerViewModel.setPlayerSheetValue(it) },
-                            onPlayPauseToggle = { playerViewModel.togglePlayPause() },
-                            onToggleFullscreen = { playerViewModel.toggleFullscreen() },
-                            onSpeedChange = { playerViewModel.setPlaybackSpeed(it) },
-                            onStartFastForward = { playerViewModel.startFastForward() },
-                            onStopFastForward = { playerViewModel.stopFastForward() },
-                            onEpisodeSelected = { playerViewModel.selectEpisode(it) },
-                            onStreamSelected = { playerViewModel.selectStream(it) },
-                            onRetryStreams = { playerViewModel.retryStreams() },
-                            onDismiss = { playerViewModel.dismissPlayer() },
-                            onAnimeSelected = onAnimeSelected,
-                            onNavigateToCategory = { filters ->
-                                // navController.navigate(...)
                             },
-                            bottomNavHeight = 0.dp
+                            icon = {
+                                Icon(
+                                    imageVector = if (currentRoute == Screen.Home.route) Icons.Filled.Home else Icons.Outlined.Home,
+                                    contentDescription = stringResource(R.string.tab_home)
+                                )
+                            },
+                            label = { Text(stringResource(R.string.tab_home), fontSize = 11.sp) },
+                            colors = NavigationRailItemDefaults.colors(
+                                selectedIconColor = Color.White,
+                                selectedTextColor = AnimeRed,
+                                indicatorColor = AnimeRed,
+                                unselectedIconColor = TextMuted,
+                                unselectedTextColor = TextMuted
+                            ),
+                            modifier = Modifier.testTag("rail_tab_home")
+                        )
+
+                        NavigationRailItem(
+                            selected = currentRoute == Screen.Search.route,
+                            onClick = {
+                                if (currentRoute != Screen.Search.route) {
+                                    navController.navigate(Screen.Search.route) {
+                                        popUpTo(navController.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
+                                }
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = if (currentRoute == Screen.Search.route) Icons.Filled.Explore else Icons.Outlined.Explore,
+                                    contentDescription = stringResource(R.string.tab_search)
+                                )
+                            },
+                            label = { Text(stringResource(R.string.tab_search), fontSize = 11.sp) },
+                            colors = NavigationRailItemDefaults.colors(
+                                selectedIconColor = Color.White,
+                                selectedTextColor = AnimeRed,
+                                indicatorColor = AnimeRed,
+                                unselectedIconColor = TextMuted,
+                                unselectedTextColor = TextMuted
+                            ),
+                            modifier = Modifier.testTag("rail_tab_search")
+                        )
+
+                        NavigationRailItem(
+                            selected = currentRoute == Screen.Library.route,
+                            onClick = {
+                                if (currentRoute != Screen.Library.route) {
+                                    navController.navigate(Screen.Library.route) {
+                                        popUpTo(navController.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
+                                }
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = if (currentRoute == Screen.Library.route) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                                    contentDescription = stringResource(R.string.tab_library)
+                                )
+                            },
+                            label = { Text(stringResource(R.string.tab_library), fontSize = 11.sp) },
+                            colors = NavigationRailItemDefaults.colors(
+                                selectedIconColor = Color.White,
+                                selectedTextColor = AnimeRed,
+                                indicatorColor = AnimeRed,
+                                unselectedIconColor = TextMuted,
+                                unselectedTextColor = TextMuted
+                            ),
+                            modifier = Modifier.testTag("rail_tab_library")
                         )
                     }
+
+                    // Main Content
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        MainNavigationHost(navController = navController, onAnimeSelect = onAnimeSelected)
+                    }
                 }
-            }
-        } else {
-            // PHONE PORTRAIT: Scaffold with YouTube-style bottom bar hide on full player expand
-            Scaffold(
-                bottomBar = {
-                    AnimatedVisibility(
-                        visible = !isPlayerExpanded,
-                        enter = slideInVertically(initialOffsetY = { it }),
-                        exit = slideOutVertically(targetOffsetY = { it })
-                    ) {
-                        NavigationBar(
-                            containerColor = SurfaceDark,
-                            contentColor = TextPrimary,
-                            modifier = Modifier
-                                .windowInsetsPadding(WindowInsets.navigationBars)
-                                .testTag("main_bottom_navigation")
+            } else {
+                // PHONE PORTRAIT: Scaffold with YouTube-style bottom bar hide on full player expand
+                Scaffold(
+                    bottomBar = {
+                        AnimatedVisibility(
+                            visible = !isPlayerExpanded && !isFullscreen,
+                            enter = slideInVertically(initialOffsetY = { it }),
+                            exit = slideOutVertically(targetOffsetY = { it })
                         ) {
-                            NavigationBarItem(
-                                selected = currentRoute == Screen.Home.route,
-                                onClick = {
-                                    if (currentRoute != Screen.Home.route) {
-                                        navController.navigate(Screen.Home.route) {
-                                            popUpTo(navController.graph.startDestinationId)
-                                            launchSingleTop = true
+                            NavigationBar(
+                                containerColor = SurfaceDark,
+                                contentColor = TextPrimary,
+                                modifier = Modifier
+                                    .windowInsetsPadding(WindowInsets.navigationBars)
+                                    .testTag("main_bottom_navigation")
+                            ) {
+                                NavigationBarItem(
+                                    selected = currentRoute == Screen.Home.route,
+                                    onClick = {
+                                        if (currentRoute != Screen.Home.route) {
+                                            navController.navigate(Screen.Home.route) {
+                                                popUpTo(navController.graph.startDestinationId)
+                                                launchSingleTop = true
+                                            }
                                         }
-                                    }
-                                },
-                                icon = {
-                                    Icon(
-                                        imageVector = if (currentRoute == Screen.Home.route) Icons.Filled.Home else Icons.Outlined.Home,
-                                        contentDescription = stringResource(R.string.tab_home)
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        stringResource(R.string.tab_home),
-                                        fontSize = 11.sp
-                                    )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = Color.White,
-                                    selectedTextColor = AnimeRed,
-                                    indicatorColor = AnimeRed,
-                                    unselectedIconColor = TextMuted,
-                                    unselectedTextColor = TextMuted
-                                ),
-                                modifier = Modifier.testTag("tab_home")
-                            )
+                                    },
+                                    icon = {
+                                        Icon(
+                                            imageVector = if (currentRoute == Screen.Home.route) Icons.Filled.Home else Icons.Outlined.Home,
+                                            contentDescription = stringResource(R.string.tab_home)
+                                        )
+                                    },
+                                    label = { Text(stringResource(R.string.tab_home), fontSize = 11.sp) },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = Color.White,
+                                        selectedTextColor = AnimeRed,
+                                        indicatorColor = AnimeRed,
+                                        unselectedIconColor = TextMuted,
+                                        unselectedTextColor = TextMuted
+                                    ),
+                                    modifier = Modifier.testTag("tab_home")
+                                )
 
-                            NavigationBarItem(
-                                selected = currentRoute == Screen.Search.route,
-                                onClick = {
-                                    if (currentRoute != Screen.Search.route) {
-                                        navController.navigate(Screen.Search.route) {
-                                            popUpTo(navController.graph.startDestinationId)
-                                            launchSingleTop = true
+                                NavigationBarItem(
+                                    selected = currentRoute == Screen.Search.route,
+                                    onClick = {
+                                        if (currentRoute != Screen.Search.route) {
+                                            navController.navigate(Screen.Search.route) {
+                                                popUpTo(navController.graph.startDestinationId)
+                                                launchSingleTop = true
+                                            }
                                         }
-                                    }
-                                },
-                                icon = {
-                                    Icon(
-                                        imageVector = if (currentRoute == Screen.Search.route) Icons.Filled.Explore else Icons.Outlined.Explore,
-                                        contentDescription = stringResource(R.string.tab_search)
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        stringResource(R.string.tab_search),
-                                        fontSize = 11.sp
-                                    )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = Color.White,
-                                    selectedTextColor = AnimeRed,
-                                    indicatorColor = AnimeRed,
-                                    unselectedIconColor = TextMuted,
-                                    unselectedTextColor = TextMuted
-                                ),
-                                modifier = Modifier.testTag("tab_search")
-                            )
+                                    },
+                                    icon = {
+                                        Icon(
+                                            imageVector = if (currentRoute == Screen.Search.route) Icons.Filled.Explore else Icons.Outlined.Explore,
+                                            contentDescription = stringResource(R.string.tab_search)
+                                        )
+                                    },
+                                    label = { Text(stringResource(R.string.tab_search), fontSize = 11.sp) },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = Color.White,
+                                        selectedTextColor = AnimeRed,
+                                        indicatorColor = AnimeRed,
+                                        unselectedIconColor = TextMuted,
+                                        unselectedTextColor = TextMuted
+                                    ),
+                                    modifier = Modifier.testTag("tab_search")
+                                )
 
-                            NavigationBarItem(
-                                selected = currentRoute == Screen.Library.route,
-                                onClick = {
-                                    if (currentRoute != Screen.Library.route) {
-                                        navController.navigate(Screen.Library.route) {
-                                            popUpTo(navController.graph.startDestinationId)
-                                            launchSingleTop = true
+                                NavigationBarItem(
+                                    selected = currentRoute == Screen.Library.route,
+                                    onClick = {
+                                        if (currentRoute != Screen.Library.route) {
+                                            navController.navigate(Screen.Library.route) {
+                                                popUpTo(navController.graph.startDestinationId)
+                                                launchSingleTop = true
+                                            }
                                         }
-                                    }
-                                },
-                                icon = {
-                                    Icon(
-                                        imageVector = if (currentRoute == Screen.Library.route) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
-                                        contentDescription = stringResource(R.string.tab_library)
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        stringResource(R.string.tab_library),
-                                        fontSize = 11.sp
-                                    )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = Color.White,
-                                    selectedTextColor = AnimeRed,
-                                    indicatorColor = AnimeRed,
-                                    unselectedIconColor = TextMuted,
-                                    unselectedTextColor = TextMuted
-                                ),
-                                modifier = Modifier.testTag("tab_library")
+                                    },
+                                    icon = {
+                                        Icon(
+                                            imageVector = if (currentRoute == Screen.Library.route) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                                            contentDescription = stringResource(R.string.tab_library)
+                                        )
+                                    },
+                                    label = { Text(stringResource(R.string.tab_library), fontSize = 11.sp) },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = Color.White,
+                                        selectedTextColor = AnimeRed,
+                                        indicatorColor = AnimeRed,
+                                        unselectedIconColor = TextMuted,
+                                        unselectedTextColor = TextMuted
+                                    ),
+                                    modifier = Modifier.testTag("tab_library")
+                                )
+                            }
+                        }
+                    },
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
+                    val actualBottomNavHeight = innerPadding.calculateBottomPadding()
+                    val isMiniPlayerShowing = playbackState.sheetValue == PlayerSheetValue.COLLAPSED
+
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Screen contents padded so last list items are never cut off behind bottom bar & mini player
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(bottom = if (isFullscreen) 0.dp else (actualBottomNavHeight + (if (isMiniPlayerShowing) 64.dp else 0.dp)))
+                        ) {
+                            MainNavigationHost(
+                                navController = navController,
+                                onAnimeSelect = onAnimeSelected
                             )
                         }
                     }
-                },
-                contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                modifier = Modifier.fillMaxSize()
-            ) { innerPadding ->
-                val actualBottomNavHeight = innerPadding.calculateBottomPadding()
-                val isMiniPlayerShowing = playbackState.sheetValue == PlayerSheetValue.COLLAPSED
-
-                Box(modifier = Modifier.fillMaxSize()) {
-                    // Screen contents padded so last list items are never cut off behind bottom bar & mini player
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = actualBottomNavHeight + (if (isMiniPlayerShowing) 64.dp else 0.dp))
-                    ) {
-                        MainNavigationHost(
-                            navController = navController,
-                            onAnimeSelect = onAnimeSelected
-                        )
-                    }
-
-                    // Floating YouTube Swipe-Down Minimize Player Sheet
-                    if (playbackState.sheetValue != PlayerSheetValue.HIDDEN) {
-                        VideoPlayerSheet(
-                            playbackState = playbackState,
-                            player = playerViewModel.player,
-                            relatedAnimeList = playerViewModel.allAnimes,
-                            onStateChange = { playerViewModel.setPlayerSheetValue(it) },
-                            onPlayPauseToggle = { playerViewModel.togglePlayPause() },
-                            onToggleFullscreen = { playerViewModel.toggleFullscreen() },
-                            onSpeedChange = { playerViewModel.setPlaybackSpeed(it) },
-                            onStartFastForward = { playerViewModel.startFastForward() },
-                            onStopFastForward = { playerViewModel.stopFastForward() },
-                            onEpisodeSelected = { playerViewModel.selectEpisode(it) },
-                            onStreamSelected = { playerViewModel.selectStream(it) },
-                            onRetryStreams = { playerViewModel.retryStreams() },
-                            onDismiss = { playerViewModel.dismissPlayer() },
-                            onAnimeSelected = onAnimeSelected,
-                            onNavigateToCategory = { filters ->
-                                // navController.navigate(...)
-                            },
-                            bottomNavHeight = if (isPlayerExpanded) 0.dp else actualBottomNavHeight
-                        )
-                    }
                 }
+            }
+
+            // UNIFIED Video Player Overlay Sheet: Outside the adaptive branches to preserve state!
+            if (playbackState.sheetValue != PlayerSheetValue.HIDDEN) {
+                val actualBottomNavHeight = if (isWideScreen) 0.dp else 80.dp // Approximate fallback
+                VideoPlayerSheet(
+                    playbackState = playbackState,
+                    player = playerViewModel.player,
+                    relatedAnimeList = playerViewModel.allAnimes,
+                    onStateChange = { playerViewModel.setPlayerSheetValue(it) },
+                    onPlayPauseToggle = { playerViewModel.togglePlayPause() },
+                    onToggleFullscreen = { playerViewModel.toggleFullscreen() },
+                    onSpeedChange = { playerViewModel.setPlaybackSpeed(it) },
+                    onStartFastForward = { playerViewModel.startFastForward() },
+                    onStopFastForward = { playerViewModel.stopFastForward() },
+                    onEpisodeSelected = { playerViewModel.selectEpisode(it) },
+                    onStreamSelected = { playerViewModel.selectStream(it) },
+                    onRetryStreams = { playerViewModel.retryStreams() },
+                    onToggleLock = { playerViewModel.toggleLock() },
+                    onToggleSubtitles = { playerViewModel.toggleSubtitles() },
+                    onResizeModeChange = { playerViewModel.setVideoResizeMode(it) },
+                    onTrackSelected = { group, index -> playerViewModel.selectTrack(group, index) },
+                    onClearTrackType = { playerViewModel.clearTrackType(it) },
+                    onDismiss = { playerViewModel.dismissPlayer() },
+                    onAnimeSelected = onAnimeSelected,
+                    onNavigateToCategory = { filters ->
+                        // navController.navigate(...)
+                    },
+                    bottomNavHeight = if (isPlayerExpanded || isFullscreen) 0.dp else actualBottomNavHeight
+                )
             }
         }
     }

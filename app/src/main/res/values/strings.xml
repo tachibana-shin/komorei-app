@@ -172,4 +172,20 @@
     <string name="studio_prefix">Studio %1$s</string>
     <string name="unknown">không rõ</string>
     <string name="rating_count">%1$s người đánh giá</string>
+
+    <!-- New Player Features -->
+    <string name="player_lock">Khóa</string>
+    <string name="player_unlock">Mở khóa</string>
+    <string name="player_aspect_ratio">Tỷ lệ khung hình</string>
+    <string name="player_resize_fit">Vừa vặn</string>
+    <string name="player_resize_fill">Lấp đầy</string>
+    <string name="player_resize_zoom">Phóng to</string>
+    <string name="player_resize_16_9">16:9</string>
+    <string name="player_resize_4_3">4:3</string>
+    <string name="player_audio">Âm thanh</string>
+    <string name="player_subtitle">Phụ đề</string>
+    <string name="player_quality">Chất lượng</string>
+    <string name="player_track_none">Không có</string>
+    <string name="player_track_default">Mặc định</string>
+    <string name="player_settings_unified">Cài đặt trình phát</string>
 </resources>

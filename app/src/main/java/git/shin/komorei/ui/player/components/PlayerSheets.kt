@@ -1,27 +1,10 @@
 package git.shin.komorei.ui.player.components
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -30,38 +13,22 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ViewList
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -70,22 +37,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.media3.common.C
+import androidx.media3.common.Tracks
 import coil.compose.AsyncImage
 import git.shin.komorei.R
-import git.shin.komorei.model.Anime
-import git.shin.komorei.model.AnimeSeason
-import git.shin.komorei.model.Episode
-import git.shin.komorei.model.StreamInfo
-import git.shin.komorei.model.WatchHistory
+import git.shin.komorei.model.*
+import git.shin.komorei.ui.player.PlayerPlaybackState
 import git.shin.komorei.ui.components.EpisodeProgressBar
-import git.shin.komorei.ui.theme.AnimeRed
-import git.shin.komorei.ui.theme.AnimeRedContainer
-import git.shin.komorei.ui.theme.BackgroundDark
-import git.shin.komorei.ui.theme.CardBorderDark
-import git.shin.komorei.ui.theme.SurfaceDark
-import git.shin.komorei.ui.theme.TextMuted
-import git.shin.komorei.ui.theme.TextPrimary
-import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.theme.*
 import git.shin.komorei.ui.utils.animateScrollToItemCentered
 import git.shin.komorei.ui.utils.scrollToItemVisible
 
@@ -96,11 +55,11 @@ fun EpisodesBottomSheet(
     seasons: List<AnimeSeason>,
     currentEpisode: Episode,
     watchHistory: List<WatchHistory>,
-    selectedSeasonId: String, // Changed to animeId
+    selectedSeasonId: String,
     episodes: List<Episode>,
     episodesError: String?,
     onRetryEpisodes: () -> Unit,
-    onSeasonChange: (String) -> Unit, // Changed to animeId
+    onSeasonChange: (String) -> Unit,
     onEpisodeSelected: (Episode) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -140,36 +99,24 @@ fun EpisodesBottomSheet(
     }
 }
 
-/**
- * Episode + season picker content shared by [EpisodesBottomSheet] (full modal) and the
- * in-player slide-in side menu. Owns the search / sort / grid-list / season-picker
- * state so both hosts render the same modern picker.
- */
 @Composable
 fun EpisodesContent(
     anime: Anime,
     seasons: List<AnimeSeason>,
     currentEpisode: Episode,
     watchHistory: List<WatchHistory>,
-    selectedSeasonId: String, // Changed to animeId
+    selectedSeasonId: String,
     episodes: List<Episode>,
     episodesError: String?,
     onRetryEpisodes: () -> Unit,
-    onSeasonChange: (String) -> Unit, // Changed to animeId
+    onSeasonChange: (String) -> Unit,
     onEpisodeSelected: (Episode) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var isGridView by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var isAscending by remember { mutableStateOf(true) }
-    // When true the episode list is hidden and a vertical, scrollable list of every
-    // season is shown instead (for huge seasons split into 50-episode chunks).
     var showSeasonList by remember { mutableStateOf(false) }
-
-    val activeSeason = seasons.find { it.id == selectedSeasonId } ?: seasons.firstOrNull() ?: AnimeSeason(
-        anime.id,
-        stringResource(R.string.season_fallback_first)
-    )
 
     val filteredEpisodes = remember(episodes, searchQuery, isAscending) {
         val list = if (searchQuery.isBlank()) {
@@ -184,73 +131,14 @@ fun EpisodesContent(
     }
 
     Column(modifier = modifier) {
-            /*Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(width = 38.dp, height = 52.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(CardDark)
-                        .border(1.dp, CardBorderDark, RoundedCornerShape(6.dp))
-                ) {
-                    AsyncImage(
-                        model = anime.posterUrl,
-                        contentDescription = anime.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.episodes_header, activeSeason.episodes.size),
-                        color = TextPrimary,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "${anime.title} • ${activeSeason.title}",
-                        color = TextMuted,
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-//                IconButton(
-//                    onClick = onDismiss,
-//                    modifier = Modifier
-//                        .size(32.dp)
-//                        .clip(CircleShape)
-//                        .background(SurfaceDark)
-//                ) {
-//                    Icon(
-//                        imageVector = Icons.Default.Close,
-//                        contentDescription = stringResource(R.string.cd_close_player),
-//                        tint = TextSecondary,
-//                        modifier = Modifier.size(16.dp)
-//                    )
-//                }
-            }
-
-            HorizontalDivider(color = CardBorderDark.copy(alpha = 0.6f))
-            Spacer(modifier = Modifier.height(10.dp))
-*/
-            SeasonVsEpisodePane(
-                modifier = Modifier.weight(1f),
-                showSeasonList = showSeasonList,
-                seasons = seasons,
-                selectedSeasonId = selectedSeasonId,
-                onSeasonChange = onSeasonChange,
-                onCloseSeasonList = { showSeasonList = false }
-            ) {
+        SeasonVsEpisodePane(
+            modifier = Modifier.weight(1f),
+            showSeasonList = showSeasonList,
+            seasons = seasons,
+            selectedSeasonId = selectedSeasonId,
+            onSeasonChange = onSeasonChange,
+            onCloseSeasonList = { showSeasonList = false }
+        ) {
             if (seasons.isNotEmpty()) {
                 val seasonsRowState = rememberLazyListState()
                 val activeSeasonIndex = seasons.indexOfFirst { it.id == selectedSeasonId }
@@ -304,7 +192,6 @@ fun EpisodesContent(
                         }
                     }
 
-                    // Opens the full-height vertical season list (hides the episode list).
                     Surface(
                         onClick = { showSeasonList = true },
                         color = SurfaceDark,
@@ -377,19 +264,6 @@ fun EpisodesContent(
                                 }
                             }
                         )
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(
-                                onClick = { searchQuery = "" },
-                                modifier = Modifier.size(20.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = stringResource(R.string.search_clear_cd),
-                                    tint = TextMuted,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                        }
                     }
                 }
 
@@ -431,72 +305,16 @@ fun EpisodesContent(
                 }
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.episode_display_count, filteredEpisodes.size),
-                    color = TextMuted,
-                    fontSize = 11.sp
-                )
-                Text(
-                    text = if (isAscending) stringResource(R.string.sort_oldest) else stringResource(
-                        R.string.sort_newest
-                    ),
-                    color = TextMuted,
-                    fontSize = 11.sp
-                )
-            }
-
-            if (filteredEpisodes.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = when {
-                                episodesError != null -> episodesError
-                                searchQuery.isBlank() -> stringResource(R.string.episodes_empty)
-                                else -> stringResource(R.string.episodes_empty_search)
-                            },
-                            color = TextMuted,
-                            fontSize = 13.sp
-                        )
-                        if (episodesError != null) {
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Surface(
-                                onClick = onRetryEpisodes,
-                                color = AnimeRedContainer,
-                                shape = RoundedCornerShape(20.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.action_retry),
-                                    color = AnimeRed,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            } else if (isGridView) {
+            if (isGridView) {
                 val gridState = rememberLazyGridState()
                 val activeGridIndex = filteredEpisodes.indexOfFirst { it.id == currentEpisode.id }
-                LaunchedEffect(activeGridIndex, filteredEpisodes.size) {
-                    gridState.scrollToItemVisible(activeGridIndex)
+                LaunchedEffect(activeGridIndex) {
+                    if (activeGridIndex >= 0) gridState.scrollToItemVisible(activeGridIndex)
                 }
 
                 LazyVerticalGrid(
                     state = gridState,
-                    columns = GridCells.Adaptive(minSize = 56.dp),
+                    columns = GridCells.Adaptive(minSize = 64.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 36.dp),
@@ -514,63 +332,28 @@ fun EpisodesContent(
                                 1.dp,
                                 if (isPlaying) AnimeRed else CardBorderDark
                             ),
-                            modifier = Modifier
-                                .height(42.dp)
-                                .testTag("sheet_grid_ep_${ep.episodeNumber}")
+                            modifier = Modifier.height(42.dp)
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.fillMaxWidth().weight(1f)
-                                ) {
-                                    if (isPlaying) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                                                contentDescription = stringResource(R.string.episode_playing_indicator),
-                                                tint = AnimeRed,
-                                                modifier = Modifier.size(11.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(3.dp))
-                                            Text(
-                                                text = ep.episodeNumber,
-                                                color = AnimeRed,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    } else {
-                                        Text(
-                                            text = ep.episodeNumber,
-                                            color = TextPrimary,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
-                                }
-                                
-                                history?.let {
-                                    EpisodeProgressBar(
-                                        progress = it.progressFraction,
-                                        modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, bottom = 2.dp)
-                                    )
-                                }
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = ep.episodeNumber,
+                                    color = if (isPlaying) AnimeRed else TextPrimary,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Medium
+                                )
                             }
                         }
                     }
                 }
             } else {
-                val episodesListState = rememberLazyListState()
-                val activeListIndex = filteredEpisodes.indexOfFirst { it.id == currentEpisode.id }
-                LaunchedEffect(activeListIndex, filteredEpisodes.size) {
-                    episodesListState.scrollToItemVisible(activeListIndex)
+                val listState = rememberLazyListState()
+                val activeIndex = filteredEpisodes.indexOfFirst { it.id == currentEpisode.id }
+                LaunchedEffect(activeIndex) {
+                    if (activeIndex >= 0) listState.scrollToItemVisible(activeIndex)
                 }
 
                 LazyColumn(
-                    state = episodesListState,
+                    state = listState,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 36.dp),
                     modifier = Modifier.fillMaxSize()
@@ -578,7 +361,6 @@ fun EpisodesContent(
                     items(filteredEpisodes) { ep ->
                         val isPlaying = ep.id == currentEpisode.id
                         val history = watchHistory.find { it.episodeId == ep.id }
-
                         EpisodeListItemCard(
                             episode = ep,
                             posterUrl = anime.posterUrl,
@@ -593,11 +375,6 @@ fun EpisodesContent(
     }
 }
 
-/**
- * Swaps the vertical season picker with the episode list (fade + horizontal slide).
- * Lives in its own composable so the [AnimatedVisibility] calls are not in a
- * ColumnScope (their extension overload would conflict inside the sheet's Column).
- */
 @Composable
 private fun SeasonVsEpisodePane(
     modifier: Modifier = Modifier,
@@ -609,7 +386,6 @@ private fun SeasonVsEpisodePane(
     episodesContent: @Composable ColumnScope.() -> Unit
 ) {
     Box(modifier = modifier) {
-        // Vertical season picker: replaces the episode list while visible.
         AnimatedVisibility(
             visible = showSeasonList,
             enter = fadeIn(animationSpec = tween(200)) + slideInHorizontally(initialOffsetX = { it }),
@@ -636,10 +412,6 @@ private fun SeasonVsEpisodePane(
     }
 }
 
-/**
- * Full-height vertical list of every season (real + virtual chunks), used when the
- * episode list has grown too large for horizontal chips to navigate comfortably.
- */
 @Composable
 private fun SeasonPickerPane(
     seasons: List<AnimeSeason>,
@@ -649,9 +421,7 @@ private fun SeasonPickerPane(
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -661,22 +431,13 @@ private fun SeasonPickerPane(
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
             )
-            IconButton(onClick = onClose, modifier = Modifier.size(30.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = stringResource(R.string.cd_close),
-                    tint = TextSecondary,
-                    modifier = Modifier.size(18.dp)
-                )
+            IconButton(onClick = onClose) {
+                Icon(Icons.Default.Close, null, tint = TextSecondary)
             }
         }
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            contentPadding = PaddingValues(bottom = 24.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(seasons, key = { it.id }) { season ->
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(seasons) { season ->
                 val isSelected = season.id == selectedSeasonId
                 Surface(
                     onClick = {
@@ -685,16 +446,11 @@ private fun SeasonPickerPane(
                     },
                     color = if (isSelected) AnimeRedContainer else SurfaceDark,
                     shape = RoundedCornerShape(10.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        if (isSelected) AnimeRed else CardBorderDark
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("sheet_season_row_${season.id}")
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) AnimeRed else CardBorderDark),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        modifier = Modifier.padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
@@ -702,18 +458,10 @@ private fun SeasonPickerPane(
                             color = if (isSelected) AnimeRed else TextSecondary,
                             fontSize = 13.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
                         )
                         if (isSelected) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                tint = AnimeRed,
-                                modifier = Modifier.size(18.dp)
-                            )
+                            Icon(Icons.Default.Check, null, tint = AnimeRed, modifier = Modifier.size(18.dp))
                         }
                     }
                 }
@@ -738,14 +486,10 @@ fun EpisodeListItemCard(
             1.dp,
             if (isPlaying) AnimeRed else CardBorderDark
         ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("episode_list_item_${episode.episodeNumber}")
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -761,9 +505,7 @@ fun EpisodeListItemCard(
                     modifier = Modifier.fillMaxSize()
                 )
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0x55000000)),
+                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -772,17 +514,6 @@ fun EpisodeListItemCard(
                         tint = if (isPlaying) AnimeRed else Color.White,
                         modifier = Modifier.size(20.dp)
                     )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(3.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(Color(0xCC000000))
-                        .padding(horizontal = 4.dp, vertical = 1.dp)
-                ) {
-                    Text(text = stringResource(R.string.episode_duration_placeholder), color = Color.White, fontSize = 9.sp)
                 }
 
                 if (progress > 0f) {
@@ -805,38 +536,155 @@ fun EpisodeListItemCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = episode.quality,
+                    color = TextMuted,
+                    fontSize = 11.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsContent(
+    playbackState: PlayerPlaybackState,
+    onSpeedChange: (Float) -> Unit,
+    onResizeModeChange: (Int) -> Unit,
+    onStreamSelected: (StreamInfo) -> Unit,
+    onTrackSelected: (Tracks.Group, Int) -> Unit,
+    onClearTrackType: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var currentPane by remember { mutableStateOf(SettingsPane.MAIN) }
+
+    AnimatedContent(
+        targetState = currentPane,
+        transitionSpec = {
+            if (targetState.ordinal > initialState.ordinal) {
+                (slideInHorizontally { it } + fadeIn()) togetherWith (slideOutHorizontally { -it } + fadeOut())
+            } else {
+                (slideInHorizontally { -it } + fadeIn()) togetherWith (slideOutHorizontally { it } + fadeOut())
+            }
+        },
+        label = "SettingsPaneTransition"
+    ) { pane ->
+        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            when (pane) {
+                SettingsPane.MAIN -> {
                     Text(
-                        text = episode.quality,
-                        color = TextMuted,
-                        fontSize = 11.sp
+                        text = stringResource(R.string.player_settings_unified),
+                        style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(16.dp, 8.dp)
                     )
-                    Text(
-                        text = " • ",
-                        color = TextMuted,
-                        fontSize = 11.sp
+                    SettingsItem(
+                        icon = Icons.Default.Speed,
+                        title = stringResource(R.string.player_speed_title),
+                        value = "${if (playbackState.playbackSpeed == playbackState.playbackSpeed.toInt().toFloat()) playbackState.playbackSpeed.toInt().toString() else playbackState.playbackSpeed.toString()}x",
+                        onClick = { currentPane = SettingsPane.SPEED }
                     )
-                    Text(
-                        text = stringResource(R.string.badge_sub),
-                        color = AnimeRed,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium
+                    SettingsItem(
+                        icon = Icons.Default.AspectRatio,
+                        title = stringResource(R.string.player_aspect_ratio),
+                        value = getResizeModeLabel(playbackState.videoResizeMode),
+                        onClick = { currentPane = SettingsPane.ASPECT_RATIO }
+                    )
+                    SettingsItem(
+                        icon = Icons.Default.HighQuality,
+                        title = stringResource(R.string.player_quality),
+                        value = playbackState.streams.find { it.id == playbackState.selectedStreamId }?.name ?: stringResource(R.string.unknown),
+                        onClick = { currentPane = SettingsPane.QUALITY }
+                    )
+                    SettingsItem(
+                        icon = Icons.Default.Audiotrack,
+                        title = stringResource(R.string.player_audio),
+                        value = getSelectedTrackLabel(playbackState.availableTracks, C.TRACK_TYPE_AUDIO),
+                        onClick = { currentPane = SettingsPane.AUDIO }
+                    )
+                    SettingsItem(
+                        icon = Icons.Default.Subtitles,
+                        title = stringResource(R.string.player_subtitle),
+                        value = getSelectedTrackLabel(playbackState.availableTracks, C.TRACK_TYPE_TEXT),
+                        onClick = { currentPane = SettingsPane.SUBTITLE }
                     )
                 }
-            }
-
-            if (isPlaying) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(AnimeRed)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.current_playing),
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                SettingsPane.SPEED -> {
+                    PaneHeader(stringResource(R.string.player_speed_title), onBack = { currentPane = SettingsPane.MAIN })
+                    val speeds = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
+                    LazyColumn {
+                        items(speeds) { speed ->
+                            SelectableItem(
+                                label = "${if (speed == speed.toInt().toFloat()) speed.toInt().toString() else speed.toString()}x",
+                                isSelected = speed == playbackState.playbackSpeed,
+                                onClick = {
+                                    onSpeedChange(speed)
+                                    onDismiss()
+                                }
+                            )
+                        }
+                    }
+                }
+                SettingsPane.ASPECT_RATIO -> {
+                    PaneHeader(stringResource(R.string.player_aspect_ratio), onBack = { currentPane = SettingsPane.MAIN })
+                    val modes = listOf(0, 3, 4) // Fit, Fill, Zoom
+                    LazyColumn {
+                        items(modes) { mode ->
+                            SelectableItem(
+                                label = getResizeModeLabel(mode),
+                                isSelected = mode == playbackState.videoResizeMode,
+                                onClick = {
+                                    onResizeModeChange(mode)
+                                    onDismiss()
+                                }
+                            )
+                        }
+                    }
+                }
+                SettingsPane.QUALITY -> {
+                    PaneHeader(stringResource(R.string.player_quality), onBack = { currentPane = SettingsPane.MAIN })
+                    LazyColumn {
+                        items(playbackState.streams) { stream ->
+                            SelectableItem(
+                                label = stream.name,
+                                isSelected = stream.id == playbackState.selectedStreamId,
+                                onClick = {
+                                    onStreamSelected(stream)
+                                    onDismiss()
+                                }
+                            )
+                        }
+                    }
+                }
+                SettingsPane.AUDIO -> {
+                    TrackSelectionPane(
+                        title = stringResource(R.string.player_audio),
+                        type = C.TRACK_TYPE_AUDIO,
+                        availableTracks = playbackState.availableTracks,
+                        onTrackSelected = { group, index ->
+                            onTrackSelected(group, index)
+                            onDismiss()
+                        },
+                        onClearTrack = {
+                            onClearTrackType(C.TRACK_TYPE_AUDIO)
+                            onDismiss()
+                        },
+                        onBack = { currentPane = SettingsPane.MAIN }
+                    )
+                }
+                SettingsPane.SUBTITLE -> {
+                    TrackSelectionPane(
+                        title = stringResource(R.string.player_subtitle),
+                        type = C.TRACK_TYPE_TEXT,
+                        availableTracks = playbackState.availableTracks,
+                        onTrackSelected = { group, index ->
+                            onTrackSelected(group, index)
+                            onDismiss()
+                        },
+                        onClearTrack = {
+                            onClearTrackType(C.TRACK_TYPE_TEXT)
+                            onDismiss()
+                        },
+                        onBack = { currentPane = SettingsPane.MAIN }
                     )
                 }
             }
@@ -844,10 +692,163 @@ fun EpisodeListItemCard(
     }
 }
 
-/**
- * Streaming-server picker for the in-player side menu ([PlayerSideMenu]).
- * Simple full-width rows, selected server highlighted like the dishlist picker.
- */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UnifiedPlayerSettingsSheet(
+    playbackSpeed: Float,
+    videoResizeMode: Int,
+    availableTracks: Tracks?,
+    streams: List<StreamInfo>,
+    selectedStreamId: String?,
+    onSpeedChange: (Float) -> Unit,
+    onResizeModeChange: (Int) -> Unit,
+    onStreamSelected: (StreamInfo) -> Unit,
+    onTrackSelected: (Tracks.Group, Int) -> Unit,
+    onClearTrackType: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = BackgroundDark,
+        contentColor = TextPrimary
+    ) {
+        SettingsContent(
+            playbackState = PlayerPlaybackState(
+                playbackSpeed = playbackSpeed,
+                videoResizeMode = videoResizeMode,
+                availableTracks = availableTracks,
+                streams = streams,
+                selectedStreamId = selectedStreamId
+            ),
+            onSpeedChange = onSpeedChange,
+            onResizeModeChange = onResizeModeChange,
+            onStreamSelected = onStreamSelected,
+            onTrackSelected = onTrackSelected,
+            onClearTrackType = onClearTrackType,
+            onDismiss = onDismiss
+        )
+    }
+}
+
+enum class SettingsPane { MAIN, SPEED, ASPECT_RATIO, QUALITY, AUDIO, SUBTITLE }
+
+@Composable
+fun SettingsItem(
+    icon: ImageVector,
+    title: String,
+    value: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        color = Color.Transparent,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(text = title, color = TextPrimary, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text(text = value, color = AnimeRed, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
+@Composable
+fun PaneHeader(title: String, onBack: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = TextPrimary)
+        }
+        Text(text = title, style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 8.dp))
+    }
+}
+
+@Composable
+fun SelectableItem(label: String, isSelected: Boolean, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        color = if (isSelected) AnimeRedContainer else Color.Transparent,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                color = if (isSelected) AnimeRed else TextPrimary,
+                fontSize = 14.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                modifier = Modifier.weight(1f)
+            )
+            if (isSelected) {
+                Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = AnimeRed, modifier = Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun TrackSelectionPane(
+    title: String,
+    type: Int,
+    availableTracks: Tracks?,
+    onTrackSelected: (Tracks.Group, Int) -> Unit,
+    onClearTrack: () -> Unit,
+    onBack: () -> Unit
+) {
+    PaneHeader(title, onBack = onBack)
+    LazyColumn {
+        item {
+            SelectableItem(
+                label = stringResource(R.string.player_track_none),
+                isSelected = availableTracks?.let { it.groups.none { g -> g.type == type && g.isSelected } } ?: true,
+                onClick = onClearTrack
+            )
+        }
+        availableTracks?.groups?.filter { it.type == type }?.forEach { group ->
+            items(group.length) { index ->
+                val track = group.getTrackFormat(index)
+                val label = track.label ?: track.language ?: "Track ${index + 1}"
+                SelectableItem(
+                    label = label,
+                    isSelected = group.isTrackSelected(index),
+                    onClick = { onTrackSelected(group, index) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun getResizeModeLabel(mode: Int): String = when (mode) {
+    3 -> stringResource(R.string.player_resize_fill)
+    4 -> stringResource(R.string.player_resize_zoom)
+    else -> stringResource(R.string.player_resize_fit)
+}
+
+@Composable
+fun getSelectedTrackLabel(tracks: Tracks?, type: Int): String {
+    val selectedGroup = tracks?.groups?.find { it.type == type && it.isSelected }
+    if (selectedGroup == null) return stringResource(R.string.player_track_none)
+    for (i in 0 until selectedGroup.length) {
+        if (selectedGroup.isTrackSelected(i)) {
+            val format = selectedGroup.getTrackFormat(i)
+            return format.label ?: format.language ?: stringResource(R.string.player_track_default)
+        }
+    }
+    return stringResource(R.string.player_track_none)
+}
+
 @Composable
 fun ServerMenuContent(
     streams: List<StreamInfo>,
@@ -859,19 +860,12 @@ fun ServerMenuContent(
     when {
         isLoading -> {
             Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    color = AnimeRed,
-                    modifier = Modifier.size(28.dp)
-                )
+                CircularProgressIndicator(color = AnimeRed, modifier = Modifier.size(28.dp))
             }
         }
         streams.isEmpty() -> {
             Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = stringResource(R.string.server_empty),
-                    color = TextMuted,
-                    fontSize = 13.sp
-                )
+                Text(text = stringResource(R.string.server_empty), color = TextMuted, fontSize = 13.sp)
             }
         }
         else -> {
@@ -880,22 +874,17 @@ fun ServerMenuContent(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(streams, key = { it.id }) { stream ->
+                items(streams) { stream ->
                     val isSelected = stream.id == selectedStreamId
                     Surface(
                         onClick = { onStreamSelected(stream) },
                         color = if (isSelected) AnimeRedContainer else SurfaceDark,
                         shape = RoundedCornerShape(10.dp),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isSelected) AnimeRed else CardBorderDark
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("player_server_row_${stream.id}")
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) AnimeRed else CardBorderDark),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
@@ -903,18 +892,10 @@ fun ServerMenuContent(
                                 color = if (isSelected) AnimeRed else TextPrimary,
                                 fontSize = 14.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f)
                             )
                             if (isSelected) {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = stringResource(R.string.current_playing),
-                                    tint = AnimeRed,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                Icon(Icons.Default.Check, null, tint = AnimeRed, modifier = Modifier.size(18.dp))
                             }
                         }
                     }
