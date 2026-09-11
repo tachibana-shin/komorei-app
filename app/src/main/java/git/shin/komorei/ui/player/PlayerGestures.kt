@@ -19,7 +19,9 @@ private const val SEEK_INCREMENT_MS = 10_000L
  * (`demos/compose/.../layout/modifiers.kt` — Apache-2.0), simplified to plain
  * callbacks bound to the app's `PlayerViewModel`:
  *  - single tap        -> [onToggleControls]
- *  - double tap        -> [onSeekBy] ±10s (left half seeks back, right half forward)
+ *  - double tap        -> [onSeekBy] ±10s (left half seeks back, right half forward),
+ *    with the tap horizontal fraction so the caller can draw the new YouTube-style
+ *    circular seek indicator at the tap position
  *  - long press (hold) -> [onFastForwardStart] while held, [onFastForwardEnd] on release
  *  - pointer down/move -> [onPointerDownChange] / [onPointerMove] so the caller can
  *    pause the auto-hide timer while the user is interacting with the video
@@ -27,7 +29,7 @@ private const val SEEK_INCREMENT_MS = 10_000L
 @Composable
 fun Modifier.playerGestures(
     onToggleControls: () -> Unit,
-    onSeekBy: (deltaMs: Long) -> Unit,
+    onSeekBy: (deltaMs: Long, xFraction: Float) -> Unit,
     onFastForwardStart: () -> Unit,
     onFastForwardEnd: () -> Unit,
     onPointerDownChange: ((Boolean) -> Unit)? = null,
@@ -58,7 +60,8 @@ fun Modifier.playerGestures(
                         } else {
                             SEEK_INCREMENT_MS
                         }
-                        onSeekBy(delta)
+                        val xFraction = (offset.x / size.width).coerceIn(0f, 1f)
+                        onSeekBy(delta, xFraction)
                     },
                     onLongPress = { offset ->
                         // Matches the official demo: hold the right half to fast-forward.

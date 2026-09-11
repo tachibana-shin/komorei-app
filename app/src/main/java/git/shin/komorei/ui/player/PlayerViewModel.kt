@@ -1,6 +1,7 @@
 package git.shin.komorei.ui.player
 
 import android.content.Context
+import android.content.pm.ActivityInfo
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -179,8 +180,24 @@ class PlayerViewModel @Inject constructor(
         fastForwardBaseSpeed = null
     }
 
+    // Orientation the screen was in before entering fullscreen, so exiting can restore it.
+    private var orientationBeforeFullscreen: Int? = null
+
     fun toggleFullscreen() {
-        _playbackState.update { it.copy(isFullscreen = !it.isFullscreen) }
+        val isFullscreen = _playbackState.value.isFullscreen
+        _playbackState.update { it.copy(isFullscreen = !isFullscreen) }
+
+        // YouTube-like: entering fullscreen forces landscape, exiting restores the
+        // orientation the user had before (portrait on phones, whatever the device had).
+        val activity = (appContext as KomoreiApplication).currentActivity ?: return
+        if (!isFullscreen) {
+            orientationBeforeFullscreen = activity.requestedOrientation
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        } else {
+            activity.requestedOrientation = orientationBeforeFullscreen
+                ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            orientationBeforeFullscreen = null
+        }
     }
 
     fun toggleLock() {
@@ -377,6 +394,12 @@ class PlayerViewModel @Inject constructor(
 
     fun dismissPlayer() {
         exoPlayer.pause()
+        // If the player was closed while fullscreen, restore the previous orientation.
+        if (_playbackState.value.isFullscreen) {
+            (appContext as KomoreiApplication).currentActivity?.requestedOrientation =
+                orientationBeforeFullscreen ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            orientationBeforeFullscreen = null
+        }
         _playbackState.update {
             it.copy(
                 isPlaying = false,

@@ -557,20 +557,22 @@ fun AnimeDetailView(
                             }
                         }
                     } else if (episodes.isEmpty()) {
-                        // Season has no episodes yet — keep the row visible instead of collapsing.
+                        // Season has no episodes yet — keep the row visible instead of
+                        // collapsing; span the full width and center the message.
                         item {
                             Box(
                                 modifier = Modifier
+                                    .fillParentMaxWidth()
                                     .height(34.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(CardDark.copy(alpha = 0.3f))
-                                    .padding(horizontal = 14.dp),
+                                    .background(CardDark.copy(alpha = 0.3f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = stringResource(R.string.episodes_empty),
                                     color = TextMuted,
-                                    fontSize = 12.sp
+                                    fontSize = 12.sp,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
                             }
                         }
@@ -793,6 +795,7 @@ fun AnimeDetailView(
             },
             episodes = episodes,
             episodesError = uiState.episodeError,
+            isLoading = uiState.isLoadingEpisodes,
             onRetryEpisodes = { viewModel.retryEpisodes() },
             onEpisodeSelected = { ep ->
                 onEpisodeSelected(ep)

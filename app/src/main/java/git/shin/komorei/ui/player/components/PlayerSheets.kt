@@ -1,16 +1,21 @@
 package git.shin.komorei.ui.player.components
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -21,10 +26,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Article
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -58,6 +65,7 @@ fun EpisodesBottomSheet(
     selectedSeasonId: String,
     episodes: List<Episode>,
     episodesError: String?,
+    isLoading: Boolean = false,
     onRetryEpisodes: () -> Unit,
     onSeasonChange: (String) -> Unit,
     onEpisodeSelected: (Episode) -> Unit,
@@ -89,6 +97,7 @@ fun EpisodesBottomSheet(
             onSeasonChange = onSeasonChange,
             episodes = episodes,
             episodesError = episodesError,
+            isLoading = isLoading,
             onRetryEpisodes = onRetryEpisodes,
             onEpisodeSelected = onEpisodeSelected,
             modifier = Modifier
@@ -108,6 +117,7 @@ fun EpisodesContent(
     selectedSeasonId: String,
     episodes: List<Episode>,
     episodesError: String?,
+    isLoading: Boolean = false,
     onRetryEpisodes: () -> Unit,
     onSeasonChange: (String) -> Unit,
     onEpisodeSelected: (Episode) -> Unit,
@@ -130,12 +140,29 @@ fun EpisodesContent(
         if (isAscending) list else list.reversed()
     }
 
+    // Per-view scroll states. Each distinct content (season × view mode × sort × search)
+    // keeps its own scroll offset, like separate tabs — otherwise the single remembered
+    // LazyListState would be shared across seasons and inherit the previous season's
+    // position (or lose it when coming back).
+    val listStates = remember { HashMap<String, LazyListState>() }
+    val gridStates = remember { HashMap<String, LazyGridState>() }
+    val viewContentKey = buildString {
+        append(selectedSeasonId); append('|')
+        append(if (isAscending) "asc" else "desc"); append('|')
+        append(searchQuery.trim())
+    }
+
+    // Season-picker list keeps its scroll while toggling open/closed (AnimatedVisibility
+    // disposes the content, so the state must live up here).
+    val seasonPickerState = rememberLazyListState()
+
     Column(modifier = modifier) {
         SeasonVsEpisodePane(
             modifier = Modifier.weight(1f),
             showSeasonList = showSeasonList,
             seasons = seasons,
             selectedSeasonId = selectedSeasonId,
+            seasonPickerState = seasonPickerState,
             onSeasonChange = onSeasonChange,
             onCloseSeasonList = { showSeasonList = false }
         ) {
@@ -305,11 +332,83 @@ fun EpisodesContent(
                 }
             }
 
-            if (isGridView) {
-                val gridState = rememberLazyGridState()
+            if (episodesError != null) {
+                // Load failed: show an error state with retry (youtube-style).
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ErrorOutline,
+                        contentDescription = null,
+                        tint = TextMuted,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.episodes_load_error_title),
+                        color = TextPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = episodesError,
+                        color = TextMuted,
+                        fontSize = 12.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = onRetryEpisodes,
+                        colors = ButtonDefaults.buttonColors(containerColor = AnimeRed),
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp)
+                    ) {
+                        Text(stringResource(R.string.action_retry), color = Color.White, fontSize = 13.sp)
+                    }
+                }
+            } else if (isLoading && filteredEpisodes.isEmpty()) {
+                // Loading a season for the first time — skeleton placeholders (YouTube-style),
+                // matching the current view mode (grid chips or list rows).
+                EpisodesSkeleton(isGridView = isGridView)
+            } else if (filteredEpisodes.isEmpty() && !isLoading) {
+                // Empty state: nothing to show for this season (or search matched nothing).
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Article,
+                        contentDescription = null,
+                        tint = TextMuted,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(
+                            if (searchQuery.isNotBlank()) R.string.episodes_empty_search
+                            else R.string.episodes_empty
+                        ),
+                        color = TextMuted,
+                        fontSize = 13.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                }
+            } else if (isGridView) {
+                val gridKey = "grid|$viewContentKey"
+                val isFreshView = !gridStates.containsKey(gridKey)
+                val gridState = gridStates.getOrPut(gridKey) { LazyGridState() }
                 val activeGridIndex = filteredEpisodes.indexOfFirst { it.id == currentEpisode.id }
-                LaunchedEffect(activeGridIndex) {
-                    if (activeGridIndex >= 0) gridState.scrollToItemVisible(activeGridIndex)
+                // Reveal the playing episode only the first time this view is shown;
+                // revisiting a season restores its saved scroll position instead.
+                LaunchedEffect(gridKey, activeGridIndex) {
+                    if (isFreshView && activeGridIndex >= 0) {
+                        gridState.scrollToItemVisible(activeGridIndex)
+                    }
                 }
 
                 LazyVerticalGrid(
@@ -346,10 +445,16 @@ fun EpisodesContent(
                     }
                 }
             } else {
-                val listState = rememberLazyListState()
+                val listKey = "list|$viewContentKey"
+                val isFreshView = !listStates.containsKey(listKey)
+                val listState = listStates.getOrPut(listKey) { LazyListState() }
                 val activeIndex = filteredEpisodes.indexOfFirst { it.id == currentEpisode.id }
-                LaunchedEffect(activeIndex) {
-                    if (activeIndex >= 0) listState.scrollToItemVisible(activeIndex)
+                // Reveal the playing episode only the first time this view is shown;
+                // revisiting a season restores its saved scroll position instead.
+                LaunchedEffect(listKey, activeIndex) {
+                    if (isFreshView && activeIndex >= 0) {
+                        listState.scrollToItemVisible(activeIndex)
+                    }
                 }
 
                 LazyColumn(
@@ -381,6 +486,7 @@ private fun SeasonVsEpisodePane(
     showSeasonList: Boolean,
     seasons: List<AnimeSeason>,
     selectedSeasonId: String,
+    seasonPickerState: LazyListState,
     onSeasonChange: (String) -> Unit,
     onCloseSeasonList: () -> Unit,
     episodesContent: @Composable ColumnScope.() -> Unit
@@ -395,6 +501,7 @@ private fun SeasonVsEpisodePane(
             SeasonPickerPane(
                 seasons = seasons,
                 selectedSeasonId = selectedSeasonId,
+                scrollState = seasonPickerState,
                 onSeasonChange = onSeasonChange,
                 onClose = onCloseSeasonList
             )
@@ -416,6 +523,7 @@ private fun SeasonVsEpisodePane(
 private fun SeasonPickerPane(
     seasons: List<AnimeSeason>,
     selectedSeasonId: String,
+    scrollState: LazyListState,
     onSeasonChange: (String) -> Unit,
     onClose: () -> Unit
 ) {
@@ -436,7 +544,10 @@ private fun SeasonPickerPane(
             }
         }
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        LazyColumn(
+            state = scrollState,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             items(seasons) { season ->
                 val isSelected = season.id == selectedSeasonId
                 Surface(
@@ -467,6 +578,102 @@ private fun SeasonPickerPane(
                 }
             }
         }
+    }
+}
+
+/**
+ * YouTube-style skeleton shown while a season's episodes are loading. Two variants
+ * matching the real content: grid chips or list rows, with a soft pulsing alpha.
+ */
+@Composable
+private fun EpisodesSkeleton(isGridView: Boolean) {
+    val transition = rememberInfiniteTransition(label = "episodesSkeleton")
+    val pulseAlpha by transition.animateFloat(
+        initialValue = 0.45f,
+        targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(650),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "episodesSkeletonAlpha"
+    )
+
+    Box(modifier = Modifier.fillMaxSize().alpha(pulseAlpha)) {
+        if (isGridView) {
+            // Grid chips skeleton (bounded, not nested — same rule as the real grid).
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 64.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(count = 24) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(CardDark)
+                    )
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                repeat(8) {
+                    SkeletonEpisodeRow()
+                }
+            }
+        }
+    }
+}
+
+/** One fake episode row used by [EpisodesSkeleton] (poster + text bars + meta chip). */
+@Composable
+private fun SkeletonEpisodeRow() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(SurfaceDark)
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 88.dp, height = 54.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(CardDark)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.45f)
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(CardDark)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.25f)
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(CardDark)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Box(
+            modifier = Modifier
+                .size(width = 56.dp, height = 28.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(CardDark)
+        )
     }
 }
 
@@ -572,41 +779,70 @@ fun SettingsContent(
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             when (pane) {
                 SettingsPane.MAIN -> {
-                    Text(
-                        text = stringResource(R.string.player_settings_unified),
-                        style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(16.dp, 8.dp)
-                    )
-                    SettingsItem(
-                        icon = Icons.Default.Speed,
-                        title = stringResource(R.string.player_speed_title),
-                        value = "${if (playbackState.playbackSpeed == playbackState.playbackSpeed.toInt().toFloat()) playbackState.playbackSpeed.toInt().toString() else playbackState.playbackSpeed.toString()}x",
-                        onClick = { currentPane = SettingsPane.SPEED }
-                    )
-                    SettingsItem(
-                        icon = Icons.Default.AspectRatio,
-                        title = stringResource(R.string.player_aspect_ratio),
-                        value = getResizeModeLabel(playbackState.videoResizeMode),
-                        onClick = { currentPane = SettingsPane.ASPECT_RATIO }
-                    )
-                    SettingsItem(
-                        icon = Icons.Default.HighQuality,
-                        title = stringResource(R.string.player_quality),
-                        value = playbackState.streams.find { it.id == playbackState.selectedStreamId }?.name ?: stringResource(R.string.unknown),
-                        onClick = { currentPane = SettingsPane.QUALITY }
-                    )
-                    SettingsItem(
-                        icon = Icons.Default.Audiotrack,
-                        title = stringResource(R.string.player_audio),
-                        value = getSelectedTrackLabel(playbackState.availableTracks, C.TRACK_TYPE_AUDIO),
-                        onClick = { currentPane = SettingsPane.AUDIO }
-                    )
-                    SettingsItem(
-                        icon = Icons.Default.Subtitles,
-                        title = stringResource(R.string.player_subtitle),
-                        value = getSelectedTrackLabel(playbackState.availableTracks, C.TRACK_TYPE_TEXT),
-                        onClick = { currentPane = SettingsPane.SUBTITLE }
-                    )
+                    // Scrollable so the list never clips on short landscape screens;
+                    // owns its header + close button (the side sheet has no big header).
+                    LazyColumn {
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.player_settings_unified),
+                                    style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                                Spacer(modifier = Modifier.weight(1f))
+                                IconButton(onClick = onDismiss) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = stringResource(R.string.cd_close),
+                                        tint = TextPrimary
+                                    )
+                                }
+                            }
+                        }
+                        item {
+                            SettingsItem(
+                                icon = Icons.Default.Speed,
+                                title = stringResource(R.string.player_speed_title),
+                                value = "${if (playbackState.playbackSpeed == playbackState.playbackSpeed.toInt().toFloat()) playbackState.playbackSpeed.toInt().toString() else playbackState.playbackSpeed.toString()}x",
+                                onClick = { currentPane = SettingsPane.SPEED }
+                            )
+                        }
+                        item {
+                            SettingsItem(
+                                icon = Icons.Default.AspectRatio,
+                                title = stringResource(R.string.player_aspect_ratio),
+                                value = getResizeModeLabel(playbackState.videoResizeMode),
+                                onClick = { currentPane = SettingsPane.ASPECT_RATIO }
+                            )
+                        }
+                        item {
+                            SettingsItem(
+                                icon = Icons.Default.HighQuality,
+                                title = stringResource(R.string.player_quality),
+                                value = playbackState.streams.find { it.id == playbackState.selectedStreamId }?.name ?: stringResource(R.string.unknown),
+                                onClick = { currentPane = SettingsPane.QUALITY }
+                            )
+                        }
+                        item {
+                            SettingsItem(
+                                icon = Icons.Default.Audiotrack,
+                                title = stringResource(R.string.player_audio),
+                                value = getSelectedTrackLabel(playbackState.availableTracks, C.TRACK_TYPE_AUDIO),
+                                onClick = { currentPane = SettingsPane.AUDIO }
+                            )
+                        }
+                        item {
+                            SettingsItem(
+                                icon = Icons.Default.Subtitles,
+                                title = stringResource(R.string.player_subtitle),
+                                value = getSelectedTrackLabel(playbackState.availableTracks, C.TRACK_TYPE_TEXT),
+                                onClick = { currentPane = SettingsPane.SUBTITLE }
+                            )
+                        }
+                    }
                 }
                 SettingsPane.SPEED -> {
                     PaneHeader(stringResource(R.string.player_speed_title), onBack = { currentPane = SettingsPane.MAIN })

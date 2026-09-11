@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Dark base theme: keeps the system bars and window background dark so edge-to-edge
-         content (dark Compose UI) blends seamlessly and system bar icons stay light. -->
+    <!-- API 27+ adds the light-navigation-bar appearance flag. Explicitly keep both
+         system bar appearances "dark" (light icons) to match the dark theme. -->
     <style name="Theme.MyApplication" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/background_dark</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 </resources>

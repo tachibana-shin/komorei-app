@@ -85,6 +85,7 @@
     <string name="episode_search_hint">Tìm theo số tập…</string>
     <string name="episodes_empty">Season này chưa có tập nào</string>
     <string name="episodes_empty_search">Không tìm thấy tập nào khớp với từ khóa</string>
+    <string name="episodes_load_error_title">Không thể tải danh sách tập</string>
     <string name="episode_display_count">Hiển thị %1$d tập</string>
     <string name="sort_oldest">Cũ nhất trước</string>
     <string name="sort_newest">Mới nhất trước</string>
@@ -185,6 +186,9 @@
     <string name="player_audio">Âm thanh</string>
     <string name="player_subtitle">Phụ đề</string>
     <string name="player_quality">Chất lượng</string>
+    <string name="player_quality_auto">Auto</string>
+    <string name="player_next">Tiếp</string>
+    <string name="streaming_server_short">Server</string>
     <string name="player_track_none">Không có</string>
     <string name="player_track_default">Mặc định</string>
     <string name="player_settings_unified">Cài đặt trình phát</string>

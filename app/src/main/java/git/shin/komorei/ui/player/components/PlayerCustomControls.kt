@@ -8,6 +8,8 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -31,26 +33,33 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.outlined.ClosedCaption
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,8 +67,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
 import git.shin.komorei.ui.theme.AnimeRed
-import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.CardBorderDark
+import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
 
@@ -163,7 +172,6 @@ fun PlayerControlHeader(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SegmentedProgressSlider(
     positionMs: Long,
@@ -172,96 +180,147 @@ fun SegmentedProgressSlider(
     introRange: LongRange?,
     outroRange: LongRange?,
     onSeek: (Long) -> Unit,
+    onSeekPreview: (Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val duration = durationMs.coerceAtLeast(0L)
     val progress = if (durationMs > 0) positionMs.toFloat() / durationMs else 0f
     val bufferedProgress = if (durationMs > 0) bufferedPositionMs.toFloat() / durationMs else 0f
 
-    Slider(
-        value = progress.coerceIn(0f, 1f),
-        onValueChange = { onSeek((it * durationMs).toLong()) },
-        modifier = modifier.height(25.dp),
-        colors = SliderDefaults.colors(
-            thumbColor = Color.White,
-            activeTrackColor = Color.Transparent,
-            inactiveTrackColor = Color.Transparent
-        ),
-        thumb = {
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .offset(y = 2.dp)
-                    .background(Color.White, CircleShape)
-            )
-        },
-        track = { sliderState ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Canvas(modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)) {
-                    val width = size.width
-                    val height = size.height
+    // Custom relative-drag scrubber (youtube-style):
+    //  - Dragging NEVER teleports the thumb to the finger; instead it records the
+    //    swipe DELTA from the grab point and moves the progress relative to the
+    //    position when the drag started.
+    //  - While dragging the thumb follows our local state (not the 250ms poller,
+    //    so it cannot be yanked back and stutter).
+    //  - The engine is only seeked once on release; a quick tap without movement
+    //    seeks to the tapped time (absolute).
+    var isDragging by remember { mutableStateOf(false) }
+    var dragFraction by remember { mutableFloatStateOf(progress) }
+    var dragStartX by remember { mutableFloatStateOf(0f) }
+    var dragStartFraction by remember { mutableFloatStateOf(0f) }
 
-                    // Background
-                    drawRect(
-                        color = Color.White.copy(alpha = 0.24f),
-                        size = size
-                    )
+    // Latest values that survive recomposition for use inside the gesture coroutine.
+    val latestProgress by rememberUpdatedState(progress)
+    val latestDuration by rememberUpdatedState(duration)
 
-                    // Buffered
-                    drawRect(
-                        color = Color.White.copy(alpha = 0.4f),
-                        size = Size(width * bufferedProgress.coerceIn(0f, 1f), height)
-                    )
+    val renderedFraction = if (isDragging) dragFraction else progress.coerceIn(0f, 1f)
 
-                    // Intro
-                    introRange?.let {
-                        val start = (it.first.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(
-                            0f,
-                            1f
-                        ) * width
-                        val end = (it.last.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(
-                            0f,
-                            1f
-                        ) * width
-                        drawRect(
-                            color = Color.Green.copy(alpha = 0.6f),
-                            topLeft = Offset(start, 0f),
-                            size = Size(end - start, height)
-                        )
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(24.dp)
+            .semantics {
+                progressBarRangeInfo = ProgressBarRangeInfo(renderedFraction, 0f..1f)
+            }
+            .pointerInput(Unit) {
+                try {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        // Consume the down so the parent sheet drag / gestures don't also react.
+                        down.consume()
+                        val pointerId = down.id
+                        val widthPx = size.width.toFloat().coerceAtLeast(1f)
+                        val startFraction = latestProgress.coerceIn(0f, 1f)
+
+                        isDragging = true
+                        dragStartFraction = startFraction
+                        dragStartX = down.position.x
+                        dragFraction = startFraction
+                        onSeekPreview((startFraction * latestDuration).toLong())
+
+                        var dragMoved = false
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == pointerId } ?: continue
+                            change.consume()
+
+                            if (!change.pressed) {
+                                // Gesture finished.
+                                if (dragMoved) {
+                                    onSeek((dragFraction * latestDuration).toLong())
+                                } else {
+                                    // Tap without movement → absolute seek to the tapped time.
+                                    val f = (down.position.x / widthPx).coerceIn(0f, 1f)
+                                    onSeek((f * latestDuration).toLong())
+                                }
+                                break
+                            }
+
+                            if (!dragMoved &&
+                                (change.position - down.position).getDistance() >= viewConfiguration.touchSlop
+                            ) {
+                                dragMoved = true
+                            }
+
+                            if (dragMoved) {
+                                // Relative scrub: base progress + (finger delta / track width).
+                                val f = (dragStartFraction + (change.position.x - dragStartX) / widthPx)
+                                    .coerceIn(0f, 1f)
+                                dragFraction = f
+                                onSeekPreview((f * latestDuration).toLong())
+                            }
+                        }
                     }
-
-                    // Outro
-                    outroRange?.let {
-                        val start = (it.first.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(
-                            0f,
-                            1f
-                        ) * width
-                        val end = (it.last.toFloat() / durationMs.coerceAtLeast(1L)).coerceIn(
-                            0f,
-                            1f
-                        ) * width
-                        drawRect(
-                            color = Color.Green.copy(alpha = 0.6f),
-                            topLeft = Offset(start, 0f),
-                            size = Size(end - start, height)
-                        )
-                    }
-
-                    // Active
-                    drawRect(
-                        color = AnimeRed,
-                        size = Size(width * progress.coerceIn(0f, 1f), height)
-                    )
+                } finally {
+                    isDragging = false
                 }
             }
+    ) {
+        val trackH = 4.dp.toPx()
+        val trackY = size.height / 2f
+        val thumbR = 6.dp.toPx()
+
+        // Background
+        drawRect(
+            color = Color.White.copy(alpha = 0.24f),
+            topLeft = Offset(0f, trackY - trackH / 2f),
+            size = Size(size.width, trackH)
+        )
+
+        // Buffered
+        drawRect(
+            color = Color.White.copy(alpha = 0.4f),
+            topLeft = Offset(0f, trackY - trackH / 2f),
+            size = Size(size.width * bufferedProgress.coerceIn(0f, 1f), trackH)
+        )
+
+        // Intro
+        introRange?.let {
+            val start = (it.first.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
+            val end = (it.last.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
+            drawRect(
+                color = Color.Green.copy(alpha = 0.6f),
+                topLeft = Offset(start, trackY - trackH / 2f),
+                size = Size(end - start, trackH)
+            )
         }
-    )
+
+        // Outro
+        outroRange?.let {
+            val start = (it.first.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
+            val end = (it.last.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
+            drawRect(
+                color = Color.Green.copy(alpha = 0.6f),
+                topLeft = Offset(start, trackY - trackH / 2f),
+                size = Size(end - start, trackH)
+            )
+        }
+
+        // Active
+        drawRect(
+            color = AnimeRed,
+            topLeft = Offset(0f, trackY - trackH / 2f),
+            size = Size(size.width * renderedFraction, trackH)
+        )
+
+        // Thumb
+        drawCircle(
+            color = Color.White,
+            radius = thumbR,
+            center = Offset(size.width * renderedFraction.coerceIn(0f, 1f), trackY)
+        )
+    }
 }
 
 @Composable
@@ -281,6 +340,7 @@ fun PlayerControlFooter(
     onOpenEpisodes: () -> Unit,
     onOpenServers: () -> Unit,
     onOpenSettings: () -> Unit,
+    onInteraction: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val textStyle = TextStyle(
@@ -288,6 +348,10 @@ fun PlayerControlFooter(
         fontSize = if (isFullscreen) 14.sp else 13.sp,
         fontWeight = FontWeight.Medium
     )
+
+    // Live preview position while the user drags the scrubber (-1 = not dragging).
+    var previewPositionMs by remember { mutableLongStateOf(-1L) }
+    val displayPositionMs = if (previewPositionMs >= 0L) previewPositionMs else positionMs
 
     Column(
         modifier = modifier
@@ -303,7 +367,7 @@ fun PlayerControlFooter(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "${formatTime(positionMs)} / ${formatTime(durationMs)}",
+                text = "${formatTime(displayPositionMs)} / ${formatTime(durationMs)}",
                 style = textStyle
             )
             Box(
@@ -331,7 +395,15 @@ fun PlayerControlFooter(
             bufferedPositionMs = bufferedPositionMs,
             introRange = introRange,
             outroRange = outroRange,
-            onSeek = onSeek,
+            onSeek = { pos ->
+                previewPositionMs = -1L
+                onSeek(pos)
+            },
+            onSeekPreview = { pos ->
+                previewPositionMs = pos
+                // Keep the auto-hide timer at bay while the scrubber is being dragged.
+                onInteraction()
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -360,7 +432,7 @@ fun PlayerControlFooter(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(Modifier.width(4.dp))
-                            Text("Tiếp", color = Color.White, fontSize = 13.sp)
+                            Text(stringResource(R.string.player_next), color = Color.White, fontSize = 13.sp)
                         }
                         Spacer(Modifier.width(12.dp))
                     }
@@ -383,7 +455,7 @@ fun PlayerControlFooter(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text("Server", color = Color.White, fontSize = 13.sp)
+                        Text(stringResource(R.string.streaming_server_short), color = Color.White, fontSize = 13.sp)
                     }
                     TextButton(onClick = onOpenSettings) {
                         Icon(
@@ -393,7 +465,7 @@ fun PlayerControlFooter(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text(currentQuality ?: "Auto", color = Color.White, fontSize = 13.sp)
+                        Text(currentQuality ?: stringResource(R.string.player_quality_auto), color = Color.White, fontSize = 13.sp)
                     }
                     TextButton(onClick = onOpenSettings) {
                         Text(
@@ -490,7 +562,7 @@ fun CenterPlayerControl(
 fun PlayerSideSheet(
     visible: Boolean,
     onDismiss: () -> Unit,
-    title: String,
+    title: String? = null,
     content: @Composable () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -521,30 +593,37 @@ fun PlayerSideSheet(
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(320.dp),
-                color = BackgroundDark.copy(alpha = 0.95f),
-                tonalElevation = 8.dp
+                // IMPORTANT: no tonalElevation here — the app's colorScheme.primary is
+                // AnimeRed, and M3 tints the surface toward the primary color at
+                // elevation, which turned the whole fullscreen side panel dark red.
+                color = SurfaceDark
             ) {
                 Column(modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp, 8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            title,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = TextPrimary
-                        )
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, null, tint = TextSecondary)
+                    // Big header only when a title is provided — settings/subtitle
+                    // sheets pass null and render their own per-pane header + back
+                    // instead, so this row (title + close + divider) isn't duplicated.
+                    if (title != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                title,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = TextPrimary
+                            )
+                            IconButton(onClick = onDismiss) {
+                                Icon(Icons.Default.Close, null, tint = TextSecondary)
+                            }
                         }
+                        HorizontalDivider(
+                            color = CardBorderDark,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
                     }
-                    HorizontalDivider(
-                        color = CardBorderDark,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
                     Box(modifier = Modifier.weight(1f)) {
                         content()
                     }

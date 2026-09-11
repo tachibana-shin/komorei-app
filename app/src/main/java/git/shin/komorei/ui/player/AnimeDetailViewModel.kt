@@ -55,6 +55,13 @@ class AnimeDetailViewModel @Inject constructor(
     // Remembers the Lite anime for retry when the initial metadata fetch failed.
     private var lastLiteAnime: Anime? = null
 
+    /**
+     * Cache of already-fetched episode lists keyed by season [AnimeSeason.animeId].
+     * Lets switching back to a previously visited season render instantly from
+     * memory instead of re-fetching from the source (youtube-like behavior).
+     */
+    private val seasonEpisodesCache: MutableMap<String, List<Episode>> = mutableMapOf()
+
     // Observe bookmark status for the master anime
     val isBookmarked: StateFlow<Boolean> = _uiState
         .flatMapLatest { state ->
@@ -129,6 +136,7 @@ class AnimeDetailViewModel @Inject constructor(
     /**
      * Switches season. Real seasons (different animeId) trigger a fetch; virtual
      * seasons (50-episode chunks of the current real season) switch locally.
+     * Previously fetched seasons are served from [seasonEpisodesCache].
      */
     fun selectSeason(season: AnimeSeason) {
         val state = _uiState.value
@@ -147,6 +155,13 @@ class AnimeDetailViewModel @Inject constructor(
                     episodeError = null
                 )
             }
+            return
+        }
+
+        // Already-fetched season (incl. re-selecting the current one): render from cache.
+        val cached = seasonEpisodesCache[season.animeId]
+        if (cached != null) {
+            applySeasonEpisodes(season, cached)
             return
         }
 
@@ -170,6 +185,13 @@ class AnimeDetailViewModel @Inject constructor(
     }
 
     private suspend fun fetchEpisodesForSeason(season: AnimeSeason, sourceId: String) {
+        // Serve previously fetched list instantly (cache hit path: no loading flash).
+        val cached = seasonEpisodesCache[season.animeId]
+        if (cached != null) {
+            applySeasonEpisodes(season, cached)
+            return
+        }
+
         _uiState.update { it.copy(isLoadingEpisodes = true, episodeError = null) }
         
         // Reconstruct minimal Anime for the update call
@@ -201,35 +223,8 @@ class AnimeDetailViewModel @Inject constructor(
             )
         }.onSuccess { updatedWithChapters ->
             val full = updatedWithChapters.episodes
-            val chunks = full.chunked(VIRTUAL_SEASON_MAX_EPISODES)
-            // Split huge seasons (e.g. Conan, 1000+ eps) into 50-episode "virtual seasons".
-            val virtual = if (chunks.size > 1) {
-                chunks.mapIndexed { index, chunk ->
-                    AnimeSeason(
-                        animeId = season.animeId,
-                        title = appContext.getString(
-                            R.string.virtual_season_title_format,
-                            chunk.first().episodeNumber,
-                            chunk.last().episodeNumber
-                        ),
-                        id = "${season.animeId}#$index"
-                    )
-                }
-            } else {
-                emptyList()
-            }
-            _uiState.update {
-                it.copy(
-                    fullSeasonEpisodes = full,
-                    virtualSeasons = virtual,
-                    selectedVirtualSeasonId = virtual.firstOrNull()?.id,
-                    currentSeasonEpisodes = virtual.firstOrNull()?.run {
-                        chunks[id.substringAfterLast('#').toInt()]
-                    } ?: full,
-                    isLoadingEpisodes = false,
-                    episodeError = null
-                )
-            }
+            seasonEpisodesCache[season.animeId] = full
+            applySeasonEpisodes(season, full)
         }.onFailure { e ->
             _uiState.update {
                 it.copy(
@@ -238,6 +233,43 @@ class AnimeDetailViewModel @Inject constructor(
                     episodeError = e.message ?: appContext.getString(R.string.error_load_data)
                 )
             }
+        }
+    }
+
+    /**
+     * Applies a (possibly cached) full episode list for [season]: splits it into
+     * 50-episode virtual seasons when huge and updates all related UI state.
+     */
+    private fun applySeasonEpisodes(season: AnimeSeason, full: List<Episode>) {
+        val chunks = full.chunked(VIRTUAL_SEASON_MAX_EPISODES)
+        // Split huge seasons (e.g. Conan, 1000+ eps) into 50-episode "virtual seasons".
+        val virtual = if (chunks.size > 1) {
+            chunks.mapIndexed { index, chunk ->
+                AnimeSeason(
+                    animeId = season.animeId,
+                    title = appContext.getString(
+                        R.string.virtual_season_title_format,
+                        chunk.first().episodeNumber,
+                        chunk.last().episodeNumber
+                    ),
+                    id = "${season.animeId}#$index"
+                )
+            }
+        } else {
+            emptyList()
+        }
+        _uiState.update {
+            it.copy(
+                selectedSeason = season,
+                fullSeasonEpisodes = full,
+                virtualSeasons = virtual,
+                selectedVirtualSeasonId = virtual.firstOrNull()?.id,
+                currentSeasonEpisodes = virtual.firstOrNull()?.run {
+                    chunks[id.substringAfterLast('#').toInt()]
+                } ?: full,
+                isLoadingEpisodes = false,
+                episodeError = null
+            )
         }
     }
 

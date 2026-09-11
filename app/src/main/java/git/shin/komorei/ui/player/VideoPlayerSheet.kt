@@ -161,6 +161,7 @@ fun VideoPlayerSheet(
                 .draggable(
                     state = draggableState,
                     orientation = Orientation.Vertical,
+                    enabled = !isFullscreen, // Disable dragging the sheet while in fullscreen
                     onDragStopped = { velocity ->
                         if (velocity > 800 || dragOffset > maxOffset * 0.4f) {
                             onStateChange(PlayerSheetValue.COLLAPSED)
@@ -319,6 +320,7 @@ fun VideoPlayerSheet(
                                 },
                                 episodes = detailEpisodes,
                                 episodesError = detailUiState.episodeError,
+                                isLoading = detailUiState.isLoadingEpisodes,
                                 onRetryEpisodes = { detailViewModel.retryEpisodes() },
                                 onEpisodeSelected = { ep ->
                                     onEpisodeSelected(ep)
@@ -347,8 +349,7 @@ fun VideoPlayerSheet(
 
                         PlayerSideSheet(
                             visible = activeMenu == PlayerMenu.SETTINGS,
-                            onDismiss = { activeMenu = null },
-                            title = stringResource(R.string.player_settings_unified)
+                            onDismiss = { activeMenu = null }
                         ) {
                             UnifiedSettingsContent(
                                 playbackState = playbackState,
@@ -363,8 +364,7 @@ fun VideoPlayerSheet(
 
                         PlayerSideSheet(
                             visible = activeMenu == PlayerMenu.SUBTITLES,
-                            onDismiss = { activeMenu = null },
-                            title = stringResource(R.string.player_subtitle)
+                            onDismiss = { activeMenu = null }
                         ) {
                             TrackSelectionPane(
                                 title = stringResource(R.string.player_subtitle),
@@ -415,6 +415,7 @@ fun VideoPlayerSheet(
                                 },
                                 episodes = detailEpisodes,
                                 episodesError = detailUiState.episodeError,
+                                isLoading = detailUiState.isLoadingEpisodes,
                                 onRetryEpisodes = { detailViewModel.retryEpisodes() },
                                 onEpisodeSelected = { ep ->
                                     onEpisodeSelected(ep)
