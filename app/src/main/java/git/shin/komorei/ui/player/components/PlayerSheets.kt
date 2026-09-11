@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -74,6 +75,7 @@ import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.AnimeSeason
 import git.shin.komorei.model.Episode
+import git.shin.komorei.model.StreamInfo
 import git.shin.komorei.model.WatchHistory
 import git.shin.komorei.ui.components.EpisodeProgressBar
 import git.shin.komorei.ui.theme.AnimeRed
@@ -103,6 +105,60 @@ fun EpisodesBottomSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = BackgroundDark,
+        contentColor = TextPrimary,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = 10.dp, bottom = 6.dp)
+                    .size(width = 38.dp, height = 4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(CardBorderDark)
+            )
+        }
+    ) {
+        EpisodesContent(
+            anime = anime,
+            seasons = seasons,
+            currentEpisode = currentEpisode,
+            watchHistory = watchHistory,
+            selectedSeasonId = selectedSeasonId,
+            onSeasonChange = onSeasonChange,
+            episodes = episodes,
+            episodesError = episodesError,
+            onRetryEpisodes = onRetryEpisodes,
+            onEpisodeSelected = onEpisodeSelected,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+                .testTag("episodes_full_bottom_sheet")
+        )
+    }
+}
+
+/**
+ * Episode + season picker content shared by [EpisodesBottomSheet] (full modal) and the
+ * in-player slide-in side menu. Owns the search / sort / grid-list / season-picker
+ * state so both hosts render the same modern picker.
+ */
+@Composable
+fun EpisodesContent(
+    anime: Anime,
+    seasons: List<AnimeSeason>,
+    currentEpisode: Episode,
+    watchHistory: List<WatchHistory>,
+    selectedSeasonId: String, // Changed to animeId
+    episodes: List<Episode>,
+    episodesError: String?,
+    onRetryEpisodes: () -> Unit,
+    onSeasonChange: (String) -> Unit, // Changed to animeId
+    onEpisodeSelected: (Episode) -> Unit,
+    modifier: Modifier = Modifier
+) {
     var isGridView by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var isAscending by remember { mutableStateOf(true) }
@@ -127,27 +183,7 @@ fun EpisodesBottomSheet(
         if (isAscending) list else list.reversed()
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = BackgroundDark,
-        contentColor = TextPrimary,
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(top = 10.dp, bottom = 6.dp)
-                    .size(width = 38.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(CardBorderDark)
-            )
-        }
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .testTag("episodes_full_bottom_sheet")
-        ) {
+    Column(modifier = modifier) {
             /*Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -556,7 +592,6 @@ fun EpisodesBottomSheet(
         }
     }
 }
-}
 
 /**
  * Swaps the vertical season picker with the episode list (fade + horizontal slide).
@@ -803,6 +838,86 @@ fun EpisodeListItemCard(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Streaming-server picker for the in-player side menu ([PlayerSideMenu]).
+ * Simple full-width rows, selected server highlighted like the dishlist picker.
+ */
+@Composable
+fun ServerMenuContent(
+    streams: List<StreamInfo>,
+    selectedStreamId: String?,
+    isLoading: Boolean,
+    onStreamSelected: (StreamInfo) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    when {
+        isLoading -> {
+            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(
+                    color = AnimeRed,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+        streams.isEmpty() -> {
+            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = stringResource(R.string.server_empty),
+                    color = TextMuted,
+                    fontSize = 13.sp
+                )
+            }
+        }
+        else -> {
+            LazyColumn(
+                modifier = modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(streams, key = { it.id }) { stream ->
+                    val isSelected = stream.id == selectedStreamId
+                    Surface(
+                        onClick = { onStreamSelected(stream) },
+                        color = if (isSelected) AnimeRedContainer else SurfaceDark,
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (isSelected) AnimeRed else CardBorderDark
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("player_server_row_${stream.id}")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stream.name,
+                                color = if (isSelected) AnimeRed else TextPrimary,
+                                fontSize = 14.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (isSelected) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = stringResource(R.string.current_playing),
+                                    tint = AnimeRed,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

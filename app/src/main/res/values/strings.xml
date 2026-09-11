@@ -116,6 +116,7 @@
     <string name="metadata_belongs_to_series">Thuộc series</string>
     <string name="metadata_country">Quốc gia</string>
     <string name="streaming_server_header">Máy chủ phát</string>
+    <string name="server_empty">Không có máy chủ phát</string>
     <string name="views_format">%1$s lượt xem</string>
 
     <!-- Accessibility Content Descriptions -->
@@ -144,6 +145,13 @@
     <string name="cd_refresh">Làm mới</string>
     <string name="cd_settings">Cài đặt</string>
     <string name="cd_ai_summary">Tóm tắt AI</string>
+    <string name="cd_episodes_list">Danh sách tập</string>
+    <string name="cd_server_list">Danh sách máy chủ</string>
+    <string name="cd_next_episode">Tập kế tiếp</string>
+    <string name="player_speed_title">Tốc độ phát</string>
+    <string name="player_speed_format">%1$sx</string>
+    <string name="player_seek_forward">+%1$d giây</string>
+    <string name="player_seek_backward">-%1$d giây</string>
     <string name="views_count">%1$s lượt xem</string>
     <string name="million_suffix">M</string>
     <string name="thousand_suffix">T</string>

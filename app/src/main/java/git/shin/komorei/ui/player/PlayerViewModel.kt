@@ -5,23 +5,26 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import git.shin.komorei.KomoreiApplication
 import git.shin.komorei.R
 import git.shin.komorei.data.AnimeRepository
-import git.shin.komorei.data.LibraryRepository
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Episode
+import git.shin.komorei.model.StreamData
 import git.shin.komorei.model.StreamInfo
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import git.shin.komorei.model.WatchHistory
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import javax.inject.Inject
 
 @HiltViewModel
@@ -36,6 +39,60 @@ class PlayerViewModel @Inject constructor(
     val allAnimes: List<Anime> = repository.sources.flatMap { src ->
         repository.getFeaturedAnime(src.id) + repository.getSectionsForSource(src.id).values.flatten()
     }.distinctBy { it.id }
+
+    // Shared OkHttp-backed factory: injects stream headers + optional segment transformers.
+    // Lives in the application graph so WebView cookies & the shared HttpClient stay consistent.
+    private val dataSourceFactory =
+        (appContext as KomoreiApplication).dataSourceFactory
+
+    // The single playback engine, owned by the ViewModel so the UI (sheet, mini player,
+    // fullscreen, controls) all drive one source of truth instead of competing players.
+    private val exoPlayer = ExoPlayer.Builder(appContext).build().apply {
+        repeatMode = Player.REPEAT_MODE_OFF
+        playWhenReady = true
+    }
+
+    val player: ExoPlayer get() = exoPlayer
+
+    private var positionPoller: Job? = null
+
+    // Speed to restore after a "hold to fast-forward" gesture ends.
+    private var fastForwardBaseSpeed: Float? = null
+
+    init {
+        // Mirror real player state (playing / buffering / errors) back into the UI state.
+        exoPlayer.addListener(object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                _playbackState.update { it.copy(isPlaying = isPlaying) }
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                _playbackState.update {
+                    it.copy(isLoading = playbackState == Player.STATE_BUFFERING)
+                }
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                _playbackState.update {
+                    it.copy(error = appContext.getString(R.string.error_source_playback))
+                }
+            }
+        })
+
+        // Poll position/duration/buffer so the timeline scrubber stays live without
+        // depending on UI-driven callbacks (which previously were no-ops).
+        positionPoller = viewModelScope.launch {
+            while (isActive) {
+                _playbackState.update {
+                    it.copy(
+                        currentPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L),
+                        durationMs = exoPlayer.duration.coerceAtLeast(0L)
+                    )
+                }
+                delay(250)
+            }
+        }
+    }
 
     fun openAnime(anime: Anime, episode: Episode? = null) {
         val targetEp = episode ?: anime.episodes.firstOrNull() ?: Episode(
@@ -56,10 +113,12 @@ class PlayerViewModel @Inject constructor(
                 currentPositionMs = 0L,
                 durationMs = durationMs,
                 sheetValue = PlayerSheetValue.EXPANDED,
+                isFullscreen = false,
                 streams = emptyList(),
                 selectedStreamId = null,
                 streamData = null,
-                streamError = null
+                streamError = null,
+                error = null
             )
         }
 
@@ -71,12 +130,47 @@ class PlayerViewModel @Inject constructor(
         _playbackState.update { it.copy(sheetValue = sheetValue) }
     }
 
+    /**
+     * Play/pause the real engine. The mirrored [PlayerPlaybackState.isPlaying] is
+     * updated by the player listener, so the UI can never drift from the engine.
+     */
     fun togglePlayPause() {
-        _playbackState.update { it.copy(isPlaying = !it.isPlaying) }
+        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
     }
 
+    /** Seek the real engine; the position poller syncs the timeline state. */
     fun seekTo(positionMs: Long) {
-        _playbackState.update { it.copy(currentPositionMs = positionMs) }
+        exoPlayer.seekTo(positionMs.coerceAtLeast(0L))
+    }
+
+    fun setPlaybackSpeed(speed: Float) {
+        exoPlayer.setPlaybackSpeed(speed)
+        _playbackState.update { it.copy(playbackSpeed = speed) }
+    }
+
+    /**
+     * "Hold to fast-forward" (YouTube-style): temporarily play at 2x, remembering
+     * the previous speed so [stopFastForward] can restore it on release.
+     */
+    fun startFastForward() {
+        if (fastForwardBaseSpeed == null) {
+            fastForwardBaseSpeed = exoPlayer.playbackParameters.speed
+        }
+        exoPlayer.setPlaybackSpeed(2f)
+        _playbackState.update { it.copy(playbackSpeed = 2f) }
+    }
+
+    fun stopFastForward() {
+        val base = fastForwardBaseSpeed
+        if (base != null) {
+            exoPlayer.setPlaybackSpeed(base)
+            _playbackState.update { it.copy(playbackSpeed = base) }
+        }
+        fastForwardBaseSpeed = null
+    }
+
+    fun toggleFullscreen() {
+        _playbackState.update { it.copy(isFullscreen = !it.isFullscreen) }
     }
 
     fun selectEpisode(episode: Episode) {
@@ -90,7 +184,8 @@ class PlayerViewModel @Inject constructor(
                 streams = emptyList(),
                 selectedStreamId = null,
                 streamData = null,
-                streamError = null
+                streamError = null,
+                error = null
             )
         }
         val anime = _playbackState.value.fullAnime ?: _playbackState.value.currentAnime ?: return
@@ -110,7 +205,8 @@ class PlayerViewModel @Inject constructor(
                 selectedStreamId = stream.id,
                 streamData = null,
                 isLoadingStreams = true,
-                streamError = null
+                streamError = null,
+                error = null
             )
         }
 
@@ -125,10 +221,17 @@ class PlayerViewModel @Inject constructor(
                             streamError = null
                         )
                     }
+                    // (Re)build the media source on the shared engine so headers &
+                    // segment transformers from this stream apply to every request.
+                    exoPlayer.playWhenReady = true
+                    buildMediaSource(resolved)
                 }
                 .onFailure { e ->
                     _playbackState.update {
-                        it.copy(isLoadingStreams = false, streamError = e.message ?: appContext.getString(R.string.error_source_playback))
+                        it.copy(
+                            isLoadingStreams = false,
+                            streamError = e.message ?: appContext.getString(R.string.error_source_playback)
+                        )
                     }
                 }
         }
@@ -142,7 +245,7 @@ class PlayerViewModel @Inject constructor(
      * asking the source for servers. The first server is auto-resolved via getStream(...).
      */
     private suspend fun loadStreams(anime: Anime, episode: Episode) {
-        _playbackState.update { it.copy(isLoadingStreams = true, streamError = null) }
+        _playbackState.update { it.copy(isLoadingStreams = true, streamError = null, error = null) }
         runCatching {
             val full = repository.getAnimeUpdate(anime, needsDetails = true, needsChapters = false)
             val streams = repository.getStreamList(full, episode)
@@ -161,15 +264,39 @@ class PlayerViewModel @Inject constructor(
                     segmentDataInterceptor = repository.segmentDataInterceptor
                 )
             }
+
+            resolved?.let { buildMediaSource(it) }
         }.onFailure { e ->
             _playbackState.update {
-                it.copy(isLoadingStreams = false, streamError = e.message ?: appContext.getString(R.string.error_source_playback))
+                it.copy(
+                    isLoadingStreams = false,
+                    streamError = e.message ?: appContext.getString(R.string.error_source_playback)
+                )
             }
         }
     }
 
     /**
+     * Configure the shared data source factory for [streamData] and load it on the
+     * engine. DefaultMediaSourceFactory auto-detects HLS vs progressive MP4; both go
+     * through our factory so headers/transformers apply to every sub-request.
+     */
+    private fun buildMediaSource(streamData: StreamData) {
+        val state = _playbackState.value
+        dataSourceFactory.configure(
+            streamData,
+            state.segmentUrlInterceptor,
+            state.segmentDataInterceptor
+        )
+        val sourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+        exoPlayer.setMediaSource(sourceFactory.createMediaSource(MediaItem.fromUri(streamData.url)))
+        exoPlayer.prepare()
+        exoPlayer.play()
+    }
+
+    /**
      * Re-resolves servers + first stream after a failure (streamError shown in the UI).
+     * The player top bar "refresh" reuses this the same way.
      */
     fun retryStreams() {
         val state = _playbackState.value
@@ -179,15 +306,23 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun dismissPlayer() {
+        exoPlayer.pause()
         _playbackState.update {
             it.copy(
                 isPlaying = false,
-                sheetValue = PlayerSheetValue.HIDDEN
+                sheetValue = PlayerSheetValue.HIDDEN,
+                isFullscreen = false
             )
         }
     }
 
     fun toggleBookmark(animeId: String) {
         // Handled by AnimeDetailViewModel or LibraryViewModel now
+    }
+
+    override fun onCleared() {
+        positionPoller?.cancel()
+        exoPlayer.release()
+        super.onCleared()
     }
 }

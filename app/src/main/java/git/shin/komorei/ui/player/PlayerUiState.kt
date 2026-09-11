@@ -16,6 +16,8 @@ data class PlayerPlaybackState(
     val isPlaying: Boolean = false,
     val currentPositionMs: Long = 0L,
     val durationMs: Long = 0L,
+    val isFullscreen: Boolean = false,
+    val playbackSpeed: Float = 1f,
     val isLoading: Boolean = false,
     val error: String? = null,
     val sheetValue: PlayerSheetValue = PlayerSheetValue.HIDDEN,

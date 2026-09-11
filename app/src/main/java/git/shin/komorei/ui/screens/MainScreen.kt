@@ -188,10 +188,14 @@ fun MainScreen(
                     if (playbackState.sheetValue != PlayerSheetValue.HIDDEN) {
                         VideoPlayerSheet(
                             playbackState = playbackState,
+                            player = playerViewModel.player,
                             relatedAnimeList = playerViewModel.allAnimes,
                             onStateChange = { playerViewModel.setPlayerSheetValue(it) },
                             onPlayPauseToggle = { playerViewModel.togglePlayPause() },
-                            onSeekTo = { playerViewModel.seekTo(it) },
+                            onToggleFullscreen = { playerViewModel.toggleFullscreen() },
+                            onSpeedChange = { playerViewModel.setPlaybackSpeed(it) },
+                            onStartFastForward = { playerViewModel.startFastForward() },
+                            onStopFastForward = { playerViewModel.stopFastForward() },
                             onEpisodeSelected = { playerViewModel.selectEpisode(it) },
                             onStreamSelected = { playerViewModel.selectStream(it) },
                             onRetryStreams = { playerViewModel.retryStreams() },
@@ -342,10 +346,14 @@ fun MainScreen(
                     if (playbackState.sheetValue != PlayerSheetValue.HIDDEN) {
                         VideoPlayerSheet(
                             playbackState = playbackState,
+                            player = playerViewModel.player,
                             relatedAnimeList = playerViewModel.allAnimes,
                             onStateChange = { playerViewModel.setPlayerSheetValue(it) },
                             onPlayPauseToggle = { playerViewModel.togglePlayPause() },
-                            onSeekTo = { playerViewModel.seekTo(it) },
+                            onToggleFullscreen = { playerViewModel.toggleFullscreen() },
+                            onSpeedChange = { playerViewModel.setPlaybackSpeed(it) },
+                            onStartFastForward = { playerViewModel.startFastForward() },
+                            onStopFastForward = { playerViewModel.stopFastForward() },
                             onEpisodeSelected = { playerViewModel.selectEpisode(it) },
                             onStreamSelected = { playerViewModel.selectStream(it) },
                             onRetryStreams = { playerViewModel.retryStreams() },
