@@ -75,6 +75,12 @@ class PlayerViewModel @Inject constructor(
     // Position polls every 250ms; autosave every 20 ticks (~5s) of actual playback.
     private val SAVE_WATCH_TIME_INTERVAL_TICKS = 20
 
+    // Auto-resume target, applied when the freshly built source becomes READY. seekTo
+    // right after prepare() is unreliable: the source/period is created asynchronously
+    // with the default position (0), and the seek can be silently dropped — so the
+    // restore is deferred until the timeline is actually loaded.
+    private var pendingRestorePositionMs: Long? = null
+
     // Speed to restore after a "hold to fast-forward" gesture ends.
     private var fastForwardBaseSpeed: Float? = null
 
@@ -88,6 +94,12 @@ class PlayerViewModel @Inject constructor(
             override fun onPlaybackStateChanged(playbackState: Int) {
                 _playbackState.update {
                     it.copy(isLoading = playbackState == Player.STATE_BUFFERING)
+                }
+                // Apply a pending auto-resume now the timeline is actually loaded —
+                // seeking before Media3 has the source prepared can be discarded.
+                if (playbackState == Player.STATE_READY) {
+                    pendingRestorePositionMs?.let { exoPlayer.seekTo(it) }
+                    pendingRestorePositionMs = null
                 }
                 // Episode finished → mark it watched + auto-play the next one (settings toggle).
                 if (playbackState == Player.STATE_ENDED) {
@@ -341,8 +353,10 @@ class PlayerViewModel @Inject constructor(
 
     /**
      * Auto-resume the freshly built media source to the last saved watch position.
-     * Fully-watched episodes (>= 95%) restart from the beginning instead of nagging.
-     * suspend because the progress may later come from a remote watch history
+     * The actual seek is deferred until the engine reports STATE_READY (a seek issued
+     * before the source is prepared can be dropped by Media3). Fully-watched episodes
+     * (>= 95%) restart from the beginning instead of nagging. suspend because the
+     * progress may later come from a remote watch history
      * (LibraryRepository.getWatchTime is already suspend for that seam).
      */
     private suspend fun restoreWatchTime() {
@@ -350,11 +364,12 @@ class PlayerViewModel @Inject constructor(
         val anime = state.fullAnime ?: state.currentAnime ?: return
         val episode = state.currentEpisode ?: return
         val savedMs = libraryRepository.getWatchTime(anime.id, anime.sourceId, episode.id) ?: return
-        if (savedMs <= 0L) return
+        // null (no restore) when there's nothing to resume or the episode was watched
+        // to the end — pending is cleared so no stale seek fires on the next media.
         val durationMs = exoPlayer.duration.coerceAtLeast(0L)
             .coerceAtLeast(state.durationMs)
-        if (savedMs < (durationMs * 0.95f).toLong()) {
-            exoPlayer.seekTo(savedMs)
+        pendingRestorePositionMs = savedMs.takeIf {
+            it > 0L && it < (durationMs * 0.95f).toLong()
         }
     }
 
@@ -389,6 +404,7 @@ class PlayerViewModel @Inject constructor(
         val anime = state.fullAnime ?: state.currentAnime ?: return
         val episode = state.currentEpisode ?: return
 
+        pendingRestorePositionMs = null
         _playbackState.update {
             it.copy(
                 selectedStreamId = stream.id,
@@ -436,6 +452,8 @@ class PlayerViewModel @Inject constructor(
      * asking the source for servers. The first server is auto-resolved via getStream(...).
      */
     private suspend fun loadStreams(anime: Anime, episode: Episode, restorePosition: Boolean = true) {
+        // Drop any stale restore target from a previous build before re-resolving.
+        pendingRestorePositionMs = null
         _playbackState.update { it.copy(isLoadingStreams = true, streamError = null, error = null) }
         runCatching {
             val full = repository.getAnimeUpdate(anime, needsDetails = true, needsChapters = true)
@@ -460,8 +478,9 @@ class PlayerViewModel @Inject constructor(
 
             resolved?.let {
                 buildMediaSource(it)
-                // Resume the episode where the user left off — but only on (re)selection,
-                // not on a manual refresh (which must keep the current timeline position).
+                // Resume the episode where the user left off — but only on (re)selection.
+                // A manual refresh re-resolves the SAME episode and must not rewind to the
+                // older saved progress (the user is already partway through it).
                 if (restorePosition) restoreWatchTime()
             }
         }.onFailure { e ->
@@ -575,6 +594,7 @@ class PlayerViewModel @Inject constructor(
         // source entirely; the model is reset so each open starts from a clean slate.
         // Persist the final position before releasing everything from the session.
         saveWatchTime()
+        pendingRestorePositionMs = null
         exoPlayer.playWhenReady = false
         exoPlayer.stop()
         exoPlayer.clearMediaItems()
