@@ -125,6 +125,8 @@ fun PlayerVideoArea(
     onOpenEpisodes: () -> Unit,
     onOpenServers: () -> Unit,
     onNextEpisode: (() -> Unit)? = null,
+    skipHint: SkipHint? = null,
+    onSkip: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -707,6 +709,21 @@ fun PlayerVideoArea(
                         onOpenServers = onOpenServers,
                         onOpenSettings = onOpenSettings,
                         onInteraction = { interactionCounter++ }
+                    )
+                }
+
+                // Skip intro/outro pill (SponsorBlock-style) — shown whenever the
+                // playhead is inside a range, even when the controls are hidden.
+                if (skipHint != null) {
+                    SkipSegmentPill(
+                        kind = skipHint.kind,
+                        onClick = onSkip,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(
+                                end = 16.dp,
+                                bottom = if (isFullscreen) 132.dp else 104.dp
+                            )
                     )
                 }
             } else {

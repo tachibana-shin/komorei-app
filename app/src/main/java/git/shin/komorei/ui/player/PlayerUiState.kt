@@ -49,6 +49,9 @@ data class PlayerPlaybackState(
     val introRange: LongRange? = null,
     val outroRange: LongRange? = null,
 
+    // Auto-play the next episode when the current one ends (toggleable in settings).
+    val autoNextEnabled: Boolean = true,
+
     // Full (details-upgraded) anime used for stream resolution.
     // List-API anime cards are "Lite" and are upgraded via getAnimeUpdate(needsDetails = true).
     val fullAnime: Anime? = null,
@@ -75,3 +78,15 @@ enum class PlayerSheetValue {
     COLLAPSED, // Mini Player
     EXPANDED   // Full UI
 }
+
+/**
+ * Which intro/outro range the playhead is inside — drives the SponsorBlock-style
+ * skip pill shown in the video overlay.
+ */
+enum class SkipKind { INTRO, OUTRO }
+
+/**
+ * SponsorBlock-style skip hint: the playhead is inside [kind]; tapping the pill
+ * seeks to [endMs] (the end of the range) to jump past the segment.
+ */
+data class SkipHint(val kind: SkipKind, val endMs: Long)

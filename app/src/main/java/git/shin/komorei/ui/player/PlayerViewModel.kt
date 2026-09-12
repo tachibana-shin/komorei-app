@@ -84,6 +84,10 @@ class PlayerViewModel @Inject constructor(
                 _playbackState.update {
                     it.copy(isLoading = playbackState == Player.STATE_BUFFERING)
                 }
+                // Episode finished → auto-play the next one (settings toggle).
+                if (playbackState == Player.STATE_ENDED) {
+                    autoPlayNextEpisode()
+                }
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -271,6 +275,27 @@ class PlayerViewModel @Inject constructor(
             .build()
     }
 
+    /** Toggle auto-play of the next episode when the current one ends. */
+    fun setAutoNextEnabled(enabled: Boolean) {
+        _playbackState.update { it.copy(autoNextEnabled = enabled) }
+    }
+
+    /**
+     * Auto-play the next episode after the current one reaches its end. Runs from
+     * [Player.Listener.onPlaybackStateChanged] on STATE_ENDED; [fullAnime] carries the
+     * current season's episode list (loadStreams fetches with needsChapters = true).
+     */
+    private fun autoPlayNextEpisode() {
+        val state = _playbackState.value
+        if (!state.autoNextEnabled) return
+        val episodes = state.fullAnime?.episodes ?: return
+        val current = state.currentEpisode ?: return
+        val index = episodes.indexOfFirst { it.id == current.id }
+        if (index in episodes.indices && index < episodes.size - 1) {
+            selectEpisode(episodes[index + 1])
+        }
+    }
+
     fun selectEpisode(episode: Episode) {
         val durationMs = (episode.durationSeconds ?: 1440L) * 1000L
         _playbackState.update { current ->
@@ -347,7 +372,7 @@ class PlayerViewModel @Inject constructor(
     private suspend fun loadStreams(anime: Anime, episode: Episode) {
         _playbackState.update { it.copy(isLoadingStreams = true, streamError = null, error = null) }
         runCatching {
-            val full = repository.getAnimeUpdate(anime, needsDetails = true, needsChapters = false)
+            val full = repository.getAnimeUpdate(anime, needsDetails = true, needsChapters = true)
             val streams = repository.getStreamList(full, episode)
             val first = streams.firstOrNull()
             val resolved = first?.let { repository.getStream(full, episode, it) }

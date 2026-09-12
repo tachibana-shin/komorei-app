@@ -770,6 +770,8 @@ fun EpisodeListItemCard(
 @Composable
 fun SettingsContent(
     playbackState: PlayerPlaybackState,
+    autoNextEnabled: Boolean,
+    onAutoNextChange: (Boolean) -> Unit,
     onSpeedChange: (Float) -> Unit,
     onStreamSelected: (StreamInfo) -> Unit,
     onTrackSelected: (Tracks.Group, Int) -> Unit,
@@ -853,6 +855,14 @@ fun SettingsContent(
                                 title = stringResource(R.string.player_subtitle),
                                 value = getSelectedTrackLabel(playbackState.availableTracks, C.TRACK_TYPE_TEXT),
                                 onClick = { currentPane = SettingsPane.SUBTITLE }
+                            )
+                        }
+                        item {
+                            SettingsSwitchItem(
+                                icon = Icons.Filled.SkipNext,
+                                title = stringResource(R.string.player_settings_auto_next),
+                                checked = autoNextEnabled,
+                                onCheckedChange = onAutoNextChange
                             )
                         }
                     }
@@ -959,6 +969,8 @@ fun UnifiedPlayerSettingsSheet(
     selectedStreamId: String?,
     videoTrackOverride: Format?,
     videoSize: VideoSize,
+    autoNextEnabled: Boolean,
+    onAutoNextChange: (Boolean) -> Unit,
     onSpeedChange: (Float) -> Unit,
     onStreamSelected: (StreamInfo) -> Unit,
     onTrackSelected: (Tracks.Group, Int) -> Unit,
@@ -982,6 +994,8 @@ fun UnifiedPlayerSettingsSheet(
                 videoTrackOverride = videoTrackOverride,
                 videoSize = videoSize
             ),
+            autoNextEnabled = autoNextEnabled,
+            onAutoNextChange = onAutoNextChange,
             onSpeedChange = onSpeedChange,
             onStreamSelected = onStreamSelected,
             onTrackSelected = onTrackSelected,
@@ -1014,6 +1028,30 @@ fun SettingsItem(
             Text(text = title, color = TextPrimary, fontSize = 14.sp, modifier = Modifier.weight(1f))
             Text(text = value, color = AnimeRed, fontSize = 14.sp, fontWeight = FontWeight.Medium)
         }
+    }
+}
+
+/**
+ * Settings row with a trailing switch (e.g. auto-play next episode) — same icon +
+ * title layout as [SettingsItem] so the list looks uniform.
+ */
+@Composable
+fun SettingsSwitchItem(
+    icon: ImageVector,
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(text = title, color = TextPrimary, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

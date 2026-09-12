@@ -195,4 +195,7 @@
     <string name="player_track_none">Không có</string>
     <string name="player_track_default">Mặc định</string>
     <string name="player_settings_unified">Cài đặt trình phát</string>
+    <string name="player_settings_auto_next">Tự động phát tập tiếp theo</string>
+    <string name="player_skip_intro">Bỏ qua mở đầu</string>
+    <string name="player_skip_outro">Bỏ qua kết thúc</string>
 </resources>

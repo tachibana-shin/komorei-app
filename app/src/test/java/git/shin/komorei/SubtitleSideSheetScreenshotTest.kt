@@ -1,6 +1,9 @@
 package git.shin.komorei
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -10,8 +13,10 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.C
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
+import git.shin.komorei.ui.player.SkipKind
 import git.shin.komorei.ui.player.components.PlayerSideSheet
 import git.shin.komorei.ui.player.components.SegmentedProgressSlider
+import git.shin.komorei.ui.player.components.SkipSegmentPill
 import git.shin.komorei.ui.player.components.TrackSelectionPane
 import git.shin.komorei.ui.theme.MyApplicationTheme
 import org.junit.Rule
@@ -70,5 +75,20 @@ class SubtitleSideSheetScreenshotTest {
     }
 
     composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/segmented_slider_intro_outro.png")
+  }
+
+  @Test
+  fun skip_pills() {
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        Column(modifier = Modifier.size(360.dp, 160.dp)) {
+          SkipSegmentPill(kind = SkipKind.INTRO, onClick = {})
+          Spacer(modifier = Modifier.height(12.dp))
+          SkipSegmentPill(kind = SkipKind.OUTRO, onClick = {})
+        }
+      }
+    }
+
+    composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/skip_pills.png")
   }
 }

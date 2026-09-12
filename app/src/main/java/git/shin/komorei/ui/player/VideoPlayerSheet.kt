@@ -153,6 +153,37 @@ fun VideoPlayerSheet(
     val currentIndex = detailEpisodes.indexOfFirst { it.id == currentEp.id }
     val nextEpisode = detailEpisodes.getOrNull(currentIndex + 1)
 
+    // SponsorBlock-style skip: while the playhead is inside the intro/outro range a
+    // pill is shown; tapping it jumps to the end of the range. Dismissed per range per
+    // episode, so it doesn't nag again after being skipped (e.g. user seeks back).
+    var dismissedSkips by remember { mutableStateOf(setOf<SkipKind>()) }
+    LaunchedEffect(currentEp.id) { dismissedSkips = emptySet() }
+    val skipHint = remember(
+        playbackState.currentPositionMs,
+        playbackState.introRange,
+        playbackState.outroRange,
+        currentEp.id,
+        dismissedSkips
+    ) {
+        val position = playbackState.currentPositionMs
+        val outro = playbackState.outroRange
+        val intro = playbackState.introRange
+        when {
+            outro != null && position in outro && SkipKind.OUTRO !in dismissedSkips ->
+                SkipHint(SkipKind.OUTRO, outro.last)
+            intro != null && position in intro && SkipKind.INTRO !in dismissedSkips ->
+                SkipHint(SkipKind.INTRO, intro.last)
+            else -> null
+        }
+    }
+    val onSkipSegment: () -> Unit = {
+        skipHint?.let { hint ->
+            dismissedSkips = dismissedSkips + hint.kind
+            playerViewModel.seekTo(hint.endMs + 1)
+        }
+        Unit
+    }
+
     var activeMenu by remember { mutableStateOf<PlayerMenu?>(null) }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -273,6 +304,8 @@ fun VideoPlayerSheet(
                                 onOpenEpisodes = { activeMenu = PlayerMenu.EPISODES },
                                 onOpenServers = { activeMenu = PlayerMenu.SERVERS },
                                 onNextEpisode = nextEpisode?.let { ep -> { onEpisodeSelected(ep) } },
+                                skipHint = skipHint,
+                                onSkip = onSkipSegment,
                                 modifier = Modifier.fillMaxSize()
                             )
 
@@ -382,6 +415,8 @@ fun VideoPlayerSheet(
                         ) {
                             UnifiedSettingsContent(
                                 playbackState = playbackState,
+                                autoNextEnabled = playbackState.autoNextEnabled,
+                                onAutoNextChange = { playerViewModel.setAutoNextEnabled(it) },
                                 onSpeedChange = onSpeedChange,
                                 onStreamSelected = onStreamSelected,
                                 onTrackSelected = onTrackSelected,
@@ -419,6 +454,8 @@ fun VideoPlayerSheet(
                                 selectedStreamId = playbackState.selectedStreamId,
                                 videoTrackOverride = playbackState.videoTrackOverride,
                                 videoSize = playbackState.videoSize,
+                                autoNextEnabled = playbackState.autoNextEnabled,
+                                onAutoNextChange = { playerViewModel.setAutoNextEnabled(it) },
                                 onSpeedChange = onSpeedChange,
                                 onStreamSelected = onStreamSelected,
                                 onTrackSelected = onTrackSelected,
@@ -462,6 +499,8 @@ fun VideoPlayerSheet(
 @Composable
 fun UnifiedSettingsContent(
     playbackState: PlayerPlaybackState,
+    autoNextEnabled: Boolean,
+    onAutoNextChange: (Boolean) -> Unit,
     onSpeedChange: (Float) -> Unit,
     onStreamSelected: (StreamInfo) -> Unit,
     onTrackSelected: (Tracks.Group, Int) -> Unit,
@@ -470,6 +509,8 @@ fun UnifiedSettingsContent(
 ) {
     SettingsContent(
         playbackState = playbackState,
+        autoNextEnabled = autoNextEnabled,
+        onAutoNextChange = onAutoNextChange,
         onSpeedChange = onSpeedChange,
         onStreamSelected = onStreamSelected,
         onTrackSelected = onTrackSelected,

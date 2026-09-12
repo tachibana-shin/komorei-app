@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ClosedCaption
@@ -80,6 +82,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
+import git.shin.komorei.ui.player.SkipKind
 import git.shin.komorei.ui.theme.AnimeBlue
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.CardBorderDark
@@ -344,6 +347,50 @@ fun SegmentedProgressSlider(
             radius = thumbR,
             center = Offset(size.width * renderedFraction.coerceIn(0f, 1f), trackY)
         )
+    }
+}
+
+/**
+ * SponsorBlock-style skip pill shown in the player overlay while the playhead is
+ * inside the intro/outro range. Tapping it skips past the segment ([kind] →
+ * localized label, "mở đầu"/"kết thúc").
+ */
+@Composable
+fun SkipSegmentPill(
+    kind: SkipKind,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        color = SurfaceDark.copy(alpha = 0.92f),
+        shape = RoundedCornerShape(50),
+        border = BorderStroke(1.dp, CardBorderDark),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.SkipNext,
+                contentDescription = null,
+                tint = TextPrimary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(
+                    when (kind) {
+                        SkipKind.INTRO -> R.string.player_skip_intro
+                        SkipKind.OUTRO -> R.string.player_skip_outro
+                    }
+                ),
+                color = TextPrimary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 
