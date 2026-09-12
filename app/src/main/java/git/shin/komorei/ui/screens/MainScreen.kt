@@ -303,23 +303,7 @@ fun MainScreen(
             if (playbackState.sheetValue != PlayerSheetValue.HIDDEN) {
                 val actualBottomNavHeight = if (isWideScreen) 0.dp else 80.dp // Approximate fallback
                 VideoPlayerSheet(
-                    playbackState = playbackState,
-                    player = playerViewModel.player,
-                    relatedAnimeList = playerViewModel.allAnimes,
-                    onStateChange = { playerViewModel.setPlayerSheetValue(it) },
-                    onPlayPauseToggle = { playerViewModel.togglePlayPause() },
-                        onToggleFullscreen = { playerViewModel.toggleFullscreen() },
-                    onSpeedChange = { playerViewModel.setPlaybackSpeed(it) },
-                    onStartFastForward = { playerViewModel.startFastForward() },
-                    onStopFastForward = { playerViewModel.stopFastForward() },
-                    onEpisodeSelected = { playerViewModel.selectEpisode(it) },
-                    onStreamSelected = { playerViewModel.selectStream(it) },
-                    onRetryStreams = { playerViewModel.retryStreams() },
-                    onToggleLock = { playerViewModel.toggleLock() },
-                    onToggleSubtitles = { playerViewModel.toggleSubtitles() },
-                    onTrackSelected = { group, index -> playerViewModel.selectTrack(group, index) },
-                    onClearTrackType = { playerViewModel.clearTrackType(it) },
-                    onDismiss = { playerViewModel.dismissPlayer() },
+                    playerViewModel = playerViewModel,
                     onAnimeSelected = onAnimeSelected,
                     onNavigateToCategory = { filters ->
                         // navController.navigate(...)

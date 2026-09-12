@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
@@ -739,9 +740,12 @@ fun PlayerVideoArea(
                 modifier = Modifier.fillMaxSize()
             ) {
                 seekHud?.let { hud ->
-                    // Fixed position (horizontal center, like YouTube) — the indicator
-                    // does NOT follow where the double-tap landed. Pop animation runs
-                    // once on entry (remember survives hud changes); repeated double-tap
+                    // The indicator pops in on the SIDE where the tap/drag happened instead
+                    // of the center: its centre is shifted to xFraction * width, so a left-
+                    // half double-tap (rewind) shows on the left, right-half (forward) on
+                    // the right, and a drag-seek follows the finger. Clamped a bit from the
+                    // edges so the pill can't clip off-screen. Pop animation runs once on
+                    // entry (remember survives hud changes); repeated double-tap
                     // accumulations only update the text without replaying it.
                     val popScale = remember { Animatable(0.55f) }
                     LaunchedEffect(Unit) {
@@ -756,7 +760,16 @@ fun PlayerVideoArea(
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.offset {
+                                // Shift the centred column from 0.5 to (xFraction) of the width.
+                                IntOffset(
+                                    x = (widthPx * (hud.xFraction.coerceIn(0.15f, 0.85f) - 0.5f)).roundToInt(),
+                                    y = 0
+                                )
+                            }
+                        ) {
                             Icon(
                                 imageVector = if (hud.deltaMs < 0) {
                                     Icons.Default.Replay10

@@ -36,7 +36,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.Tracks
-import androidx.media3.exoplayer.ExoPlayer
 import git.shin.komorei.KomoreiApplication
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
@@ -52,29 +51,32 @@ import kotlin.math.roundToInt
 @SuppressLint("ContextCastToActivity")
 @Composable
 fun VideoPlayerSheet(
-    playbackState: PlayerPlaybackState,
-    player: ExoPlayer,
-    relatedAnimeList: List<Anime>,
-    onStateChange: (PlayerSheetValue) -> Unit,
-    onPlayPauseToggle: () -> Unit,
-    onToggleFullscreen: () -> Unit,
-    onSpeedChange: (Float) -> Unit,
-    onStartFastForward: () -> Unit,
-    onStopFastForward: () -> Unit,
-    onNextEpisode: (() -> Unit)? = null,
-    onEpisodeSelected: (Episode) -> Unit,
-    onStreamSelected: (StreamInfo) -> Unit,
-    onRetryStreams: () -> Unit,
-    onToggleLock: () -> Unit,
-    onToggleSubtitles: () -> Unit,
-    onTrackSelected: (Tracks.Group, Int) -> Unit,
-    onClearTrackType: (Int) -> Unit,
-    onDismiss: () -> Unit,
+    playerViewModel: PlayerViewModel,
     onAnimeSelected: (Anime) -> Unit,
     onNavigateToCategory: (List<SelectedFilter>) -> Unit,
     bottomNavHeight: androidx.compose.ui.unit.Dp = 80.dp,
     modifier: Modifier = Modifier
 ) {
+    // Everything derives from the ViewModel — the single source of truth for the
+    // player engine, playback state and every action — so no callback plumbing.
+    val playbackState by playerViewModel.playbackState.collectAsState()
+    val player = playerViewModel.player
+    val relatedAnimeList = playerViewModel.allAnimes
+    val onStateChange: (PlayerSheetValue) -> Unit = { playerViewModel.setPlayerSheetValue(it) }
+    val onPlayPauseToggle = { playerViewModel.togglePlayPause() }
+    val onToggleFullscreen = { playerViewModel.toggleFullscreen() }
+    val onSpeedChange: (Float) -> Unit = { playerViewModel.setPlaybackSpeed(it) }
+    val onStartFastForward = { playerViewModel.startFastForward() }
+    val onStopFastForward = { playerViewModel.stopFastForward() }
+    val onEpisodeSelected: (Episode) -> Unit = { playerViewModel.selectEpisode(it) }
+    val onStreamSelected: (StreamInfo) -> Unit = { playerViewModel.selectStream(it) }
+    val onRetryStreams = { playerViewModel.retryStreams() }
+    val onToggleLock = { playerViewModel.toggleLock() }
+    val onToggleSubtitles = { playerViewModel.toggleSubtitles() }
+    val onTrackSelected: (Tracks.Group, Int) -> Unit = playerViewModel::selectTrack
+    val onClearTrackType: (Int) -> Unit = playerViewModel::clearTrackType
+    val onDismiss = { playerViewModel.dismissPlayer() }
+
     val anime = playbackState.currentAnime ?: return
     val currentEp = playbackState.currentEpisode ?: anime.episodes.firstOrNull() ?: return
 
@@ -275,7 +277,8 @@ fun VideoPlayerSheet(
                             )
 
                             // Loading / Error indicator inside the video area container but above the player surface
-                            if (playbackState.streamData == null && !playbackState.isLocked && playbackState.streamError != null) {
+                            val streamError = playbackState.streamError
+                            if (playbackState.streamData == null && !playbackState.isLocked && streamError != null) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -284,7 +287,7 @@ fun VideoPlayerSheet(
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(
-                                            text = playbackState.streamError,
+                                            text = streamError,
                                             color = Color.White,
                                             fontSize = 13.sp,
                                             modifier = Modifier.padding(16.dp)
