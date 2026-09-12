@@ -85,6 +85,7 @@ import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.utils.formatDuration
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -384,7 +385,7 @@ fun PlayerControlFooter(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "${formatTime(displayPositionMs)} / ${formatTime(durationMs)}",
+                text = "${formatDuration(displayPositionMs)} / ${formatDuration(durationMs)}",
                 style = textStyle,
                 modifier = Modifier
                     .padding(if (isFullscreen) 32.dp else 28.dp, 0.dp, 0.dp, 0.dp)
@@ -679,11 +680,4 @@ fun PlayerSideSheet(
             }
         }
     }
-}
-
-private fun formatTime(millis: Long): String {
-    val totalSeconds = millis / 1000
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format(java.util.Locale.ROOT, "%02d:%02d", minutes, seconds)
 }
