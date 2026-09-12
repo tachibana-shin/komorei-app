@@ -11,6 +11,7 @@ import androidx.media3.common.C
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import git.shin.komorei.ui.player.components.PlayerSideSheet
+import git.shin.komorei.ui.player.components.SegmentedProgressSlider
 import git.shin.komorei.ui.player.components.TrackSelectionPane
 import git.shin.komorei.ui.theme.MyApplicationTheme
 import org.junit.Rule
@@ -49,5 +50,25 @@ class SubtitleSideSheetScreenshotTest {
     }
 
     composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/subtitle_side_sheet.png")
+  }
+
+  @Test
+  fun segmented_slider_with_intro_outro() {
+    composeTestRule.setContent {
+      MyApplicationTheme {
+        Box(modifier = Modifier.size(800.dp, 96.dp)) {
+          SegmentedProgressSlider(
+            positionMs = 540_000L,
+            durationMs = 1_440_000L, // 24 min episode (fake data)
+            bufferedPositionMs = 900_000L,
+            introRange = 10_000L..90_000L, // bài hát mở đầu
+            outroRange = 1_350_000L..1_430_000L, // bài hát kết
+            onSeek = {}
+          )
+        }
+      }
+    }
+
+    composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/segmented_slider_intro_outro.png")
   }
 }

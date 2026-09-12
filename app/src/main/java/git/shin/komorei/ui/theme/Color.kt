@@ -14,6 +14,11 @@ val AnimeGreenDark = Color(0xFF15803D)
 val AnimeGreenLight = Color(0xFF4ADE80)
 val AnimeGreenContainer = Color(0xFF0F3924)
 
+val AnimeBlue = Color(0xFF3B82F6)
+val AnimeBlueDark = Color(0xFF1D4ED8)
+val AnimeBlueLight = Color(0xFF60A5FA)
+val AnimeBlueContainer = Color(0xFF0C1E47)
+
 val Accent = Color(0xff8b85ff)
 
 val NeonViolet = Color(0xFFA855F7)

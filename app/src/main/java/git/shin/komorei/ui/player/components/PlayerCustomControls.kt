@@ -80,6 +80,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
+import git.shin.komorei.ui.theme.AnimeBlue
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.SurfaceDark
@@ -302,25 +303,25 @@ fun SegmentedProgressSlider(
             size = Size(size.width * bufferedProgress.coerceIn(0f, 1f), trackH)
         )
 
-        // Intro
+        // Intro (xanh dương)
         introRange?.let {
             val start =
                 (it.first.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
             val end = (it.last.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
             drawRect(
-                color = Color.Green.copy(alpha = 0.6f),
+                color = AnimeBlue.copy(alpha = 0.6f),
                 topLeft = Offset(start, trackY - trackH / 2f),
                 size = Size(end - start, trackH)
             )
         }
 
-        // Outro
+        // Outro (xanh dương)
         outroRange?.let {
             val start =
                 (it.first.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
             val end = (it.last.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
             drawRect(
-                color = Color.Green.copy(alpha = 0.6f),
+                color = AnimeBlue.copy(alpha = 0.6f),
                 topLeft = Offset(start, trackY - trackH / 2f),
                 size = Size(end - start, trackH)
             )
