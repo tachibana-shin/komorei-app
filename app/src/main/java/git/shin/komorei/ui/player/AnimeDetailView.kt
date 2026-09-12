@@ -58,8 +58,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -231,20 +234,32 @@ fun AnimeDetailView(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = stringResource(
-                            R.string.views_count,
-                            formatNumber(displayAnime.views)
-                        ),
-                        color = TextGrey,
-                        fontSize = 14.sp,
-                        style = NoPaddingTextStyle
-                    )
-                    displayAnime.nextEpisodeAirInfo?.let { text ->
-                        Text(text = " • ", color = TextGrey, fontSize = 14.sp)
+                    // Một Text duy nhất cho cả đoạn "lượt xem • Tập tiếp theo..." —
+                    // nếu để Text riêng trong Row, khi quá dài nó wrap và dòng thứ 2
+                    // thụt theo chỗ bắt đầu của chữ "Tập tiếp theo". Gộp chung một
+                    // paragraph (AnnotatedString giữ màu) để dòng xuống bắt đầu từ
+                    // mép trái, thẳng với số lượt xem.
+                    displayAnime.nextEpisodeAirInfo?.let { info ->
                         Text(
-                            text = "$text",
-                            color = Accent,
+                            text = buildAnnotatedString {
+                                withStyle(SpanStyle(color = TextGrey)) {
+                                    append(stringResource(R.string.views_count, formatNumber(displayAnime.views)))
+                                    append(" • ")
+                                }
+                                withStyle(SpanStyle(color = Accent)) {
+                                    append(info)
+                                }
+                            },
+                            fontSize = 14.sp,
+                            style = NoPaddingTextStyle
+                        )
+                    } ?: run {
+                        Text(
+                            text = stringResource(
+                                R.string.views_count,
+                                formatNumber(displayAnime.views)
+                            ),
+                            color = TextGrey,
                             fontSize = 14.sp,
                             style = NoPaddingTextStyle
                         )

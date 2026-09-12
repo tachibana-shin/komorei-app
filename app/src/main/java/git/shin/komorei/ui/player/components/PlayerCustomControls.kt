@@ -303,6 +303,17 @@ fun SegmentedProgressSlider(
             size = Size(size.width * bufferedProgress.coerceIn(0f, 1f), trackH)
         )
 
+        // Active (đã phát)
+        drawRect(
+            color = AnimeRed,
+            topLeft = Offset(0f, trackY - trackH / 2f),
+            size = Size(size.width * renderedFraction, trackH)
+        )
+
+        // Intro/Outro vẽ TRÊN vạch đỏ đã phát — highlight intro/outro có độ ưu tiên
+        // cao nhất trong các segment (chỉ thumb nằm trên): khi playhead đã đi qua
+        // vùng intro/outro, vạch xanh dương vẫn hiển thị đầy đủ, không bị đỏ che.
+
         // Intro (xanh dương)
         introRange?.let {
             val start =
@@ -326,13 +337,6 @@ fun SegmentedProgressSlider(
                 size = Size(end - start, trackH)
             )
         }
-
-        // Active
-        drawRect(
-            color = AnimeRed,
-            topLeft = Offset(0f, trackY - trackH / 2f),
-            size = Size(size.width * renderedFraction, trackH)
-        )
 
         // Thumb
         drawCircle(
