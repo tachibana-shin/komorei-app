@@ -1064,24 +1064,30 @@ fun TrackSelectionPane(
     onClearTrack: () -> Unit,
     onBack: () -> Unit
 ) {
-    PaneHeader(title, onBack = onBack)
-    LazyColumn {
-        item {
-            SelectableItem(
-                label = stringResource(R.string.player_track_none),
-                isSelected = availableTracks?.let { it.groups.none { g -> g.type == type && g.isSelected } } ?: true,
-                onClick = onClearTrack
-            )
-        }
-        availableTracks?.groups?.filter { it.type == type }?.forEach { group ->
-            items(group.length) { index ->
-                val track = group.getTrackFormat(index)
-                val label = track.label ?: track.language ?: "Track ${index + 1}"
+    // Column (not bare siblings): this pane is dropped into a Box for the player's
+    // fullscreen side-sheet content, where a PaneHeader next to a LazyColumn overlaps —
+    // the LazyColumn fills the whole Box and draws under/behind the header. In a
+    // Column the header reserves its own height and the list scrolls below it.
+    Column(modifier = Modifier.fillMaxSize()) {
+        PaneHeader(title, onBack = onBack)
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            item {
                 SelectableItem(
-                    label = label,
-                    isSelected = group.isTrackSelected(index),
-                    onClick = { onTrackSelected(group, index) }
+                    label = stringResource(R.string.player_track_none),
+                    isSelected = availableTracks?.let { it.groups.none { g -> g.type == type && g.isSelected } } ?: true,
+                    onClick = onClearTrack
                 )
+            }
+            availableTracks?.groups?.filter { it.type == type }?.forEach { group ->
+                items(group.length) { index ->
+                    val track = group.getTrackFormat(index)
+                    val label = track.label ?: track.language ?: "Track ${index + 1}"
+                    SelectableItem(
+                        label = label,
+                        isSelected = group.isTrackSelected(index),
+                        onClick = { onTrackSelected(group, index) }
+                    )
+                }
             }
         }
     }
@@ -1096,29 +1102,32 @@ fun QualitySelectionPane(
     onClearTrack: () -> Unit,
     onBack: () -> Unit
 ) {
-    PaneHeader(stringResource(R.string.player_quality), onBack = onBack)
-    LazyColumn {
-        item {
-            // "Auto" = no forced rendition — the player adapts over the qualities the
-            // stream declares (HLS renditions). Selected state comes from OUR override
-            // flag, NOT from isTrackSelected (which stays true for many renditions
-            // while adaptive, so it would keep a quality row highlighted incorrectly).
-            SelectableItem(
-                label = stringResource(R.string.player_quality_auto),
-                isSelected = videoTrackOverride == null,
-                onClick = onClearTrack
-            )
-        }
-        availableTracks?.groups?.filter { it.type == C.TRACK_TYPE_VIDEO }?.forEach { group ->
-            items(group.length) { index ->
-                val format = group.getTrackFormat(index)
+    // Same Column wrapper as TrackSelectionPane: usable as direct side-sheet content.
+    Column(modifier = Modifier.fillMaxSize()) {
+        PaneHeader(stringResource(R.string.player_quality), onBack = onBack)
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            item {
+                // "Auto" = no forced rendition — the player adapts over the qualities the
+                // stream declares (HLS renditions). Selected state comes from OUR override
+                // flag, NOT from isTrackSelected (which stays true for many renditions
+                // while adaptive, so it would keep a quality row highlighted incorrectly).
                 SelectableItem(
-                    label = getVideoTrackLabel(format),
-                    // A forced track is exactly one (FixedTrackSelection); in Auto no
-                    // quality row may be highlighted even if adaptive marks several.
-                    isSelected = videoTrackOverride != null && group.isTrackSelected(index),
-                    onClick = { onTrackSelected(group, index) }
+                    label = stringResource(R.string.player_quality_auto),
+                    isSelected = videoTrackOverride == null,
+                    onClick = onClearTrack
                 )
+            }
+            availableTracks?.groups?.filter { it.type == C.TRACK_TYPE_VIDEO }?.forEach { group ->
+                items(group.length) { index ->
+                    val format = group.getTrackFormat(index)
+                    SelectableItem(
+                        label = getVideoTrackLabel(format),
+                        // A forced track is exactly one (FixedTrackSelection); in Auto no
+                        // quality row may be highlighted even if adaptive marks several.
+                        isSelected = videoTrackOverride != null && group.isTrackSelected(index),
+                        onClick = { onTrackSelected(group, index) }
+                    )
+                }
             }
         }
     }

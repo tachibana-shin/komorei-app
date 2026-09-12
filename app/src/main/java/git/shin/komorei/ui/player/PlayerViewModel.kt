@@ -221,10 +221,22 @@ class PlayerViewModel @Inject constructor(
             .buildUpon()
             .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, trackIndex))
             .build()
-        if (group.type == C.TRACK_TYPE_VIDEO) {
-            // Remember the forced rendition so the quality picker can tell it from Auto
-            // (Tracks.isTrackSelected stays true for MANY renditions in adaptive mode).
-            _playbackState.update { it.copy(videoTrackOverride = group.getTrackFormat(trackIndex)) }
+        when (group.type) {
+            C.TRACK_TYPE_VIDEO -> {
+                // Remember the forced rendition so the quality picker can tell it from Auto
+                // (Tracks.isTrackSelected stays true for MANY renditions in adaptive mode).
+                _playbackState.update { it.copy(videoTrackOverride = group.getTrackFormat(trackIndex)) }
+            }
+            C.TRACK_TYPE_TEXT -> {
+                // Picking a subtitle track turns subtitles ON — re-enable the text type if
+                // the CC button had disabled it, so the CC icon stays in sync with the pane.
+                _playbackState.update { it.copy(isSubtitleEnabled = true) }
+                exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                    .buildUpon()
+                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                    .build()
+            }
+            else -> Unit
         }
     }
 
@@ -233,8 +245,20 @@ class PlayerViewModel @Inject constructor(
             .buildUpon()
             .clearOverridesOfType(type)
             .build()
-        if (type == C.TRACK_TYPE_VIDEO) {
-            _playbackState.update { it.copy(videoTrackOverride = null) }
+        when (type) {
+            C.TRACK_TYPE_VIDEO -> {
+                _playbackState.update { it.copy(videoTrackOverride = null) }
+            }
+            C.TRACK_TYPE_TEXT -> {
+                // "No subtitle" means subtitles OFF (not just "auto"): disable the text
+                // type too so no track auto-selects and the CC icon flips off.
+                _playbackState.update { it.copy(isSubtitleEnabled = false) }
+                exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                    .buildUpon()
+                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+                    .build()
+            }
+            else -> Unit
         }
     }
 
