@@ -3,6 +3,7 @@ package git.shin.komorei.ui.player
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.os.SystemClock
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -47,8 +48,22 @@ import java.io.File
 class PlayerViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val repository: AnimeRepository,
-    private val libraryRepository: LibraryRepository
+    private val libraryRepository: LibraryRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    /**
+     * Process-death persistence ("savedState"): the open session is mirrored into the
+     * SavedStateHandle, so when the app is backgrounded long enough to be recreated
+     * (or rotated on config-keyless flows) it restores to the exact episode + sheet
+     * state the user left. The playhead itself resumes via Room watch history
+     * (restoreWatchTime → LibraryRepository.getWatchTime).
+     */
+    private companion object {
+        const val KEY_ANIME_ID = "player_anime_id"
+        const val KEY_EPISODE_ID = "player_episode_id"
+        const val KEY_SHEET_VALUE = "player_sheet_value"
+    }
 
     private val _playbackState = MutableStateFlow(PlayerPlaybackState())
     val playbackState: StateFlow<PlayerPlaybackState> = _playbackState.asStateFlow()
@@ -161,6 +176,11 @@ class PlayerViewModel @Inject constructor(
                 delay(250)
             }
         }
+
+        // Reopen the session that was playing when this process died (if any). The
+        // engine is rebuilt from scratch; position restore happens via Room watch
+        // history once the fresh source becomes READY (restoreWatchTime).
+        restoreSession()
     }
 
     fun openAnime(anime: Anime, episode: Episode? = null) {
@@ -195,12 +215,18 @@ class PlayerViewModel @Inject constructor(
             )
         }
 
+        // Mirror the session into the SavedStateHandle so a process death restores it.
+        savedStateHandle[KEY_ANIME_ID] = anime.id
+        savedStateHandle[KEY_EPISODE_ID] = targetEp.id
+        savedStateHandle[KEY_SHEET_VALUE] = PlayerSheetValue.EXPANDED.name
+
         // Resolve servers + first stream for the target episode.
         viewModelScope.launch { loadStreams(anime, targetEp) }
     }
 
     fun setPlayerSheetValue(sheetValue: PlayerSheetValue) {
         _playbackState.update { it.copy(sheetValue = sheetValue) }
+        savedStateHandle[KEY_SHEET_VALUE] = sheetValue.name
     }
 
     /**
@@ -413,6 +439,10 @@ class PlayerViewModel @Inject constructor(
         }
         val anime = _playbackState.value.fullAnime ?: _playbackState.value.currentAnime ?: return
         viewModelScope.launch { loadStreams(anime, episode) }
+
+        // Persist the switch target so a process death resumes the newly picked episode.
+        savedStateHandle[KEY_EPISODE_ID] = episode.id
+        savedStateHandle[KEY_SHEET_VALUE] = PlayerSheetValue.EXPANDED.name
     }
 
     /**
@@ -476,32 +506,7 @@ class PlayerViewModel @Inject constructor(
         _playbackState.update { it.copy(isLoadingStreams = true, streamError = null, error = null) }
         runCatching {
             val full = repository.getAnimeUpdate(anime, needsDetails = true, needsChapters = true)
-            val streams = repository.getStreamList(full, episode)
-            val first = streams.firstOrNull()
-            val resolved = first?.let { repository.getStream(full, episode, it) }
-
-            _playbackState.update {
-                it.copy(
-                    fullAnime = full,
-                    streams = streams,
-                    selectedStreamId = first?.id,
-                    streamData = resolved,
-                    isLoadingStreams = false,
-                    streamError = null,
-                    segmentUrlInterceptor = repository.segmentUrlInterceptor,
-                    segmentDataInterceptor = repository.segmentDataInterceptor,
-                    introRange = resolved?.intro?.let { it.startMs..it.endMs },
-                    outroRange = resolved?.outro?.let { it.startMs..it.endMs }
-                )
-            }
-
-            resolved?.let {
-                buildMediaSource(it)
-                // Resume the episode where the user left off — but only on (re)selection.
-                // A manual refresh re-resolves the SAME episode and must not rewind to the
-                // older saved progress (the user is already partway through it).
-                if (restorePosition) restoreWatchTime()
-            }
+            finishLoadStreams(full, episode, restorePosition)
         }.onFailure { e ->
             _playbackState.update {
                 it.copy(
@@ -509,6 +514,41 @@ class PlayerViewModel @Inject constructor(
                     streamError = e.message ?: appContext.getString(R.string.error_source_playback)
                 )
             }
+        }
+    }
+
+    /**
+     * Common tail of stream resolution (after the Lite→full upgrade): resolve servers,
+     * pick the first as default, build the media source and optionally restore position.
+     * Shared by [loadStreams] and [restoreSession] so a process-death restore reuses the
+     * exact same pipeline.
+     */
+    private suspend fun finishLoadStreams(full: Anime, episode: Episode, restorePosition: Boolean) {
+        val streams = repository.getStreamList(full, episode)
+        val first = streams.firstOrNull()
+        val resolved = first?.let { repository.getStream(full, episode, it) }
+
+        _playbackState.update {
+            it.copy(
+                fullAnime = full,
+                streams = streams,
+                selectedStreamId = first?.id,
+                streamData = resolved,
+                isLoadingStreams = false,
+                streamError = null,
+                segmentUrlInterceptor = repository.segmentUrlInterceptor,
+                segmentDataInterceptor = repository.segmentDataInterceptor,
+                introRange = resolved?.intro?.let { it.startMs..it.endMs },
+                outroRange = resolved?.outro?.let { it.startMs..it.endMs }
+            )
+        }
+
+        resolved?.let {
+            buildMediaSource(it)
+            // Resume the episode where the user left off — but only on (re)selection.
+            // A manual refresh re-resolves the SAME episode and must not rewind to the
+            // older saved progress (the user is already partway through it).
+            if (restorePosition) restoreWatchTime()
         }
     }
 
@@ -603,6 +643,52 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch { loadStreams(anime, episode, restorePosition = false) }
     }
 
+    /**
+     * Reopens the session that was playing when this process was recreated (the
+     * "savedState" piece): find the anime by id, upgrade it to full, locate the same
+     * episode, carry over the sheet value (expanded / mini player) and re-resolve the
+     * stream — the playhead resumes from Room watch history once the fresh source is
+     * READY (restoreWatchTime). A stale/unknown session (removed anime, cleared keys
+     * via dismissPlayer) just leaves the app open fresh.
+     */
+    private fun restoreSession() {
+        val animeId = savedStateHandle.get<String>(KEY_ANIME_ID) ?: return
+        val anime = allAnimes.firstOrNull { it.id == animeId } ?: return
+        val savedEpisodeId = savedStateHandle.get<String>(KEY_EPISODE_ID)
+        val savedSheet = savedStateHandle.get<String>(KEY_SHEET_VALUE)
+            ?.let { name -> runCatching { PlayerSheetValue.valueOf(name) }.getOrNull() }
+            ?: PlayerSheetValue.EXPANDED
+
+        viewModelScope.launch {
+            runCatching {
+                val full = repository.getAnimeUpdate(anime, needsDetails = true, needsChapters = true)
+                val episode = savedEpisodeId?.let { id -> full.episodes.firstOrNull { it.id == id } }
+                    ?: full.episodes.firstOrNull()
+                    ?: return@runCatching
+                val durationMs = (episode.durationSeconds ?: 1440L) * 1000L
+                _playbackState.update {
+                    it.copy(
+                        currentAnime = anime,
+                        currentEpisode = episode,
+                        isPlaying = true,
+                        currentPositionMs = 0L,
+                        durationMs = durationMs,
+                        sheetValue = savedSheet,
+                        isFullscreen = false,
+                        streams = emptyList(),
+                        selectedStreamId = null,
+                        streamData = null,
+                        streamError = null,
+                        error = null
+                    )
+                }
+                finishLoadStreams(full, episode, restorePosition = true)
+            }.onFailure {
+                // Silent: a stale/unknown session simply opens the app normally.
+            }
+        }
+    }
+
     fun dismissPlayer() {
         // Fully release the engine + model so nothing from the previous session leaks
         // into the next. A bare pause() leaves the old media source prepared on the
@@ -614,6 +700,11 @@ class PlayerViewModel @Inject constructor(
         // Persist the final position before releasing everything from the session.
         saveWatchTime()
         pendingRestorePositionMs = null
+        // This session is over — drop the restore keys so a process death does NOT
+        // reopen a player the user explicitly closed.
+        savedStateHandle.remove<String>(KEY_ANIME_ID)
+        savedStateHandle.remove<String>(KEY_EPISODE_ID)
+        savedStateHandle.remove<String>(KEY_SHEET_VALUE)
         exoPlayer.playWhenReady = false
         exoPlayer.stop()
         exoPlayer.clearMediaItems()

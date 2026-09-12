@@ -3,6 +3,7 @@ package git.shin.komorei.ui.player
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.view.WindowManager
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -196,6 +197,21 @@ fun VideoPlayerSheet(
     }
 
     var activeMenu by remember { mutableStateOf<PlayerMenu?>(null) }
+
+    // System back walks the player's own stack instead of finishing the activity:
+    // close an open side menu → exit fullscreen → collapse to the mini player →
+    // dismiss the player entirely. Only when the player is fully closed does back
+    // reach the NavHost (pop tab / exit app). Composed whenever the sheet is visible
+    // (the HIDDEN early-return above keeps this from intercepting back elsewhere).
+    BackHandler {
+        when {
+            activeMenu != null -> activeMenu = null
+            isFullscreen -> onToggleFullscreen()
+            playbackState.sheetValue == PlayerSheetValue.EXPANDED ->
+                onStateChange(PlayerSheetValue.COLLAPSED)
+            else -> onDismiss()
+        }
+    }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize().clipToBounds()) {
         // Single source of truth for the sheet's vertical position (px). A drag snaps it
