@@ -7,6 +7,7 @@ import git.shin.komorei.model.AnimeStatus
 import git.shin.komorei.model.CategoryLink
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.Genre
+import git.shin.komorei.model.RangeLong
 import git.shin.komorei.model.Source
 import git.shin.komorei.model.StreamData
 import git.shin.komorei.model.StreamInfo
@@ -138,15 +139,21 @@ class AnimeRepository @Inject constructor() {
                 "Referer" to (sources.find { it.id == anime.sourceId }?.name ?: "Komorei"),
                 "User-Agent" to "Komorei/1.0"
             ),
-            isContent = true,
+            isContent = false,
             subtitles = listOf(
-                SubtitleInfo("https://example.com/vi.vtt", "vi", "Tiếng Việt"),
+                SubtitleInfo(
+                    url = "https://example.com/vi.vtt",
+                    language = "vi",
+                    label = "Tiếng Việt",
+                    headers = mapOf("Referer" to "Komorei")
+                ),
                 SubtitleInfo("https://example.com/en.vtt", "en", "English")
             ),
-            introStartMs = 10_000L,
-            introEndMs = 90_000L,
-            outroStartMs = (episode.durationSeconds?.toLong() ?: 1440L) * 1000L - 120_000L,
-            outroEndMs = (episode.durationSeconds?.toLong() ?: 1440L) * 1000L - 30_000L
+            intro = RangeLong(10_000L, 90_000L),
+            outro = RangeLong(
+                startMs = (episode.durationSeconds?.toLong() ?: 1440L) * 1000L - 120_000L,
+                endMs = (episode.durationSeconds?.toLong() ?: 1440L) * 1000L - 30_000L
+            )
         )
     }
 

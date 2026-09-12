@@ -13,6 +13,8 @@ import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.StreamData
 import git.shin.komorei.model.StreamInfo
+import git.shin.komorei.model.StreamType
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -31,9 +34,11 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.VideoSize
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import javax.inject.Inject
+import java.io.File
 
 @UnstableApi
 @HiltViewModel
@@ -333,12 +338,8 @@ class PlayerViewModel @Inject constructor(
                     streamError = null,
                     segmentUrlInterceptor = repository.segmentUrlInterceptor,
                     segmentDataInterceptor = repository.segmentDataInterceptor,
-                    introRange = if (resolved?.introStartMs != null && resolved.introEndMs != null) {
-                        resolved.introStartMs..resolved.introEndMs
-                    } else null,
-                    outroRange = if (resolved?.outroStartMs != null && resolved.outroEndMs != null) {
-                        resolved.outroStartMs..resolved.outroEndMs
-                    } else null
+                    introRange = resolved?.intro?.let { it.startMs..it.endMs },
+                    outroRange = resolved?.outro?.let { it.startMs..it.endMs }
                 )
             }
 
@@ -357,8 +358,13 @@ class PlayerViewModel @Inject constructor(
      * Configure the shared data source factory for [streamData] and load it on the
      * engine. DefaultMediaSourceFactory auto-detects HLS vs progressive MP4; both go
      * through our factory so headers/transformers apply to every sub-request.
+     *
+     * Raw-content sources ([StreamData.isContent]) can't be handed to Media3 as a URI
+     * ("#EXTM3U..." is not an address), so their text is written to a cache file first
+     * and played as a local file — the manifest is read from disk while its segments
+     * keep fetching over HTTP through the shared factory (headers/transformers apply).
      */
-    private fun buildMediaSource(streamData: StreamData) {
+    private suspend fun buildMediaSource(streamData: StreamData) {
         val state = _playbackState.value
         dataSourceFactory.configure(
             streamData,
@@ -367,7 +373,6 @@ class PlayerViewModel @Inject constructor(
         )
 
         val mediaItemBuilder = MediaItem.Builder()
-            .setUri(streamData.url)
             .setMediaMetadata(
                 MediaMetadata.Builder()
                     .setTitle(state.currentAnime?.title)
@@ -375,6 +380,14 @@ class PlayerViewModel @Inject constructor(
                     .setArtworkUri(state.currentAnime?.posterUrl?.let { android.net.Uri.parse(it) })
                     .build()
             )
+
+        if (streamData.isContent) {
+            // The url field holds raw content text -> cache file so the player can open it.
+            val contentFile = withContext(Dispatchers.IO) { writeContentToCache(streamData) }
+            mediaItemBuilder.setUri(android.net.Uri.fromFile(contentFile))
+        } else {
+            mediaItemBuilder.setUri(streamData.url)
+        }
 
         if (streamData.subtitles.isNotEmpty()) {
             val subtitleConfigurations = streamData.subtitles.map { sub ->
@@ -388,10 +401,37 @@ class PlayerViewModel @Inject constructor(
             mediaItemBuilder.setSubtitleConfigurations(subtitleConfigurations)
         }
 
-        val sourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+        // Content played from a file still routes its segments over HTTP through our
+        // header-injecting factory — DefaultDataSource dispatches file:// locally and
+        // everything else to the base factory.
+        val sourceFactory = DefaultMediaSourceFactory(
+            if (streamData.isContent) {
+                DefaultDataSource.Factory(appContext, dataSourceFactory)
+            } else {
+                dataSourceFactory
+            }
+        )
         exoPlayer.setMediaSource(sourceFactory.createMediaSource(mediaItemBuilder.build()))
         exoPlayer.prepare()
         exoPlayer.play()
+    }
+
+    /**
+     * Writes [StreamData.url] (the raw media content, e.g. an m3u8 playlist) into the app
+     * cache with an extension matching [StreamData.type] so DefaultMediaSourceFactory can
+     * infer the container and parse the manifest from disk. One file per content type,
+     * re-written every resolve — no unbounded cache growth.
+     */
+    private fun writeContentToCache(streamData: StreamData): File {
+        val extension = when (streamData.type) {
+            StreamType.HLS -> "m3u8"
+            StreamType.DASH -> "mpd"
+            StreamType.MP4, StreamType.OTHER -> "mp4"
+        }
+        val dir = File(appContext.cacheDir, "komorei_content").apply { mkdirs() }
+        return File(dir, "content_${streamData.type.name.lowercase()}.$extension").also { file ->
+            file.writeText(streamData.url)
+        }
     }
 
     /**
