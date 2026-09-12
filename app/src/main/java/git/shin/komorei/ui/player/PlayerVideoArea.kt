@@ -211,6 +211,35 @@ fun PlayerVideoArea(
         val displayScale = if (snapBackActive) animScale.value else scale
         val displayOffset = if (snapBackActive) animOffset.value else offset
 
+        // --- Zoom across fullscreen ⇄ normal toggles ---
+        // Both modes can zoom, but a zoom only survives a mode switch when it is exactly 1
+        // (fit) or the FILL zoom of the mode being left — any other value resets to 1.
+        // fillZoom differs per mode (a 16:9 video fills a 16:9 sheet box at 1.0 but a
+        // 20:9 fullscreen at ~1.25), so remember each mode's fill and compare against the
+        // mode the user is LEAVING (at toggle time fillZoom has already recomputed for the
+        // NEW geometry, so the leaving-mode value must come from this map).
+        val fillByMode = remember { mutableStateMapOf<Boolean, Float>() }
+        LaunchedEffect(isFullscreen, fillZoom) {
+            fillByMode[isFullscreen] = fillZoom
+        }
+        LaunchedEffect(isFullscreen) {
+            // Adopt any running snap-back first so the keep-check sees what's displayed.
+            snapBackJob?.cancel()
+            snapBackJob = null
+            if (snapBackActive) {
+                snapBackActive = false
+                scale = animScale.value
+                offset = animOffset.value
+            }
+            val leavingFill = fillByMode[!isFullscreen] ?: 1f
+            val isFitZoom = scale <= 1f + ZOOM_EPSILON
+            val isFillZoom = abs(scale - leavingFill) < ZOOM_EPSILON
+            if (!isFitZoom && !isFillZoom) {
+                scale = 1f
+                offset = Offset.Zero
+            }
+        }
+
         // Fresh references for the shared gesture handler below. The pointerInput
         // block is keyed on (player, isLocked) only, so geometry that changes with
         // the video (aspect ratio, letterbox) must be read through updated-state refs.
@@ -228,6 +257,19 @@ fun PlayerVideoArea(
         // Whether the control overlay is visible — read through an updated-state ref
         // because the pointerInput block is keyed only on (player, isLocked).
         val currentShowControls by rememberUpdatedState(showControls)
+        // Volume/brightness swipes only work in fullscreen — read through an
+        // updated-state ref (the pointerInput coroutine isn't restarted by a toggle).
+        val currentIsFullscreen by rememberUpdatedState(isFullscreen)
+
+        // Render-time safety net: keep the offset inside what the CURRENT content rect can
+        // cover — a mode toggle or snap-back adoption can briefly land it out of bounds,
+        // which would pull the letterbox bars into view until the next gesture re-clamps it.
+        LaunchedEffect(scale, offset, currentContentW, currentContentH, isFullscreen) {
+            val mx = ((currentContentW * scale - currentViewWidth) / 2f).coerceAtLeast(0f)
+            val my = ((currentContentH * scale - currentViewHeight) / 2f).coerceAtLeast(0f)
+            val clamped = Offset(offset.x.coerceIn(-mx, mx), offset.y.coerceIn(-my, my))
+            if (clamped != offset) offset = clamped
+        }
 
         // Auto-hide controls after 3.5s of inactivity while playing (paused while touching).
         LaunchedEffect(showControls, interactionCounter, isPlaying, pointerDown, isLocked, isLoading) {
@@ -486,7 +528,7 @@ fun PlayerVideoArea(
                                                 )
                                                 drag.consume()
                                             }
-                                        } else if (!zoomedInGesture) {
+                                        } else if (!zoomedInGesture && currentIsFullscreen) {
                                             val dragAmount = drag.position.y - drag.previousPosition.y
 
                                             if (!regionLocked) {
