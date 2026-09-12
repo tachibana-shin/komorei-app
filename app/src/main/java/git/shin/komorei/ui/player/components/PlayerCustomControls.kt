@@ -8,12 +8,26 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -232,7 +246,8 @@ fun SegmentedProgressSlider(
                         var dragMoved = false
                         while (true) {
                             val event = awaitPointerEvent()
-                            val change = event.changes.firstOrNull { it.id == pointerId } ?: continue
+                            val change =
+                                event.changes.firstOrNull { it.id == pointerId } ?: continue
                             change.consume()
 
                             if (!change.pressed) {
@@ -255,8 +270,9 @@ fun SegmentedProgressSlider(
 
                             if (dragMoved) {
                                 // Relative scrub: base progress + (finger delta / track width).
-                                val f = (dragStartFraction + (change.position.x - dragStartX) / widthPx)
-                                    .coerceIn(0f, 1f)
+                                val f =
+                                    (dragStartFraction + (change.position.x - dragStartX) / widthPx)
+                                        .coerceIn(0f, 1f)
                                 dragFraction = f
                                 onSeekPreview((f * latestDuration).toLong())
                             }
@@ -287,7 +303,8 @@ fun SegmentedProgressSlider(
 
         // Intro
         introRange?.let {
-            val start = (it.first.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
+            val start =
+                (it.first.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
             val end = (it.last.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
             drawRect(
                 color = Color.Green.copy(alpha = 0.6f),
@@ -298,7 +315,8 @@ fun SegmentedProgressSlider(
 
         // Outro
         outroRange?.let {
-            val start = (it.first.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
+            val start =
+                (it.first.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
             val end = (it.last.toFloat() / duration.coerceAtLeast(1L)).coerceIn(0f, 1f) * size.width
             drawRect(
                 color = Color.Green.copy(alpha = 0.6f),
@@ -356,7 +374,6 @@ fun PlayerControlFooter(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(if (isFullscreen) 32.dp else 28.dp, 0.dp, if (isFullscreen) 32.dp else 28.dp, 0.dp)
             .navigationBarsPadding()
     ) {
         Row(
@@ -368,16 +385,19 @@ fun PlayerControlFooter(
         ) {
             Text(
                 text = "${formatTime(displayPositionMs)} / ${formatTime(durationMs)}",
-                style = textStyle
+                style = textStyle,
+                modifier = Modifier
+                    .padding(if (isFullscreen) 32.dp else 28.dp, 0.dp, 0.dp, 0.dp)
             )
             Box(
                 modifier = Modifier
+                    .padding(0.dp, 0.dp, (if (isFullscreen) 32.dp else 28.dp) - 4.dp, 0.dp)
                     .clip(CircleShape)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = ripple(bounded = false, radius = 24.dp),
                         onClick = onToggleFullscreen
-                    ).offset(4.dp, 0.dp),
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -404,12 +424,26 @@ fun PlayerControlFooter(
                 // Keep the auto-hide timer at bay while the scrubber is being dragged.
                 onInteraction()
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    if (isFullscreen) 32.dp else 28.dp,
+                    0.dp,
+                    if (isFullscreen) 32.dp else 28.dp,
+                    0.dp
+                )
         )
 
         if (isFullscreen) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        if (isFullscreen) 32.dp else 28.dp,
+                        0.dp,
+                        if (isFullscreen) 32.dp else 28.dp,
+                        0.dp
+                    ),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -432,7 +466,11 @@ fun PlayerControlFooter(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(Modifier.width(4.dp))
-                            Text(stringResource(R.string.player_next), color = Color.White, fontSize = 13.sp)
+                            Text(
+                                stringResource(R.string.player_next),
+                                color = Color.White,
+                                fontSize = 13.sp
+                            )
                         }
                         Spacer(Modifier.width(12.dp))
                     }
@@ -455,7 +493,11 @@ fun PlayerControlFooter(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text(stringResource(R.string.streaming_server_short), color = Color.White, fontSize = 13.sp)
+                        Text(
+                            stringResource(R.string.streaming_server_short),
+                            color = Color.White,
+                            fontSize = 13.sp
+                        )
                     }
                     TextButton(onClick = onOpenSettings) {
                         Icon(
@@ -465,7 +507,11 @@ fun PlayerControlFooter(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text(currentQuality ?: stringResource(R.string.player_quality_auto), color = Color.White, fontSize = 13.sp)
+                        Text(
+                            currentQuality ?: stringResource(R.string.player_quality_auto),
+                            color = Color.White,
+                            fontSize = 13.sp
+                        )
                     }
                     TextButton(onClick = onOpenSettings) {
                         Text(
@@ -598,9 +644,11 @@ fun PlayerSideSheet(
                 // elevation, which turned the whole fullscreen side panel dark red.
                 color = SurfaceDark
             ) {
-                Column(modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp, 8.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp, 8.dp)
+                ) {
                     // Big header only when a title is provided — settings/subtitle
                     // sheets pass null and render their own per-pane header + back
                     // instead, so this row (title + close + divider) isn't duplicated.
