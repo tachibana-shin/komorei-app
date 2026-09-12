@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -48,6 +49,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -95,6 +97,7 @@ import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
 import git.shin.komorei.ui.utils.animateScrollToItemCentered
 import git.shin.komorei.ui.utils.formatNumber
+import kotlinx.coroutines.flow.first
 
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -130,6 +133,48 @@ fun AnimeDetailView(
     var showDescriptionSheet by remember { mutableStateOf(false) }
     var showEpisodesSheet by remember { mutableStateOf(false) }
     var showCommentsSheet by remember { mutableStateOf(false) }
+
+    // Per-season scroll state for the detail-screen episode strip. A single shared
+    // LazyListState gets re-scrolled to the active episode every time you return to a
+    // season — wiping the position you'd left it at. Each season keeps its own row
+    // state, hoisted ABOVE the LazyColumn because its item blocks leave composition
+    // when scrolled out of view (which would reset a remember() living inside).
+    val detailEpisodeRowStates = remember { HashMap<String, LazyListState>() }
+
+    // Row state/key for the currently-viewed season's episode strip, shared by the LazyRow
+    // below and the hoisted follow-active auto-scroll. Each season keeps its own row state.
+    val detailRowKey = if (uiState.selectedVirtualSeasonId != null) {
+        "row:${uiState.selectedVirtualSeasonId}"
+    } else {
+        "row:${uiState.selectedSeason?.animeId ?: displayAnime.id}"
+    }
+    val detailRowState = detailEpisodeRowStates.getOrPut(detailRowKey) { LazyListState() }
+
+    // Follow-the-playing-episode auto-scroll for the episode strip. Hoisted ABOVE the
+    // LazyColumn: its item blocks leave composition when scrolled out of view, and a
+    // LaunchedEffect living inside would restart on every scroll-by and re-center the strip.
+    // Keyed on (season rowKey, playing episode id) it re-fires on every SEASON entry and on
+    // every PLAYING-EPISODE change — so returning to a season centers the strip on the active
+    // chapter, and picking a new episode (from here or the player sheet) scrolls the strip to
+    // follow — while a manual scroll within a season is left alone. Never key on the
+    // `episodes` list reference: a fresh instance per VM emission would restart the effect
+    // every recomposition and cancel the in-flight layout wait. Everything re-reads snapshot
+    // state inside the flow, so it also survives the loading skeleton (5 placeholder chips
+    // that fill this row), empty and error phases, and the strip being temporarily off-screen.
+    LaunchedEffect(detailRowKey, currentEpisode.id) {
+        snapshotFlow {
+            val eps = uiState.currentSeasonEpisodes
+            Triple(
+                eps.indexOfFirst { it.id == currentEpisode.id },
+                detailRowState.layoutInfo.totalItemsCount,
+                uiState.isLoadingEpisodes
+            )
+        }.first { (index, count, loading) -> index >= 0 && !loading && count > index }
+        val target = uiState.currentSeasonEpisodes.indexOfFirst { it.id == currentEpisode.id }
+        if (target >= 0 && detailRowState.layoutInfo.totalItemsCount > target) {
+            detailRowState.animateScrollToItemCentered(target)
+        }
+    }
 
     val realSeasons = displayAnime.seasons.ifEmpty {
         listOf(AnimeSeason(displayAnime.id, stringResource(R.string.season_fallback_full)))
@@ -504,14 +549,8 @@ fun AnimeDetailView(
                     }
                 }
 
-                val episodesRowState = rememberLazyListState()
-                val activeEpisodeIndex = episodes.indexOfFirst { it.id == currentEpisode.id }
-                LaunchedEffect(activeEpisodeIndex, episodes.size) {
-                    episodesRowState.animateScrollToItemCentered(activeEpisodeIndex)
-                }
-
                 LazyRow(
-                    state = episodesRowState,
+                    state = detailRowState,
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()

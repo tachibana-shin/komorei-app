@@ -53,7 +53,7 @@ import git.shin.komorei.ui.player.PlayerPlaybackState
 import git.shin.komorei.ui.components.EpisodeProgressBar
 import git.shin.komorei.ui.theme.*
 import git.shin.komorei.ui.utils.animateScrollToItemCentered
-import git.shin.komorei.ui.utils.scrollToItemVisible
+import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -146,6 +146,10 @@ fun EpisodesContent(
     // position (or lose it when coming back).
     val listStates = remember { HashMap<String, LazyListState>() }
     val gridStates = remember { HashMap<String, LazyGridState>() }
+    // Tracks which view keys have already had their initial auto-scroll to the active
+    // episode. Prevents re-scrolling when revisiting a season (saved position is restored)
+    // and avoids the race where the flag was consumed during the loading/empty state.
+    val autoScrolledKeys = remember { mutableSetOf<String>() }
     val viewContentKey = buildString {
         append(selectedSeasonId); append('|')
         append(if (isAscending) "asc" else "desc"); append('|')
@@ -400,14 +404,18 @@ fun EpisodesContent(
                 }
             } else if (isGridView) {
                 val gridKey = "grid|$viewContentKey"
-                val isFreshView = !gridStates.containsKey(gridKey)
                 val gridState = gridStates.getOrPut(gridKey) { LazyGridState() }
                 val activeGridIndex = filteredEpisodes.indexOfFirst { it.id == currentEpisode.id }
-                // Reveal the playing episode only the first time this view is shown;
-                // revisiting a season restores its saved scroll position instead.
+                // Auto-scroll to the playing episode ONCE per unique view key
+                // (season × sort × search). Revisiting the same view restores its
+                // saved scroll position instead. Waits for real layout so the scroll
+                // targets a valid position (no race with the loading/empty state).
                 LaunchedEffect(gridKey, activeGridIndex) {
-                    if (isFreshView && activeGridIndex >= 0) {
-                        gridState.scrollToItemVisible(activeGridIndex)
+                    if (gridKey !in autoScrolledKeys && activeGridIndex >= 0) {
+                        snapshotFlow { gridState.layoutInfo.totalItemsCount }
+                            .first { it > activeGridIndex }
+                        gridState.scrollToItem(activeGridIndex)
+                        autoScrolledKeys += gridKey
                     }
                 }
 
@@ -446,14 +454,18 @@ fun EpisodesContent(
                 }
             } else {
                 val listKey = "list|$viewContentKey"
-                val isFreshView = !listStates.containsKey(listKey)
                 val listState = listStates.getOrPut(listKey) { LazyListState() }
                 val activeIndex = filteredEpisodes.indexOfFirst { it.id == currentEpisode.id }
-                // Reveal the playing episode only the first time this view is shown;
-                // revisiting a season restores its saved scroll position instead.
+                // Auto-scroll to the playing episode ONCE per unique view key
+                // (season × sort × search). Revisiting the same view restores its
+                // saved scroll position instead. Waits for real layout so the scroll
+                // targets a valid position (no race with the loading/empty state).
                 LaunchedEffect(listKey, activeIndex) {
-                    if (isFreshView && activeIndex >= 0) {
-                        listState.scrollToItemVisible(activeIndex)
+                    if (listKey !in autoScrolledKeys && activeIndex >= 0) {
+                        snapshotFlow { listState.layoutInfo.totalItemsCount }
+                            .first { it > activeIndex }
+                        listState.scrollToItem(activeIndex)
+                        autoScrolledKeys += listKey
                     }
                 }
 

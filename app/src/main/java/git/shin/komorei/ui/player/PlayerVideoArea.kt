@@ -3,6 +3,8 @@ package git.shin.komorei.ui.player
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOutBack
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.*
@@ -29,10 +31,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import androidx.media3.ui.compose.material3.Player as ComposePlayer
 import coil.compose.AsyncImage
@@ -41,7 +43,10 @@ import git.shin.komorei.ui.player.components.*
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -52,6 +57,28 @@ private const val DRAG_BRIGHTNESS = 2
 
 /** Bottom 20% of the video is reserved for control gestures (slider, buttons). */
 private const val BOTTOM_CONTROL_ZONE_RATIO = 0.8f
+
+/**
+ * Fraction of fillZoom a sub-fill pinch must reach on release to "commit" to
+ * filling the screen. Below it the pinch bounces back to fit (scale 1), like
+ * YouTube's adaptive-zoom ingress threshold.
+ */
+private const val ZOOM_COMMIT_FRACTION = 0.9f
+
+/**
+ * Exponential-approach factor for pinch-zoom scale per pointer event. 1 = raw
+ * 1:1 finger tracking (jittery on a TextureView — every frame re-samples the
+ * surface); <1 damps finger jitter into smooth motion without the steppy feel
+ * of a hard deadband. 0.4 stays responsive to fast pinches while removing
+ * frame-to-frame finger noise.
+ */
+private const val ZOOM_SMOOTHING_FACTOR = 0.4f
+
+/** Minimum scale change that still triggers a graphicsLayer render during pinch. */
+private const val ZOOM_EPSILON = 0.004f
+
+/** A 1-finger drag pans the video only when zoomed at least this far beyond fill. */
+private const val ZOOM_PAN_MARGIN = 0.01f
 
 /** Transient HUD shown while swiping volume (left half) or brightness (right half). */
 private data class DragHud(val isVolume: Boolean, val level: Float)
@@ -117,24 +144,90 @@ fun PlayerVideoArea(
         // and skip onDragEnd, leaving the HUD pill stuck on screen.
         val currentInitialBrightness by rememberUpdatedState(initialBrightness)
 
-        // Zoom state
-        var scale by remember { mutableFloatStateOf(1f) }
-        var offset by remember { mutableStateOf(Offset.Zero) }
-        val transformableState = rememberTransformableState { zoomChange, offsetChange, _ ->
-            val newScale = (scale * zoomChange).coerceIn(1f, 4f)
-            val maxX = (newScale - 1f) * widthPx / 2f
-            val maxY = (newScale - 1f) * heightPx / 2f
-
-            scale = newScale
-            offset = if (newScale > 1f) {
-                Offset(
-                    x = (offset.x + offsetChange.x).coerceIn(-maxX, maxX),
-                    y = (offset.y + offsetChange.y).coerceIn(-maxY, maxY)
-                )
-            } else {
-                Offset.Zero
+        // --- Zoom state (YouTube-style) ---
+        // Track the video's intrinsic aspect ratio so letterboxed videos know how much
+        // they actually cover at each scale — and when panning would reveal black bars.
+        var videoAspect by remember { mutableFloatStateOf(16f / 9f) }
+        LaunchedEffect(player) {
+            fun VideoSize.renderedAspectRatio(): Float {
+                val w = width.toFloat()
+                val h = height.toFloat()
+                if (w <= 0f || h <= 0f) return 16f / 9f
+                val rotated = unappliedRotationDegrees % 180 == 90
+                // In media3 1.11 width/height are already the post-rotation dimensions and
+                // pixelWidthHeightRatio holds the true sample aspect — without it anamorphic
+                // content (e.g. SD MPEG-2) gets a WRONG content width that is larger than
+                // what is actually rendered, and panning slides into the black bars.
+                val pixelAspect = pixelWidthHeightRatio.takeIf { it > 0f && it.isFinite() } ?: 1f
+                return ((if (rotated) h / w else w / h) * pixelAspect)
+                    .takeIf { it.isFinite() }
+                    ?: (16f / 9f)
+            }
+            val listener = object : Player.Listener {
+                override fun onVideoSizeChanged(videoSize: VideoSize) {
+                    videoAspect = videoSize.renderedAspectRatio()
+                }
+            }
+            player.addListener(listener)
+            try {
+                videoAspect = player.videoSize.renderedAspectRatio()
+                awaitCancellation()
+            } finally {
+                player.removeListener(listener)
             }
         }
+
+        // Fit geometry of the rendered video content (centered letterbox inside the view).
+        // media3's Compose Player() renders into a raw TextureView that ALWAYS aspect-fits
+        // (codec SCALE_TO_FIT into the view-sized surface buffer) — there is no resize mode
+        // handling on that path. So the content rect is the FIT rect regardless of the
+        // cosmetic videoResizeMode state; keying it off that state made `contentW` equal the
+        // full box width (bigger than the real rendered content) whenever the picker wasn't
+        // set to FIT, and panning then drifted into the letterbox bars.
+        val viewAspect = widthPx / heightPx
+        val contentW =
+            if (videoAspect >= viewAspect) widthPx else heightPx * videoAspect
+        val contentH =
+            if (videoAspect >= viewAspect) widthPx / videoAspect else heightPx
+        // Smallest zoom where the content covers the whole screen (no bars anywhere).
+        // Below it the video is still letterboxed — YouTube's "adaptive" zoom animates
+        // back to 1 and keeps the player centered/immovable; only above it panning is allowed.
+        val fillZoom = (widthPx / contentW)
+            .coerceAtLeast(heightPx / contentH)
+            .coerceAtLeast(1f)
+            .let { if (it < 1.02f) 1f else it }
+
+        var scale by remember { mutableFloatStateOf(1f) }
+        var offset by remember { mutableStateOf(Offset.Zero) }
+
+        // Smooth adaptive snap-back: Animatable-driven animation used ONLY after the
+        // user releases a sub-fill pinch. While no snap-back is running the display
+        // reads the raw gesture state directly (no async state dance mid-gesture).
+        var snapBackActive by remember { mutableStateOf(false) }
+        var snapBackJob by remember { mutableStateOf<Job?>(null) }
+        val zoomScope = rememberCoroutineScope()
+        val animScale = remember { Animatable(1f) }
+        val animOffset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
+        val displayScale = if (snapBackActive) animScale.value else scale
+        val displayOffset = if (snapBackActive) animOffset.value else offset
+
+        // Fresh references for the shared gesture handler below. The pointerInput
+        // block is keyed on (player, isLocked) only, so geometry that changes with
+        // the video (aspect ratio, letterbox) must be read through updated-state refs.
+        val currentFillZoom by rememberUpdatedState(fillZoom)
+        val currentContentW by rememberUpdatedState(contentW)
+        val currentContentH by rememberUpdatedState(contentH)
+        // The shared gesture handler is keyed only on (player, isLocked), so it does NOT
+        // restart when the surface resizes (sheet drag ⇄ fullscreen toggle). Capturing the
+        // box size once at launch would freeze the pan/pinch clamps at the SHEET size while
+        // the surface is fullscreen: maxX = (contentW·scale − staleW)/2 becomes much larger
+        // than the real video edges, letting a drag pull the letterbox bars onto the screen.
+        // Read the live box size through updated-state refs instead.
+        val currentViewWidth by rememberUpdatedState(widthPx)
+        val currentViewHeight by rememberUpdatedState(heightPx)
+        // Whether the control overlay is visible — read through an updated-state ref
+        // because the pointerInput block is keyed only on (player, isLocked).
+        val currentShowControls by rememberUpdatedState(showControls)
 
         // Auto-hide controls after 3.5s of inactivity while playing (paused while touching).
         LaunchedEffect(showControls, interactionCounter, isPlaying, pointerDown, isLocked, isLoading) {
@@ -167,16 +260,15 @@ fun PlayerVideoArea(
                 .fillMaxSize()
                 .background(Color.Black)
                 .clipToBounds()
-                .transformable(state = transformableState)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer(
-                        scaleX = scale,
-                        scaleY = scale,
-                        translationX = offset.x,
-                        translationY = offset.y
+                        scaleX = displayScale,
+                        scaleY = displayScale,
+                        translationX = displayOffset.x,
+                        translationY = displayOffset.y
                     )
             ) {
                 ComposePlayer(
@@ -217,49 +309,256 @@ fun PlayerVideoArea(
                         )
                         .pointerInput(player, isLocked) {
                             if (isLocked) return@pointerInput
-                            val viewWidthPx = size.width.toFloat()
-                            val viewHeightPx = size.height.toFloat()
-                            var region = DRAG_NONE
-                            var accumulated = 0f
+                            val touchSlop = viewConfiguration.touchSlop
 
-                            detectVerticalDragGestures(
-                                onDragStart = { offset ->
+                            // Single combined gesture handler:
+                            //  - 1 finger, zoomed beyond fill → drag PANS the video.
+                            //  - 1 finger, fit/scale-1 state → vertical swipe adjusts volume
+                            //    (right half) / brightness (left half), only active AFTER the
+                            //    drag crosses touch slop so a plain tap never adjusts anything.
+                            //  - 2 fingers → pinch zoom + pan, following the fingers directly
+                            //    (scale exponentially smoothed per event to kill jitter). The
+                            //    adaptive fill clamp / ingress is applied only on finger lift,
+                            //    never mid-gesture (that caused the snapping-while-zooming jank).
+                            // NOTE: we do NOT consume the DOWN — playerGestures (outer modifier)
+                            // needs an unconsumed DOWN for tap detection.
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+
+                                // Cancel any in-flight snap-back from a previous gesture. If the
+                                // animation was still running (snapBackActive), adopt its current
+                                // animated position so this gesture starts where the video appears;
+                                // a fully finished snap-back already settled at scale=1, no adopt.
+                                snapBackJob?.cancel()
+                                snapBackJob = null
+                                if (snapBackActive) {
+                                    snapBackActive = false
+                                    scale = animScale.value
+                                    offset = animOffset.value
+                                }
+
+                                var regionLocked = false
+                                var region = DRAG_NONE
+                                var baseLevel = 0f
+                                var dragActive = false
+                                var preSlopDrag = 0f
+                                var accumulated = 0f
+
+                                var zooming = false
+                                var zoomedInGesture = false
+                                var initialSpan = 0f
+                                var initialZoomScale = 1f
+
+                                // 1-finger pan (zoomed beyond fill) uses the same touch-slop
+                                // gate as the volume/brightness swipe: the DOWN and micro-moves
+                                // are never consumed, so a plain tap still toggles controls.
+                                var panActive = false
+                                var panPreSlop = Offset.Zero
+
+                                fun lockRegion(pos: Offset) {
+                                    // Reserve the bottom band ONLY while the control overlay is
+                                    // visible (that's where the slider/buttons live). When hidden
+                                    // (immersive fullscreen) the whole surface responds — otherwise
+                                    // the natural thumb position near the bottom edge would land in
+                                    // a dead zone and volume/brightness swipes never activate.
+                                    // A swipe that STARTS in the band is not hard-locked: the region
+                                    // keeps re-evaluating until the finger leaves it (or controls
+                                    // auto-hide), so it can pick up volume/brightness mid-gesture.
+                                    val bandActive =
+                                        currentShowControls && pos.y > currentViewHeight * BOTTOM_CONTROL_ZONE_RATIO
                                     region = when {
-                                        offset.y > viewHeightPx * BOTTOM_CONTROL_ZONE_RATIO -> DRAG_NONE
-                                        offset.x < viewWidthPx / 2f -> DRAG_BRIGHTNESS
+                                        bandActive -> DRAG_NONE
+                                        pos.x < currentViewWidth / 2f -> DRAG_BRIGHTNESS
                                         else -> DRAG_VOLUME
                                     }
-                                    accumulated = 0f
-                                    val base = when (region) {
-                                        DRAG_VOLUME -> player.volume
-                                        DRAG_BRIGHTNESS -> currentInitialBrightness
-                                        else -> 0f
-                                    }
                                     if (region != DRAG_NONE) {
-                                        dragHud = DragHud(isVolume = region == DRAG_VOLUME, level = base)
-                                    }
-                                },
-                                onVerticalDrag = { change, dragAmount ->
-                                    change.consume()
-                                    if (region != DRAG_NONE) {
-                                        accumulated -= dragAmount
-                                        val base = dragHud?.level
-                                            ?: if (region == DRAG_VOLUME) player.volume else currentInitialBrightness
-                                        // Full-height swipe maps to the full 0..1 range:
-                                        // a half-screen swipe = ±50%, a tiny swipe = tiny step.
-                                        val level =
-                                            (base + accumulated / viewHeightPx).coerceIn(0f, 1f)
-                                        if (region == DRAG_VOLUME) {
-                                            player.volume = level
-                                        } else {
-                                            onBrightnessChange(level)
+                                        regionLocked = true
+                                        baseLevel = when (region) {
+                                            DRAG_VOLUME -> player.volume
+                                            DRAG_BRIGHTNESS -> currentInitialBrightness
+                                            else -> 0f
                                         }
-                                        dragHud = DragHud(isVolume = region == DRAG_VOLUME, level = level)
                                     }
-                                },
-                                onDragEnd = { dragHud = null },
-                                onDragCancel = { dragHud = null }
-                            )
+                                }
+
+                                do {
+                                    val event = awaitPointerEvent()
+                                    val pressed = event.changes.filter { it.pressed }
+
+                                    if (pressed.size >= 2) {
+                                        // Two fingers → zoom + pan. Follow the fingers exactly;
+                                        // no fillZoom clamp while the user is still zooming.
+                                        dragHud = null
+                                        regionLocked = false
+                                        dragActive = false
+                                        preSlopDrag = 0f
+                                        // A pinch supersedes any in-flight 1-finger pan — re-arm
+                                        // the slop gate so the eventual 2→1 tail starts a clean
+                                        // drag path instead of auto-panning from the old state.
+                                        panActive = false
+                                        panPreSlop = Offset.Zero
+                                        val p0 = pressed[0]
+                                        val p1 = pressed[1]
+                                        val span = (p0.position - p1.position).getDistance()
+                                        if (!zooming) {
+                                            zooming = true
+                                            zoomedInGesture = true
+                                            initialSpan = span
+                                            initialZoomScale = scale
+                                            interactionCounter++ // once per pinch (keeps controls awake)
+                                        } else if (initialSpan > 0f) {
+                                            // Smooth the raw finger ratio: exponential approach to
+                                            // the target each event damps finger jitter (which
+                                            // re-sampled the TextureView every frame = the "player
+                                            // size flickers" jank) WITHOUT the steppy feel of a
+                                            // hard deadband — slow pinches stay fluid.
+                                            val target = (initialZoomScale * span / initialSpan)
+                                                .coerceIn(1f, 4f)
+                                            val smoothed = scale + (target - scale) * ZOOM_SMOOTHING_FACTOR
+                                            if (abs(smoothed - scale) >= ZOOM_EPSILON) {
+                                                scale = smoothed
+                                            }
+                                            val pan = Offset(
+                                                x = (p0.position.x - p0.previousPosition.x +
+                                                    p1.position.x - p1.previousPosition.x) / 2f,
+                                                y = (p0.position.y - p0.previousPosition.y +
+                                                    p1.position.y - p1.previousPosition.y) / 2f
+                                            )
+                                            val maxX = ((currentContentW * scale - currentViewWidth) / 2f)
+                                                .coerceAtLeast(0f)
+                                            val maxY = ((currentContentH * scale - currentViewHeight) / 2f)
+                                                .coerceAtLeast(0f)
+                                            offset = Offset(
+                                                x = (offset.x + pan.x).coerceIn(-maxX, maxX),
+                                                y = (offset.y + pan.y).coerceIn(-maxY, maxY)
+                                            )
+                                        }
+                                        event.changes.forEach { it.consume() }
+                                    } else {
+                                        // One finger (or the tail of a pinch).
+                                        if (zooming) {
+                                            zooming = false
+                                            initialSpan = 0f
+                                            // No volume/brightness drag for the rest of this
+                                            // gesture — a momentary 2→1 flicker while pinching
+                                            // must not leak volume changes mid-zoom.
+                                            regionLocked = false
+                                            dragActive = false
+                                            preSlopDrag = 0f
+                                        }
+                                        val drag = pressed.firstOrNull() ?: break
+
+                                        if (scale > currentFillZoom + ZOOM_PAN_MARGIN) {
+                                            // Zoomed beyond fullscreen-fill: a one-finger drag
+                                            // PANS the video (YouTube-style) instead of adjusting
+                                            // volume/brightness — at this zoom the whole surface
+                                            // is video, so swipes must move it, not change levels.
+                                            // Slop-gated like the volume/brightness swipe: the DOWN
+                                            // and micro-moves are never consumed, so a plain tap
+                                            // still toggles controls (detectTapGestures needs an
+                                            // unconsumed DOWN).
+                                            val pan = drag.position - drag.previousPosition
+                                            if (!panActive) {
+                                                panPreSlop += pan
+                                                if (abs(panPreSlop.x) >= touchSlop ||
+                                                    abs(panPreSlop.y) >= touchSlop
+                                                ) {
+                                                    panActive = true
+                                                }
+                                            }
+                                            if (panActive) {
+                                                // First applied delta absorbs the accumulated
+                                                // pre-slop so the video doesn't lurch forward by
+                                                // slop pixels the instant the pan activates.
+                                                val slopOffset = panPreSlop
+                                                panPreSlop = Offset.Zero
+                                                val applied = Offset(
+                                                    x = pan.x - slopOffset.x,
+                                                    y = pan.y - slopOffset.y
+                                                )
+                                                val panMaxX = ((currentContentW * scale - currentViewWidth) / 2f)
+                                                    .coerceAtLeast(0f)
+                                                val panMaxY = ((currentContentH * scale - currentViewHeight) / 2f)
+                                                    .coerceAtLeast(0f)
+                                                offset = Offset(
+                                                    x = (offset.x + applied.x).coerceIn(-panMaxX, panMaxX),
+                                                    y = (offset.y + applied.y).coerceIn(-panMaxY, panMaxY)
+                                                )
+                                                drag.consume()
+                                            }
+                                        } else if (!zoomedInGesture) {
+                                            val dragAmount = drag.position.y - drag.previousPosition.y
+
+                                            if (!regionLocked) {
+                                                lockRegion(drag.position)
+                                            }
+                                            if (region != DRAG_NONE) {
+                                                if (!dragActive) {
+                                                    // Ignore micro-movements (a tap) — only start
+                                                    // adjusting once the swipe crosses touch slop.
+                                                    preSlopDrag += dragAmount
+                                                    if (abs(preSlopDrag) >= touchSlop) {
+                                                        dragActive = true
+                                                        accumulated = 0f
+                                                        dragHud = DragHud(
+                                                            isVolume = region == DRAG_VOLUME,
+                                                            level = baseLevel
+                                                        )
+                                                    }
+                                                }
+                                                if (dragActive) {
+                                                    accumulated -= dragAmount
+                                                    // IMPORTANT: base stays fixed at the value
+                                                    // captured when the drag started. Re-reading
+                                                    // the previous output as the base double-counts
+                                                    // the cumulative `accumulated` (super-linear
+                                                    // growth, and the value sticks at 0/100% once
+                                                    // clamped — swiping back would do nothing).
+                                                    // Full-range swipe = 2x view height: a
+                                                    // half-screen swipe = ±25%.
+                                                    val level =
+                                                        (baseLevel + accumulated / (currentViewHeight * 2f))
+                                                            .coerceIn(0f, 1f)
+                                                    if (region == DRAG_VOLUME) {
+                                                        player.volume = level
+                                                    } else {
+                                                        onBrightnessChange(level)
+                                                    }
+                                                    dragHud = DragHud(isVolume = region == DRAG_VOLUME, level = level)
+                                                    drag.consume()
+                                                }
+                                            }
+                                        }
+                                    }
+                                } while (event.changes.any { it.pressed })
+
+                                // Full gesture ended (all fingers lifted).
+                                dragHud = null
+                                if (scale > 1.001f && scale < currentFillZoom) {
+                                    // Adaptive + ingress (YouTube-style): a sub-fill release that got
+                                    // CLOSE to filling the screen (>= ~90% of fill) COMMITS by
+                                    // animating UP to fill mode instead of bouncing; a weak pinch
+                                    // bounces back to fit. Applied only on release — never
+                                    // mid-gesture. The next gesture's DOWN cancels any in-flight
+                                    // animation and adopts its position.
+                                    val targetScale = if (scale >= currentFillZoom * ZOOM_COMMIT_FRACTION) {
+                                        currentFillZoom
+                                    } else {
+                                        1f
+                                    }
+                                    snapBackActive = true
+                                    snapBackJob = zoomScope.launch {
+                                        animScale.snapTo(scale)
+                                        animOffset.snapTo(offset)
+                                        animOffset.animateTo(Offset.Zero, animationSpec = tween(180))
+                                        animScale.animateTo(targetScale, animationSpec = tween(260, easing = EaseOutCubic))
+                                        scale = targetScale
+                                        offset = Offset.Zero
+                                        snapBackJob = null
+                                        snapBackActive = false
+                                    }
+                                }
+                            }
                         }
                 )
             }
@@ -384,10 +683,10 @@ fun PlayerVideoArea(
                 modifier = Modifier.fillMaxSize()
             ) {
                 seekHud?.let { hud ->
-                    // Keep the indicator fully on-screen near the edges.
-                    val clampedFraction = hud.xFraction.coerceIn(0.15f, 0.85f)
-                    // Pop animation runs once on entry (remember survives hud changes);
-                    // repeated double-tap accumulations only update the text without replaying it.
+                    // Fixed position (horizontal center, like YouTube) — the indicator
+                    // does NOT follow where the double-tap landed. Pop animation runs
+                    // once on entry (remember survives hud changes); repeated double-tap
+                    // accumulations only update the text without replaying it.
                     val popScale = remember { Animatable(0.55f) }
                     LaunchedEffect(Unit) {
                         popScale.animateTo(1f, animationSpec = tween(220, easing = EaseOutBack))
@@ -401,37 +700,28 @@ fun PlayerVideoArea(
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier.offset {
-                                IntOffset(
-                                    x = ((clampedFraction * widthPx) - widthPx / 2f).roundToInt(),
-                                    y = 0
-                                )
-                            }
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = if (hud.deltaMs < 0) {
-                                        Icons.Default.Replay10
-                                    } else {
-                                        Icons.Default.Forward10
-                                    },
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(26.dp)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = if (hud.deltaMs < 0) {
-                                        stringResource(R.string.player_seek_backward, abs(hud.deltaMs / 1000))
-                                    } else {
-                                        stringResource(R.string.player_seek_forward, abs(hud.deltaMs / 1000))
-                                    },
-                                    color = Color.White,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = if (hud.deltaMs < 0) {
+                                    Icons.Default.Replay10
+                                } else {
+                                    Icons.Default.Forward10
+                                },
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(26.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = if (hud.deltaMs < 0) {
+                                    stringResource(R.string.player_seek_backward, abs(hud.deltaMs / 1000))
+                                } else {
+                                    stringResource(R.string.player_seek_forward, abs(hud.deltaMs / 1000))
+                                },
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 }
@@ -452,7 +742,7 @@ fun PlayerVideoArea(
                         modifier = Modifier
                             .clip(RoundedCornerShape(50))
                             .background(Color.Black.copy(alpha = 0.55f))
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -463,28 +753,28 @@ fun PlayerVideoArea(
                             },
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
                         LinearProgressIndicator(
                             progress = { hud.level },
                             modifier = Modifier
-                                .width(100.dp)
-                                .height(3.dp)
+                                .width(110.dp)
+                                .height(4.dp)
                                 .clip(RoundedCornerShape(50)),
                             color = AnimeRed,
                             trackColor = Color.White.copy(alpha = 0.25f)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
                         // Fixed-width value column so digits changing mid-drag
                         // (42% -> 43% -> ...) don't wiggle the whole pill.
                         Text(
                             text = "${(hud.level * 100).roundToInt()}%",
                             color = Color.White,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.End,
-                            modifier = Modifier.width(32.dp)
+                            modifier = Modifier.width(36.dp)
                         )
                     }
                 }

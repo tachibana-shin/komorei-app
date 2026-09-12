@@ -356,7 +356,7 @@ fun PlayerControlFooter(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(12.dp, 0.dp, 12.dp, 0.dp)
+            .padding(if (isFullscreen) 32.dp else 28.dp, 0.dp, if (isFullscreen) 32.dp else 28.dp, 0.dp)
             .navigationBarsPadding()
     ) {
         Row(

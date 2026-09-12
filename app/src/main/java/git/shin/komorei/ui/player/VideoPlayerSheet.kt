@@ -2,6 +2,7 @@ package git.shin.komorei.ui.player
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.view.WindowManager
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -36,6 +37,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.ExoPlayer
+import git.shin.komorei.KomoreiApplication
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.AnimeSeason
@@ -83,10 +85,15 @@ fun VideoPlayerSheet(
 
     val isFullscreen = playbackState.isFullscreen
 
-    // Immersive fullscreen
-    val activity = LocalContext.current as? Activity
-    LaunchedEffect(isFullscreen) {
-        val window = activity?.window ?: return@LaunchedEffect
+    // Reliable Activity reference — KomoreiApplication tracks the current resumed
+    // activity via ActivityLifecycleCallbacks (proven in PlayerViewModel).
+    val activity = (LocalContext.current.applicationContext as? KomoreiApplication)?.currentActivity
+
+    // Re-apply immersive bars after every recomposition in fullscreen. This catches
+    // edge cases where the system restores bars (e.g. activity resume, notification
+    // shade pull-down) without needing lifecycle API dependencies.
+    SideEffect {
+        val window = activity?.window ?: return@SideEffect
         WindowCompat.setDecorFitsSystemWindows(window, !isFullscreen)
         WindowInsetsControllerCompat(window, window.decorView).apply {
             if (isFullscreen) {
@@ -99,7 +106,27 @@ fun VideoPlayerSheet(
         }
     }
 
-    val initialBrightness = (activity?.window?.attributes?.screenBrightness?.takeIf { it >= 0f }) ?: 0.5f
+    // Keep screen on during playback; automatically cleared when the sheet is
+    // dismissed (composable leaves composition → DisposableEffect disposed).
+    val isPlaying = playbackState.isPlaying
+    DisposableEffect(isPlaying) {
+        if (isPlaying) {
+            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    // Live-effective brightness, seeded from the window's current value and mirrored on
+    // every onBrightnessChange. Window attributes are plain fields, NOT Compose state —
+    // setting them doesn't recompose the sheet, so a plain val would go stale and the next
+    // brightness drag would base its delta on an old level (jumping to a fixed value
+    // instead of moving with the swipe like the volume drag, which bases on the live
+    // player.volume).
+    var effectiveBrightness by remember {
+        mutableStateOf((activity?.window?.attributes?.screenBrightness?.takeIf { it >= 0f }) ?: 0.5f)
+    }
 
     val detailViewModel: AnimeDetailViewModel = hiltViewModel()
     val detailUiState by detailViewModel.uiState.collectAsState()
@@ -221,7 +248,7 @@ fun VideoPlayerSheet(
                                 outroRange = playbackState.outroRange,
                                 streamData = playbackState.streamData,
                                 playbackError = playbackState.error,
-                                initialBrightness = initialBrightness,
+                                initialBrightness = effectiveBrightness,
                                 isLocked = playbackState.isLocked,
                                 videoResizeMode = playbackState.videoResizeMode,
                                 onMinimizeClick = {
@@ -234,6 +261,7 @@ fun VideoPlayerSheet(
                                 onStartFastForward = onStartFastForward,
                                 onStopFastForward = onStopFastForward,
                                 onBrightnessChange = { level ->
+                                    effectiveBrightness = level
                                     activity?.window?.let { window ->
                                         window.attributes = window.attributes.apply { screenBrightness = level }
                                     }
