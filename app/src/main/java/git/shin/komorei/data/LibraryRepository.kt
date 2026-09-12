@@ -55,6 +55,15 @@ class LibraryRepository @Inject constructor(
         return animeDao.getEpisodeHistory(animeId, sourceId, episodeId)
     }
 
+    /**
+     * Watch time (ms) to auto-resume for [episodeId], or null when there's no saved
+     * progress. suspend on purpose so a real watch-history source (e.g. remote server)
+     * can be plugged in later without changing call sites.
+     */
+    suspend fun getWatchTime(animeId: String, sourceId: String, episodeId: String): Long? {
+        return animeDao.getEpisodeHistory(animeId, sourceId, episodeId)?.progressMs
+    }
+
     suspend fun isBookmarked(id: String, sourceId: String): Boolean {
         return animeDao.getAnime(id, sourceId)?.isBookmarked ?: false
     }

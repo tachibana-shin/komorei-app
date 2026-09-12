@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import git.shin.komorei.KomoreiApplication
 import git.shin.komorei.R
 import git.shin.komorei.data.AnimeRepository
+import git.shin.komorei.data.LibraryRepository
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.StreamData
@@ -44,7 +45,8 @@ import java.io.File
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
-    private val repository: AnimeRepository
+    private val repository: AnimeRepository,
+    private val libraryRepository: LibraryRepository
 ) : ViewModel() {
 
     private val _playbackState = MutableStateFlow(PlayerPlaybackState())
@@ -70,6 +72,9 @@ class PlayerViewModel @Inject constructor(
 
     private var positionPoller: Job? = null
 
+    // Position polls every 250ms; autosave every 20 ticks (~5s) of actual playback.
+    private val SAVE_WATCH_TIME_INTERVAL_TICKS = 20
+
     // Speed to restore after a "hold to fast-forward" gesture ends.
     private var fastForwardBaseSpeed: Float? = null
 
@@ -84,8 +89,9 @@ class PlayerViewModel @Inject constructor(
                 _playbackState.update {
                     it.copy(isLoading = playbackState == Player.STATE_BUFFERING)
                 }
-                // Episode finished → auto-play the next one (settings toggle).
+                // Episode finished → mark it watched + auto-play the next one (settings toggle).
                 if (playbackState == Player.STATE_ENDED) {
+                    saveWatchTime()
                     autoPlayNextEpisode()
                 }
             }
@@ -108,6 +114,7 @@ class PlayerViewModel @Inject constructor(
         // Poll position/duration/buffer so the timeline scrubber stays live without
         // depending on UI-driven callbacks (which previously were no-ops).
         positionPoller = viewModelScope.launch {
+            var saveTick = 0
             while (isActive) {
                 _playbackState.update {
                     it.copy(
@@ -116,12 +123,23 @@ class PlayerViewModel @Inject constructor(
                         bufferedPositionMs = exoPlayer.bufferedPosition.coerceAtLeast(0L)
                     )
                 }
+                // Auto-save watch time every ~5s of actual playback (write-side of the
+                // watch-history feature) so progress survives crashes/close and the
+                // resume position stays accurate.
+                if (exoPlayer.isPlaying) {
+                    if (saveTick % SAVE_WATCH_TIME_INTERVAL_TICKS == 0) saveWatchTime()
+                    saveTick++
+                }
                 delay(250)
             }
         }
     }
 
     fun openAnime(anime: Anime, episode: Episode? = null) {
+        // Persist whatever was playing before switching (periodic saves cover this too,
+        // but save at the boundary so the switch is never lossy).
+        saveWatchTime()
+
         val targetEp = episode ?: anime.episodes.firstOrNull() ?: Episode(
             id = "${anime.id}_ep_1",
             animeId = anime.id,
@@ -162,7 +180,12 @@ class PlayerViewModel @Inject constructor(
      * updated by the player listener, so the UI can never drift from the engine.
      */
     fun togglePlayPause() {
-        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+        if (exoPlayer.isPlaying) {
+            exoPlayer.pause()
+            saveWatchTime()
+        } else {
+            exoPlayer.play()
+        }
     }
 
     /** Seek the real engine; the position poller syncs the timeline state. */
@@ -296,7 +319,49 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Persist the current episode's position + duration as watch history. Values are
+     * captured synchronously so callers can save right before clearing/switching state
+     * (openAnime, selectEpisode, dismissPlayer); the Room write happens async.
+     */
+    private fun saveWatchTime() {
+        val state = _playbackState.value
+        val anime = state.fullAnime ?: state.currentAnime ?: return
+        val episode = state.currentEpisode ?: return
+        val positionMs = exoPlayer.currentPosition.coerceAtLeast(0L)
+        val durationMs = exoPlayer.duration.coerceAtLeast(0L)
+        if (durationMs <= 0L) return
+        viewModelScope.launch {
+            libraryRepository.saveProgress(
+                anime, episode,
+                positionMs.coerceAtMost(durationMs), durationMs
+            )
+        }
+    }
+
+    /**
+     * Auto-resume the freshly built media source to the last saved watch position.
+     * Fully-watched episodes (>= 95%) restart from the beginning instead of nagging.
+     * suspend because the progress may later come from a remote watch history
+     * (LibraryRepository.getWatchTime is already suspend for that seam).
+     */
+    private suspend fun restoreWatchTime() {
+        val state = _playbackState.value
+        val anime = state.fullAnime ?: state.currentAnime ?: return
+        val episode = state.currentEpisode ?: return
+        val savedMs = libraryRepository.getWatchTime(anime.id, anime.sourceId, episode.id) ?: return
+        if (savedMs <= 0L) return
+        val durationMs = exoPlayer.duration.coerceAtLeast(0L)
+            .coerceAtLeast(state.durationMs)
+        if (savedMs < (durationMs * 0.95f).toLong()) {
+            exoPlayer.seekTo(savedMs)
+        }
+    }
+
     fun selectEpisode(episode: Episode) {
+        // Persist the previous episode's position before switching away from it.
+        saveWatchTime()
+
         val durationMs = (episode.durationSeconds ?: 1440L) * 1000L
         _playbackState.update { current ->
             current.copy(
@@ -350,6 +415,7 @@ class PlayerViewModel @Inject constructor(
                     // segment transformers from this stream apply to every request.
                     exoPlayer.playWhenReady = true
                     buildMediaSource(resolved)
+                    restoreWatchTime()
                 }
                 .onFailure { e ->
                     _playbackState.update {
@@ -369,7 +435,7 @@ class PlayerViewModel @Inject constructor(
      * upgrade it via getAnimeUpdate(needsDetails = true, needsChapters = false) before
      * asking the source for servers. The first server is auto-resolved via getStream(...).
      */
-    private suspend fun loadStreams(anime: Anime, episode: Episode) {
+    private suspend fun loadStreams(anime: Anime, episode: Episode, restorePosition: Boolean = true) {
         _playbackState.update { it.copy(isLoadingStreams = true, streamError = null, error = null) }
         runCatching {
             val full = repository.getAnimeUpdate(anime, needsDetails = true, needsChapters = true)
@@ -392,7 +458,12 @@ class PlayerViewModel @Inject constructor(
                 )
             }
 
-            resolved?.let { buildMediaSource(it) }
+            resolved?.let {
+                buildMediaSource(it)
+                // Resume the episode where the user left off — but only on (re)selection,
+                // not on a manual refresh (which must keep the current timeline position).
+                if (restorePosition) restoreWatchTime()
+            }
         }.onFailure { e ->
             _playbackState.update {
                 it.copy(
@@ -491,11 +562,23 @@ class PlayerViewModel @Inject constructor(
         val state = _playbackState.value
         val anime = state.fullAnime ?: state.currentAnime ?: return
         val episode = state.currentEpisode ?: return
-        viewModelScope.launch { loadStreams(anime, episode) }
+        viewModelScope.launch { loadStreams(anime, episode, restorePosition = false) }
     }
 
     fun dismissPlayer() {
-        exoPlayer.pause()
+        // Fully release the engine + model so nothing from the previous session leaks
+        // into the next. A bare pause() leaves the old media source prepared on the
+        // engine (frozen last frame, timeline + all track/videoSize state retained):
+        // on reopen the player renders that stale episode for the ~1s the new stream
+        // takes to resolve, and leftover state (streamData, intro/outro ranges, track
+        // overrides...) mixes into the new session. stop + clearMediaItems drops the
+        // source entirely; the model is reset so each open starts from a clean slate.
+        // Persist the final position before releasing everything from the session.
+        saveWatchTime()
+        exoPlayer.playWhenReady = false
+        exoPlayer.stop()
+        exoPlayer.clearMediaItems()
+
         // If the player was closed while fullscreen, restore the previous orientation.
         if (_playbackState.value.isFullscreen) {
             (appContext as KomoreiApplication).currentActivity?.requestedOrientation =
@@ -506,13 +589,26 @@ class PlayerViewModel @Inject constructor(
             it.copy(
                 isPlaying = false,
                 sheetValue = PlayerSheetValue.HIDDEN,
-                isFullscreen = false
+                isFullscreen = false,
+                currentAnime = null,
+                currentEpisode = null,
+                fullAnime = null,
+                streams = emptyList(),
+                selectedStreamId = null,
+                streamData = null,
+                isLoadingStreams = false,
+                streamError = null,
+                error = null,
+                availableTracks = null,
+                videoTrackOverride = null,
+                videoSize = VideoSize.UNKNOWN,
+                introRange = null,
+                outroRange = null,
+                currentPositionMs = 0L,
+                durationMs = 0L,
+                bufferedPositionMs = 0L
             )
         }
-    }
-
-    fun toggleBookmark(animeId: String) {
-        // Handled by AnimeDetailViewModel or LibraryViewModel now
     }
 
     override fun onCleared() {
