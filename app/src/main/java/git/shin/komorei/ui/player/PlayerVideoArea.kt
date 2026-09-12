@@ -80,6 +80,9 @@ private const val ZOOM_EPSILON = 0.004f
 /** A 1-finger drag pans the video only when zoomed at least this far beyond fill. */
 private const val ZOOM_PAN_MARGIN = 0.01f
 
+/** Maximum pinch-zoom scale (YouTube-style cap). */
+private const val ZOOM_MAX_SCALE = 2.5f
+
 /** Transient HUD shown while swiping volume (left half) or brightness (right half). */
 private data class DragHud(val isVolume: Boolean, val level: Float)
 
@@ -107,7 +110,6 @@ fun PlayerVideoArea(
     playbackError: String?,
     initialBrightness: Float,
     isLocked: Boolean,
-    videoResizeMode: Int,
     onMinimizeClick: () -> Unit,
     onToggleFullscreen: () -> Unit,
     onRefresh: () -> Unit,
@@ -137,6 +139,9 @@ fun PlayerVideoArea(
         var seekHud by remember { mutableStateOf<SeekHud?>(null) }
         var fastForwarding by remember { mutableStateOf(false) }
         var dragHud by remember { mutableStateOf<DragHud?>(null) }
+        // Pinch-zoom level pill (0 = hidden). Written every pinch event; the auto-clear
+        // effect below restarts its delay on each write and hides it after the pinch ends.
+        var zoomHud by remember { mutableStateOf(0f) }
 
         // Always-current brightness for the volume/brightness drag base. MUST NOT be
         // used as a pointerInput key: brightness changes while dragging (via
@@ -179,11 +184,10 @@ fun PlayerVideoArea(
 
         // Fit geometry of the rendered video content (centered letterbox inside the view).
         // media3's Compose Player() renders into a raw TextureView that ALWAYS aspect-fits
-        // (codec SCALE_TO_FIT into the view-sized surface buffer) — there is no resize mode
-        // handling on that path. So the content rect is the FIT rect regardless of the
-        // cosmetic videoResizeMode state; keying it off that state made `contentW` equal the
-        // full box width (bigger than the real rendered content) whenever the picker wasn't
-        // set to FIT, and panning then drifted into the letterbox bars.
+        // (codec SCALE_TO_FIT into the view-sized surface buffer). So the content rect is
+        // always the FIT rect — the aspect-ratio picker is gone (pinch-zoom replaces it);
+        // treating the rect as anything but FIT made `contentW` equal the full box width
+        // (bigger than the real rendered content) and panning drifted into the bars.
         val viewAspect = widthPx / heightPx
         val contentW =
             if (videoAspect >= viewAspect) widthPx else heightPx * videoAspect
@@ -294,6 +298,14 @@ fun PlayerVideoArea(
             if (dragHud != null) {
                 delay(250)
                 dragHud = null
+            }
+        }
+
+        // Auto-clear the pinch-zoom level pill shortly after the last zoom update.
+        LaunchedEffect(zoomHud) {
+            if (zoomHud > 0f) {
+                delay(900)
+                zoomHud = 0f
             }
         }
 
@@ -455,11 +467,12 @@ fun PlayerVideoArea(
                                             // size flickers" jank) WITHOUT the steppy feel of a
                                             // hard deadband — slow pinches stay fluid.
                                             val target = (initialZoomScale * span / initialSpan)
-                                                .coerceIn(1f, 4f)
+                                                .coerceIn(1f, ZOOM_MAX_SCALE)
                                             val smoothed = scale + (target - scale) * ZOOM_SMOOTHING_FACTOR
                                             if (abs(smoothed - scale) >= ZOOM_EPSILON) {
                                                 scale = smoothed
                                             }
+                                            zoomHud = scale
                                             val pan = Offset(
                                                 x = (p0.position.x - p0.previousPosition.x +
                                                     p1.position.x - p1.previousPosition.x) / 2f,
@@ -584,7 +597,7 @@ fun PlayerVideoArea(
                                     // mid-gesture. The next gesture's DOWN cancels any in-flight
                                     // animation and adopts its position.
                                     val targetScale = if (scale >= currentFillZoom * ZOOM_COMMIT_FRACTION) {
-                                        currentFillZoom
+                                        minOf(currentFillZoom, ZOOM_MAX_SCALE)
                                     } else {
                                         1f
                                     }
@@ -655,6 +668,7 @@ fun PlayerVideoArea(
                     CenterPlayerControl(
                         isPlaying = isPlaying,
                         isLoading = isLoading,
+                        isFullscreen = isFullscreen,
                         onPlayPause = {
                             if (isPlaying) player.pause() else player.play()
                             interactionCounter++
@@ -820,6 +834,28 @@ fun PlayerVideoArea(
                         )
                     }
                 }
+            }
+
+            // Pinch-zoom level pill — a small fixed-center HUD showing the current
+            // scale (e.g. "1.5x") while zooming, capped at ZOOM_MAX_SCALE. Mirrors the
+            // volume/brightness pill style, text-only.
+            AnimatedVisibility(
+                visible = zoomHud > 0f,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.align(Alignment.Center)
+            ) {
+                Text(
+                    text = stringResource(R.string.player_zoom_level, zoomHud),
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.Black.copy(alpha = 0.55f))
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                )
             }
 
             // Global loading indicator (always visible when buffering)

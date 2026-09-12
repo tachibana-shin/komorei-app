@@ -375,6 +375,7 @@ fun PlayerControlFooter(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .padding(bottom = if (isFullscreen) 8.dp else 0.dp)
             .navigationBarsPadding()
     ) {
         Row(
@@ -533,10 +534,12 @@ fun PlayerControlFooter(
 fun CenterPlayerControl(
     isPlaying: Boolean,
     isLoading: Boolean,
+    isFullscreen: Boolean,
     onPlayPause: () -> Unit,
     onSeekRelative: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val pSize = if (isFullscreen) 16.dp else 0.dp
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
@@ -544,7 +547,7 @@ fun CenterPlayerControl(
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(40.dp + pSize)
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.35f))
                 .clickable(
@@ -554,19 +557,19 @@ fun CenterPlayerControl(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Replay10, null, tint = Color.White, modifier = Modifier.size(24.dp))
+            Icon(Icons.Default.Replay10, null, tint = Color.White, modifier = Modifier.size(24.dp + pSize/2))
         }
 
         Spacer(modifier = Modifier.width(32.dp))
 
         Box(
-            modifier = Modifier.size(56.dp),
+            modifier = Modifier.size(56.dp + pSize),
             contentAlignment = Alignment.Center
         ) {
             if (!isLoading) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(48.dp + pSize)
                         .clip(CircleShape)
                         .background(Color.Black.copy(alpha = 0.45f))
                         .clickable(
@@ -580,7 +583,7 @@ fun CenterPlayerControl(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(28.dp + pSize)
                     )
                 }
             }
@@ -590,7 +593,7 @@ fun CenterPlayerControl(
 
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(40.dp + pSize)
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.35f))
                 .clickable(
@@ -600,7 +603,7 @@ fun CenterPlayerControl(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Forward10, null, tint = Color.White, modifier = Modifier.size(24.dp))
+            Icon(Icons.Default.Forward10, null, tint = Color.White, modifier = Modifier.size(24.dp + pSize/2))
         }
     }
 }

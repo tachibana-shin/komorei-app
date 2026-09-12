@@ -45,7 +45,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.C
+import androidx.media3.common.Format
 import androidx.media3.common.Tracks
+import androidx.media3.common.VideoSize
 import coil.compose.AsyncImage
 import git.shin.komorei.R
 import git.shin.komorei.model.*
@@ -769,7 +771,6 @@ fun EpisodeListItemCard(
 fun SettingsContent(
     playbackState: PlayerPlaybackState,
     onSpeedChange: (Float) -> Unit,
-    onResizeModeChange: (Int) -> Unit,
     onStreamSelected: (StreamInfo) -> Unit,
     onTrackSelected: (Tracks.Group, Int) -> Unit,
     onClearTrackType: (Int) -> Unit,
@@ -824,18 +825,18 @@ fun SettingsContent(
                         }
                         item {
                             SettingsItem(
-                                icon = Icons.Default.AspectRatio,
-                                title = stringResource(R.string.player_aspect_ratio),
-                                value = getResizeModeLabel(playbackState.videoResizeMode),
-                                onClick = { currentPane = SettingsPane.ASPECT_RATIO }
+                                icon = Icons.Default.HighQuality,
+                                title = stringResource(R.string.player_quality),
+                                value = getSelectedVideoLabel(playbackState.videoTrackOverride, playbackState.videoSize),
+                                onClick = { currentPane = SettingsPane.QUALITY }
                             )
                         }
                         item {
                             SettingsItem(
-                                icon = Icons.Default.HighQuality,
-                                title = stringResource(R.string.player_quality),
+                                icon = Icons.Default.Dns,
+                                title = stringResource(R.string.player_stream_source),
                                 value = playbackState.streams.find { it.id == playbackState.selectedStreamId }?.name ?: stringResource(R.string.unknown),
-                                onClick = { currentPane = SettingsPane.QUALITY }
+                                onClick = { currentPane = SettingsPane.STREAM }
                             )
                         }
                         item {
@@ -872,34 +873,43 @@ fun SettingsContent(
                         }
                     }
                 }
-                SettingsPane.ASPECT_RATIO -> {
-                    PaneHeader(stringResource(R.string.player_aspect_ratio), onBack = { currentPane = SettingsPane.MAIN })
-                    val modes = listOf(0, 3, 4) // Fit, Fill, Zoom
-                    LazyColumn {
-                        items(modes) { mode ->
-                            SelectableItem(
-                                label = getResizeModeLabel(mode),
-                                isSelected = mode == playbackState.videoResizeMode,
-                                onClick = {
-                                    onResizeModeChange(mode)
-                                    onDismiss()
-                                }
-                            )
-                        }
-                    }
-                }
                 SettingsPane.QUALITY -> {
-                    PaneHeader(stringResource(R.string.player_quality), onBack = { currentPane = SettingsPane.MAIN })
-                    LazyColumn {
-                        items(playbackState.streams) { stream ->
-                            SelectableItem(
-                                label = stream.name,
-                                isSelected = stream.id == playbackState.selectedStreamId,
-                                onClick = {
-                                    onStreamSelected(stream)
-                                    onDismiss()
-                                }
-                            )
+                    QualitySelectionPane(
+                        availableTracks = playbackState.availableTracks,
+                        videoTrackOverride = playbackState.videoTrackOverride,
+                        videoSize = playbackState.videoSize,
+                        onTrackSelected = { group, index ->
+                            onTrackSelected(group, index)
+                            onDismiss()
+                        },
+                        onClearTrack = {
+                            onClearTrackType(C.TRACK_TYPE_VIDEO)
+                            onDismiss()
+                        },
+                        onBack = { currentPane = SettingsPane.MAIN }
+                    )
+                }
+                SettingsPane.STREAM -> {
+                    PaneHeader(stringResource(R.string.streaming_server_header), onBack = { currentPane = SettingsPane.MAIN })
+                    if (playbackState.streams.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = stringResource(R.string.server_empty), color = TextMuted, fontSize = 13.sp)
+                        }
+                    } else {
+                        LazyColumn {
+                            items(playbackState.streams) { stream ->
+                                SelectableItem(
+                                    label = stream.name,
+                                    isSelected = stream.id == playbackState.selectedStreamId,
+                                    onClick = {
+                                        onStreamSelected(stream)
+                                        onDismiss()
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -944,12 +954,12 @@ fun SettingsContent(
 @Composable
 fun UnifiedPlayerSettingsSheet(
     playbackSpeed: Float,
-    videoResizeMode: Int,
     availableTracks: Tracks?,
     streams: List<StreamInfo>,
     selectedStreamId: String?,
+    videoTrackOverride: Format?,
+    videoSize: VideoSize,
     onSpeedChange: (Float) -> Unit,
-    onResizeModeChange: (Int) -> Unit,
     onStreamSelected: (StreamInfo) -> Unit,
     onTrackSelected: (Tracks.Group, Int) -> Unit,
     onClearTrackType: (Int) -> Unit,
@@ -966,13 +976,13 @@ fun UnifiedPlayerSettingsSheet(
         SettingsContent(
             playbackState = PlayerPlaybackState(
                 playbackSpeed = playbackSpeed,
-                videoResizeMode = videoResizeMode,
                 availableTracks = availableTracks,
                 streams = streams,
-                selectedStreamId = selectedStreamId
+                selectedStreamId = selectedStreamId,
+                videoTrackOverride = videoTrackOverride,
+                videoSize = videoSize
             ),
             onSpeedChange = onSpeedChange,
-            onResizeModeChange = onResizeModeChange,
             onStreamSelected = onStreamSelected,
             onTrackSelected = onTrackSelected,
             onClearTrackType = onClearTrackType,
@@ -981,7 +991,7 @@ fun UnifiedPlayerSettingsSheet(
     }
 }
 
-enum class SettingsPane { MAIN, SPEED, ASPECT_RATIO, QUALITY, AUDIO, SUBTITLE }
+enum class SettingsPane { MAIN, SPEED, QUALITY, STREAM, AUDIO, SUBTITLE }
 
 @Composable
 fun SettingsItem(
@@ -1078,10 +1088,68 @@ fun TrackSelectionPane(
 }
 
 @Composable
-fun getResizeModeLabel(mode: Int): String = when (mode) {
-    3 -> stringResource(R.string.player_resize_fill)
-    4 -> stringResource(R.string.player_resize_zoom)
-    else -> stringResource(R.string.player_resize_fit)
+fun QualitySelectionPane(
+    availableTracks: Tracks?,
+    videoTrackOverride: Format?,
+    videoSize: VideoSize,
+    onTrackSelected: (Tracks.Group, Int) -> Unit,
+    onClearTrack: () -> Unit,
+    onBack: () -> Unit
+) {
+    PaneHeader(stringResource(R.string.player_quality), onBack = onBack)
+    LazyColumn {
+        item {
+            // "Auto" = no forced rendition — the player adapts over the qualities the
+            // stream declares (HLS renditions). Selected state comes from OUR override
+            // flag, NOT from isTrackSelected (which stays true for many renditions
+            // while adaptive, so it would keep a quality row highlighted incorrectly).
+            SelectableItem(
+                label = stringResource(R.string.player_quality_auto),
+                isSelected = videoTrackOverride == null,
+                onClick = onClearTrack
+            )
+        }
+        availableTracks?.groups?.filter { it.type == C.TRACK_TYPE_VIDEO }?.forEach { group ->
+            items(group.length) { index ->
+                val format = group.getTrackFormat(index)
+                SelectableItem(
+                    label = getVideoTrackLabel(format),
+                    // A forced track is exactly one (FixedTrackSelection); in Auto no
+                    // quality row may be highlighted even if adaptive marks several.
+                    isSelected = videoTrackOverride != null && group.isTrackSelected(index),
+                    onClick = { onTrackSelected(group, index) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun getSelectedVideoLabel(override: Format?, videoSize: VideoSize): String {
+    if (override != null) return getVideoTrackLabel(override)
+    // Auto/adaptive — "Auto (480p)": the rendition ACTUALLY playing, read from
+    // player.videoSize (Tracks can't tell which rendition is active in adaptive mode).
+    val reference = listOf(videoSize.height, videoSize.width).filter { it > 0 }.minOrNull()
+        ?: return stringResource(R.string.player_quality_auto)
+    return stringResource(R.string.player_quality_auto_current, "${reference}p")
+}
+
+@Composable
+fun getVideoTrackLabel(format: Format): String {
+    // Reference = the smaller positive dimension (1920x1080 -> 1080, portrait
+    // 1080x1920 -> 1080), mapped to a familiar short label like YouTube's.
+    val reference = listOf(format.height, format.width).filter { it > 0 }.minOrNull()
+        ?: return format.label ?: stringResource(R.string.unknown)
+    val name = when {
+        reference >= 4320 -> stringResource(R.string.player_quality_8k)
+        reference >= 2160 -> stringResource(R.string.player_quality_4k)
+        reference >= 1440 -> stringResource(R.string.player_quality_2k)
+        reference >= 1080 -> stringResource(R.string.player_quality_fhd)
+        reference >= 720 -> stringResource(R.string.player_quality_hd)
+        reference >= 480 -> stringResource(R.string.player_quality_sd)
+        else -> null
+    }
+    return if (name != null) "${reference}p ($name)" else "${reference}p"
 }
 
 @Composable

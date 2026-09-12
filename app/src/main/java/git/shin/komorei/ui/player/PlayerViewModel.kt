@@ -28,11 +28,14 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.VideoSize
 import androidx.media3.common.Tracks
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import javax.inject.Inject
 
+@UnstableApi
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
@@ -86,6 +89,10 @@ class PlayerViewModel @Inject constructor(
 
             override fun onTracksChanged(tracks: Tracks) {
                 _playbackState.update { it.copy(availableTracks = tracks) }
+            }
+
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                _playbackState.update { it.copy(videoSize = videoSize) }
             }
         })
 
@@ -204,15 +211,16 @@ class PlayerViewModel @Inject constructor(
         _playbackState.update { it.copy(isLocked = !it.isLocked) }
     }
 
-    fun setVideoResizeMode(mode: Int) {
-        _playbackState.update { it.copy(videoResizeMode = mode) }
-    }
-
     fun selectTrack(group: Tracks.Group, trackIndex: Int) {
         exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
             .buildUpon()
             .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, trackIndex))
             .build()
+        if (group.type == C.TRACK_TYPE_VIDEO) {
+            // Remember the forced rendition so the quality picker can tell it from Auto
+            // (Tracks.isTrackSelected stays true for MANY renditions in adaptive mode).
+            _playbackState.update { it.copy(videoTrackOverride = group.getTrackFormat(trackIndex)) }
+        }
     }
 
     fun clearTrackType(type: Int) {
@@ -220,6 +228,9 @@ class PlayerViewModel @Inject constructor(
             .buildUpon()
             .clearOverridesOfType(type)
             .build()
+        if (type == C.TRACK_TYPE_VIDEO) {
+            _playbackState.update { it.copy(videoTrackOverride = null) }
+        }
     }
 
     fun toggleSubtitles() {
@@ -243,7 +254,8 @@ class PlayerViewModel @Inject constructor(
                 selectedStreamId = null,
                 streamData = null,
                 streamError = null,
-                error = null
+                error = null,
+                videoTrackOverride = null
             )
         }
         val anime = _playbackState.value.fullAnime ?: _playbackState.value.currentAnime ?: return
@@ -264,7 +276,8 @@ class PlayerViewModel @Inject constructor(
                 streamData = null,
                 isLoadingStreams = true,
                 streamError = null,
-                error = null
+                error = null,
+                videoTrackOverride = null
             )
         }
 

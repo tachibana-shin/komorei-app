@@ -67,7 +67,6 @@ fun VideoPlayerSheet(
     onRetryStreams: () -> Unit,
     onToggleLock: () -> Unit,
     onToggleSubtitles: () -> Unit,
-    onResizeModeChange: (Int) -> Unit,
     onTrackSelected: (Tracks.Group, Int) -> Unit,
     onClearTrackType: (Int) -> Unit,
     onDismiss: () -> Unit,
@@ -250,7 +249,6 @@ fun VideoPlayerSheet(
                                 playbackError = playbackState.error,
                                 initialBrightness = effectiveBrightness,
                                 isLocked = playbackState.isLocked,
-                                videoResizeMode = playbackState.videoResizeMode,
                                 onMinimizeClick = {
                                     if (isFullscreen) onToggleFullscreen()
                                     else onStateChange(PlayerSheetValue.COLLAPSED)
@@ -382,7 +380,6 @@ fun VideoPlayerSheet(
                             UnifiedSettingsContent(
                                 playbackState = playbackState,
                                 onSpeedChange = onSpeedChange,
-                                onResizeModeChange = onResizeModeChange,
                                 onStreamSelected = onStreamSelected,
                                 onTrackSelected = onTrackSelected,
                                 onClearTrackType = onClearTrackType,
@@ -414,12 +411,12 @@ fun VideoPlayerSheet(
                         if (activeMenu == PlayerMenu.SETTINGS) {
                             UnifiedPlayerSettingsSheet(
                                 playbackSpeed = playbackState.playbackSpeed,
-                                videoResizeMode = playbackState.videoResizeMode,
                                 availableTracks = playbackState.availableTracks,
                                 streams = playbackState.streams,
                                 selectedStreamId = playbackState.selectedStreamId,
+                                videoTrackOverride = playbackState.videoTrackOverride,
+                                videoSize = playbackState.videoSize,
                                 onSpeedChange = onSpeedChange,
-                                onResizeModeChange = onResizeModeChange,
                                 onStreamSelected = onStreamSelected,
                                 onTrackSelected = onTrackSelected,
                                 onClearTrackType = onClearTrackType,
@@ -463,7 +460,6 @@ fun VideoPlayerSheet(
 fun UnifiedSettingsContent(
     playbackState: PlayerPlaybackState,
     onSpeedChange: (Float) -> Unit,
-    onResizeModeChange: (Int) -> Unit,
     onStreamSelected: (StreamInfo) -> Unit,
     onTrackSelected: (Tracks.Group, Int) -> Unit,
     onClearTrackType: (Int) -> Unit,
@@ -472,7 +468,6 @@ fun UnifiedSettingsContent(
     SettingsContent(
         playbackState = playbackState,
         onSpeedChange = onSpeedChange,
-        onResizeModeChange = onResizeModeChange,
         onStreamSelected = onStreamSelected,
         onTrackSelected = onTrackSelected,
         onClearTrackType = onClearTrackType,

@@ -1,6 +1,8 @@
 package git.shin.komorei.ui.player
 
+import androidx.media3.common.Format
 import androidx.media3.common.Tracks
+import androidx.media3.common.VideoSize
 import git.shin.komorei.data.remote.SegmentDataInterceptor
 import git.shin.komorei.data.remote.SegmentUrlInterceptor
 import git.shin.komorei.model.Anime
@@ -27,14 +29,21 @@ data class PlayerPlaybackState(
     // Lock mode: disables all controls except unlock button
     val isLocked: Boolean = false,
 
-    // Aspect ratio / Resize mode (matching Media3 AspectRatioFrameLayout.RESIZE_MODE_*)
-    val videoResizeMode: Int = 0, // RESIZE_MODE_FIT
-
     // Tracks: Subtitles and Audio
     val availableTracks: Tracks? = null,
     val selectedAudioTrackId: String? = null,
     val selectedSubtitleTrackId: String? = null,
     val isSubtitleEnabled: Boolean = true,
+
+    // Forced video track (quality) — null = Auto (adaptive). Mirrors the ExoPlayer
+    // TrackSelectionOverride for TRACK_TYPE_VIDEO so the picker can tell a forced
+    // rendition from adaptive: in adaptive mode Tracks.isTrackSelected reports MANY
+    // renditions as selected, so it can't be used to derive the chosen quality.
+    val videoTrackOverride: Format? = null,
+
+    // Currently rendered video resolution (player.videoSize) — feeds the "Auto (480p)"
+    // style label with the rendition actually playing, and updates as the player adapts.
+    val videoSize: VideoSize = VideoSize.UNKNOWN,
 
     // Intro/Outro segments
     val introRange: LongRange? = null,
