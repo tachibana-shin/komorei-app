@@ -32,6 +32,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -72,6 +75,11 @@ fun MainScreen(
     val onAnimeSelected: (Anime) -> Unit = { anime ->
         playerViewModel.openAnime(anime)
     }
+
+    // Height of the phone's bottom navigation bar (set from the Scaffold's content
+    // padding). The collapsed mini player must never cover it — its bottom corners are
+    // raised above this in MiniPlayerGeometry. 0 on wide screens (rail on the left).
+    var bottomBarHeightDp by remember { mutableStateOf(0.dp) }
 
     BoxWithConstraints(modifier = Modifier
         .fillMaxSize()
@@ -281,14 +289,15 @@ fun MainScreen(
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
                     val actualBottomNavHeight = innerPadding.calculateBottomPadding()
-                    val isMiniPlayerShowing = playbackState.sheetValue == PlayerSheetValue.COLLAPSED
+                    bottomBarHeightDp = actualBottomNavHeight
 
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // Screen contents padded so last list items are never cut off behind bottom bar & mini player
+                        // Screen contents padded so last list items are never cut off behind the bottom bar
+                        // (the collapsed floating mini player is an overlay — content scrolls under it)
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(bottom = if (isFullscreen) 0.dp else (actualBottomNavHeight + (if (isMiniPlayerShowing) 64.dp else 0.dp)))
+                                .padding(bottom = if (isFullscreen) 0.dp else actualBottomNavHeight)
                         ) {
                             MainNavigationHost(
                                 navController = navController,
@@ -301,14 +310,14 @@ fun MainScreen(
 
             // UNIFIED Video Player Overlay Sheet: Outside the adaptive branches to preserve state!
             if (playbackState.sheetValue != PlayerSheetValue.HIDDEN) {
-                val actualBottomNavHeight = if (isWideScreen) 0.dp else 80.dp // Approximate fallback
                 VideoPlayerSheet(
                     playerViewModel = playerViewModel,
                     onAnimeSelected = onAnimeSelected,
                     onNavigateToCategory = { filters ->
                         // navController.navigate(...)
                     },
-                    bottomNavHeight = if (isPlayerExpanded || isFullscreen) 0.dp else actualBottomNavHeight
+                    // Mini player corners sit above the bottom toolbar (0 on wide screens).
+                    bottomToolbarPadding = bottomBarHeightDp
                 )
             }
         }

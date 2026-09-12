@@ -3,17 +3,22 @@ package git.shin.komorei.ui.player
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.view.WindowManager
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -21,13 +26,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,7 +52,7 @@ import git.shin.komorei.model.SelectedFilter
 import git.shin.komorei.model.StreamInfo
 import git.shin.komorei.ui.player.components.*
 import git.shin.komorei.ui.theme.*
-import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @SuppressLint("ContextCastToActivity")
@@ -54,8 +61,12 @@ fun VideoPlayerSheet(
     playerViewModel: PlayerViewModel,
     onAnimeSelected: (Anime) -> Unit,
     onNavigateToCategory: (List<SelectedFilter>) -> Unit,
-    bottomNavHeight: androidx.compose.ui.unit.Dp = 80.dp,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /**
+     * Height of the app's bottom navigation bar (px-converted inside). The collapsed
+     * mini bubble's bottom corners are raised above it so it never covers the toolbar.
+     */
+    bottomToolbarPadding: Dp = 0.dp
 ) {
     // Everything derives from the ViewModel — the single source of truth for the
     // player engine, playback state and every action — so no callback plumbing.
@@ -186,73 +197,126 @@ fun VideoPlayerSheet(
 
     var activeMenu by remember { mutableStateOf<PlayerMenu?>(null) }
 
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize().clipToBounds()) {
+        // Single source of truth for the sheet's vertical position (px). A drag snaps it
+        // 1:1 to the finger; on release it springs toward the target while KEEPING the
+        // finger's release velocity (momentum) — the old animateFloatAsState restarted the
+        // spring from rest on every release, so the sheet visibly "khựng" (dead-stop start)
+        // instead of gliding like YouTube. Damping CRITICAL (1.0) never overshoots: an
+        // underdamped 0.9 bounced past fullHeight, pushed `fraction` back over the bubble
+        // gate and ping-ponged the shared video surface sheet↔bubble (black flicker).
         val fullHeightPx = constraints.maxHeight.toFloat()
-        val miniPlayerHeightPx = with(androidx.compose.ui.platform.LocalDensity.current) { 64.dp.toPx() }
-        val bottomNavHeightPx = with(androidx.compose.ui.platform.LocalDensity.current) { bottomNavHeight.toPx() }
-        val maxOffset = (fullHeightPx - miniPlayerHeightPx - bottomNavHeightPx).coerceAtLeast(0f)
 
         val targetOffset = when (playbackState.sheetValue) {
             PlayerSheetValue.EXPANDED -> 0f
-            PlayerSheetValue.COLLAPSED -> maxOffset
-            PlayerSheetValue.HIDDEN -> fullHeightPx
+            PlayerSheetValue.COLLAPSED, PlayerSheetValue.HIDDEN -> fullHeightPx
         }
 
-        var dragOffset by remember { mutableFloatStateOf(0f) }
-        val animatedOffset by animateFloatAsState(
-            targetValue = if (dragOffset != 0f) dragOffset else targetOffset,
-            animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow),
-            label = "SheetOffsetAnimation"
-        )
+        val sheetOffset = remember { Animatable(0f) }
+        val scope = rememberCoroutineScope()
+        var isSheetDragging by remember { mutableStateOf(false) }
+        var releaseVelocity by remember { mutableFloatStateOf(0f) }
 
-        val fraction = if (maxOffset > 0f) (1f - (animatedOffset / maxOffset)).coerceIn(0f, 1f) else 1f
-        val isCollapsed = fraction < 0.2f
+        LaunchedEffect(targetOffset, isSheetDragging, isFullscreen) {
+            if (!isSheetDragging && !isFullscreen) {
+                val startVelocity = releaseVelocity
+                releaseVelocity = 0f
+                sheetOffset.animateTo(
+                    targetValue = targetOffset,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    ),
+                    initialVelocity = startVelocity
+                )
+            }
+        }
 
+        // ~0 = fully expanded → ~1 = fully collapsed (off-screen). The collapse combines
+        // a 1:1 SLIDE — the whole sheet Box follows the finger via its layout offset
+        // below ("trượt theo nhịp vuốt") — with a FADE: a black veil inside the column
+        // dims the content (video + detail + controls) progressively, so the player
+        // "fade mờ ẩn hẳn" as it slides away. NO graphicsLayer on the video path — a
+        // TextureView under any layered ancestor renders BLACK (AGENTS.md); the fade is
+        // a plain opaque overlay, not an alpha on the surface.
+        val collapse = if (fullHeightPx > 0f) (sheetOffset.value / fullHeightPx).coerceIn(0f, 1f) else 0f
+        val showBubble = playbackState.sheetValue == PlayerSheetValue.COLLAPSED && collapse >= 0.98f && !isFullscreen
+        // Mutual exclusion: the engine can only paint to ONE surface (media3 keeps a
+        // single videoSurface — a second attach replaces it, and detaching the bubble
+        // would clearVideoSurface and leave the sheet's view black on expand). So the
+        // sheet's video area is uncomposed exactly while the floating bubble is up.
+        val showSheetVideo = !showBubble
+
+        // Drag math: raw finger deltas accumulate on the POSITION SET AT THE MOMENT OF
+        // DRAG START (the Animatable is stopped there). Deliberately never feed an
+        // animated value back into the accumulator — that compounded a slightly-lagging
+        // value every step and the sheet crept (see round-1 fix notes).
         val draggableState = rememberDraggableState { delta ->
-            val newOffset = (animatedOffset + delta).coerceIn(0f, maxOffset)
-            dragOffset = newOffset
+            scope.launch { sheetOffset.snapTo((sheetOffset.value + delta).coerceIn(0f, fullHeightPx)) }
         }
+
+        // Mini bubble geometry (px) — shared with FloatingMiniPlayer: size, the four
+        // corner anchors (bottom ones raised above the app's bottom toolbar) and the
+        // bottom-center point the bubble appears from. The bubble's top-left is hoisted
+        // here so it keeps whatever corner the user snapped it to across collapse/expand.
+        val bottomInsetPx = with(LocalDensity.current) { bottomToolbarPadding.toPx() }.coerceAtLeast(0f)
+        val miniGeometry = computeMiniPlayerGeometry(
+            maxWidthPx = constraints.maxWidth.toFloat(),
+            maxHeightPx = fullHeightPx,
+            density = LocalDensity.current,
+            bottomInsetPx = bottomInsetPx
+        )
+        var miniBubblePos: Offset by remember { mutableStateOf(miniGeometry.cornerBottomRight) }
+        // Pivot for the bubble's scaleIn enter animation: the corner the bubble will
+        // occupy, as a fraction of this overlay. The bubble visibly GROWS OUT of the
+        // corner it lands in (plus a short fade) — "mở mini player bằng animate" —
+        // instead of scaling around the screen center.
+        val bubbleOrigin = TransformOrigin(
+            (miniBubblePos.x / constraints.maxWidth.coerceAtLeast(1)).coerceIn(0f, 1f),
+            (miniBubblePos.y / constraints.maxHeight.coerceAtLeast(1)).coerceIn(0f, 1f)
+        )
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .offset { IntOffset(x = 0, y = animatedOffset.roundToInt()) }
+                // The WHOLE sheet slides down 1:1 with the finger via a plain LAYOUT
+                // offset ("trượt theo nhịp vuốt") — placement-only, and NOT graphicsLayer
+                // (this box contains the TextureView surface; layering it blacks the
+                // video). At full collapse it sits fully below the viewport, so the app
+                // behind gets the pointer and the mini bubble takes over.
+                .offset { IntOffset(x = 0, y = sheetOffset.value.roundToInt()) }
                 .draggable(
                     state = draggableState,
                     orientation = Orientation.Vertical,
-                    enabled = !isFullscreen, // Disable dragging the sheet while in fullscreen
+                    // Drag only while the sheet is up. Once collapsed the overlay must
+                    // NOT swallow touches — the mini bubble is the interactive element
+                    // and the app behind it needs the pointer (fullscreen locks too).
+                    enabled = !isFullscreen && playbackState.sheetValue != PlayerSheetValue.COLLAPSED,
+                    onDragStarted = {
+                        isSheetDragging = true
+                        scope.launch { sheetOffset.stop() }
+                    },
                     onDragStopped = { velocity ->
-                        if (velocity > 800 || dragOffset > maxOffset * 0.4f) {
+                        isSheetDragging = false
+                        releaseVelocity = velocity
+                        val endOffset = sheetOffset.value
+                        if (velocity > 800 || endOffset > fullHeightPx * 0.4f) {
                             onStateChange(PlayerSheetValue.COLLAPSED)
-                        } else if (velocity < -800 || dragOffset <= maxOffset * 0.4f) {
+                        } else if (velocity < -800 || endOffset <= fullHeightPx * 0.4f) {
                             onStateChange(PlayerSheetValue.EXPANDED)
                         }
-                        dragOffset = 0f
                     }
                 )
         ) {
-            if (isCollapsed) {
-                val progressFraction = if (playbackState.durationMs > 0) {
-                    playbackState.currentPositionMs.toFloat() / playbackState.durationMs
-                } else 0f
-
-                MiniPlayer(
-                    anime = anime,
-                    episode = currentEp,
-                    isPlaying = playbackState.isPlaying,
-                    progressFraction = progressFraction,
-                    onExpand = { onStateChange(PlayerSheetValue.EXPANDED) },
-                    onPlayPauseToggle = onPlayPauseToggle,
-                    onClose = onDismiss,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                        .border(1.dp, CardBorderDark, RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                )
-            } else {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Column(modifier = Modifier.fillMaxSize().background(BackgroundDark)) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            // Opaque wall behind the sheet content. It rides along with the
+                            // whole sheet's offset and leaves the viewport entirely when
+                            // collapsed, so it never lingers over the app behind the bubble.
+                            .background(BackgroundDark)
+                    ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -260,9 +324,13 @@ fun VideoPlayerSheet(
                                     if (isFullscreen) Modifier.weight(1f)
                                     else Modifier.aspectRatio(16f / 9f).statusBarsPadding()
                                 )
+                                // Opaque black behind the video. NO offset, NO graphicsLayer —
+                                // the whole sheet Box slides via its own layout offset above,
+                                // and the fade comes from the veil overlay below.
                                 .background(Color.Black)
                         ) {
-                            PlayerVideoArea(
+                            if (showSheetVideo) {
+                                PlayerVideoArea(
                                 player = player,
                                 title = anime.title,
                                 episodeTitle = currentEp.title,
@@ -307,7 +375,8 @@ fun VideoPlayerSheet(
                                 skipHint = skipHint,
                                 onSkip = onSkipSegment,
                                 modifier = Modifier.fillMaxSize()
-                            )
+                                )
+                            }
 
                             // Loading / Error indicator inside the video area container but above the player surface
                             val streamError = playbackState.streamError
@@ -342,7 +411,7 @@ fun VideoPlayerSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .then(
-                                    if (isFullscreen) Modifier.height(0.dp).alpha(0f)
+                                    if (isFullscreen) Modifier.height(0.dp)
                                     else Modifier.weight(1f)
                                 )
                         ) {
@@ -362,6 +431,22 @@ fun VideoPlayerSheet(
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
+                    }
+
+                    // Fade-to-black veil ("fade mờ"): dims the whole sheet content
+                    // progressively as the drag/slide progresses. A plain opaque overlay
+                    // over the Column — the ONLY way to "fade" a TextureView surface,
+                    // which would render BLACK if any ancestor grew a graphicsLayer
+                    // alpha instead (AGENTS.md). MUST be a sibling overlay of this Box,
+                    // NOT a Column child — a full-size child inside the Column starves
+                    // the weighted detail box down to 0px ("content bị xóa, chỉ còn nền").
+                    // Off while the mini bubble is up (the sheet is fully off-screen then).
+                    if (collapse > 0f && !showBubble) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = collapse))
+                        )
                     }
 
                     // Side Sheets for Fullscreen
@@ -490,8 +575,45 @@ fun VideoPlayerSheet(
                             )
                         }
                     }
-                }
             }
+        }
+
+        // Floating PiP-style bubble — MUST be a SIBLING of the offset sheet (a child
+        // of the sheet Box would be shifted off-screen along with it, exactly the
+        // "mini player bị đá ra khỏi màn hình" symptom). Free-dragged like a chat
+        // bubble; gated on the sheet being essentially fully off-screen
+        // (collapse ≈ 1) so the shared engine never paints two ComposePlayer surfaces.
+        // Sequence per UX: the player fades/slides away COMPLETELY ("ẩn hẳn") and only
+        // THEN the mini player OPENS with its own enter animation ("mở mini player bằng
+        // animate") — a scale-in pivoted at the corner it occupies, plus a short fade.
+        // The bubble's position is HOISTED (miniBubblePos) so it reopens in whatever
+        // corner the user left it.
+        AnimatedVisibility(
+            visible = showBubble,
+            enter = scaleIn(
+                animationSpec = tween(240, easing = FastOutSlowInEasing),
+                initialScale = 0.5f,
+                transformOrigin = bubbleOrigin
+            ) + fadeIn(animationSpec = tween(180, delayMillis = 90)),
+            exit = fadeOut(animationSpec = tween(120)) + scaleOut(
+                animationSpec = tween(150),
+                targetScale = 0.8f,
+                transformOrigin = bubbleOrigin
+            ),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            FloatingMiniPlayer(
+                player = player,
+                posterUrl = anime.posterUrl,
+                isPlaying = playbackState.isPlaying,
+                initialPosition = miniBubblePos,
+                onPositionChange = { miniBubblePos = it },
+                onExpand = { onStateChange(PlayerSheetValue.EXPANDED) },
+                onPlayPauseToggle = onPlayPauseToggle,
+                onClose = onDismiss,
+                modifier = Modifier.fillMaxSize(),
+                bottomInsetPx = bottomInsetPx
+            )
         }
     }
 }

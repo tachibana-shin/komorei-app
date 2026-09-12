@@ -2,6 +2,7 @@ package git.shin.komorei.ui.player
 
 import android.content.Context
 import android.content.pm.ActivityInfo
+import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -72,8 +73,15 @@ class PlayerViewModel @Inject constructor(
 
     private var positionPoller: Job? = null
 
-    // Position polls every 250ms; autosave every 20 ticks (~5s) of actual playback.
-    private val SAVE_WATCH_TIME_INTERVAL_TICKS = 20
+    // Position polls every 250ms. Autosave policy (user-requested): the first periodic
+    // save fires only once playback has advanced >= 3s into the episode (avoids
+    // clobbering a good resume point with a sub-second snapshot); later saves are
+    // spaced >= 10s apart. Boundary saves (STATE_ENDED / pause / switch / dismiss)
+    // write immediately and reset the periodic clock via saveWatchTime(), so a
+    // periodic save never fires within 10s of an explicit one.
+    private val FIRST_SAVE_POSITION_MS = 3_000L
+    private val SAVE_INTERVAL_MS = 10_000L
+    private var lastSaveUptimeMs: Long? = null
 
     // Auto-resume target, applied when the freshly built source becomes READY. seekTo
     // right after prepare() is unreliable: the source/period is created asynchronously
@@ -126,7 +134,6 @@ class PlayerViewModel @Inject constructor(
         // Poll position/duration/buffer so the timeline scrubber stays live without
         // depending on UI-driven callbacks (which previously were no-ops).
         positionPoller = viewModelScope.launch {
-            var saveTick = 0
             while (isActive) {
                 _playbackState.update {
                     it.copy(
@@ -135,12 +142,21 @@ class PlayerViewModel @Inject constructor(
                         bufferedPositionMs = exoPlayer.bufferedPosition.coerceAtLeast(0L)
                     )
                 }
-                // Auto-save watch time every ~5s of actual playback (write-side of the
-                // watch-history feature) so progress survives crashes/close and the
-                // resume position stays accurate.
+                // Auto-save watch time (write-side of the watch-history feature) so
+                // progress survives crashes/close and the resume position stays
+                // accurate. First save only once playback has advanced >= 3s into the
+                // piece; later saves at least 10s apart. STATE_ENDED / pause / switch /
+                // dismiss save via saveWatchTime() directly (no spacing gate) and reset
+                // lastSaveUptimeMs there, so the next periodic save still respects the
+                // 10s gap.
                 if (exoPlayer.isPlaying) {
-                    if (saveTick % SAVE_WATCH_TIME_INTERVAL_TICKS == 0) saveWatchTime()
-                    saveTick++
+                    val last = lastSaveUptimeMs
+                    val due = if (last == null) {
+                        exoPlayer.currentPosition.coerceAtLeast(0L) >= FIRST_SAVE_POSITION_MS
+                    } else {
+                        SystemClock.uptimeMillis() - last >= SAVE_INTERVAL_MS
+                    }
+                    if (due) saveWatchTime()
                 }
                 delay(250)
             }
@@ -349,6 +365,9 @@ class PlayerViewModel @Inject constructor(
                 positionMs.coerceAtMost(durationMs), durationMs
             )
         }
+        // Any save (periodic or boundary) restarts the >= 10s periodic clock so the
+        // next autosave is never too close to an explicit one.
+        lastSaveUptimeMs = SystemClock.uptimeMillis()
     }
 
     /**

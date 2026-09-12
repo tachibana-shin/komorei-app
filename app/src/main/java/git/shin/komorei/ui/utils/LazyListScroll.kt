@@ -1,5 +1,6 @@
 package git.shin.komorei.ui.utils
 
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 
@@ -18,10 +19,12 @@ suspend fun LazyListState.scrollToItemVisible(targetIndex: Int) {
  * (e.g. season / episode chip rows). Falls back to a plain scroll when the
  * layout is not measured yet.
  *
- * Mapping used: `scrollToItem(index, scrollOffset)` positions the item so its start edge
- * sits `-scrollOffset` px relative to the viewport start (positive scrollOffset = item
- * scrolled upward / offscreen). Since scrolling is a pure translation, the required
- * scrollOffset is `current firstVisibleItemScrollOffset + physical displacement`.
+ * The centering step scrolls by the exact pixel delta between the item's current
+ * offset and the centered offset — a pure incremental `animateScrollBy(delta)`.
+ * Never `animateScrollToItem(index, firstVisibleItemScrollOffset + delta)`: that
+ * feeds an absolute scroll position into the per-item `scrollOffset` parameter,
+ * which double-counts the existing scroll (~2× overshoot — the "scroll value is
+ * added to the old scrollX twice" symptom).
  */
 suspend fun LazyListState.animateScrollToItemCentered(targetIndex: Int) {
     if (targetIndex < 0) return
@@ -39,7 +42,7 @@ suspend fun LazyListState.animateScrollToItemCentered(targetIndex: Int) {
     val delta = item.offset - desiredStart
     if (delta == 0) return
 
-    animateScrollToItem(targetIndex, firstVisibleItemScrollOffset + delta)
+    animateScrollBy(delta.toFloat())
 }
 
 /**
