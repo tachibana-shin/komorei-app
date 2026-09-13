@@ -1,0 +1,4 @@
+[bindings.kotlin]
+# The generated bindings land directly in the app's package — this replaces
+# the old post-generation `sed s/uniffi.komorei_runner/.../` step.
+package_name = "git.shin.komorei.sdk.runner"

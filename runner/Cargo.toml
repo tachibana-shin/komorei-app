@@ -1,0 +1,42 @@
+[package]
+name = "komorei-runner"
+version = "0.1.0"
+description = "Komorei .krx wasm runner (wasmi) bridged to Kotlin via uniffi. Lives in the app repo; pulls the komorei source-API crate from the separate komorei-sdk repo via a relative path."
+authors = ["shin"]
+edition = "2024"
+publish = false
+
+[workspace]
+resolver = "3"
+
+[lib]
+name = "komorei_runner"
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+# komorei-sdk is its own separate repository (kept at ../komorei-sdk); this
+# crate is owned by the application repo and reaches the sdk by relative path.
+komorei = { path = "../komorei-sdk/crates/lib", default-features = false }
+postcard = { version = "1.1", features = ["alloc"] }
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
+thiserror = "2.0"
+uniffi = { version = "0.32.1", features = ["build"] }
+wasmi = "2.0.0"
+
+[build-dependencies]
+uniffi = { version = "0.32.1", features = ["build"] }
+
+[dev-dependencies]
+zip = { version = "4", default-features = false, features = ["deflate"] }
+
+# Mirror the komorei-sdk workspace profiles so cdylib artifacts are identical:
+# panic=abort (no unwind tables in the wasm-runner host), size-optimized,
+# stripped release builds for the Android jniLibs.
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+strip = true
+lto = true

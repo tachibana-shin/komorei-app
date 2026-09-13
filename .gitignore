@@ -7,3 +7,7 @@ local.properties
 # Signing keys
 *.jks
 *.keystore
+
+# Rust runner build output (symlinked to /mnt/komorei-data/komorei-builds/)
+runner/target/
+app/src/main/jniLibs
