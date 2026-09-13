@@ -228,14 +228,36 @@ impl KomoreiRunner {
 }
 
 impl KomoreiRunner {
-	fn with_engine<T>(
+	// wasmi's interpreter recurses natively for every wasm call. On Android,
+	// non-main threads get a 1 MiB stack by default and the release-built
+	// executor's per-call frames are large enough that a legitimate wasm call
+	// chain (up to wasmi's 1000-level recursion limit) SIGSEGVs the process
+	// before wasmi can trap cleanly — seen as "stack pointer close to top of
+	// stack" in tombstones. Run every call on a short-lived big-stack worker;
+	// the mutex still serializes calls exactly as before.
+	fn with_engine<T: Send>(
 		&self,
-		f: impl FnOnce(&mut engine::EngineState) -> Result<T, RunnerError>,
+		f: impl FnOnce(&mut engine::EngineState) -> Result<T, RunnerError> + Send,
 	) -> Result<T, RunnerError> {
-		let mut guard = self.state.lock().map_err(|_| RunnerError::Wasm("runner mutex poisoned".into()))?;
-		match guard.as_mut() {
-			Some(engine) => f(engine),
-			None => Err(RunnerError::NotLoaded),
-		}
+		const STACK_SIZE: usize = 32 * 1024 * 1024;
+		std::thread::scope(|scope| {
+			let handle = std::thread::Builder::new()
+				.name("komorei-runner".into())
+				.stack_size(STACK_SIZE)
+				.spawn_scoped(scope, move || {
+					let mut guard = self
+						.state
+						.lock()
+						.map_err(|_| RunnerError::Wasm("runner mutex poisoned".into()))?;
+					match guard.as_mut() {
+						Some(engine) => f(engine),
+						None => Err(RunnerError::NotLoaded),
+					}
+				})
+				.map_err(|e| RunnerError::Wasm(format!("spawn big-stack worker: {e}")))?;
+			handle
+				.join()
+				.map_err(|_| RunnerError::Wasm("big-stack worker panicked".into()))?
+		})
 	}
 }

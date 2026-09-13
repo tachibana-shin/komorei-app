@@ -11,3 +11,15 @@ local.properties
 # Rust runner build output (symlinked to /mnt/komorei-data/komorei-builds/)
 runner/target/
 app/src/main/jniLibs
+
+# komorei-sdk is a SEPARATE git repository (reached by relative path from
+# runner/Cargo.toml); never commit it into the app repo.
+komorei-sdk/
+
+# Fake source: target symlink → /mnt/komorei-data/komorei-builds/, and the
+# built package.krx (build artifact; the committed fixture lives at
+# app/src/main/assets/sources/fake-vi-source.krx). NO trailing slash on target:
+# the dir is a symlink, and git only matches trailing-slash patterns against
+# real directories.
+sources/fake-vi-source/target
+sources/fake-vi-source/package.krx

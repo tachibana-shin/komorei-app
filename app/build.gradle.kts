@@ -69,6 +69,12 @@ android {
         "komorei.test.exampleKrx",
         rootProject.file("komorei-sdk/examples/example-source/package.krx").absolutePath,
       )
+      // The app's own fake source (rich catalog), packaged from
+      // sources/fake-vi-source/package.krx — the committed fixture in main assets.
+      test.systemProperty(
+        "komorei.test.fakeKrx",
+        rootProject.file("app/src/main/assets/sources/fake-vi-source.krx").absolutePath,
+      )
     }
   } }
   dependenciesInfo {
