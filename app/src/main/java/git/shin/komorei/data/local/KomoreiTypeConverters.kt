@@ -7,9 +7,16 @@ import git.shin.komorei.model.AnimeSeason
 import git.shin.komorei.model.AnimeStatus
 import git.shin.komorei.model.CategoryLink
 import git.shin.komorei.model.Episode
+import git.shin.komorei.model.FilterKind
+import git.shin.komorei.model.FilterKindJsonAdapter
+import git.shin.komorei.model.FilterValue
+import git.shin.komorei.model.FilterValueJsonAdapter
 
 class KomoreiTypeConverters {
-    private val moshi = Moshi.Builder().build()
+    private val moshi = Moshi.Builder()
+        .add(FilterKind::class.java, FilterKindJsonAdapter())
+        .add(FilterValue::class.java, FilterValueJsonAdapter())
+        .build()
     
     private val categoryLinkAdapter = moshi.adapter(CategoryLink::class.java)
     private val listCategoryLinkAdapter = moshi.adapter<List<CategoryLink>>(

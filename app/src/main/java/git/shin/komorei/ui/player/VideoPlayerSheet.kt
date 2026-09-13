@@ -49,7 +49,7 @@ import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.AnimeSeason
 import git.shin.komorei.model.Episode
-import git.shin.komorei.model.SelectedFilter
+import git.shin.komorei.model.FilterValue
 import git.shin.komorei.model.StreamInfo
 import git.shin.komorei.ui.player.components.*
 import git.shin.komorei.ui.theme.*
@@ -61,7 +61,7 @@ import kotlin.math.roundToInt
 fun VideoPlayerSheet(
     playerViewModel: PlayerViewModel,
     onAnimeSelected: (Anime) -> Unit,
-    onNavigateToCategory: (List<SelectedFilter>) -> Unit,
+    onNavigateToCategory: (List<FilterValue>) -> Unit,
     modifier: Modifier = Modifier,
     /**
      * Height of the app's bottom navigation bar (px-converted inside). The collapsed

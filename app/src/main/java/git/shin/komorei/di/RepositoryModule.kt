@@ -71,7 +71,11 @@ object RepositoryModule {
             context,
             KomoreiDatabase::class.java,
             "komorei_db"
-        ).build()
+        )
+            // CategoryLink JSON shape changed (filters: SelectedFilter → FilterValue) — dev data
+            // written with the old shape would break the new adapters.
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides

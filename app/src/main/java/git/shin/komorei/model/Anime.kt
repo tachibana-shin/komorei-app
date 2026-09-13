@@ -35,7 +35,7 @@ data class AnimeSeason(
 @JsonClass(generateAdapter = true)
 data class CategoryLink(
     val name: String,
-    val filters: List<SelectedFilter> = emptyList()
+    val filters: List<FilterValue> = emptyList()
 )
 
 /**
