@@ -3,6 +3,7 @@ package git.shin.komorei.ui.components.home
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -66,25 +67,31 @@ fun AnimeEpisodeListRow(
         val page = pageSize?.takeIf { it > 0 }
         if (page != null) {
             val pages = entries.chunked(page)
-            HorizontalPager(
-                state = rememberPagerState(pageCount = { pages.size }),
-                pageSpacing = 8.dp,
-                modifier = Modifier.fillMaxWidth()
-            ) { pageIndex ->
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    pages[pageIndex].chunked(2).forEachIndexed { rowIndex, rowItems ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            rowItems.forEachIndexed { columnIndex, entry ->
-                                AnimeEpisodeListGridCell(
-                                    entry = entry,
-                                    onAnimeClick = onAnimeClick,
-                                    modifier = Modifier.weight(1f)
-                                )
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                // Same fixed (not weight/percentage) cell width as AnimeList's
+                // paged grid — two packed columns, capped at PAGED_CELL_WIDTH_MAX.
+                val cellWidth = pagedCellWidth()
+                HorizontalPager(
+                    state = rememberPagerState(pageCount = { pages.size }),
+                    pageSpacing = 8.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) { pageIndex ->
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        pages[pageIndex].chunked(2).forEachIndexed { rowIndex, rowItems ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                rowItems.forEachIndexed { columnIndex, entry ->
+                                    AnimeEpisodeListGridCell(
+                                        entry = entry,
+                                        onAnimeClick = onAnimeClick,
+                                        modifier = Modifier.width(cellWidth)
+                                    )
+                                }
+                                // Keep an incomplete last row left-aligned.
+                                if (rowItems.size == 1) Spacer(modifier = Modifier.width(cellWidth))
                             }
-                            if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }

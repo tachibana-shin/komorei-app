@@ -52,10 +52,6 @@ import git.shin.komorei.ui.theme.AnimeRed
  * Bounded Column / pager — never a LazyColumn (would nest a vertical
  * scrollable inside the Home tab's LazyColumn → FATAL).
  */
-
-/** Upper bound for a paged cell's fixed width (≈67% of a phone's content width). */
-private val PAGED_CELL_WIDTH_MAX = 280.dp
-
 @Composable
 fun AnimeListRow(
     title: String?,
@@ -74,9 +70,7 @@ fun AnimeListRow(
         if (page != null) {
             val pages = entries.chunked(page)
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                // Fixed (not weight/percentage) cell width: two packed columns,
-                // capped at the requested max item width on wider screens.
-                val cellWidth = ((maxWidth - 32.dp - 12.dp) / 2).coerceAtMost(PAGED_CELL_WIDTH_MAX)
+                val cellWidth = pagedCellWidth()
                 HorizontalPager(
                     state = rememberPagerState(pageCount = { pages.size }),
                     pageSpacing = 8.dp,
