@@ -11,9 +11,13 @@ import git.shin.komorei.model.Anime
 import git.shin.komorei.model.HomeComponent
 import git.shin.komorei.model.Listing
 import git.shin.komorei.model.Source
+import git.shin.komorei.data.SourceStateStore
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -55,10 +59,21 @@ data class ListingPageState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
-    private val repository: AnimeRepository
+    private val repository: AnimeRepository,
+    private val stateStore: SourceStateStore,
 ) : ViewModel() {
 
-    val sources: List<Source> = repository.sources
+    /**
+     * The source tabs shown on Home: the "all" aggregator plus every
+     * **enabled** source. Reactive — disabling/enabling a source or installing
+     * a new one updates the tab bar (and the pager re-keys the pages) live.
+     */
+    val sources: StateFlow<List<Source>> = combine(
+        repository.sourcesFlow,
+        stateStore.disabled,
+    ) { all, disabled ->
+        all.filter { it.isAggregator || it.id !in disabled }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), repository.sources)
 
     private val _sourceDataMap = MutableStateFlow<Map<String, SourceHomeData>>(emptyMap())
     val sourceDataMap: StateFlow<Map<String, SourceHomeData>> = _sourceDataMap.asStateFlow()
@@ -67,9 +82,18 @@ class HomeViewModel @Inject constructor(
     val listingStateMap: StateFlow<Map<String, SourceListingState>> = _listingStateMap.asStateFlow()
 
     init {
-        // Pre-fetch data for all sources so swiping horizontally between source tabs is fast & instant
-        sources.forEach { source ->
-            loadSourceData(source.id)
+        // Load home data lazily for newly-added/enabled sources and drop data
+        // for removed/disabled ones, so the pager never references stale sources.
+        viewModelScope.launch {
+            sources.collect { list ->
+                val known = _sourceDataMap.value.keys
+                list.filter { it.id !in known }.forEach { loadSourceData(it.id) }
+                val removed = known - list.map { it.id }.toSet()
+                if (removed.isNotEmpty()) {
+                    _sourceDataMap.update { it - removed }
+                    _listingStateMap.update { it - removed }
+                }
+            }
         }
     }
 

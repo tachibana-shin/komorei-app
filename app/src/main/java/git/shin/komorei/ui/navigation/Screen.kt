@@ -36,4 +36,8 @@ sealed class Screen(val route: String) {
             return "listing/${Uri.encode(sourceId)}/${ListingArgCodec.encode(listing)}"
         }
     }
+
+    data object Sources : Screen("sources")
+
+    data object SourceRepos : Screen("sources/repos")
 }

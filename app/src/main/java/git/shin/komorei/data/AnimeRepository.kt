@@ -22,6 +22,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -54,6 +56,23 @@ class AnimeRepository @Inject constructor(
             )
         )
         addAll(registry.sourceAppList())
+    }
+
+    /**
+     * Reactive variant of [sources] — re-emits when the registry's source set
+     * changes (install / uninstall), so Home tabs and the Sources tab stay
+     * in sync without process restarts.
+     */
+    val sourcesFlow: Flow<List<Source>> = registry.sourceAppFlow.map { appSources ->
+        buildList {
+            add(
+                Source(
+                    AGGREGATOR_ID, AGGREGATOR_NAME, AGGREGATOR_ICON,
+                    AGGREGATOR_VERSION, "", true, true, AGGREGATOR_BADGE
+                )
+            )
+            addAll(appSources)
+        }
     }
 
     val genres: List<Genre> = listOf(

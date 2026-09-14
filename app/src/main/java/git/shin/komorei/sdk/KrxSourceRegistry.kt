@@ -11,7 +11,10 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import javax.inject.Inject
@@ -41,13 +44,24 @@ class KrxSourceRegistry @Inject constructor(
     companion object {
         private const val TAG = "KrxSourceRegistry"
         private const val SOURCES_DIR = "sources"
+
+        /** Source keys follow the Aidoku convention: letters, digits, dot, dash. */
+        private val KEY_PATTERN = Regex("^[A-Za-z0-9.\\-]+$")
+
+        /** Ids that must not be installed/overridden by user packages. */
+        private val RESERVED_IDS = setOf("all", "local", "komga", "kavita", "suwayomi")
     }
 
-    // ── metadata (known at startup, from assets) ───────────────────────────
+    // ── metadata (known at startup, from assets + user filesDir) ───────────
 
     @Volatile private var bundledMetas: List<KrxSourceMeta>? = null
     private val metaMap = ConcurrentHashMap<String, Source>()
-    private val krxFileNames = ConcurrentHashMap<String, String>() // sourceId → asset filename
+    private val krxFileNames = ConcurrentHashMap<String, String>() // sourceId → file name (asset or filesDir)
+    private val userInstalled = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    /** App-model sources (non-aggregator) — emits whenever the set changes. */
+    private val _sourceAppFlow = MutableStateFlow<List<Source>>(emptyList())
+    val sourceAppFlow: StateFlow<List<Source>> = _sourceAppFlow
 
     // ── loaded runners ──────────────────────────────────────────────────────
 
@@ -58,9 +72,10 @@ class KrxSourceRegistry @Inject constructor(
     // ── metadata discovery ──────────────────────────────────────────────────
 
     /**
-     * Read `source.json` from every bundled `.krx` in `assets/sources/` and
-     * populate [metaMap] / [krxFileNames]. Fast (a few ms for a handful of
-     * small zips). Idempotent — subsequent calls return the cached list.
+     * Read `source.json` from every bundled `.krx` in `assets/sources/` AND every
+     * user-installed `.krx` in `filesDir/sources/`, populating [metaMap] /
+     * [krxFileNames]. Fast (a few ms for a handful of small zips). Idempotent —
+     * subsequent calls return the cached list.
      *
      * Thread-safe but may briefly block on first call (synchronized).
      */
@@ -68,29 +83,62 @@ class KrxSourceRegistry @Inject constructor(
         bundledMetas?.let { return it }
         synchronized(this) {
             bundledMetas?.let { return it }
-            val names = context.assets.list(SOURCES_DIR) ?: emptyArray()
-            val metas = names.filter { it.endsWith(".krx") }.mapNotNull { name ->
-                try {
-                    val bytes = context.assets.open("$SOURCES_DIR/$name").readBytes()
-                    KrxManager.readInfo(bytes)?.also { meta ->
-                        metaMap[meta.id] = Source(
-                            id = meta.id,
-                            name = meta.name,
-                            version = meta.version.toString(),
-                            baseUrl = meta.url,
-                        )
-                        krxFileNames[meta.id] = name
+            val metas = buildList {
+                // Bundled sources (read-only assets).
+                val names = context.assets.list(SOURCES_DIR) ?: emptyArray()
+                for (name in names.filter { it.endsWith(".krx") }) {
+                    try {
+                        val bytes = context.assets.open("$SOURCES_DIR/$name").readBytes()
+                        KrxManager.readInfo(bytes)?.let { meta ->
+                            add(meta)
+                            metaMap[meta.id] = meta.toAppSource()
+                            krxFileNames[meta.id] = name
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to read $SOURCES_DIR/$name", e)
                     }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to read $SOURCES_DIR/$name", e)
-                    null
                 }
+                // User-installed sources (persisted in filesDir; survive restarts).
+                val dir = installedDir()
+                dir.listFiles { f -> f.isFile && f.name.endsWith(".krx") }.orEmpty()
+                    .sortedBy { it.name }
+                    .forEach { file ->
+                        try {
+                            KrxManager.readInfo(file.readBytes())?.let { meta ->
+                                add(meta)
+                                metaMap[meta.id] = meta.toAppSource()
+                                krxFileNames[meta.id] = file.name
+                                userInstalled += meta.id
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to read installed ${file.name}", e)
+                        }
+                    }
             }
             bundledMetas = metas
-            Log.i(TAG, "Discovered ${metas.size} bundled source(s)")
+            emitSources()
+            Log.i(TAG, "Discovered ${metas.size} source(s) (${userInstalled.size} user-installed)")
             return metas
         }
     }
+
+    private fun KrxSourceMeta.toAppSource() = Source(
+        id = id,
+        name = name,
+        version = version.toString(),
+        baseUrl = url,
+        isEnabled = true,
+        isAggregator = false,
+        languages = languages,
+        contentRating = contentRating,
+    )
+
+    private fun emitSources() {
+        _sourceAppFlow.value = sourceAppList()
+    }
+
+    private fun installedDir(): File =
+        File(context.filesDir, SOURCES_DIR).apply { mkdirs() }
 
     /**
      * App-model [Source] list for all known bundled sources (non-aggregator).
@@ -126,9 +174,13 @@ class KrxSourceRegistry @Inject constructor(
         return try {
             bundledMetas() // ensure krxFileNames populated (cheap, cached)
             val krxName = krxFileNames[sourceId]
-                ?: error("No bundled .krx for source $sourceId")
+                ?: error("No .krx registered for source $sourceId")
             val runner = withContextIO(sourceId) {
-                val bytes = context.assets.open("$SOURCES_DIR/$krxName").readBytes()
+                val bytes = if (sourceId in userInstalled) {
+                    File(installedDir(), krxName).readBytes()
+                } else {
+                    context.assets.open("$SOURCES_DIR/$krxName").readBytes()
+                }
                 KrxManager.load(host, bytes)
             }
             runners[sourceId] = runner
@@ -152,12 +204,9 @@ class KrxSourceRegistry @Inject constructor(
         // Register metadata if unknown
         if (!metaMap.containsKey(sourceId)) {
             KrxManager.readInfo(krxBytes)?.let { meta ->
-                metaMap[meta.id] = Source(
-                    id = meta.id,
-                    name = meta.name,
-                    version = meta.version.toString(),
-                    baseUrl = meta.url,
-                )
+                metaMap[meta.id] = meta.toAppSource()
+                // Keep a stable file name so re-installs can overwrite the same file.
+                krxFileNames[meta.id] = "${meta.id}.krx"
             }
         }
 
@@ -178,6 +227,76 @@ class KrxSourceRegistry @Inject constructor(
             deferred.complete(null)
             inFlight.remove(sourceId)
             null
+        }
+    }
+
+    // ── install / uninstall ─────────────────────────────────────────────────
+
+    /** True when [sourceId] was installed by the user (lives in filesDir, not assets). */
+    fun isUserInstalled(sourceId: String): Boolean = sourceId in userInstalled
+
+    /** True when [sourceId] is a bundled asset source (read-only; cannot be uninstalled). */
+    fun isBundled(sourceId: String): Boolean = metaMap.containsKey(sourceId) && sourceId !in userInstalled
+
+    /**
+     * Installs a `.krx` package: validates the manifest, persists the bytes to
+     * `filesDir/sources/<id>.krx`, registers metadata and returns the loaded
+     * source. Returns null when the package is invalid, the id is reserved,
+     * or the source already exists (bundled or installed).
+     */
+    suspend fun installKrx(krxBytes: ByteArray): KrxSourceMeta? {
+        val meta = KrxManager.readInfo(krxBytes) ?: return null
+        if (!KEY_PATTERN.matches(meta.id)) return null
+        if (meta.id in RESERVED_IDS) return null
+        if (metaMap.containsKey(meta.id)) return null
+
+        bundledMetas() // ensure startup scan is done before mutating maps
+        val file = File(installedDir(), "${meta.id}.krx")
+        file.writeBytes(krxBytes)
+
+        metaMap[meta.id] = meta.toAppSource()
+        krxFileNames[meta.id] = file.name
+        userInstalled += meta.id
+        emitSources()
+
+        val runner = load(meta.id)
+        if (runner == null) {
+            // Roll back — the wasm could not be loaded.
+            metaMap.remove(meta.id)
+            krxFileNames.remove(meta.id)
+            userInstalled.remove(meta.id)
+            file.delete()
+            emitSources()
+            return null
+        }
+        Log.i(TAG, "Installed source ${meta.id}")
+        return meta
+    }
+
+    /**
+     * Uninstalls a user-installed source: removes the `.krx` file, drops the
+     * metadata/runner/dispatcher and emits the updated source list. Bundled
+     * sources cannot be uninstalled. Returns false when nothing was removed.
+     */
+    suspend fun uninstall(sourceId: String): Boolean {
+        if (sourceId !in userInstalled) return false
+        val fileName = krxFileNames.remove(sourceId) ?: return false
+        File(installedDir(), fileName).delete()
+
+        metaMap.remove(sourceId)
+        userInstalled.remove(sourceId)
+        runners.remove(sourceId)?.close()
+        inFlight.remove(sourceId)
+        disposeDispatcher(sourceId)
+        emitSources()
+        Log.i(TAG, "Uninstalled source $sourceId")
+        return true
+    }
+
+    private fun disposeDispatcher(sourceId: String) {
+        dispatchers.remove(sourceId)?.let { dispatcher ->
+            // asCoroutineDispatcher wraps an ExecutorService; close() shuts it down.
+            runCatching { (dispatcher as? java.io.Closeable)?.close() }
         }
     }
 

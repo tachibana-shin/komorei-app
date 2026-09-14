@@ -6,6 +6,7 @@
     <!-- Bottom Navigation Tabs -->
     <string name="tab_home">Trang chủ</string>
     <string name="tab_search">Khám phá</string>
+    <string name="tab_sources">Nguồn</string>
     <string name="tab_library">Tủ phim</string>
 
     <!-- Home Screen -->
@@ -48,6 +49,78 @@
     <string name="empty_following_subtitle">Nhấn nút \'Theo dõi\' khi xem anime để lưu vào đây</string>
     <string name="empty_history_title">Chưa có lịch sử xem phim</string>
     <string name="empty_history_subtitle">Các anime bạn đã xem sẽ tự động hiển thị tại đây</string>
+
+    <!-- Sources (Nguồn) Tab -->
+    <string name="sources_title">Nguồn</string>
+    <string name="sources_search_hint">Tìm nguồn…</string>
+    <string name="sources_search_cd">Tìm nguồn</string>
+    <string name="sources_add_cd">Thêm nguồn</string>
+    <string name="sources_menu_cd">Tùy chọn nguồn</string>
+    <string name="sources_refresh_cd">Kiểm tra cập nhật</string>
+    <string name="sources_section_updates">Cập nhật</string>
+    <string name="sources_section_pinned">Đã ghim</string>
+    <string name="sources_section_installed">Đã cài đặt</string>
+    <string name="sources_installed_source">Nguồn đã cài</string>
+    <string name="sources_version_format">v%1$s</string>
+    <string name="sources_language_multi">Đa ngôn ngữ</string>
+    <string name="sources_badge_nsfw">18+</string>
+    <string name="sources_row_icon_cd">Biểu tượng nguồn</string>
+    <string name="sources_count_format">%1$d nguồn</string>
+    <string name="sources_enabled_format">%1$d nguồn đang bật</string>
+    <string name="sources_header_count_format">%1$d nguồn · %2$d nguồn đang bật</string>
+    <string name="sources_empty_title">Chưa có nguồn nào được cài đặt</string>
+    <string name="sources_empty_subtitle">Nhấn nút \"+\" để thêm nguồn từ tệp .aix/.krx hoặc từ kho nguồn</string>
+    <string name="sources_disabled_hint">Nguồn đang tắt</string>
+    <string name="sources_action_enable">Bật</string>
+    <string name="sources_action_disable">Tắt</string>
+    <string name="sources_action_pin">Ghim lên đầu</string>
+    <string name="sources_action_unpin">Bỏ ghim</string>
+    <string name="sources_action_uninstall">Gỡ cài đặt</string>
+    <string name="sources_action_update">Cập nhật</string>
+    <string name="sources_uninstall_bundled_hint">Nguồn đi kèm ứng dụng không thể gỡ cài đặt</string>
+    <string name="sources_update_available_format">Có phiên bản %1$s</string>
+    <string name="sources_updated_all">Tất cả nguồn đều đã mới nhất</string>
+    <string name="sources_updated_none">Chưa có kho nào để kiểm tra cập nhật</string>
+    <string name="sources_confirm_uninstall_title">Gỡ nguồn?</string>
+    <string name="sources_confirm_uninstall_message">Bạn có chắc muốn gỡ \"%1$s\"?</string>
+    <string name="sources_cancel">Hủy</string>
+    <string name="sources_uninstall">Gỡ</string>
+    <string name="sources_language_label">Ngôn ngữ: %1$s</string>
+
+    <!-- Sources: Add & Import -->
+    <string name="sources_import_title">Thêm nguồn</string>
+    <string name="sources_import_subtitle">Nhập tệp hoặc duyệt kho nguồn</string>
+    <string name="sources_import_button">Nhập tệp (.aix / .krx)</string>
+    <string name="sources_import_cd">Nhập tệp</string>
+    <string name="sources_import_success">Cài đặt nguồn thành công</string>
+    <string name="sources_import_fail">Không thể cài đặt tệp này</string>
+    <string name="sources_import_existing">Nguồn này đã tồn tại</string>
+    <string name="sources_import_invalid">Tệp không phải gói nguồn hợp lệ</string>
+
+    <!-- Sources: Repos -->
+    <string name="sources_repos_section">Kho nguồn</string>
+    <string name="sources_repos_empty">Chưa có kho nào. Thêm URL một kho nguồn để duyệt và cài nguồn từ bên ngoài.</string>
+    <string name="sources_repos_add">Thêm kho</string>
+    <string name="sources_repos_add_hint">URL kho nguồn (JSON)</string>
+    <string name="sources_repos_remove_cd">Xóa kho</string>
+    <string name="sources_repos_manage">Quản lý kho</string>
+    <string name="sources_repos_loading">Đang tải…</string>
+    <string name="sources_repos_unavailable">Không thể tải kho này</string>
+    <string name="sources_repos_retry">Thử lại</string>
+    <string name="sources_repos_fetch_sources">Tải danh sách nguồn</string>
+    <string name="sources_repos_hide_sources">Ẩn danh sách</string>
+    <string name="sources_repos_list_empty">Kho này chưa có nguồn nào</string>
+    <string name="source_repos_title">Quản lý kho nguồn</string>
+    <string name="sources_invalid_url">URL không hợp lệ</string>
+    <string name="sources_feedback_hint">Báo cáo lỗi</string>
+
+    <!-- Sources: External / Install -->
+    <string name="sources_external_get">Cài</string>
+    <string name="sources_external_getting">Đang cài…</string>
+    <string name="sources_external_installed">Đã cài</string>
+    <string name="sources_external_has_update">Cập nhật mới</string>
+    <string name="sources_external_no_package">Kho không cung cấp tệp cài đặt</string>
+    <string name="sources_external_get_failed">Không thể tải nguồn từ kho</string>
 
     <!-- Mini Player & Controller Overlay -->
     <string name="player_play">Phát</string>

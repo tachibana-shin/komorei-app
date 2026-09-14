@@ -83,7 +83,7 @@ fun HomeScreen(
     onOpenListing: (sourceId: String, listing: Listing) -> Unit = { _, _ -> },
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val sources = viewModel.sources
+    val sources by viewModel.sources.collectAsState()
     val sourceDataMap by viewModel.sourceDataMap.collectAsState()
     val listingStateMap by viewModel.listingStateMap.collectAsState()
 
@@ -92,7 +92,7 @@ fun HomeScreen(
         pageCount = { sources.size }
     )
     val currentSourceIndex = sourcePagerState.currentPage
-    val activeSource = sources.getOrNull(currentSourceIndex) ?: sources.first()
+    val activeSource = sources.getOrNull(currentSourceIndex) ?: return
 
     // YouTube-style collapsible header & sticky tabbar state
     var isHeaderVisible by remember { mutableStateOf(true) }

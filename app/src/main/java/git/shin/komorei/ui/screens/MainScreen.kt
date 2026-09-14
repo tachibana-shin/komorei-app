@@ -17,9 +17,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -59,6 +61,8 @@ import git.shin.komorei.ui.screens.home.HomeScreen
 import git.shin.komorei.ui.screens.library.LibraryScreen
 import git.shin.komorei.ui.screens.listing.ListingScreen
 import git.shin.komorei.ui.screens.search.SearchDiscoveryScreen
+import git.shin.komorei.ui.screens.sources.SourceReposScreen
+import git.shin.komorei.ui.screens.sources.SourcesScreen
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.SurfaceDark
@@ -94,7 +98,9 @@ fun MainScreen(
         // The listing route is a full-screen browsing page — it owns the whole
         // viewport, so the bottom toolbar is hidden there (only in the phone
         // portrait scaffold; wide screens use the rail and are unaffected).
+        // The repo-management page is likewise a full-screen sub page.
         val isListingRoute = currentRoute == Screen.Listing.route
+        val isSourceReposRoute = currentRoute == Screen.SourceRepos.route
 
         Box(modifier = Modifier.fillMaxSize()) {
             if (isWideScreen) {
@@ -162,6 +168,33 @@ fun MainScreen(
                         )
 
                         NavigationRailItem(
+                            selected = currentRoute == Screen.Sources.route,
+                            onClick = {
+                                if (currentRoute != Screen.Sources.route) {
+                                    navController.navigate(Screen.Sources.route) {
+                                        popUpTo(navController.graph.startDestinationId)
+                                        launchSingleTop = true
+                                    }
+                                }
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = if (currentRoute == Screen.Sources.route) Icons.Filled.Language else Icons.Outlined.Language,
+                                    contentDescription = stringResource(R.string.tab_sources)
+                                )
+                            },
+                            label = { Text(stringResource(R.string.tab_sources), fontSize = 11.sp) },
+                            colors = NavigationRailItemDefaults.colors(
+                                selectedIconColor = Color.White,
+                                selectedTextColor = AnimeRed,
+                                indicatorColor = AnimeRed,
+                                unselectedIconColor = TextMuted,
+                                unselectedTextColor = TextMuted
+                            ),
+                            modifier = Modifier.testTag("rail_tab_sources")
+                        )
+
+                        NavigationRailItem(
                             selected = currentRoute == Screen.Library.route,
                             onClick = {
                                 if (currentRoute != Screen.Library.route) {
@@ -199,7 +232,7 @@ fun MainScreen(
                 Scaffold(
                     bottomBar = {
                         AnimatedVisibility(
-                            visible = !isPlayerExpanded && !isFullscreen && !isListingRoute,
+                            visible = !isPlayerExpanded && !isFullscreen && !isListingRoute && !isSourceReposRoute,
                             enter = slideInVertically(initialOffsetY = { it }),
                             exit = slideOutVertically(targetOffsetY = { it })
                         ) {
@@ -262,6 +295,33 @@ fun MainScreen(
                                         unselectedTextColor = TextMuted
                                     ),
                                     modifier = Modifier.testTag("tab_search")
+                                )
+
+                                NavigationBarItem(
+                                    selected = currentRoute == Screen.Sources.route,
+                                    onClick = {
+                                        if (currentRoute != Screen.Sources.route) {
+                                            navController.navigate(Screen.Sources.route) {
+                                                popUpTo(navController.graph.startDestinationId)
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                    },
+                                    icon = {
+                                        Icon(
+                                            imageVector = if (currentRoute == Screen.Sources.route) Icons.Filled.Language else Icons.Outlined.Language,
+                                            contentDescription = stringResource(R.string.tab_sources)
+                                        )
+                                    },
+                                    label = { Text(stringResource(R.string.tab_sources), fontSize = 11.sp) },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = Color.White,
+                                        selectedTextColor = AnimeRed,
+                                        indicatorColor = AnimeRed,
+                                        unselectedIconColor = TextMuted,
+                                        unselectedTextColor = TextMuted
+                                    ),
+                                    modifier = Modifier.testTag("tab_sources")
                                 )
 
                                 NavigationBarItem(
@@ -352,6 +412,14 @@ fun MainNavigationHost(
         }
         composable(Screen.Search.route) {
             SearchDiscoveryScreen(onAnimeClick = onAnimeSelect)
+        }
+        composable(Screen.Sources.route) {
+            SourcesScreen(
+                onOpenRepos = { navController.navigate(Screen.SourceRepos.route) },
+            )
+        }
+        composable(Screen.SourceRepos.route) {
+            SourceReposScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.Library.route) {
             LibraryScreen(onAnimeClick = onAnimeSelect)
