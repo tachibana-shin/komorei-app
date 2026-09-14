@@ -24,6 +24,9 @@
 | Sample MP4 720p | `.../Big_Buck_Bunny_720_10s_5MB.mp4` | L23–24 |
 | Sample MP4 FHD | `.../BigBuckBunny.mp4` | L25–26 |
 | `ALL_GENRES` (12) | Hành Động, Chuyển Sinh, Phiêu Lưu, Harem, Shounen, Lãng Mạn, Siêu Nhiên, Học Đường, Hài Hước, Bí Ẩn, Giả Tưởng, Mecha | L32–45 |
+| `languages` (manifest) | `["vi", "en"]` | `res/source.json` L8–10 |
+
+> `languages: ["vi","en"]` — sources list hiện badge **"Đa ngôn ngữ"** (`SourceLabels.kt` khi `languages.size > 1`); đồng thời mở **language picker app-injected** trên màn Settings (xem §4.11 + checklist).
 
 ## 2. Các trait đăng ký — `register_source!` (L1241)
 
@@ -33,7 +36,7 @@
 | `ListingProvider` | ✅ | `get_anime_list` (4 listing) → `AnimeRepository.getListing` → Listing screen (grid + infinite scroll) |
 | `Home` | ✅ | `HomeScreen` render đủ 7 component |
 | `DynamicFilters` | ◐ | Model + mapping đủ; UI search dùng riêng danh sách genre của app |
-| `DynamicSettings` | ◐ | Runner đọc `prefer_fhd` qua `defaults_get`; app chưa có màn Settings |
+| `DynamicSettings` | ✅ | `get_settings` → `SourceSettingsScreen` (toggle + persist qua `KrxDefaultsStore`, key scoped `{sourceId}.`) |
 | `DynamicListings` | ✅ | `get_dynamic_listings` → `AnimeRepository.getListings` + chips row Aidoku-style trên Home (`ListingChipsRow`): tap chip đổi content bên dưới sang listing phân trang inline (`HomeListingGrid`) |
 | `NotificationHandler` | ➖ | Source no-op (chỉ nhận key) |
 | `DeepLinkHandler` | ❌ | App chưa có routing deep link |
@@ -52,7 +55,7 @@
 | `get_anime_list` (L895) | `(listing, page) -> AnimePageResult` | `ongoing` / `completed` / `popular` (sort views) / `latest`=all | ✅ `AnimeRepository.getListing` → Listing screen (15/page) |
 | `get_home` (L926) | `() -> HomeLayout` | 7 component (xem §5.6) | ✅ `getHome` cache + `HomeScreen` |
 | `get_dynamic_filters` (L1093) | `() -> Vec<Filter>` | 5 filter + 1 note (xem §5.7) | ◐ mapping đủ; UI một phần |
-| `get_dynamic_settings` (L1139) | `() -> Vec<Setting>` | 2 toggle: `prefer_fhd`, `show_intro` | ◐ `prefer_fhd` được runner đọc; chưa có UI set |
+| `get_dynamic_settings` (L1139) | `() -> Vec<Setting>` | 2 toggle: `prefer_fhd`, `show_intro` | ✅ màn Settings render + ghi được (persist → runner đọc lại qua `defaults_get`); `show_intro` chưa có hiệu ứng runtime |
 | `get_dynamic_listings` (L1160) | `() -> Vec<Listing>` | latest / popular / ongoing / completed | ✅ chips `[Trang chủ]+listings` trên Home mỗi source; tap đổi content inline (HomeViewModel: `loadListings`/`selectListing`/`loadListingPage`) |
 | `handle_notification` (L1173) | `(key: String)` | No-op | ➖ |
 | `handle_deep_link` (L1182) | `(url) -> Option<DeepLinkResult>` | `/anime/<key>` · `/watch/<anime>/<ep>` · `/list/<id>` | ❌ |
@@ -167,8 +170,8 @@
 
 | Key | Title | Tiêu thụ | Trạng thái |
 |---|---|---|---|
-| `prefer_fhd` | "Ưu tiên 1080p" | Runner đọc qua `defaults_get::<bool>("prefer_fhd")` khi sắp server (L833) | ◐ hoạt động trong runner; chưa có UI app |
-| `show_intro` | "Hiển thị nút bỏ intro" | Chưa thấy đọc | ❌ |
+| `prefer_fhd` | "Ưu tiên 1080p" | Runner đọc qua `defaults_get::<bool>("prefer_fhd")` khi sắp server (L833); app ghi qua toggle trên `SourceSettingsScreen` → `KrxDefaultsStore` key `{sourceId}.prefer_fhd` | ✅ vòng khép kín (UI → store → runner) |
+| `show_intro` | "Hiển thị nút bỏ intro" | App ghi/persist qua toggle (cùng store); chưa có nơi nào đọc để đổi hành vi | ◐ có UI + persist, chưa có hiệu ứng |
 
 ### 4.10 `Listing` (L1162–1165) & `DeepLinkResult`
 
@@ -178,6 +181,17 @@
 | `DeepLinkResult::Anime` | `/anime/<key>` | | ❌ |
 | `DeepLinkResult::Episode` | `/watch/<anime>/<ep>` | | ❌ |
 | `DeepLinkResult::Listing` | `/list/<id>` | | ❌ |
+
+### 4.11 App-injected — không đến từ source (Aidoku-style, komorei tự làm)
+
+Các phần tử app tự chèn vào UI/settings của từng nguồn — source KHÔNG cần khai báo `get_settings`:
+
+| Mục | Cơ chế | Trạng thái |
+|---|---|---|
+| **Language picker** | Hiện khi `source.languages.size > 1` (màn `SourceSettingsScreen`); ghi `{sourceId}.languages` (`HostDefaultValue.StringArray`) qua `KrxDefaultsStore` — đúng key nguồn đọc bằng `defaults_get::<Vec<String>>("languages")` (Aidoku: `SourceInfoViewController` + `getSelectedLanguages`) | ✅ vòng khép kín (picker → store → defaults_get) |
+| **Reset settings** | Xoá toàn bộ row key bắt đầu `{sourceId}.` (`KrxDefaultsStore.deleteAll` → DAO `DELETE ... LIKE '{sourceId}.%'`); chỉ đụng đúng nguồn (name-spacing), anime/watch-history không liên quan | ✅ (Aidoku `removeSettings(from:)`) |
+| **Clear cookies** | Expire mọi cookie của **domain** `source.baseUrl` (https+http) qua `CookieManager` — pattern giống host `jsWebviewDeleteCookie`; các site khác không bị đụng | ✅ (Aidoku: Clear Source Cache xoá cookie source URLs) |
+| **Clear cache** | `repository.clearCachedHome(sourceId)` — xoá home layout cache của nguồn | ✅ |
 
 ## 5. Dữ liệu fixture
 
@@ -221,14 +235,15 @@
 
 ## 6. Checklist tiến độ (khoảng trống còn lại)
 
-- [x] **Màn Listing**: nguồn đã expose 4 listing + `LinkValue::Listing` ("Xem toàn bộ Mới cập nhật", "Phim đang phát sóng", "Phim đã hoàn thành") — repo `getListings`/`getListing`, Listing screen (grid 3 cột + infinite scroll), điều hướng từ Links row + "Xem tất cả" header của Scroller/AnimeEpisodeList/AnimeList.
+- [x] **Home + Listing**: home 7 component + quality badge + paged grid (`page_size`) + stream/subtitle/intro-outro skip; listing screen (grid + infinite scroll) + điều hướng từ Links/Scroller/Links "Xem toàn bộ".
+- [x] **Settings nguồn**: màn `SourceSettingsScreen` render `get_settings` (cả 2 toggle) + persist qua `KrxDefaultsStore` (key scoped `{sourceId}.{key}`, DB v4 `MIGRATION_3_4` xoá row cũ); `prefer_fhd` runner đọc lại qua `defaults_get`; `show_intro` persist nhưng chưa có hiệu ứng runtime.
+- [x] **Source home per-source**: `SourceHomeScreen` (home reactive theo từng source, ⋮ menu, vào Settings/actions).
+- [x] **App-injected actions**: language picker (`{sourceId}.languages` — hiện khi `languages.size > 1`), Reset settings (xoá mọi `{sourceId}.` rows), Xoá cookie (domain nguồn), Xoá bộ nhớ đệm (home cache) — §4.11.
 - [ ] **Deep link**: `/anime/…`, `/watch/…`, `/list/…` (source đã có `handle_deep_link`).
 - [ ] **Migration**: source identity — app chưa dùng `MigrationHandler`.
-- [ ] **Settings nguồn**: `prefer_fhd` đọc được trong runner nhưng chưa có UI màn Settings; `show_intro` chưa được dùng.
 - [ ] **RangeFilter (Năm phát hành)**: model đủ, chưa có UI slider search.
 - [ ] **Sort UI**: `SortFilter` (Đánh giá/Phổ biến/A-Z) chạy được trong search nhưng chưa có giao diện chọn.
 - [ ] **Link Url**: "Trang nguồn Komorei" display-only.
-- [x] **Home 7 component**, **quality badge**, **paged grid (page_size)**, **stream + subtitle + intro/outro skip**.
 
 ---
 
