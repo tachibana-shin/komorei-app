@@ -200,6 +200,17 @@ fun RunnerListing.toAppModel(): Listing = Listing(
     kind = kind.toAppModel(),
 )
 
+fun ListingKind.toRunner(): RunnerListingKind = when (this) {
+    ListingKind.DEFAULT -> RunnerListingKind.DEFAULT
+    ListingKind.LIST -> RunnerListingKind.LIST
+}
+
+fun Listing.toRunner(): RunnerListing = RunnerListing(
+    id = id,
+    name = name,
+    kind = kind.toRunner(),
+)
+
 fun RunnerLinkValue.toAppModel(): LinkValue = when (this) {
     is RunnerLinkValue.Url -> LinkValue.Url(url = v1)
     is RunnerLinkValue.Listing -> LinkValue.Listing(listing = v1.toAppModel())

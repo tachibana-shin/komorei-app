@@ -9,6 +9,7 @@ import git.shin.komorei.model.FilterValue
 import git.shin.komorei.model.Genre
 import git.shin.komorei.model.HomeComponent
 import git.shin.komorei.model.HomeComponentValue
+import git.shin.komorei.model.Listing
 import git.shin.komorei.model.Source
 import git.shin.komorei.model.StreamData
 import git.shin.komorei.model.StreamInfo
@@ -192,6 +193,55 @@ class AnimeRepository @Inject constructor(
                 listOf(FilterValue.Select(genreFilter.id, genreName))
             else -> emptyList()
         }
+    }
+
+    // ── listings ────────────────────────────────────────────────────────────
+
+    /**
+     * The source's dynamic listings — a 1:1 mirror of the runner's `listings()`
+     * export. These are the named, filterable catalogs ("Mới nhất", "Phổ biến",
+     * "Đang phát", "Hoàn thành", ...) a source can paginate through with
+     * [getListing]. Runs on the source's own thread.
+     *
+     * The "all" aggregator unions every bundled source's listings, deduped by id.
+     */
+    suspend fun getListings(sourceId: String): List<Listing> {
+        if (sourceId == AGGREGATOR_ID) {
+            return coroutineScope {
+                sources.filter { !it.isAggregator }.map { s ->
+                    async { getListings(s.id) }
+                }.awaitAll().flatten().distinctBy { it.id }
+            }
+        }
+        return registry.call(sourceId) { it.listings().map { l -> l.toAppModel() } } ?: emptyList()
+    }
+
+    /**
+     * A single page of a [Listing] — a 1:1 mirror of the runner's
+     * `animeList(listing, page)` export. Returns a page of Lite [Anime] cards
+     * (upgrade with [getAnimeUpdate] before stream access). Runs on the
+     * source's own thread.
+     *
+     * The "all" aggregator has no runner of its own: it asks every bundled
+     * source (in parallel, on their own threads) for the same listing+page and
+     * merges the results, deduped by id.
+     */
+    suspend fun getListing(sourceId: String, listing: Listing, page: Int): KrxPage<Anime> {
+        if (sourceId == AGGREGATOR_ID) {
+            return coroutineScope {
+                sources.filter { !it.isAggregator }.map { s ->
+                    async { getListing(s.id, listing, page) }
+                }.awaitAll().let { pages ->
+                    KrxPage(
+                        entries = pages.flatMap { it.entries }.distinctBy { it.id },
+                        hasNextPage = pages.any { it.hasNextPage },
+                    )
+                }
+            }
+        }
+        return registry.call(sourceId) { runner ->
+            runner.animeList(listing.toRunner(), page).toAppPage()
+        } ?: KrxPage(emptyList(), false)
     }
 
     // ── home ───────────────────────────────────────────────────────────────

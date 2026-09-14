@@ -28,12 +28,13 @@ fun ScrollerRow(
     onAnimeClick: (Anime) -> Unit,
     modifier: Modifier = Modifier,
     getSourceName: (String) -> String = { it },
+    onSeeAll: (() -> Unit)? = null,
 ) {
     val animes = entries.mapNotNull { it.anime }
     if (animes.isEmpty()) return
 
     Column(modifier = modifier.fillMaxWidth()) {
-        SectionHeader(title = title ?: "")
+        SectionHeader(title = title ?: "", onSeeAll = onSeeAll)
 
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),

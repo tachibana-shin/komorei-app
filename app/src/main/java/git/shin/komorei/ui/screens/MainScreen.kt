@@ -43,10 +43,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.ui.navigation.Screen
@@ -55,6 +57,7 @@ import git.shin.komorei.ui.player.PlayerSheetValue
 import git.shin.komorei.ui.player.VideoPlayerSheet
 import git.shin.komorei.ui.screens.home.HomeScreen
 import git.shin.komorei.ui.screens.library.LibraryScreen
+import git.shin.komorei.ui.screens.listing.ListingScreen
 import git.shin.komorei.ui.screens.search.SearchDiscoveryScreen
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
@@ -301,7 +304,10 @@ fun MainScreen(
                         ) {
                             MainNavigationHost(
                                 navController = navController,
-                                onAnimeSelect = onAnimeSelected
+                                onAnimeSelect = onAnimeSelected,
+                                onOpenListing = { sourceId, listing ->
+                                    navController.navigate(Screen.Listing.createRoute(sourceId, listing))
+                                }
                             )
                         }
                     }
@@ -328,6 +334,7 @@ fun MainScreen(
 fun MainNavigationHost(
     navController: NavHostController,
     onAnimeSelect: (Anime) -> Unit,
+    onOpenListing: (sourceId: String, listing: git.shin.komorei.model.Listing) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     NavHost(
@@ -336,13 +343,25 @@ fun MainNavigationHost(
         modifier = modifier.fillMaxSize()
     ) {
         composable(Screen.Home.route) {
-            HomeScreen(onAnimeClick = onAnimeSelect)
+            HomeScreen(onAnimeClick = onAnimeSelect, onOpenListing = onOpenListing)
         }
         composable(Screen.Search.route) {
             SearchDiscoveryScreen(onAnimeClick = onAnimeSelect)
         }
         composable(Screen.Library.route) {
             LibraryScreen(onAnimeClick = onAnimeSelect)
+        }
+        composable(
+            route = Screen.Listing.route,
+            arguments = listOf(
+                navArgument("sourceId") { type = NavType.StringType },
+                navArgument("listingArg") { type = NavType.StringType },
+            ),
+        ) {
+            ListingScreen(
+                onAnimeClick = onAnimeSelect,
+                onBack = { navController.popBackStack() },
+            )
         }
     }
 }

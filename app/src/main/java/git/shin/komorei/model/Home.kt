@@ -1,5 +1,7 @@
 package git.shin.komorei.model
 
+import com.squareup.moshi.JsonClass
+
 /**
  * Full, lossless app-side mirror of the komorei runner's `get_home` result.
  *
@@ -12,7 +14,12 @@ package git.shin.komorei.model
 /** How a [Listing] should be displayed (mirrors the runner `ListingKind`). */
 enum class ListingKind { DEFAULT, LIST }
 
-/** A named, filterable listing ("Mới nhất", "Phổ biến", ...) carried by links and components. */
+/**
+ * A named, filterable listing ("Mới nhất", "Phổ biến", ...) carried by links
+ * and components. Moshi-serializable so it can travel as a navigation route
+ * argument (see `ui/navigation/ListingArgCodec`).
+ */
+@JsonClass(generateAdapter = true)
 data class Listing(
     val id: String,
     val name: String,

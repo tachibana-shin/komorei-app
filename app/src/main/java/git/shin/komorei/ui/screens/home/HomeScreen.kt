@@ -49,6 +49,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.HomeComponentValue
+import git.shin.komorei.model.LinkValue
+import git.shin.komorei.model.Listing
 import git.shin.komorei.ui.components.AppIcons
 import git.shin.komorei.ui.components.BannerCarouselSkeleton
 import git.shin.komorei.ui.components.SectionSkeleton
@@ -71,7 +73,8 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     onAnimeClick: (Anime) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    onOpenListing: (sourceId: String, listing: Listing) -> Unit = { _, _ -> },
 ) {
     val coroutineScope = rememberCoroutineScope()
     val sources = viewModel.sources
@@ -287,7 +290,10 @@ fun HomeScreen(
                                             title = comp.title,
                                             entries = v.entries,
                                             onAnimeClick = onAnimeClick,
-                                            getSourceName = { viewModel.getSourceName(it) }
+                                            getSourceName = { viewModel.getSourceName(it) },
+                                            onSeeAll = v.listing?.let { l ->
+                                                { onOpenListing(source.id, l) }
+                                            }
                                         )
                                     }
                                 }
@@ -298,7 +304,10 @@ fun HomeScreen(
                                             title = comp.title,
                                             entries = v.entries,
                                             pageSize = v.pageSize,
-                                            onAnimeClick = onAnimeClick
+                                            onAnimeClick = onAnimeClick,
+                                            onSeeAll = v.listing?.let { l ->
+                                                { onOpenListing(source.id, l) }
+                                            }
                                         )
                                     }
                                 }
@@ -310,7 +319,10 @@ fun HomeScreen(
                                             entries = v.entries,
                                             ranking = v.ranking,
                                             pageSize = v.pageSize,
-                                            onAnimeClick = onAnimeClick
+                                            onAnimeClick = onAnimeClick,
+                                            onSeeAll = v.listing?.let { l ->
+                                                { onOpenListing(source.id, l) }
+                                            }
                                         )
                                     }
                                 }
@@ -328,7 +340,15 @@ fun HomeScreen(
                                     item(key = "${baseKey}_links") {
                                         LinksRow(
                                             title = comp.title,
-                                            links = v.links
+                                            links = v.links,
+                                            onLinkClick = { link ->
+                                                when (val lv = link.value) {
+                                                    is LinkValue.Listing -> onOpenListing(source.id, lv.listing)
+                                                    is LinkValue.Anime -> onAnimeClick(lv.anime)
+                                                    // LinkValue.Url / null links stay display-only for now.
+                                                    else -> Unit
+                                                }
+                                            }
                                         )
                                     }
                                 }

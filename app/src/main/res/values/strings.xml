@@ -18,6 +18,12 @@
     <string name="home_source_empty">Không có nội dung từ nguồn này</string>
     <string name="home_source_error">Không thể tải nội dung từ nguồn này</string>
 
+    <!-- Listing Screen -->
+    <string name="listing_default_title">Danh sách</string>
+    <string name="listing_load_error">Không thể tải danh sách này</string>
+    <string name="listing_empty">Danh sách này chưa có nội dung</string>
+    <string name="listing_end_of_list">Hết danh sách</string>
+
     <!-- Search & Discovery Screen -->
     <string name="search_header_title">Khám Phá</string>
     <string name="search_header_subtitle">Đa Nguồn</string>

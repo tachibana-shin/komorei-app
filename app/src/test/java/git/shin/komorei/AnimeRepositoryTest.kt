@@ -10,6 +10,7 @@ import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -165,6 +166,59 @@ class AnimeRepositoryTest {
         )
         assertTrue("Genre search should return results", page.entries.isNotEmpty())
         assertTrue(page.entries.all { anime -> anime.genres.any { it.name == "Hành Động" } })
+    }
+
+    @Test
+    fun testListingsAndPagination() = runBlocking {
+        val listings = repository.getListings("vi.fake-source")
+        assertEquals(
+            listOf("latest", "popular", "ongoing", "completed"),
+            listings.map { it.id },
+        )
+        assertTrue(listings.all { it.name.isNotBlank() })
+        assertEquals(ListingKind.LIST, listings.first().kind)
+
+        // "latest" = the whole 22-entry catalog, 15 per page (PAGE_SIZE).
+        val latest = listings.first { it.id == "latest" }
+        val page1 = repository.getListing("vi.fake-source", latest, 1)
+        assertEquals(15, page1.entries.size)
+        assertTrue("Page 1 has more pages", page1.hasNextPage)
+        assertTrue(page1.entries.all { it.id.isNotBlank() && it.title.isNotBlank() })
+
+        val page2 = repository.getListing("vi.fake-source", latest, 2)
+        assertEquals(7, page2.entries.size)
+        assertFalse("Page 2 is the last", page2.hasNextPage)
+        assertTrue("Pages must not overlap", page1.entries.map { it.id }.none { id -> page2.entries.any { it.id == id } })
+
+        // Beyond the end returns an empty page without crashing.
+        val page3 = repository.getListing("vi.fake-source", latest, 3)
+        assertTrue(page3.entries.isEmpty())
+        assertFalse(page3.hasNextPage)
+    }
+
+    @Test
+    fun testListingKindsFilterByStatus() = runBlocking {
+        // "ongoing" only carries ONGOING anime; "completed" only COMPLETED ones.
+        val listings = repository.getListings("vi.fake-source")
+        val ongoing = repository.getListing("vi.fake-source", listings.first { it.id == "ongoing" }, 1)
+        assertTrue(ongoing.entries.isNotEmpty())
+        assertTrue(ongoing.entries.all { it.status == git.shin.komorei.model.AnimeStatus.ONGOING })
+
+        val completed = repository.getListing("vi.fake-source", listings.first { it.id == "completed" }, 1)
+        assertTrue(completed.entries.isNotEmpty())
+        assertTrue(completed.entries.all { it.status == git.shin.komorei.model.AnimeStatus.COMPLETED })
+    }
+
+    @Test
+    fun testAggregatorListingsAndPages() = runBlocking {
+        // The "all" aggregator delegates to every bundled source and merges.
+        val listings = repository.getListings("all")
+        assertEquals(listOf("latest", "popular", "ongoing", "completed"), listings.map { it.id })
+
+        val latest = listings.first { it.id == "latest" }
+        val page = repository.getListing("all", latest, 1)
+        assertEquals("Merged page 1 = the full 22-item catalog's first 15", 15, page.entries.size)
+        assertTrue(page.hasNextPage)
     }
 
     @Test

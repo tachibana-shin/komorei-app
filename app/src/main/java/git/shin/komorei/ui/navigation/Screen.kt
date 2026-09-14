@@ -24,4 +24,16 @@ sealed class Screen(val route: String) {
             return "category/$filtersJson"
         }
     }
+
+    data object Listing : Screen("listing/{sourceId}/{listingArg}") {
+        /**
+         * Builds the listing route. [sourceId] is URL-encoded like the player
+         * route; [listingArg] is the URL-safe JSON serialization of the whole
+         * [git.shin.komorei.model.Listing] (see [ListingArgCodec]) so the
+         * screen can open any source listing without re-resolving it.
+         */
+        fun createRoute(sourceId: String, listing: git.shin.komorei.model.Listing): String {
+            return "listing/${Uri.encode(sourceId)}/${ListingArgCodec.encode(listing)}"
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package git.shin.komorei.ui.components.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,14 +31,16 @@ import git.shin.komorei.ui.theme.TextPrimary
 /**
  * The `Links` home component (mirrors the runner + the Aidoku reference):
  * a vertical list of plain links — title + optional subtitle + chevron, one
- * card per row. Display-only for now (the underlying value may be a Url or a
- * Listing that later navigation could open).
+ * card per row. Tapping a row dispatches [onLinkClick] with the link, and the
+ * caller decides what its [androidx.compose.foundation.clickable] value opens
+ * (a Listing → the Listing screen, an Anime → the player, a Url → display-only).
  */
 @Composable
 fun LinksRow(
     title: String?,
     links: List<Link>,
     modifier: Modifier = Modifier,
+    onLinkClick: (Link) -> Unit = {},
 ) {
     if (links.isEmpty()) return
 
@@ -55,6 +58,7 @@ fun LinksRow(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .background(CardDark)
+                        .clickable { onLinkClick(link) }
                         .padding(horizontal = 12.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {

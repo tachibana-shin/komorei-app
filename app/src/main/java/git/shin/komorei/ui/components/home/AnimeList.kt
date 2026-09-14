@@ -60,11 +60,12 @@ fun AnimeListRow(
     pageSize: Int?,
     onAnimeClick: (Anime) -> Unit,
     modifier: Modifier = Modifier,
+    onSeeAll: (() -> Unit)? = null,
 ) {
     if (entries.isEmpty()) return
 
     Column(modifier = modifier.fillMaxWidth()) {
-        SectionHeader(title = title ?: "")
+        SectionHeader(title = title ?: "", onSeeAll = onSeeAll)
 
         val page = pageSize?.takeIf { it > 0 }
         if (page != null) {
