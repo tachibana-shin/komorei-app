@@ -291,6 +291,18 @@ class AnimeRepository @Inject constructor(
         homeCache.remove(sourceId)
     }
 
+    /**
+     * Forwards [notification] to source [sourceId]'s `handle_notification`
+     * (the NotificationHandler round-trip). The app sends it after every
+     * setting change that declares a `notification` value — Aidoku calls
+     * `source.handleNotification(notification)` the same way — so the source
+     * can react (e.g. clear caches, resync). No-op when the source does not
+     * register the trait (the wasm export simply doesn't exist).
+     */
+    suspend fun handleNotification(sourceId: String, notification: String) {
+        registry.call(sourceId) { it.notify(notification) }
+    }
+
     // Overlays the persisted pref value (if any) onto a setting description,
     // recursing into group/page children. `defaults` is a live read of the
     // host store — the same one the source sees through its `defaults_get`.

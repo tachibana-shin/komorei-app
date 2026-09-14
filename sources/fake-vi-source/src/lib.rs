@@ -2,8 +2,9 @@
 extern crate alloc;
 
 use alloc::{borrow::Cow, format, string::String, vec, vec::Vec};
+use core::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 use komorei::{
-	imports::defaults::defaults_get,
+	imports::defaults::{defaults_get, defaults_set, DefaultValue},
 	prelude::*,
 	Anime, AnimePageResult, AnimeSeason, AnimeStatus, AnimeWithEpisode, CategoryLink,
 	DeepLinkHandler, DeepLinkResult, DynamicFilters, DynamicListings, DynamicSettings, Episode,
@@ -11,7 +12,7 @@ use komorei::{
 	Listing, ListingKind, ListingProvider, MigrationHandler, MultiSelectFilter,
 	NotificationHandler, RangeFilter, RangeLong, Result, SelectFilter, Setting, SortFilter,
 	StreamData, StreamInfo, StreamType, SubtitleInfo, TextFilter, ToggleSetting, Source,
-	SegmentDataInterceptor, SegmentUrlInterceptor,
+	SegmentDataInterceptor, SegmentUrlInterceptor, ButtonSetting,
 };
 
 use core::cmp::Ordering;
@@ -1150,6 +1151,14 @@ impl DynamicSettings for FakeViSource {
 				title: "Hiển thị nút bỏ intro".into(),
 				..Default::default()
 			}.into(),
+			// A one-shot action button — the demo app forwards its `notification`
+			// to handle_notification("clear_cache") on tap (NotificationHandler).
+			ButtonSetting {
+				key: "clear_cache".into(),
+				title: "Xoá bộ nhớ đệm nguồn".into(),
+				notification: Some("clear_cache".into()),
+				..Default::default()
+			}.into(),
 		])
 	}
 }
@@ -1169,10 +1178,21 @@ impl DynamicListings for FakeViSource {
 
 // ── NotificationHandler ─────────────────────────────────────────────────────
 
+/// Demo state: how many times a "clear_cache" notification has been received
+/// (the source has no real cache — this just proves the round-trip fired).
+static CACHE_CLEARS: AtomicUsize = AtomicUsize::new(0);
+
 impl NotificationHandler for FakeViSource {
 	fn handle_notification(&self, key: String) {
-		// defaults value changed — no-op in demo
-		let _ = key;
+		// Aidoku-style NotificationHandler round-trip: the app forwards every
+		// setting change that declares a `notification` value here (toggles AND
+		// the "Xoá bộ nhớ đệm nguồn" button). Demo: mirror the received key
+		// into defaults (`last_notification`, same scoped store) so the app can
+		// observe/react, and count explicit cache clears.
+		if key == "clear_cache" {
+			CACHE_CLEARS.fetch_add(1, AtomicOrdering::Relaxed);
+		}
+		let _ = defaults_set("last_notification", DefaultValue::String(key));
 	}
 }
 

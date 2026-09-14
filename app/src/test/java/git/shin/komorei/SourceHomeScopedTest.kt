@@ -118,13 +118,58 @@ class SourceHomeScopedTest {
     fun settingsAreExposedReadOnlyFromRunner() = runBlocking {
         val settings = repository.getSettings("vi.fake-source")
 
-        // Fake source exposes exactly the two ToggleSettings from its
-        // get_dynamic_settings — mirrored 1:1 into the app model.
-        assertEquals(2, settings.size)
-        assertEquals(listOf("prefer_fhd", "show_intro"), settings.map { it.key })
-        settings.forEach { assertTrue(it.value is SourceSettingValue.Toggle) }
+        // Fake source exposes its two ToggleSettings plus one ButtonSetting
+        // ("Xoá bộ nhớ đệm nguồn") from get_dynamic_settings — mirrored 1:1.
+        assertEquals(3, settings.size)
+        assertEquals(listOf("prefer_fhd", "show_intro", "clear_cache"), settings.map { it.key })
+        assertTrue(settings[0].value is SourceSettingValue.Toggle)
+        assertTrue(settings[1].value is SourceSettingValue.Toggle)
+        assertTrue(settings[2].value is SourceSettingValue.Button)
         assertTrue(settings[0].notification != null)
         assertEquals(listOf("settings"), settings[0].refreshes)
+        // The button's `notification` is the key forwarded on tap.
+        assertEquals("clear_cache", settings[2].notification)
+    }
+
+    @Test
+    fun settingChangeWithNotificationIsForwardedToTheSource() = runBlocking {
+        val vm = SourceSettingsViewModel(
+            repository,
+            defaultsStore,
+            SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
+        )
+        awaitUntil { vm.uiState.value.settings != null }
+
+        // prefer_fhd declares notification "Đã thay đổi ưu tiên chất lượng" —
+        // the app must forward it to handle_notification after the write, and
+        // the source mirrors it back into defaults (round-trip, observable).
+        val prefer = vm.uiState.value.settings!!.first { it.key == "prefer_fhd" }
+        val current = (prefer.value as SourceSettingValue.Toggle).default
+        vm.toggleSetting("prefer_fhd", current)
+
+        awaitUntil {
+            val v = registry.defaultsGet("vi.fake-source", "last_notification") as? HostDefaultValue.String
+            v?.v1 == "Đã thay đổi ưu tiên chất lượng"
+        }
+    }
+
+    @Test
+    fun buttonSettingClickSendsItsNotificationToTheSource() = runBlocking {
+        val vm = SourceSettingsViewModel(
+            repository,
+            defaultsStore,
+            SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
+        )
+        awaitUntil { vm.uiState.value.settings != null }
+
+        val button = vm.uiState.value.settings!!.first { it.key == "clear_cache" }
+        assertTrue(button.value is SourceSettingValue.Button)
+        vm.runSetting(button)
+
+        awaitUntil {
+            val v = registry.defaultsGet("vi.fake-source", "last_notification") as? HostDefaultValue.String
+            v?.v1 == "clear_cache"
+        }
     }
 
     @Test
@@ -229,8 +274,8 @@ class SourceHomeScopedTest {
         awaitUntil { vm.uiState.value.settings != null }
         val state = vm.uiState.value
         assertEquals("vi.fake-source", state.source?.id)
-        assertEquals(2, state.settings?.size)
-        assertEquals(listOf("prefer_fhd", "show_intro"), state.settings!!.map { it.key })
+        assertEquals(3, state.settings?.size)
+        assertEquals(listOf("prefer_fhd", "show_intro", "clear_cache"), state.settings!!.map { it.key })
         assertTrue(!state.isLoading && !state.error)
     }
 

@@ -206,6 +206,11 @@ class SourceSettingsViewModel @Inject constructor(
         value: HostDefaultValue,
         optimisticUpdate: (List<SourceSetting>) -> List<SourceSetting>,
     ) {
+        // If the changed setting declares a `notification`, forward it to the
+        // source's handle_notification after persisting (Aidoku calls
+        // source.handleNotification for every setting change that has one).
+        val notification = _uiState.value.settings.orEmpty().findSetting(key)?.notification
+
         // Optimistic UI update first so the toggle/selection flips instantly.
         _uiState.update { state ->
             state.copy(settings = state.settings?.let(optimisticUpdate))
@@ -215,6 +220,7 @@ class SourceSettingsViewModel @Inject constructor(
             // scoped host reads via defaults_get), then silent reload (after
             // the write so the source's next `get_settings` reads the new value).
             defaultsStore.set(krxDefaultsKey(sourceId, key), value)
+            notification?.let { repository.handleNotification(sourceId, it) }
             runCatching { repository.getSettings(sourceId) }
                 .onSuccess { settings ->
                     _uiState.update { it.copy(settings = settings) }
@@ -222,6 +228,30 @@ class SourceSettingsViewModel @Inject constructor(
                 // On failure keep the optimistic value; the store is already written.
         }
     }
+
+    /**
+     * A one-shot action button — forwards its `notification` to the source's
+     * `handle_notification` on tap (Aidoku: button clicks call handleNotification
+     * with the button's notification value). Nothing happens when the button
+     * declares no notification.
+     */
+    fun runSetting(setting: SourceSetting) {
+        val notification = setting.notification ?: return
+        viewModelScope.launch {
+            repository.handleNotification(sourceId, notification)
+        }
+    }
+
+    /** Finds a setting by [key] anywhere in the tree (groups/pages included). */
+    private fun List<SourceSetting>.findSetting(key: String): SourceSetting? =
+        firstNotNullOfOrNull { s ->
+            if (s.key == key) s
+            else when (val v = s.value) {
+                is SourceSettingValue.Group -> v.items.findSetting(key)
+                is SourceSettingValue.Page -> v.items.findSetting(key)
+                else -> null
+            }
+        }
 
     /** Drops the cached home layout so the source reloads it on next open. */
     fun clearCachedHome() {

@@ -143,6 +143,16 @@ fun SourceSettingsScreen(
                     }
 
                     // Setting rows
+                    val onSettingClick: (SourceSetting) -> Unit = { setting ->
+                        if (setting.value is SourceSettingValue.Button) {
+                            // One-shot action button — not a dialog: send its
+                            // `notification` straight to the source.
+                            viewModel.runSetting(setting)
+                        } else {
+                            dialogSetting = setting
+                            dialogText = extractTextDefault(setting)
+                        }
+                    }
                     settings.forEach { setting ->
                         if (setting.value is SourceSettingValue.Group) {
                             val group = setting.value as SourceSettingValue.Group
@@ -157,20 +167,14 @@ fun SourceSettingsScreen(
                                 SettingRow(
                                     setting = child,
                                     onToggle = { viewModel.toggleSetting(child.key, child.value.toggleDefault()) },
-                                    onClick = {
-                                        dialogSetting = it
-                                        dialogText = extractTextDefault(it)
-                                    },
+                                    onClick = onSettingClick,
                                 )
                             }
                         } else {
                             SettingRow(
                                 setting = setting,
                                 onToggle = { viewModel.toggleSetting(setting.key, setting.value.toggleDefault()) },
-                                onClick = {
-                                    dialogSetting = it
-                                    dialogText = extractTextDefault(it)
-                                },
+                                onClick = onSettingClick,
                             )
                         }
                     }
