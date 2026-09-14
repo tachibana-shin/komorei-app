@@ -61,6 +61,8 @@ import git.shin.komorei.ui.screens.home.HomeScreen
 import git.shin.komorei.ui.screens.library.LibraryScreen
 import git.shin.komorei.ui.screens.listing.ListingScreen
 import git.shin.komorei.ui.screens.search.SearchDiscoveryScreen
+import git.shin.komorei.ui.screens.source.SourceHomeScreen
+import git.shin.komorei.ui.screens.source.SourceSettingsScreen
 import git.shin.komorei.ui.screens.sources.SourceReposScreen
 import git.shin.komorei.ui.screens.sources.SourcesScreen
 import git.shin.komorei.ui.theme.AnimeRed
@@ -101,6 +103,8 @@ fun MainScreen(
         // The repo-management page is likewise a full-screen sub page.
         val isListingRoute = currentRoute == Screen.Listing.route
         val isSourceReposRoute = currentRoute == Screen.SourceRepos.route
+        val isSourceHomeRoute = currentRoute == Screen.SourceHome.route
+        val isSourceSettingsRoute = currentRoute == Screen.SourceSettings.route
 
         Box(modifier = Modifier.fillMaxSize()) {
             if (isWideScreen) {
@@ -232,7 +236,7 @@ fun MainScreen(
                 Scaffold(
                     bottomBar = {
                         AnimatedVisibility(
-                            visible = !isPlayerExpanded && !isFullscreen && !isListingRoute && !isSourceReposRoute,
+                            visible = !isPlayerExpanded && !isFullscreen && !isListingRoute && !isSourceReposRoute && !isSourceHomeRoute && !isSourceSettingsRoute,
                             enter = slideInVertically(initialOffsetY = { it }),
                             exit = slideOutVertically(targetOffsetY = { it })
                         ) {
@@ -416,10 +420,39 @@ fun MainNavigationHost(
         composable(Screen.Sources.route) {
             SourcesScreen(
                 onOpenRepos = { navController.navigate(Screen.SourceRepos.route) },
+                onOpenSource = { sourceId ->
+                    navController.navigate(Screen.SourceHome.createRoute(sourceId))
+                },
             )
         }
         composable(Screen.SourceRepos.route) {
             SourceReposScreen(onBack = { navController.popBackStack() })
+        }
+        composable(
+            route = Screen.SourceHome.route,
+            arguments = listOf(
+                navArgument("sourceId") { type = NavType.StringType },
+            ),
+        ) { entry ->
+            SourceHomeScreen(
+                sourceId = entry.arguments?.getString("sourceId").orEmpty(),
+                onAnimeClick = onAnimeSelect,
+                onOpenListing = onOpenListing,
+                onOpenSettings = { sourceId ->
+                    navController.navigate(Screen.SourceSettings.createRoute(sourceId))
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = Screen.SourceSettings.route,
+            arguments = listOf(
+                navArgument("sourceId") { type = NavType.StringType },
+            ),
+        ) { entry ->
+            SourceSettingsScreen(
+                onBack = { navController.popBackStack() },
+            )
         }
         composable(Screen.Library.route) {
             LibraryScreen(onAnimeClick = onAnimeSelect)

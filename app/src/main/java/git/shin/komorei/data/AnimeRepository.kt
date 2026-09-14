@@ -11,6 +11,8 @@ import git.shin.komorei.model.HomeComponent
 import git.shin.komorei.model.HomeComponentValue
 import git.shin.komorei.model.Listing
 import git.shin.komorei.model.Source
+import git.shin.komorei.model.SourceSetting
+import git.shin.komorei.model.SourceSettingValue
 import git.shin.komorei.model.StreamData
 import git.shin.komorei.model.StreamInfo
 import git.shin.komorei.sdk.KrxPage
@@ -18,6 +20,7 @@ import git.shin.komorei.sdk.KrxSourceRegistry
 import git.shin.komorei.sdk.toAppModel
 import git.shin.komorei.sdk.toAppPage
 import git.shin.komorei.sdk.toRunner
+import git.shin.komorei.sdk.runner.HostDefaultValue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -261,6 +264,83 @@ class AnimeRepository @Inject constructor(
         return registry.call(sourceId) { runner ->
             runner.animeList(listing.toRunner(), page).toAppPage()
         } ?: KrxPage(emptyList(), false)
+    }
+
+    // ── settings ────────────────────────────────────────────────────────────
+
+    /**
+     * The source's dynamic settings (`get_settings`), with the CURRENT value
+     * overlaid onto each description: `get_settings` only describes the
+     * settings, while their actual values live in the Krx defaults store
+     * ([KrxDefaultsStore], SQLite — the source reads them through its
+     * `defaults_get` import).  For every setting key with a persisted value,
+     * that value replaces the description's `default` — so a freshly written
+     * setting shows up immediately on reload even if the source hardcodes its
+     * description default.  Runs on the source's thread.
+     */
+    suspend fun getSettings(sourceId: String): List<SourceSetting> {
+        return registry.call(sourceId) { runner ->
+            runner.settings().map { s ->
+                s.toAppModel().withPersistedValues { key -> registry.defaultsGet(sourceId, key) }
+            }
+        } ?: emptyList()
+    }
+
+    /** Drops the cached `home()` layout for [sourceId] — the next read re-fetches. */
+    fun clearCachedHome(sourceId: String) {
+        homeCache.remove(sourceId)
+    }
+
+    // Overlays the persisted pref value (if any) onto a setting description,
+    // recursing into group/page children. `defaults` is a live read of the
+    // host store — the same one the source sees through its `defaults_get`.
+    private fun SourceSetting.withPersistedValues(defaults: (String) -> HostDefaultValue?): SourceSetting {
+        var value = value.overlayPersisted(defaults(key))
+        value = when (value) {
+            is SourceSettingValue.Group -> value.copy(items = value.items.map { it.withPersistedValues(defaults) })
+            is SourceSettingValue.Page -> value.copy(items = value.items.map { it.withPersistedValues(defaults) })
+            else -> value
+        }
+        return if (value === this.value) this else copy(value = value)
+    }
+
+    private fun SourceSettingValue.overlayPersisted(pref: HostDefaultValue?): SourceSettingValue {
+        if (pref == null) return this
+        return when (this) {
+            is SourceSettingValue.Toggle -> {
+                val v = (pref as? HostDefaultValue.Bool)?.v1 ?: return this
+                if (v == default) this else copy(default = v)
+            }
+            is SourceSettingValue.Select -> {
+                val v = (pref as? HostDefaultValue.String)?.v1 ?: return this
+                if (v == default) this else copy(default = v)
+            }
+            is SourceSettingValue.Picker -> {
+                val v = (pref as? HostDefaultValue.String)?.v1 ?: return this
+                if (v == default) this else copy(default = v)
+            }
+            is SourceSettingValue.Segment -> {
+                val v = (pref as? HostDefaultValue.Int)?.v1 ?: return this
+                if (v == default) this else copy(default = v)
+            }
+            is SourceSettingValue.MultiSelect -> {
+                val v = (pref as? HostDefaultValue.StringArray)?.v1 ?: return this
+                if (v == default) this else copy(default = v)
+            }
+            is SourceSettingValue.Stepper -> {
+                val v = (pref as? HostDefaultValue.Float)?.v1?.toDouble() ?: return this
+                if (v == default) this else copy(default = v)
+            }
+            is SourceSettingValue.Text -> {
+                val v = (pref as? HostDefaultValue.String)?.v1 ?: return this
+                if (v == default) this else copy(default = v)
+            }
+            is SourceSettingValue.EditableList -> {
+                val v = (pref as? HostDefaultValue.StringArray)?.v1 ?: return this
+                if (v == default) this else copy(default = v)
+            }
+            else -> this
+        }
     }
 
     // ── home ───────────────────────────────────────────────────────────────

@@ -15,6 +15,8 @@ import git.shin.komorei.model.LinkValue
 import git.shin.komorei.model.Listing
 import git.shin.komorei.model.ListingKind
 import git.shin.komorei.model.RangeLong
+import git.shin.komorei.model.SourceSetting
+import git.shin.komorei.model.SourceSettingValue
 import git.shin.komorei.model.StreamData
 import git.shin.komorei.model.StreamInfo
 import git.shin.komorei.model.SubtitleInfo
@@ -36,6 +38,8 @@ import git.shin.komorei.sdk.runner.LinkValue as RunnerLinkValue
 import git.shin.komorei.sdk.runner.Listing as RunnerListing
 import git.shin.komorei.sdk.runner.ListingKind as RunnerListingKind
 import git.shin.komorei.sdk.runner.RangeLong as RunnerRangeLong
+import git.shin.komorei.sdk.runner.Setting as RunnerSetting
+import git.shin.komorei.sdk.runner.SettingValue as RunnerSettingValue
 import git.shin.komorei.sdk.runner.SortFilterDefault as RunnerSortFilterDefault
 import git.shin.komorei.sdk.runner.StreamData as RunnerStreamData
 import git.shin.komorei.sdk.runner.StreamInfo as RunnerStreamInfo
@@ -186,6 +190,34 @@ fun RunnerFilterKind.toAppModel(): git.shin.komorei.model.FilterKind = when (thi
 
 fun RunnerSortFilterDefault.toAppModel(): git.shin.komorei.model.SortFilterDefault =
     git.shin.komorei.model.SortFilterDefault(index, ascending)
+
+// ── settings (lossless mirror of `get_settings`) ───────────────────────────
+
+fun RunnerSetting.toAppModel(): SourceSetting = SourceSetting(
+    key = key,
+    title = title,
+    notification = notification,
+    requires = requires,
+    requiresFalse = requiresFalse,
+    refreshes = refreshes,
+    value = value.toAppModel(),
+)
+
+fun RunnerSettingValue.toAppModel(): SourceSettingValue = when (this) {
+    is RunnerSettingValue.Group -> SourceSettingValue.Group(footer, items.map { it.toAppModel() })
+    is RunnerSettingValue.Select -> SourceSettingValue.Select(values, titles, default)
+    is RunnerSettingValue.MultiSelect -> SourceSettingValue.MultiSelect(values, titles, default)
+    is RunnerSettingValue.Toggle -> SourceSettingValue.Toggle(subtitle, default)
+    is RunnerSettingValue.Stepper -> SourceSettingValue.Stepper(minimumValue, maximumValue, stepValue, default)
+    is RunnerSettingValue.Segment -> SourceSettingValue.Segment(options, default)
+    is RunnerSettingValue.Text -> SourceSettingValue.Text(placeholder, default)
+    RunnerSettingValue.Button -> SourceSettingValue.Button
+    is RunnerSettingValue.Link -> SourceSettingValue.Link(url)
+    is RunnerSettingValue.Page -> SourceSettingValue.Page(items.map { it.toAppModel() }, info)
+    is RunnerSettingValue.EditableList -> SourceSettingValue.EditableList(placeholder, default)
+    is RunnerSettingValue.Picker -> SourceSettingValue.Picker(values, titles, default)
+    is RunnerSettingValue.Login -> SourceSettingValue.Login(url)
+}
 
 // ── home components (lossless mirror of `get_home`) ────────────────────────
 

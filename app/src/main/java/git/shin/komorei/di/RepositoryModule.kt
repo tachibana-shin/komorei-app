@@ -12,7 +12,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.local.KomoreiDatabase
+import git.shin.komorei.data.local.KrxDefaultsStore
+import git.shin.komorei.data.local.RoomKrxDefaultsStore
 import git.shin.komorei.data.local.dao.AnimeDao
+import git.shin.komorei.data.local.dao.KrxDefaultsDao
 import git.shin.komorei.data.remote.WebViewCookieJar
 import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
@@ -77,6 +80,7 @@ object RepositoryModule {
             // CategoryLink JSON shape changed (filters: SelectedFilter → FilterValue) — dev data
             // written with the old shape would break the new adapters.
             .fallbackToDestructiveMigration()
+            .addMigrations(KomoreiDatabase.MIGRATION_2_3, KomoreiDatabase.MIGRATION_3_4)
             .build()
     }
 
@@ -88,11 +92,24 @@ object RepositoryModule {
 
     @Provides
     @Singleton
+    fun provideKrxDefaultsDao(database: KomoreiDatabase): KrxDefaultsDao {
+        return database.krxDefaultsDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideKrxDefaultsStore(dao: KrxDefaultsDao): KrxDefaultsStore {
+        return RoomKrxDefaultsStore(dao)
+    }
+
+    @Provides
+    @Singleton
     fun provideKrxHost(
         @ApplicationContext context: Context,
         okHttpClient: OkHttpClient,
+        krxDefaultsStore: KrxDefaultsStore,
     ): KrxHostImpl {
-        return KrxHostImpl(context, okHttpClient)
+        return KrxHostImpl(context, okHttpClient, krxDefaultsStore)
     }
 
     @Provides

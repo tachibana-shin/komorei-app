@@ -175,7 +175,7 @@ class KrxHostImplTest {
     // ---- defaults ----------------------------------------------------------
 
     @Test
-    fun `defaults round trip through shared preferences`() {
+    fun `defaults round trip through the krx defaults store`() {
         assertNull(host.defaultsGet("missing"))
 
         host.defaultsSet("b", HostDefaultValue.Bool(true))
@@ -199,6 +199,31 @@ class KrxHostImplTest {
 
         host.defaultsSet("b", HostDefaultValue.Null)
         assertNull(host.defaultsGet("b"))
+    }
+
+    @Test
+    fun `defaults are namespaced by source id like Aidoku user defaults`() {
+        // A scoped host stores {sourceId}.{key}; two sources with the same
+        // setting key never touch each other's rows (Aidoku semantics).
+        val alpha = host.scopedTo("alpha.source")
+        val beta = host.scopedTo("beta.source")
+
+        alpha.defaultsSet("prefer_fhd", HostDefaultValue.Bool(true))
+        assertEquals(HostDefaultValue.Bool(true), alpha.defaultsGet("prefer_fhd"))
+        // Same key in another source (and in the unscoped host) is a different row.
+        assertNull(beta.defaultsGet("prefer_fhd"))
+        assertNull(host.defaultsGet("prefer_fhd"))
+
+        // The unscoped host writes/reads the raw key independently.
+        host.defaultsSet("prefer_fhd", HostDefaultValue.Bool(false))
+        assertEquals(HostDefaultValue.Bool(false), host.defaultsGet("prefer_fhd"))
+        assertEquals(HostDefaultValue.Bool(true), alpha.defaultsGet("prefer_fhd"))
+
+        // Null write removes only the scoped row.
+        alpha.defaultsSet("prefer_fhd", HostDefaultValue.Null)
+        assertNull(alpha.defaultsGet("prefer_fhd"))
+        assertEquals(HostDefaultValue.Bool(false), host.defaultsGet("prefer_fhd"))
+        assertNull(beta.defaultsGet("prefer_fhd"))
     }
 
     // ---- dates -------------------------------------------------------------

@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import git.shin.komorei.model.Source
+import git.shin.komorei.sdk.runner.HostDefaultValue
 import git.shin.komorei.sdk.runner.KomoreiRunner
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
@@ -32,9 +33,11 @@ import javax.inject.Singleton
  *  - **Same-source calls are serialized** — single-thread dispatcher + the
  *    runner's native engine mutex.
  *
- * A single shared [KrxHostImpl] is used by all runners (OkHttp/cookies/prefs
- * are thread-safe; Jsoup handle registries are ConcurrentHashMap; WebView
- * operations hop to the main looper via a per-call latch).
+ * One heavy shared [KrxHostImpl] is injected for the OkHttp/WebView machinery,
+ * but every runner is bound to its own [KrxHostImpl.scopedTo] twin: the wasm
+ * `defaults_get`/`defaults_set` imports carry only the raw key, so the scoped
+ * host namespaces it (`{sourceId}.{key}`, Aidoku-style) and the defaults store
+ * (SQLite) stays isolated per source — no cross-source key collisions.
  */
 @Singleton
 class KrxSourceRegistry @Inject constructor(
@@ -68,6 +71,12 @@ class KrxSourceRegistry @Inject constructor(
     private val runners = ConcurrentHashMap<String, KomoreiRunner>()
     private val inFlight = ConcurrentHashMap<String, CompletableDeferred<KomoreiRunner?>>()
     private val dispatchers = ConcurrentHashMap<String, CoroutineDispatcher>()
+
+    /** Per-source scoped hosts — each namespaces defaults keys with its source id. */
+    private val hosts = ConcurrentHashMap<String, KrxHostImpl>()
+
+    private fun hostFor(sourceId: String): KrxHostImpl =
+        hosts.getOrPut(sourceId) { host.scopedTo(sourceId) }
 
     // ── metadata discovery ──────────────────────────────────────────────────
 
@@ -181,7 +190,7 @@ class KrxSourceRegistry @Inject constructor(
                 } else {
                     context.assets.open("$SOURCES_DIR/$krxName").readBytes()
                 }
-                KrxManager.load(host, bytes)
+                KrxManager.load(hostFor(sourceId), bytes)
             }
             runners[sourceId] = runner
             deferred.complete(runner)
@@ -217,7 +226,7 @@ class KrxSourceRegistry @Inject constructor(
 
         return try {
             val runner = withContextIO(sourceId) {
-                KrxManager.load(host, krxBytes)
+                KrxManager.load(hostFor(sourceId), krxBytes)
             }
             runners[sourceId] = runner
             deferred.complete(runner)
@@ -286,6 +295,7 @@ class KrxSourceRegistry @Inject constructor(
         metaMap.remove(sourceId)
         userInstalled.remove(sourceId)
         runners.remove(sourceId)?.close()
+        hosts.remove(sourceId)
         inFlight.remove(sourceId)
         disposeDispatcher(sourceId)
         emitSources()
@@ -334,6 +344,29 @@ class KrxSourceRegistry @Inject constructor(
                 .filterNotNull()
                 .toMap()
         }
+    }
+
+    // ── defaults (settings persistence) ──────────────────────────────────────
+
+    /**
+     * Reads a setting value the way source [sourceId]'s wasm sees it: through
+     * that source's scoped host, which namespaces the key (`{sourceId}.{key}`,
+     * Aidoku-style — see [KrxHostImpl.scopedTo]). Returns null when the key
+     * has never been written for this source. Input keys are the RAW setting
+     * key (e.g. `"prefer_fhd"`) exactly like the source's own `defaults_get`.
+     */
+    fun defaultsGet(sourceId: String, key: String): HostDefaultValue? {
+        return hostFor(sourceId).defaultsGet(key)
+    }
+
+    /**
+     * App-side mirror of a source's `defaults_set` — writes [value] for
+     * setting [key] of [sourceId] through the same scoped host, so the store
+     * row is identical to what the source itself would write (or the wasm
+     * side reads via `defaults_get`).
+     */
+    fun defaultsSet(sourceId: String, key: String, value: HostDefaultValue) {
+        hostFor(sourceId).defaultsSet(key, value)
     }
 
     // ── internals ───────────────────────────────────────────────────────────

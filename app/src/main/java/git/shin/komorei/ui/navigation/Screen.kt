@@ -40,4 +40,19 @@ sealed class Screen(val route: String) {
     data object Sources : Screen("sources")
 
     data object SourceRepos : Screen("sources/repos")
+
+    /**
+     * A single source's "home screen" (Aidoku's NewSourceViewController): the
+     * source's listings + full home layout in its own full-screen page, with a
+     * top-bar ⋮ menu (Cài đặt / Mở trang web). [sourceId] is URL-encoded like
+     * the player/listing routes.
+     */
+    data object SourceHome : Screen("source_home/{sourceId}") {
+        fun createRoute(sourceId: String): String = "source_home/${Uri.encode(sourceId)}"
+    }
+
+    /** The per-source settings screen (dynamic settings + website + cache). */
+    data object SourceSettings : Screen("source_settings/{sourceId}") {
+        fun createRoute(sourceId: String): String = "source_settings/${Uri.encode(sourceId)}"
+    }
 }

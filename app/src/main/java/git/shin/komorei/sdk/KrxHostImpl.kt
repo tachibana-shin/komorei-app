@@ -3,11 +3,13 @@ package git.shin.komorei.sdk
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.util.Base64
 import android.util.Log
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import git.shin.komorei.data.local.KrxDefaultsStore
+import git.shin.komorei.data.local.krxDefaultsKey
+import git.shin.komorei.data.local.platformKrxDefaultsStore
 import git.shin.komorei.sdk.runner.HostDefaultValue
 import git.shin.komorei.sdk.runner.HostHttpMethod
 import git.shin.komorei.sdk.runner.HostNetResponse
@@ -35,6 +37,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.runBlocking
 
 /**
  * The real Kotlin implementation of the SDK host trait — every wasm import is
@@ -42,7 +45,9 @@ import java.util.concurrent.atomic.AtomicReference
  *
  *  - `log_*`        → android Log
  *  - `sleep`/dates  → Thread / TimeZone / SimpleDateFormat
- *  - `defaults_*`   → SharedPreferences
+ *  - `defaults_*`   → SQLite (via [KrxDefaultsStore]); keys are namespaced by
+ *    the host's source id (`{sourceId}.{key}`, Aidoku-style) when the host is
+ *    scoped — see [scopedTo]
  *  - `net_request`  → blocking OkHttp (the app's shared client, so the
  *    WebViewCookieJar + Komorei User-Agent apply to every source request)
  *  - `html_*`       → Jsoup, over opaque i64 handles owned by this host
@@ -83,12 +88,35 @@ import java.util.concurrent.atomic.AtomicReference
 class KrxHostImpl(
     context: Context,
     okHttpClient: OkHttpClient? = null,
+    defaultsStore: KrxDefaultsStore = platformKrxDefaultsStore(context),
+    /**
+     * Source id that scopes this host's defaults keys — `{defaultNamespace}.{key}`,
+     * Aidoku-style. `null` reads/writes raw keys (test hosts). Each `KrxSourceRegistry`
+     * runner is bound to [scopedTo] twin so the wasm `defaults_get`/`defaults_set`
+     * imports (which carry only the raw key) land in the owning source's rows.
+     */
+    defaultNamespace: String? = null,
 ) : KomoreiHost {
 
     private val appContext: Context = context.applicationContext
     private val client: OkHttpClient = okHttpClient ?: OkHttpClient.Builder().build()
-    private val prefs: android.content.SharedPreferences =
-        appContext.getSharedPreferences("komorei_krx_defaults", Context.MODE_PRIVATE)
+    private val defaultNamespace: String? = defaultNamespace
+
+    /**
+     * The Krx defaults store (settings values behind `defaults_get`/`defaults_set`).
+     * Exposed `internal` so tests can reach the exact store a host instance reads.
+     */
+    internal val defaultsStore: KrxDefaultsStore = defaultsStore
+
+    /**
+     * A twin of this host scoped to [sourceId] — shares the app context, OkHttp
+     * client and defaults store, but namespaces every defaults key with
+     * `{sourceId}.` (Aidoku-style). [KrxSourceRegistry] binds each runner to its
+     * own scoped twin so `defaults_get("x")` in every source reads only that
+     * source's rows.
+     */
+    internal fun scopedTo(sourceId: String): KrxHostImpl =
+        KrxHostImpl(appContext, client, defaultsStore, sourceId)
 
     /** Opaque Jsoup object registry: handle → Document / Element / Node / Elements / node list. */
     private val nodes = ConcurrentHashMap<Long, Any>()
@@ -158,38 +186,22 @@ class KrxHostImpl(
         }
     }
 
-    // ---- defaults (SharedPreferences) -------------------------------------
+    // ---- defaults (SQLite via KrxDefaultsStore) --------------------------
+    //
+    // Keys are namespaced by the host's source id (`{sourceId}.{key}`) when the
+    // host is scoped — Aidoku prefixes every UserDefaults key the same way. The
+    // wasm imports only carry the raw key; the scoping lives here on the host.
 
     override fun defaultsGet(key: String): HostDefaultValue? {
-        return when (val value = prefs.all[key]) {
-            is Boolean -> HostDefaultValue.Bool(value)
-            is Int -> HostDefaultValue.Int(value)
-            is Float -> HostDefaultValue.Float(value)
-            is String ->
-                if (value.startsWith(DATA_PREFIX)) {
-                    HostDefaultValue.Data(Base64.decode(value.removePrefix(DATA_PREFIX), Base64.NO_WRAP))
-                } else {
-                    HostDefaultValue.String(value)
-                }
-            is Set<*> -> HostDefaultValue.StringArray(value.filterIsInstance<String>().toList())
-            else -> null
-        }
+        return runBlocking { defaultsStore.get(scopedKey(key)) }
     }
 
     override fun defaultsSet(key: String, value: HostDefaultValue) {
-        val editor = prefs.edit()
-        when (value) {
-            is HostDefaultValue.Bool -> editor.putBoolean(key, value.v1)
-            is HostDefaultValue.Int -> editor.putInt(key, value.v1)
-            is HostDefaultValue.Float -> editor.putFloat(key, value.v1)
-            is HostDefaultValue.String -> editor.putString(key, value.v1)
-            is HostDefaultValue.StringArray -> editor.putStringSet(key, value.v1.toSet())
-            is HostDefaultValue.Null -> editor.remove(key)
-            is HostDefaultValue.Data ->
-                editor.putString(key, DATA_PREFIX + Base64.encodeToString(value.v1, Base64.NO_WRAP))
-        }
-        editor.apply()
+        runBlocking { defaultsStore.set(scopedKey(key), value) }
     }
+
+    private fun scopedKey(key: String): String =
+        defaultNamespace?.let { krxDefaultsKey(it, key) } ?: key
 
     // ---- net (blocking OkHttp) --------------------------------------------
 
@@ -989,7 +1001,6 @@ class KrxHostImpl(
 
     private companion object {
         const val TAG = "KrxHost"
-        const val DATA_PREFIX = "b64:"
 
         const val KIND_UNKNOWN = 0
         const val KIND_NODE = 1

@@ -82,6 +82,7 @@ import git.shin.komorei.ui.theme.TextSecondary
 @Composable
 fun SourcesScreen(
     onOpenRepos: () -> Unit,
+    onOpenSource: (sourceId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SourcesViewModel = hiltViewModel(),
 ) {
@@ -248,6 +249,7 @@ fun SourcesScreen(
                     items(updates, key = { it.source.id }) { item ->
                         SourceRow(
                             item = item,
+                            onOpen = { onOpenSource(item.source.id) },
                             onUpdate = { viewModel.updateSource(item.source) },
                             onToggleEnabled = { viewModel.setEnabled(item.source, !item.enabled) },
                             onTogglePinned = { viewModel.togglePinned(item.source) },
@@ -262,6 +264,7 @@ fun SourcesScreen(
                     items(pinned, key = { it.source.id }) { item ->
                         SourceRow(
                             item = item,
+                            onOpen = { onOpenSource(item.source.id) },
                             onUpdate = { viewModel.updateSource(item.source) },
                             onToggleEnabled = { viewModel.setEnabled(item.source, !item.enabled) },
                             onTogglePinned = { viewModel.togglePinned(item.source) },
@@ -275,6 +278,7 @@ fun SourcesScreen(
                 items(installed, key = { it.source.id }) { item ->
                     SourceRow(
                         item = item,
+                        onOpen = { onOpenSource(item.source.id) },
                         onUpdate = { viewModel.updateSource(item.source) },
                         onToggleEnabled = { viewModel.setEnabled(item.source, !item.enabled) },
                         onTogglePinned = { viewModel.togglePinned(item.source) },
@@ -341,6 +345,7 @@ private fun SectionLabel(text: String) {
 @Composable
 private fun SourceRow(
     item: SourceUiState,
+    onOpen: () -> Unit,
     onUpdate: () -> Unit,
     onToggleEnabled: () -> Unit,
     onTogglePinned: () -> Unit,
@@ -366,7 +371,8 @@ private fun SourceRow(
             .fillMaxWidth()
             .alpha(if (item.enabled) 1f else 0.45f)
             .combinedClickable(
-                onClick = {},
+                // Tap opens the source's home screen (Aidoku NewSourceViewController).
+                onClick = onOpen,
                 onLongClick = { menuExpanded = true },
             )
             .padding(horizontal = 16.dp, vertical = 8.dp)

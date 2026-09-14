@@ -1,6 +1,7 @@
 package git.shin.komorei.ui.screens.home
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -61,7 +63,23 @@ class HomeViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val repository: AnimeRepository,
     private val stateStore: SourceStateStore,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    /**
+     * When this VM backs the per-source home screen (`Screen.SourceHome`), the
+     * route's `sourceId` nav arg scopes it to ONE source: [init] only loads that
+     * source's home data and [source] exposes its app-model [Source] (from ALL
+     * sources — a disabled source still opens its home screen, only its tabs
+     * disappear). On the Home tab (no route arg) this is null and the VM
+     * behaves exactly as before.
+     */
+    private val sourceScopeId: String? = savedStateHandle.get<String>("sourceId")
+
+    /** The scoped [Source] for the source home screen; null on the Home tab. */
+    val source: StateFlow<Source?> = repository.sourcesFlow
+        .map { list -> sourceScopeId?.let { id -> list.firstOrNull { it.id == id } } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**
      * The source tabs shown on Home: the "all" aggregator plus every
@@ -84,8 +102,12 @@ class HomeViewModel @Inject constructor(
     init {
         // Load home data lazily for newly-added/enabled sources and drop data
         // for removed/disabled ones, so the pager never references stale sources.
+        // On the source home screen only the scoped source is ever loaded.
         viewModelScope.launch {
-            sources.collect { list ->
+            val flow = sourceScopeId
+                ?.let { id -> sources.map { list -> list.filter { it.id == id } } }
+                ?: sources
+            flow.collect { list ->
                 val known = _sourceDataMap.value.keys
                 list.filter { it.id !in known }.forEach { loadSourceData(it.id) }
                 val removed = known - list.map { it.id }.toSet()

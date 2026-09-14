@@ -87,6 +87,28 @@
     <string name="sources_uninstall">Gỡ</string>
     <string name="sources_language_label">Ngôn ngữ: %1$s</string>
 
+    <!-- Sources: Home & Settings -->
+    <string name="source_home_menu_cd">Tùy chọn nguồn</string>
+    <string name="source_home_settings">Cài đặt</string>
+    <string name="source_home_open_website">Mở trang web</string>
+    <string name="source_settings_title">Cài đặt nguồn</string>
+    <string name="source_settings_section">Cài đặt nguồn</string>
+    <string name="source_settings_empty">Nguồn này chưa có cài đặt nào</string>
+    <string name="source_settings_error">Không thể tải cài đặt của nguồn này</string>
+    <string name="source_settings_clear_cache">Xoá bộ nhớ đệm</string>
+    <string name="source_settings_cache_cleared">Đã xoá bộ nhớ đệm</string>
+    <string name="source_settings_clear_cookies">Xoá cookie</string>
+    <string name="source_settings_language">Ngôn ngữ</string>
+    <string name="source_settings_reset_settings">Đặt lại cài đặt</string>
+    <string name="source_settings_reset_confirm">Xoá toàn bộ giá trị đã lưu của %1$s? Các tuỳ chọn sẽ trở về mặc định của nguồn.</string>
+    <string name="source_settings_reset_confirm_action">Đặt lại</string>
+    <string name="source_settings_readonly">Các tuỳ chọn do nguồn cung cấp, đang ở chế độ xem</string>
+    <string name="source_settings_on">Bật</string>
+    <string name="source_settings_off">Tắt</string>
+    <string name="source_settings_reload">Tải lại</string>
+    <string name="source_settings_done">Xong</string>
+    <string name="source_settings_cancel">Hủy</string>
+
     <!-- Sources: Add & Import -->
     <string name="sources_import_title">Thêm nguồn</string>
     <string name="sources_import_subtitle">Nhập tệp hoặc duyệt kho nguồn</string>

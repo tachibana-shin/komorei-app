@@ -1,6 +1,7 @@
 package git.shin.komorei
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.SourceReposRepository
@@ -96,7 +97,7 @@ class SourcesViewModelTest {
     fun disableSourceFiltersFromHomeTabs() = runBlocking {
         // StateStore starts empty → source enabled.
         val homeVm = git.shin.komorei.ui.screens.home.HomeViewModel(
-            context, repository, stateStore,
+            context, repository, stateStore, SavedStateHandle(),
         )
         val homeSources = homeVm.sources.value
         assertTrue(

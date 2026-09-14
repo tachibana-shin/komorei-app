@@ -1,6 +1,7 @@
 package git.shin.komorei
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.SourceStateStore
@@ -69,7 +70,7 @@ class HomeViewModelListingTest {
     @Test
     fun listingChipsLoadAndInlinePageSwap() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val vm = HomeViewModel(context, repository, SourceStateStore(context))
+        val vm = HomeViewModel(context, repository, SourceStateStore(context), SavedStateHandle())
 
         // Chips fetch (get_dynamic_listings) → shown once the page is visible.
         vm.loadListings("vi.fake-source")
@@ -104,7 +105,7 @@ class HomeViewModelListingTest {
     @Test
     fun switchingChipsLoadsEachListingFromPageOne() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val vm = HomeViewModel(context, repository, SourceStateStore(context))
+        val vm = HomeViewModel(context, repository, SourceStateStore(context), SavedStateHandle())
 
         vm.loadListings("vi.fake-source")
         awaitUntil { vm.listingStateMap.value["vi.fake-source"]?.listings?.size == 4 }
@@ -139,7 +140,7 @@ class HomeViewModelListingTest {
     @Test
     fun aggregatorListingsUnion() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val vm = HomeViewModel(context, repository, SourceStateStore(context))
+        val vm = HomeViewModel(context, repository, SourceStateStore(context), SavedStateHandle())
 
         vm.loadListings("all")
         awaitUntil { vm.listingStateMap.value["all"]?.listings?.isNotEmpty() == true }
