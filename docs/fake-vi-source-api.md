@@ -1,6 +1,6 @@
 # API bề mặt của nguồn Komorei Fake (VI)
 
-> File nguồn: `sources/fake-vi-source/src/lib.rs` (1253 dòng)
+> File nguồn: `sources/fake-vi-source/src/lib.rs` (1273 dòng)
 > Mục đích: liệt kê **trường / hàm mà source xuất ra** + đối chiếu **mức độ tiêu thụ của app**, để theo dõi tiến độ triển khai. Cập nhật khi sửa source hoặc app.
 
 ## Chú thích trạng thái
@@ -38,7 +38,7 @@
 | `DynamicFilters` | ◐ | Model + mapping đủ; UI search dùng riêng danh sách genre của app |
 | `DynamicSettings` | ✅ | `get_settings` → `SourceSettingsScreen` (toggle + persist qua `KrxDefaultsStore`, key scoped `{sourceId}.`) |
 | `DynamicListings` | ✅ | `get_dynamic_listings` → `AnimeRepository.getListings` + chips row Aidoku-style trên Home (`ListingChipsRow`): tap chip đổi content bên dưới sang listing phân trang inline (`HomeListingGrid`) |
-| `NotificationHandler` | ➖ | Source no-op (chỉ nhận key) |
+| `NotificationHandler` | ✅ | App gọi khi 1 setting đổi có khai `notification` (xem §4.11/§3) qua `handleNotification` → runner `notify` → wasm; nguồn mirror sang defaults `last_notification` (round-trip kiểm chứng được) |
 | `DeepLinkHandler` | ❌ | App chưa có routing deep link |
 | `MigrationHandler` | ❌ | Source identity; app chưa dùng |
 | `SegmentUrlInterceptor` | ✅ | App wrap qua `TransformableHttpDataSource` (`data/remote/`) |
@@ -55,9 +55,9 @@
 | `get_anime_list` (L895) | `(listing, page) -> AnimePageResult` | `ongoing` / `completed` / `popular` (sort views) / `latest`=all | ✅ `AnimeRepository.getListing` → Listing screen (15/page) |
 | `get_home` (L926) | `() -> HomeLayout` | 7 component (xem §5.6) | ✅ `getHome` cache + `HomeScreen` |
 | `get_dynamic_filters` (L1093) | `() -> Vec<Filter>` | 5 filter + 1 note (xem §5.7) | ◐ mapping đủ; UI một phần |
-| `get_dynamic_settings` (L1139) | `() -> Vec<Setting>` | 2 toggle: `prefer_fhd`, `show_intro` | ✅ màn Settings render + ghi được (persist → runner đọc lại qua `defaults_get`); `show_intro` chưa có hiệu ứng runtime |
+| `get_dynamic_settings` (L1140) | `() -> Vec<Setting>` | 2 toggle: `prefer_fhd`, `show_intro` + 1 button `clear_cache` | ✅ màn Settings render + ghi được (persist → runner đọc lại qua `defaults_get`); notification của toggle/button được forward về `handle_notification`; `show_intro` chưa có hiệu ứng runtime |
 | `get_dynamic_listings` (L1160) | `() -> Vec<Listing>` | latest / popular / ongoing / completed | ✅ chips `[Trang chủ]+listings` trên Home mỗi source; tap đổi content inline (HomeViewModel: `loadListings`/`selectListing`/`loadListingPage`) |
-| `handle_notification` (L1173) | `(key: String)` | No-op | ➖ |
+| `handle_notification` (L1186) | `(key: String)` | App gửi sau mỗi setting change khai `notification` (toggle + button, Aidoku-style): `AnimeRepository.handleNotification` → `runner.notify` → wasm; nguồn mirror key vào defaults `last_notification` + đếm `clear_cache` | ✅ round-trip (settings screen → wasm → defaults, test kiểm chứng) |
 | `handle_deep_link` (L1182) | `(url) -> Option<DeepLinkResult>` | `/anime/<key>` · `/watch/<anime>/<ep>` · `/list/<id>` | ❌ |
 | `handle_anime_migration` (L1218) | `(key) -> String` | Identity | ❌ |
 | `handle_episode_migration` (L1219) | `(anime_key, episode_key) -> String` | Identity | ❌ |
@@ -170,8 +170,9 @@
 
 | Key | Title | Tiêu thụ | Trạng thái |
 |---|---|---|---|
-| `prefer_fhd` | "Ưu tiên 1080p" | Runner đọc qua `defaults_get::<bool>("prefer_fhd")` khi sắp server (L833); app ghi qua toggle trên `SourceSettingsScreen` → `KrxDefaultsStore` key `{sourceId}.prefer_fhd` | ✅ vòng khép kín (UI → store → runner) |
+| `prefer_fhd` | "Ưu tiên 1080p" | Runner đọc qua `defaults_get::<bool>("prefer_fhd")` khi sắp server (L833); app ghi qua toggle → `KrxDefaultsStore` key `{sourceId}.prefer_fhd`; toggle khai `notification: "Đã thay đổi ưu tiên chất lượng"` → app gửi tới `handle_notification` | ✅ vòng khép kín (UI → store → runner) + notification round-trip |
 | `show_intro` | "Hiển thị nút bỏ intro" | App ghi/persist qua toggle (cùng store); chưa có nơi nào đọc để đổi hành vi | ◐ có UI + persist, chưa có hiệu ứng |
+| `clear_cache` (Button, L1157) | "Xoá bộ nhớ đệm nguồn" | Khai `notification: "clear_cache"` — bấm button → app gọi `runSetting` → `handle_notification("clear_cache")` (nguồn đếm `CACHE_CLEARS` + mirror defaults) | ✅ demo button → notification |
 
 ### 4.10 `Listing` (L1162–1165) & `DeepLinkResult`
 
@@ -239,6 +240,7 @@ Các phần tử app tự chèn vào UI/settings của từng nguồn — source
 - [x] **Settings nguồn**: màn `SourceSettingsScreen` render `get_settings` (cả 2 toggle) + persist qua `KrxDefaultsStore` (key scoped `{sourceId}.{key}`, DB v4 `MIGRATION_3_4` xoá row cũ); `prefer_fhd` runner đọc lại qua `defaults_get`; `show_intro` persist nhưng chưa có hiệu ứng runtime.
 - [x] **Source home per-source**: `SourceHomeScreen` (home reactive theo từng source, ⋮ menu, vào Settings/actions).
 - [x] **App-injected actions**: language picker (`{sourceId}.languages` — hiện khi `languages.size > 1`), Reset settings (xoá mọi `{sourceId}.` rows), Xoá cookie (domain nguồn), Xoá bộ nhớ đệm (home cache) — §4.11.
+- [x] **NotificationHandler**: setting đổi (toggle/select/stepper/text…) có khai `notification` → app `repository.handleNotification` → wasm `handle_notification`; button ("Xoá bộ nhớ đệm nguồn") bấm → gửi `"clear_cache"`; nguồn mirror sang defaults `last_notification` để kiểm chứng round-trip — §3, §4.9.
 - [ ] **Deep link**: `/anime/…`, `/watch/…`, `/list/…` (source đã có `handle_deep_link`).
 - [ ] **Migration**: source identity — app chưa dùng `MigrationHandler`.
 - [ ] **RangeFilter (Năm phát hành)**: model đủ, chưa có UI slider search.
