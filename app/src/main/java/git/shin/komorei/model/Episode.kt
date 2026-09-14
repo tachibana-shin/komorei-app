@@ -15,5 +15,6 @@ data class Episode(
     val title: String,
     val durationSeconds: Long? = null, // Reference only, actual duration comes from stream
     val thumbnailUrl: String = "",
-    val quality: String = "1080p FHD"
+    val quality: String = "1080p FHD",
+    val dateUploaded: Long? = null, // epoch millis; mirrors the runner's date_uploaded (for "x ago" labels)
 )

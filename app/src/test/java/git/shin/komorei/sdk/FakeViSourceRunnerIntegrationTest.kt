@@ -8,6 +8,7 @@ import git.shin.komorei.sdk.runner.FilterValue
 import git.shin.komorei.sdk.runner.HostDefaultValue
 import git.shin.komorei.sdk.runner.Listing
 import git.shin.komorei.sdk.runner.ListingKind
+import git.shin.komorei.sdk.runner.LinkValue
 import git.shin.komorei.sdk.runner.StreamType
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -66,7 +67,7 @@ class FakeViSourceRunnerIntegrationTest {
         assertTrue(page1.hasNextPage)
 
         val page2 = runner.search(null, 2, emptyList())
-        assertEquals(4, page2.entries.size) // 19 in catalog
+        assertEquals(7, page2.entries.size) // 22 in catalog (15 + 7)
         assertFalse(page2.hasNextPage)
 
         val first = page1.entries.first()
@@ -315,27 +316,60 @@ class FakeViSourceRunnerIntegrationTest {
     @Test
     fun `home exposes hero and rails with rich data`() {
         val home = runner.home()
+        // The fake source emits ALL 7 HomeComponentValue variants, in order.
         assertEquals(
-            listOf("Nổi Bật", "Mới Cập Nhật", "Phổ Biến Nhất", "Thể Loại"),
+            listOf("Khám Phá", "Nổi Bật", "Đang Hot", "Mới Cập Nhật", "Phổ Biến Nhất", "Thể Loại", "Liên Kết"),
             home.components.map { it.title.orEmpty() },
         )
 
-        val hero = home.components[0].value as git.shin.komorei.sdk.runner.HomeComponentValue.BigScroller
+        // 1. ImageScroller — banner links with images
+        val promo = home.components[0].value as git.shin.komorei.sdk.runner.HomeComponentValue.ImageScroller
+        assertTrue(promo.links.isNotEmpty())
+        assertTrue(promo.links.all { it.imageUrl != null })
+        assertEquals(4.0f, promo.autoScrollInterval ?: 0f, 0.01f)
+
+        // 2. BigScroller — featured hero
+        val hero = home.components[1].value as git.shin.komorei.sdk.runner.HomeComponentValue.BigScroller
         assertEquals(5, hero.entries.size) // all is_featured entries
         assertTrue(hero.entries.any { it.key == "solo_leveling_s2" })
         assertTrue(hero.entries.any { it.key == "conan" })
 
-        val latest = home.components[1].value as git.shin.komorei.sdk.runner.HomeComponentValue.AnimeEpisodeList
+        // 3. Scroller — small rail (top by views) with a listing
+        val hot = home.components[2].value as git.shin.komorei.sdk.runner.HomeComponentValue.Scroller
+        assertTrue(hot.entries.isNotEmpty())
+        assertEquals("hot", hot.listing!!.id)
+        assertTrue(hot.entries.all { it.value is LinkValue.Anime })
+        assertTrue("Scroller links carry poster covers", hot.entries.all { it.imageUrl != null })
+
+        // 4. AnimeEpisodeList — recent updates
+        val latest = home.components[3].value as git.shin.komorei.sdk.runner.HomeComponentValue.AnimeEpisodeList
         assertEquals(10, latest.entries.size)
         assertEquals("latest", latest.listing!!.id)
+        assertTrue("episodes carry the upload timestamp", latest.entries.all { it.episode.dateUploaded != null })
 
-        val ranking = home.components[2].value as git.shin.komorei.sdk.runner.HomeComponentValue.AnimeList
+        // 5. AnimeList — popular ranking
+        val ranking = home.components[4].value as git.shin.komorei.sdk.runner.HomeComponentValue.AnimeList
         assertTrue(ranking.ranking)
-        assertEquals(5, ranking.entries.size)
+        assertTrue("page_size set → paged 2-column layout", ranking.pageSize != null)
+        assertTrue("more entries than one page → paging active", ranking.entries.size > ranking.pageSize!!)
         assertEquals("popular", ranking.listing!!.id)
+        assertTrue("AnimeList links carry poster covers", ranking.entries.all { it.imageUrl != null })
 
-        val genreChips = home.components[3].value as git.shin.komorei.sdk.runner.HomeComponentValue.Filters
-        assertEquals(6, genreChips.v1.size)
+        // 6. Filters — one chip per genre with an actionable MultiSelect value
+        val genreChips = home.components[5].value as git.shin.komorei.sdk.runner.HomeComponentValue.Filters
+        assertEquals(12, genreChips.v1.size)
+        assertTrue(genreChips.v1.all { it.values != null })
+        assertEquals(
+            listOf("Hành Động", "Chuyển Sinh", "Phiêu Lưu", "Harem", "Shounen", "Lãng Mạn",
+                "Siêu Nhiên", "Học Đường", "Hài Hước", "Bí Ẩn", "Giả Tưởng", "Mecha"),
+            genreChips.v1.map { it.title },
+        )
+
+        // 7. Links — plain navigation shortcuts
+        val links = home.components[6].value as git.shin.komorei.sdk.runner.HomeComponentValue.Links
+        assertEquals(4, links.v1.size)
+        assertTrue(links.v1.any { it.value is LinkValue.Listing })
+        assertTrue(links.v1.any { it.value is LinkValue.Url })
     }
 
     // ── deep link ───────────────────────────────────────────────────────────

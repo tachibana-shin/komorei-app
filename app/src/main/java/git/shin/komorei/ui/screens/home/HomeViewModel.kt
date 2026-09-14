@@ -7,7 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import git.shin.komorei.R
 import git.shin.komorei.data.AnimeRepository
-import git.shin.komorei.model.Anime
+import git.shin.komorei.model.HomeComponent
 import git.shin.komorei.model.Source
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,11 +16,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Home tab state for one source: the FULL [getHome] layout — every
+ * [HomeComponent] row of the runner's `home()` (BigScroller / ImageScroller /
+ * Scroller / AnimeEpisodeList / AnimeList / Filters / Links), in source order.
+ */
 data class SourceHomeData(
-    val featured: List<Anime> = emptyList(),
-    val sections: Map<String, List<Anime>> = emptyMap(),
+    val home: List<HomeComponent> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
 )
 
 @HiltViewModel
@@ -52,14 +56,12 @@ class HomeViewModel @Inject constructor(
                 map + (sourceId to existing.copy(isLoading = true, error = null))
             }
             runCatching {
-                val featured = repository.getFeaturedAnime(sourceId)
-                val sections = repository.getSectionsForSource(sourceId)
+                val home = repository.getHome(sourceId)
                 _sourceDataMap.update { map ->
                     map + (sourceId to SourceHomeData(
-                        featured = featured,
-                        sections = sections,
+                        home = home,
                         isLoading = false,
-                        error = null
+                        error = null,
                     ))
                 }
             }.onFailure { e ->

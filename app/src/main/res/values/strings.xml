@@ -173,6 +173,7 @@
     <string name="studio_prefix">Studio %1$s</string>
     <string name="unknown">không rõ</string>
     <string name="rating_count">%1$s người đánh giá</string>
+    <string name="home_episode_subtitle">Tập %1$s • %2$s</string>
 
     <!-- New Player Features -->
     <string name="player_lock">Khóa</string>

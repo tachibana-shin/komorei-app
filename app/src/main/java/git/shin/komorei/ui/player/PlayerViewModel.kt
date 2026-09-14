@@ -68,9 +68,14 @@ class PlayerViewModel @Inject constructor(
     private val _playbackState = MutableStateFlow(PlayerPlaybackState())
     val playbackState: StateFlow<PlayerPlaybackState> = _playbackState.asStateFlow()
 
-    val allAnimes: List<Anime> = repository.sources.flatMap { src ->
-        repository.getFeaturedAnime(src.id) + repository.getSectionsForSource(src.id).values.flatten()
-    }.distinctBy { it.id }
+    /**
+     * Related-anime list fed to the detail view. Loaded asynchronously from the
+     * sources' home payloads (wasm calls run on per-source IO threads — never
+     * main); starts empty and fills in as home data arrives. Initialized here,
+     * recomposition updates via [VideoPlayerSheet]'s collectAsState.
+     */
+    private val _allAnimes = MutableStateFlow<List<Anime>>(emptyList())
+    val allAnimes: StateFlow<List<Anime>> = _allAnimes.asStateFlow()
 
     // Shared OkHttp-backed factory: injects stream headers + optional segment transformers.
     // Lives in the application graph so WebView cookies & the shared HttpClient stay consistent.
@@ -176,6 +181,9 @@ class PlayerViewModel @Inject constructor(
                 delay(250)
             }
         }
+
+        // Preload the merged home catalog for the related-anime list (off-thread).
+        viewModelScope.launch { _allAnimes.value = repository.allAnimes() }
 
         // Reopen the session that was playing when this process died (if any). The
         // engine is rebuilt from scratch; position restore happens via Room watch
@@ -536,8 +544,8 @@ class PlayerViewModel @Inject constructor(
                 streamData = resolved,
                 isLoadingStreams = false,
                 streamError = null,
-                segmentUrlInterceptor = repository.segmentUrlInterceptor,
-                segmentDataInterceptor = repository.segmentDataInterceptor,
+                segmentUrlInterceptor = repository.segmentUrlInterceptorFor(full.sourceId),
+                segmentDataInterceptor = repository.segmentDataInterceptorFor(full.sourceId),
                 introRange = resolved?.intro?.let { it.startMs..it.endMs },
                 outroRange = resolved?.outro?.let { it.startMs..it.endMs }
             )
@@ -653,7 +661,6 @@ class PlayerViewModel @Inject constructor(
      */
     private fun restoreSession() {
         val animeId = savedStateHandle.get<String>(KEY_ANIME_ID) ?: return
-        val anime = allAnimes.firstOrNull { it.id == animeId } ?: return
         val savedEpisodeId = savedStateHandle.get<String>(KEY_EPISODE_ID)
         val savedSheet = savedStateHandle.get<String>(KEY_SHEET_VALUE)
             ?.let { name -> runCatching { PlayerSheetValue.valueOf(name) }.getOrNull() }
@@ -661,6 +668,10 @@ class PlayerViewModel @Inject constructor(
 
         viewModelScope.launch {
             runCatching {
+                // Locate the Lite card across sources (id lookup is off-thread via
+                // the registry — never on main). A missing source = stale session.
+                val lite = repository.findAnimeById(animeId) ?: return@runCatching
+                val anime = lite
                 val full = repository.getAnimeUpdate(anime, needsDetails = true, needsChapters = true)
                 val episode = savedEpisodeId?.let { id -> full.episodes.firstOrNull { it.id == id } }
                     ?: full.episodes.firstOrNull()

@@ -1,13 +1,13 @@
 #![no_std]
 extern crate alloc;
 
-use alloc::{format, string::String, vec, vec::Vec};
+use alloc::{borrow::Cow, format, string::String, vec, vec::Vec};
 use komorei::{
 	imports::defaults::defaults_get,
 	prelude::*,
 	Anime, AnimePageResult, AnimeSeason, AnimeStatus, AnimeWithEpisode, CategoryLink,
 	DeepLinkHandler, DeepLinkResult, DynamicFilters, DynamicListings, DynamicSettings, Episode,
-	Filter, FilterValue, Home, HomeComponent, HomeComponentValue, HomeLayout, Link, LinkValue,
+	Filter, FilterItem, FilterValue, Home, HomeComponent, HomeComponentValue, HomeLayout, Link, LinkValue,
 	Listing, ListingKind, ListingProvider, MigrationHandler, MultiSelectFilter,
 	NotificationHandler, RangeFilter, RangeLong, Result, SelectFilter, Setting, SortFilter,
 	StreamData, StreamInfo, StreamType, SubtitleInfo, TextFilter, ToggleSetting, Source,
@@ -24,6 +24,25 @@ const SAMPLE_MP4_720: &str =
 	"https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4";
 const SAMPLE_MP4_FHD: &str =
 	"https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+
+/// Canonical genre list. Drives BOTH the "Thể loại" MultiSelect filter and the
+/// home "Thể Loại" chips, so every genre is discoverable from the home page
+/// and searchable by its exact name (the app maps its genre ids onto these
+/// names, so they must line up 1:1 with `app/src/main/.../AnimeRepository.kt`).
+const ALL_GENRES: &[&str] = &[
+	"Hành Động",
+	"Chuyển Sinh",
+	"Phiêu Lưu",
+	"Harem",
+	"Shounen",
+	"Lãng Mạn",
+	"Siêu Nhiên",
+	"Học Đường",
+	"Hài Hước",
+	"Bí Ẩn",
+	"Giả Tưởng",
+	"Mecha",
+];
 
 // ── Catalog ─────────────────────────────────────────────────────────────────
 
@@ -151,8 +170,8 @@ const CATALOG: &[Entry] = &[
 		key: "demon_slayer_hashira",
 		title: "Thanh Gươm Diệt Quỷ: Đại Trụ Đặc Huấn",
 		original_title: "Kimetsu no Yaiba: Hashira Geiko-hen",
-		cover: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=600",
-		banner: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1200",
+		cover: "https://picsum.photos/seed/kimetsu/600/800",
+		banner: "https://picsum.photos/seed/kimetsu/1200/675",
 		description: "Tanjiro và Sát Quỷ Đội bắt đầu đợt tập huấn khắc nghiệt dưới sự hướng dẫn của các Trụ Cột trước trận quyết chiến tại Vô Hạn Thành.",
 		episode_count: 8,
 		current_episode: "Tập 8/8 End",
@@ -213,7 +232,7 @@ const CATALOG: &[Entry] = &[
 		rating_count: 25000,
 		status: AnimeStatus::Completed,
 		release_year: "2016",
-		genres: &["Tình Cảm", "Siêu Nhiên"],
+		genres: &["Lãng Mạn", "Siêu Nhiên"],
 		author: "Makoto Shinkai",
 		studio: "CoMix Wave Films",
 		views: 8_900_000,
@@ -227,8 +246,8 @@ const CATALOG: &[Entry] = &[
 		key: "suzume_no_tojimari",
 		title: "Khóa Chặt Cửa Nào Suzume",
 		original_title: "Suzume no Tojimari",
-		cover: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=600",
-		banner: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1200",
+		cover: "https://picsum.photos/seed/suzume/600/800",
+		banner: "https://picsum.photos/seed/suzume/1200/675",
 		description: "Cô gái 17 tuổi Suzume tình cờ gặp một thanh niên bí ẩn tìm kiếm một cánh cửa. Hai người cùng lên đường khóa những cánh cửa tai họa khắp Nhật Bản.",
 		episode_count: 1,
 		current_episode: "Bản Chiếu Rạp FHD",
@@ -305,7 +324,7 @@ const CATALOG: &[Entry] = &[
 		rating_count: 25000,
 		status: AnimeStatus::Ongoing,
 		release_year: "1996",
-		genres: &["Trinh Thám", "Shounen"],
+		genres: &["Bí Ẩn", "Shounen"],
 		author: "Aoyama Gosho",
 		studio: "TMS Entertainment",
 		views: 58_000_000,
@@ -398,7 +417,7 @@ const CATALOG: &[Entry] = &[
 		rating_count: 7200,
 		status: AnimeStatus::Completed,
 		release_year: "2023",
-		genres: &["Hành Động", "Hài"],
+		genres: &["Hành Động", "Hài Hước"],
 		author: "Tatsuya Endo",
 		studio: "WIT Studio",
 		views: 2_800_000,
@@ -412,8 +431,8 @@ const CATALOG: &[Entry] = &[
 		key: "death_note",
 		title: "Death Note: Ghi Chép Tử Thần",
 		original_title: "Death Note",
-		cover: "https://images.unsplash.com/photo-1609743522653-52354667d2b6?w=600",
-		banner: "https://images.unsplash.com/photo-1609743522653-52354667d2b6?w=1200",
+		cover: "https://picsum.photos/seed/deathnote/600/800",
+		banner: "https://picsum.photos/seed/deathnote/1200/675",
 		description: "Luffy — không, Light Yagami tìm thấy cuốn sổ tử thần và quyết định trở thành vị thần của thế giới mới, đọ trí với thám tử thiên tài L.",
 		episode_count: 37,
 		current_episode: "Full 37/37",
@@ -421,7 +440,7 @@ const CATALOG: &[Entry] = &[
 		rating_count: 28000,
 		status: AnimeStatus::Completed,
 		release_year: "2006",
-		genres: &["Trinh Thám", "Siêu Nhiên", "Kinh Dị"],
+		genres: &["Bí Ẩn", "Siêu Nhiên", "Kinh Dị"],
 		author: "Tsugumi Ohba",
 		studio: "Madhouse",
 		views: 12_000_000,
@@ -493,7 +512,7 @@ const CATALOG: &[Entry] = &[
 		rating_count: 5800,
 		status: AnimeStatus::Completed,
 		release_year: "2022",
-		genres: &["Tình Cảm", "Hài"],
+		genres: &["Lãng Mạn", "Hài Hước"],
 		author: "Fukuda Shinichi",
 		studio: "CloverWorks",
 		views: 1_600_000,
@@ -502,6 +521,76 @@ const CATALOG: &[Entry] = &[
 		quality_tag: "FHD",
 		seasons: &[("dress_up_darling", "Mùa 1")],
 		source_url: "https://komorei.example/anime/dress-up-darling",
+	},
+	// ── Entries covering the remaining genres (Harem / Học Đường / Mecha) ──
+	Entry {
+		key: "konosuba_s3",
+		title: "KonoSuba: Phép Thuật Ngon Lành 3",
+		original_title: "Kono Subarashii Sekai ni Shukufuku wo! 3",
+		cover: "https://images.unsplash.com/photo-1578632292335-df3abbb0d586?w=600",
+		banner: "https://images.unsplash.com/photo-1578632292335-df3abbb0d586?w=1200",
+		description: "Kazuma cùng hội phiêu bạt lập dị — Aqua, Megumin, Darkness — tiếp tục gây ra vô số rắc rối tại thị trấn Axel với những phép thuật 'tuyệt đỉnh'.",
+		episode_count: 11,
+		current_episode: "Tập 11/11 End",
+		rating: 4.87,
+		rating_count: 9800,
+		status: AnimeStatus::Completed,
+		release_year: "2024",
+		genres: &["Chuyển Sinh", "Harem", "Hài Hước", "Giả Tưởng"],
+		author: "Natsume Akatsuki",
+		studio: "Studio Deen",
+		views: 2_400_000,
+		featured: false,
+		next_air: None,
+		quality_tag: "FHD",
+		seasons: &[("konosuba_s1", "Mùa 1"), ("konosuba_s3", "Mùa 3")],
+		source_url: "https://komorei.example/anime/konosuba",
+	},
+	Entry {
+		key: "assassination_classroom",
+		title: "Lớp Học Ám Sát",
+		original_title: "Ansatsu Kyoushitsu",
+		cover: "https://images.unsplash.com/photo-1528459584353-5297db1a9c01?w=600",
+		banner: "https://images.unsplash.com/photo-1528459584353-5297db1a9c01?w=1200",
+		description: "Lớp 3-E trường trung học Kunugigaoka nhận nhiệm vụ ám sát giáo viên bạch tuộc bí ẩn Koro-sensei trước khi hắn phá hủy Trái Đất — vừa học vừa ám sát.",
+		episode_count: 47,
+		current_episode: "Full 47/47",
+		rating: 4.93,
+		rating_count: 15000,
+		status: AnimeStatus::Completed,
+		release_year: "2016",
+		genres: &["Học Đường", "Hành Động", "Hài Hước"],
+		author: "Yusei Matsui",
+		studio: "Lerche",
+		views: 4_000_000,
+		featured: false,
+		next_air: None,
+		quality_tag: "FHD",
+		seasons: &[("assassination_classroom", "Mùa 1")],
+		source_url: "https://komorei.example/anime/assassination-classroom",
+	},
+	Entry {
+		key: "code_geass_r2",
+		title: "Code Geass: Phản Ứng Của Lelouch",
+		original_title: "Code Geass: Hangyaku no Lelouch R2",
+		cover: "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?w=600",
+		banner: "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?w=1200",
+		description: "Lelouch vi Britannia — hoàng đế lưu vong — một lần nữa dùng năng lực Geass để lãnh đạo Khắc Tinh Đen chống lại đế chế Britannia bằng chiến thuật và Knightmare khổng lồ.",
+		episode_count: 25,
+		current_episode: "Tập 25/25 End",
+		rating: 4.94,
+		rating_count: 16000,
+		status: AnimeStatus::Completed,
+		release_year: "2008",
+		genres: &["Mecha", "Shounen", "Siêu Nhiên"],
+		author: "Goro Taniguchi",
+		studio: "Sunrise",
+		views: 5_100_000,
+		featured: false,
+		next_air: None,
+		quality_tag: "FHD",
+		seasons: &[("code_geass_r1", "Mùa 1"), ("code_geass_r2", "Mùa 2: R2")],
+		source_url: "https://komorei.example/anime/code-geass",
 	},
 ];
 
@@ -578,6 +667,7 @@ fn build_lite(entry: &Entry) -> Anime {
 			filters: Vec::new(),
 		}),
 		status: entry.status.clone(),
+		quality_tag: Some(String::from(entry.quality_tag)),
 		genres: entry
 			.genres
 			.iter()
@@ -838,27 +928,98 @@ impl Home for FakeViSource {
 			.filter(|e| e.featured)
 			.map(|e| build_anime(e))
 			.collect();
-		let popular: Vec<Anime> = {
+		let by_views: Vec<Anime> = {
 			let mut v: Vec<Anime> = CATALOG.iter().map(|e| build_lite(e)).collect();
 			v.sort_by(|a, b| b.views.cmp(&a.views));
-			v.truncate(5);
 			v
 		};
+		let hot: Vec<Link> = by_views.iter().cloned().take(8)
+			.map(|a| Link {
+				title: a.title.clone(),
+				subtitle: a.current_episode.clone(),
+				image_url: Some(a.cover.clone()),
+				value: Some(LinkValue::Anime(a)),
+			})
+			.collect();
+		let popular: Vec<Link> = by_views.iter().cloned().take(12)
+			.map(|a| Link {
+				title: a.title.clone(),
+				subtitle: a.current_episode.clone(),
+				image_url: Some(a.cover.clone()),
+				value: Some(LinkValue::Anime(a)),
+			})
+			.collect();
 		let latest_episodes: Vec<AnimeWithEpisode> = CATALOG.iter().take(10).map(|e| {
 			AnimeWithEpisode {
 				anime: build_lite(e),
 				episode: Episode {
 					key: format!("{}_latest", e.key),
-					episode_number: String::from(e.current_episode.split('/').next().unwrap_or("1")),
+					// Episode number as a bare digit ("10" not "Tập 10") — the app
+					// prefixes its own localized "Tập %1$s" label. Movies with
+					// no number in current_episode ("Full") fall back to "1".
+					episode_number: {
+						let n: String = e.current_episode.split('/').next().unwrap_or("1")
+							.chars().filter(|c| c.is_ascii_digit()).collect();
+						if n.is_empty() { String::from("1") } else { n }
+					},
 					title: Some(String::from(e.title)),
-					date_uploaded: Some(1_700_000_000_i64),
+					// epoch MILLIS (the app reads it via Instant.ofEpochMilli)
+					date_uploaded: Some(1_700_000_000_000_i64),
 					..Default::default()
 				},
 			}
 		}).collect();
+		// ── ImageScroller: banner images for featured anime ──
+		let image_links: Vec<Link> = featured.iter()
+			.map(|a| Link {
+				title: a.title.clone(),
+				subtitle: None,
+				image_url: a.banner.clone(),
+				value: Some(LinkValue::Anime(a.clone())),
+			})
+			.collect();
+		// ── Links: navigation shortcuts ──
+		let links: Vec<Link> = vec![
+			Link {
+				title: String::from("Xem toàn bộ Mới cập nhật"),
+				subtitle: Some(String::from("Danh sách \"Mới nhất\" của nguồn")),
+				image_url: None,
+				value: Some(LinkValue::Listing(Listing { id: String::from("latest"), name: String::from("Mới nhất"), kind: ListingKind::List })),
+			},
+			Link {
+				title: String::from("Phim đang phát sóng"),
+				subtitle: Some(String::from("Đang phát")),
+				image_url: None,
+				value: Some(LinkValue::Listing(Listing { id: String::from("ongoing"), name: String::from("Đang phát"), kind: ListingKind::List })),
+			},
+			Link {
+				title: String::from("Phim đã hoàn thành"),
+				subtitle: Some(String::from("Hoàn thành")),
+				image_url: None,
+				value: Some(LinkValue::Listing(Listing { id: String::from("completed"), name: String::from("Hoàn thành"), kind: ListingKind::List })),
+			},
+			Link {
+				title: String::from("Trang nguồn Komorei"),
+				subtitle: Some(String::from("https://komorei.example")),
+				image_url: None,
+				value: Some(LinkValue::Url(String::from("https://komorei.example"))),
+			},
+		];
 
 		Ok(HomeLayout {
 			components: vec![
+				// 1. ImageScroller — banner image strip (auto-scrolling)
+				HomeComponent {
+					title: Some(String::from("Khám Phá")),
+					subtitle: None,
+					value: HomeComponentValue::ImageScroller {
+						links: image_links,
+						auto_scroll_interval: Some(4.0),
+						width: Some(800),
+						height: Some(450),
+					},
+				},
+				// 2. BigScroller — featured hero carousel
 				HomeComponent {
 					title: Some(String::from("Nổi Bật")),
 					subtitle: None,
@@ -867,6 +1028,16 @@ impl Home for FakeViSource {
 						auto_scroll_interval: Some(5.0),
 					},
 				},
+				// 3. Scroller — small horizontal rail (top by views)
+				HomeComponent {
+					title: Some(String::from("Đang Hot")),
+					subtitle: None,
+					value: HomeComponentValue::Scroller {
+						entries: hot,
+						listing: Some(Listing { id: String::from("hot"), name: String::from("Đang hot"), kind: ListingKind::List }),
+					},
+				},
+				// 4. AnimeEpisodeList — recent updates
 				HomeComponent {
 					title: Some(String::from("Mới Cập Nhật")),
 					subtitle: None,
@@ -876,23 +1047,40 @@ impl Home for FakeViSource {
 						listing: Some(Listing { id: String::from("latest"), name: String::from("Mới nhất"), kind: ListingKind::List }),
 					},
 				},
+				// 5. AnimeList — popular ranking
 				HomeComponent {
 					title: Some(String::from("Phổ Biến Nhất")),
 					subtitle: None,
 					value: HomeComponentValue::AnimeList {
 						ranking: true,
-						page_size: Some(5),
-						entries: popular.into_iter().map(|a| Link { title: a.title.clone(), subtitle: a.current_episode.clone(), value: Some(LinkValue::Anime(a)), ..Default::default() }).collect(),
+						page_size: Some(6),
+						entries: popular,
 						listing: Some(Listing { id: String::from("popular"), name: String::from("Phổ biến"), kind: ListingKind::List }),
 					},
 				},
+				// 6. Filters — genre chips with actionable MultiSelect values
 				HomeComponent {
 					title: Some(String::from("Thể Loại")),
 					subtitle: None,
-					value: HomeComponentValue::Filters(vec![
-						"Action".into(), "Adventure".into(), "Fantasy".into(),
-						"Super Natural".into(), "Romance".into(), "Sci-Fi".into(),
-					]),
+					value: HomeComponentValue::Filters(
+						ALL_GENRES
+							.iter()
+							.map(|g| FilterItem {
+								title: String::from(*g),
+								values: Some(vec![FilterValue::MultiSelect {
+									id: String::from("genres"),
+									included: vec![String::from(*g)],
+									excluded: Vec::new(),
+								}]),
+							})
+							.collect(),
+					),
+				},
+				// 7. Links — navigation shortcuts
+				HomeComponent {
+					title: Some(String::from("Liên Kết")),
+					subtitle: None,
+					value: HomeComponentValue::Links(links),
 				},
 			],
 		})
@@ -923,12 +1111,7 @@ impl DynamicFilters for FakeViSource {
 				is_genre: true,
 				can_exclude: false,
 				uses_tag_style: true,
-				options: vec![
-					"Hành Động".into(), "Phiêu Lưu".into(), "Giả Tưởng".into(),
-					"Siêu Nhiên".into(), "Shounen".into(), "Tình Cảm".into(),
-					"Sci-Fi".into(), "Trinh Thám".into(), "Chuyển Sinh".into(),
-					"Hài".into(), "Kinh Dị".into(),
-				],
+				options: ALL_GENRES.iter().map(|g| Cow::Borrowed(*g)).collect(),
 				..Default::default()
 			}.into(),
 			SelectFilter {

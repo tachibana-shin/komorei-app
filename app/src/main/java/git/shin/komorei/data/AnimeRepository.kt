@@ -3,48 +3,56 @@ package git.shin.komorei.data
 import git.shin.komorei.data.remote.SegmentDataInterceptor
 import git.shin.komorei.data.remote.SegmentUrlInterceptor
 import git.shin.komorei.model.Anime
-import git.shin.komorei.model.AnimeStatus
-import git.shin.komorei.model.CategoryLink
 import git.shin.komorei.model.Episode
+import git.shin.komorei.model.Filter
+import git.shin.komorei.model.FilterValue
 import git.shin.komorei.model.Genre
-import git.shin.komorei.model.RangeLong
+import git.shin.komorei.model.HomeComponent
+import git.shin.komorei.model.HomeComponentValue
 import git.shin.komorei.model.Source
 import git.shin.komorei.model.StreamData
 import git.shin.komorei.model.StreamInfo
-import git.shin.komorei.model.StreamType
-import git.shin.komorei.model.SubtitleInfo
+import git.shin.komorei.sdk.KrxPage
+import git.shin.komorei.sdk.KrxSourceRegistry
+import git.shin.komorei.sdk.toAppModel
+import git.shin.komorei.sdk.toAppPage
+import git.shin.komorei.sdk.toRunner
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.random.Random
 
+/**
+ * Runner-backed repository. Every call hops onto the source's dedicated IO
+ * thread via [KrxSourceRegistry.call] / [callAll] — wasm calls NEVER run on the
+ * main thread, and a slow source never blocks another source (one thread per
+ * source, no shared lock).
+ */
 @Singleton
-class AnimeRepository @Inject constructor() {
+class AnimeRepository @Inject constructor(
+    private val registry: KrxSourceRegistry,
+) {
 
-    // ... (sources and genres remain same)
-    val sources: List<Source> = listOf(
-        Source("all", "Tổng hợp", "🌐", "2.4.0", "", true, true, 0xFFFF2A55),
-        Source("animevietsub", "AnimeVietsub", "⚡", "3.1.2", "https://animevietsub.tv", true, false, 0xFF00C853),
-        Source("vuighe", "Vuighe", "🔥", "2.8.0", "https://vuighe4.com", true, false, 0xFFFF9100),
-        Source("gogoanime", "GogoAnime", "🌏", "1.9.5", "https://anitaku.to", true, false, 0xFF2979FF),
-        Source("hidive", "Hidive", "💎", "1.4.1", "https://hidive.com", true, false, 0xFFAA00FF)
-    )
-
-    /**
-     * Per-source media transformers. Real sources override these to de-obfuscate/rewrite
-     * HLS segments. Null here means plain, untouched requests.
-     */
-    open val segmentUrlInterceptor: SegmentUrlInterceptor? = null
-    open val segmentDataInterceptor: SegmentDataInterceptor? = null
-
-    fun getSource(sourceId: String): Source? {
-        return sources.find { it.id == sourceId }
+    private companion object {
+        const val AGGREGATOR_ID = "all"
+        const val AGGREGATOR_NAME = "Tổng hợp"
+        const val AGGREGATOR_ICON = "🌐"
+        const val AGGREGATOR_VERSION = "2.4.0"
+        const val AGGREGATOR_BADGE = 0xFFFF2A55L
     }
 
-    fun getSourceName(sourceId: String): String {
-        return getSource(sourceId)?.name ?: sourceId
+    /** The "all" virtual source + every bundled source. */
+    val sources: List<Source> = buildList {
+        add(
+            Source(
+                AGGREGATOR_ID, AGGREGATOR_NAME, AGGREGATOR_ICON,
+                AGGREGATOR_VERSION, "", true, true, AGGREGATOR_BADGE
+            )
+        )
+        addAll(registry.sourceAppList())
     }
 
     val genres: List<Genre> = listOf(
@@ -62,478 +70,231 @@ class AnimeRepository @Inject constructor() {
         Genre("mecha", "Mecha", "🤖", 0xFF546E7A, 42)
     )
 
-    private val videoUrls = listOf(
-        "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4",
-        "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_5MB.mp4",
-        "https://test-videos.co.uk/vids/sintel/mp4/h264/720/Sintel_720_10s_1MB.mp4",
-        "https://test-videos.co.uk/vids/jellyfish/mp4/h264/720/Jellyfish_720_10s_5MB.mp4",
-        "https://vjs.zencdn.net/v/oceans.mp4",
-        "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-    )
+    fun getSource(sourceId: String): Source? = sources.find { it.id == sourceId }
+
+    fun getSourceName(sourceId: String): String = getSource(sourceId)?.name ?: sourceId
+
+    // ── per-source media transformers ──────────────────────────────────────
 
     /**
-     * The primary API to fetch missing data for an Anime.
-     * @param anime A "Lite" Anime object containing at least id and sourceId.
-     * @param needsDetails Fetch metadata like description, studio, rating, and ALL seasons.
-     * @param needsChapters Fetch only the episode list for the specific id provided in [anime].
+     * Segment transformers for [sourceId], delegating to the runner's
+     * `interceptSegmentUrl` / `interceptSegmentData` exports. Created once per
+     * stream resolution and invoked on OkHttp media threads (never main).
+     * Returns null when the source hasn't been loaded yet.
+     */
+    fun segmentUrlInterceptorFor(sourceId: String): SegmentUrlInterceptor? {
+        val runner = registry.runnerOrNull(sourceId) ?: return null
+        return SegmentUrlInterceptor { streamData, requestUrl ->
+            runner.interceptSegmentUrl(streamData?.toRunner(), requestUrl)
+        }
+    }
+
+    fun segmentDataInterceptorFor(sourceId: String): SegmentDataInterceptor? {
+        val runner = registry.runnerOrNull(sourceId) ?: return null
+        return SegmentDataInterceptor { streamData, segmentUrl, data ->
+            runner.interceptSegmentData(streamData?.toRunner(), segmentUrl, data)
+        }
+    }
+
+    // ── anime / episodes / streams ─────────────────────────────────────────
+
+    /**
+     * The primary API to fetch missing data for an Anime. Upgrades a Lite card
+     * (id + sourceId only) to full via the runner's `animeUpdate`.
+     * Falls back to the input (unchanged) when the source can't be loaded.
      */
     suspend fun getAnimeUpdate(
         anime: Anime,
         needsDetails: Boolean,
         needsChapters: Boolean
     ): Anime {
-        delay(400) // Simulating network
-        
-        // Find the "Master" mock data for this ID
-        val databaseMatch = allAnimes.find { it.id == anime.id } ?: anime
-
-        return anime.copy(
-            // Metadata update
-            description = if (needsDetails) databaseMatch.description else anime.description,
-            studio = if (needsDetails) databaseMatch.studio else anime.studio,
-            rating = if (needsDetails) databaseMatch.rating else anime.rating,
-            status = if (needsDetails) databaseMatch.status else anime.status,
-            seasons = if (needsDetails) databaseMatch.seasons else anime.seasons,
-            
-            // Chapter (Episode) update - strictly for current anime.id
-            episodes = if (needsChapters) databaseMatch.episodes else anime.episodes
-        )
+        return registry.call(anime.sourceId) { runner ->
+            runner.animeUpdate(anime.toRunner(), needsDetails, needsChapters).toAppModel()
+        } ?: anime
     }
 
     suspend fun getStreamList(anime: Anime, episode: Episode): List<StreamInfo> {
-        delay(250) // Simulating network
-        // Server list is source-specific: varies per source (and in real sources, per episode).
-        return when (anime.sourceId) {
-            "gogoanime" -> listOf(
-                StreamInfo("server_gogo_hls", "Gogo HLS", "720p"),
-                StreamInfo("server_gogo_mp4", "Gogo MP4", "1080p")
-            )
-            "hidive" -> listOf(
-                StreamInfo("server_hidive_hls", "HiDive HLS", "1080p")
-            )
-            "vuighe" -> listOf(
-                StreamInfo("server_vuighe_mp4", "VuiGhe MP4", "1080p"),
-                StreamInfo("server_vuighe_vip", "VuiGhe VIP", "1080p")
-            )
-            else -> listOf( // animevietsub
-                StreamInfo("server_fhd", "Server 1 (FHD)", "1080p"),
-                StreamInfo("server_vip", "Storage VIP", "1080p"),
-                StreamInfo("server_hls", "HLS Stream", "720p")
-            )
-        }
+        return registry.call(anime.sourceId) { runner ->
+            runner.streamList(anime.toRunner(), episode.toRunner()).map { it.toAppModel() }
+        } ?: emptyList()
     }
 
     suspend fun getStream(anime: Anime, episode: Episode, stream: StreamInfo): StreamData {
-        delay(300)
-        val isHls = stream.id.contains("hls", ignoreCase = true)
-        val url = if (isHls) {
-            "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
-        } else {
-            videoUrls[Random.nextInt(videoUrls.size)]
-        }
-
-        return StreamData(
-            url = url,
-            type = if (isHls) StreamType.HLS else StreamType.MP4,
-            headers = mapOf(
-                "Referer" to (sources.find { it.id == anime.sourceId }?.name ?: "Komorei"),
-                "User-Agent" to "Komorei/1.0"
-            ),
-            isContent = false,
-            subtitles = listOf(
-                SubtitleInfo(
-                    url = "https://example.com/vi.vtt",
-                    language = "vi",
-                    label = "Tiếng Việt",
-                    headers = mapOf("Referer" to "Komorei")
-                ),
-                SubtitleInfo("https://example.com/en.vtt", "en", "English")
-            ),
-            intro = RangeLong(10_000L, 90_000L),
-            outro = RangeLong(
-                startMs = (episode.durationSeconds?.toLong() ?: 1440L) * 1000L - 120_000L,
-                endMs = (episode.durationSeconds?.toLong() ?: 1440L) * 1000L - 30_000L
-            )
-        )
+        return registry.call(anime.sourceId) { runner ->
+            runner.stream(anime.toRunner(), episode.toRunner(), stream.toRunner()).toAppModel()
+        } ?: throw IllegalStateException("Source unavailable: ${anime.sourceId}")
     }
 
-    // --- Mock Data Helpers ---
-    
-    private fun generateEpisodes(animeId: String, sourceId: String, count: Int, titlePrefix: String): List<Episode> {
-        return (1..count).map { i ->
-            Episode(
-                id = "${animeId}_ep_$i",
-                animeId = animeId,
-                sourceId = sourceId,
-                episodeNumber = i.toString(),
-                title = "Tập $i - $titlePrefix",
-                quality = "1080p FHD"
-            )
-        }
-    }
-
-    val allAnimes: List<Anime> by lazy {
-        val soloS1Eps = generateEpisodes("solo_leveling", "animevietsub", 12, "Thợ Săn Hạng E")
-        val soloS2Eps = generateEpisodes("solo_leveling_s2", "animevietsub", 13, "Chúa Tể Bóng Tối")
-
-        val dandadanS1Eps = generateEpisodes("dandadan", "animevietsub", 12, "Chạm Trán Siêu Nhiên")
-        val dandadanS2Eps = generateEpisodes("dandadan_s2", "animevietsub", 12, "Cuộc Chiến Quỷ Ác Tà")
-
-        val jjkS1Eps = generateEpisodes("jujutsu_kaisen", "gogoanime", 24, "Ngón Tay Sukuna")
-        val jjkS2Eps = generateEpisodes("jujutsu_kaisen_s2", "gogoanime", 23, "Thảm Kịch Shibuya")
-
-        val dsS1Eps = generateEpisodes("demon_slayer_s1", "vuighe", 11, "Phố Đèn Đỏ")
-        val dsS2Eps = generateEpisodes("demon_slayer_s2", "vuighe", 11, "Làng Thợ Rèn")
-        val dsS3Eps = generateEpisodes("demon_slayer_hashira", "vuighe", 8, "Khóa Huấn Luyện")
-
-        val mushokuS1Eps = generateEpisodes("mushoku_tensei", "hidive", 12, "Học Viện Phép Thuật")
-        val mushokuS2Eps = generateEpisodes("mushoku_tensei_s2", "hidive", 12, "Mê Cung Rapan")
-
-        listOf(
-            Anime(
-                id = "solo_leveling_s2",
-                sourceId = "animevietsub",
-                title = "Solo Leveling: Arise from the Shadow",
-                originalTitle = "Ore dake Level Up na Ken Season 2",
-                posterUrl = "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600",
-                bannerUrl = "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200",
-                description = "Sung Jin-woo tiếp tục hành trình thức tỉnh sức mạnh Chúa Tể Bóng Tối, đối mặt với các Thợ Săn Cấp Quốc Gia và giải cứu thế giới khỏi hiểm họa hầm ngục.",
-                episodeCount = 13,
-                currentEpisode = "Tập 10/13",
-                rating = 4.95f,
-                ratingCount = 12500,
-                status = AnimeStatus.ONGOING,
-                releaseYear = CategoryLink("2025"),
-                genres = listOf(CategoryLink("Hành Động"), CategoryLink("Siêu Nhiên")),
-                authors = listOf(CategoryLink("Chugong")),
-                studio = CategoryLink("A-1 Pictures"),
-                seasonOf = null,
-                isFeatured = true,
-                views = 2800000,
-                nextEpisodeAirInfo = "Tập 11 phát sóng lúc 22:30 Thứ Bảy ngày 12/10",
-                episodes = soloS2Eps,
-                seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("solo_leveling", "Phần 1: Thức Tỉnh"),
-                    git.shin.komorei.model.AnimeSeason("solo_leveling_s2", "Phần 2: Arise")
-                )
-            ),
-            Anime(
-                id = "frieren_journey",
-                sourceId = "vuighe",
-                title = "Frieren: Pháp Sư Tiễn Táng",
-                originalTitle = "Sousou no Frieren",
-                posterUrl = "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600",
-                bannerUrl = "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1200",
-                description = "Hành trình sâu lắng của pháp sư Elf Frieren sau khi Đội Anh Hùng đánh bại Quỷ Vương, đi tìm ý nghĩa của cuộc sống và sự hữu hạn của thời gian.",
-                episodeCount = 28,
-                currentEpisode = "Tập 28/28 End",
-                rating = 4.98f,
-                ratingCount = 8500,
-                status = AnimeStatus.COMPLETED,
-                releaseYear = CategoryLink("2024"),
-                genres = listOf(CategoryLink("Phiêu Lưu"), CategoryLink("Giả Tưởng")),
-                authors = listOf(CategoryLink("Kanehito Yamada")),
-                studio = CategoryLink("Madhouse"),
-                seasonOf = null,
-                isFeatured = true,
-                views = 4100000,
-                episodes = generateEpisodes("frieren_journey", "vuighe", 28, "Hành Trình Mới"),
-                seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("frieren_journey", "Phần 1: Hành Trình Mới")
-                )
-            ),
-            Anime(
-                id = "dandadan",
-                sourceId = "animevietsub",
-                title = "Dandadan: Cuộc Chiến Siêu Nhiên",
-                originalTitle = "Dandadan",
-                posterUrl = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600",
-                bannerUrl = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1200",
-                description = "Momo Ayase tin vào ma quỷ nhưng không tin người ngoài hành tinh. Okarun ngược lại. Một vụ cá cược định mệnh đưa họ vào thế giới hỗn loạn của quái vật và thế lực kỳ bí.",
-                episodeCount = 24,
-                currentEpisode = "Tập 12/24",
-                rating = 4.91f,
-                ratingCount = 5200,
-                status = AnimeStatus.ONGOING,
-                releaseYear = CategoryLink("2024"),
-                genres = listOf(CategoryLink("Hành Động"), CategoryLink("Siêu Nhiên")),
-                authors = listOf(CategoryLink("Yukinobu Tatsu")),
-                studio = CategoryLink("Science SARU"),
-                seasonOf = null,
-                isFeatured = true,
-                views = 1900000,
-                nextEpisodeAirInfo = "Tập tiếp theo (Tập 13) phát lúc 23:00 Thứ Năm hàng tuần",
-                episodes = dandadanS1Eps,
-                seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("dandadan", "Phần 1: Chạm Trán"),
-                    git.shin.komorei.model.AnimeSeason("dandadan_s2", "Phần 2: Quỷ Ác Tà")
-                )
-            ),
-            Anime(
-                id = "jujutsu_kaisen_s2",
-                sourceId = "gogoanime",
-                title = "Jujutsu Kaisen: Biến Cố Shibuya",
-                originalTitle = "Jujutsu Kaisen 2nd Season",
-                posterUrl = "https://images.unsplash.com/photo-1563089145-599997674d42?w=600",
-                bannerUrl = "https://images.unsplash.com/photo-1563089145-599997674d42?w=1200",
-                description = "Cuộc chiến khốc liệt nhất lịch sử Chú Thuật Sư tại ngã tư Shibuya khi Gojo Satoru bị phong ấn trong Ngục Môn Cương.",
-                episodeCount = 23,
-                currentEpisode = "Tập 23/23 End",
-                rating = 4.96f,
-                ratingCount = 15000,
-                status = AnimeStatus.COMPLETED,
-                releaseYear = CategoryLink("2023"),
-                genres = listOf(CategoryLink("Hành Động"), CategoryLink("Shounen")),
-                authors = listOf(CategoryLink("Gege Akutami")),
-                studio = CategoryLink("MAPPA"),
-                seasonOf = null,
-                isFeatured = false,
-                views = 5600000,
-                episodes = jjkS2Eps,
-                seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("jujutsu_kaisen", "Phần 1: Chú Thuật"),
-                    git.shin.komorei.model.AnimeSeason("jujutsu_kaisen_s2", "Phần 2: Sự Cố Shibuya")
-                )
-            ),
-            Anime(
-                id = "demon_slayer_hashira",
-                sourceId = "vuighe",
-                title = "Thanh Gươm Diệt Quỷ: Đại Trụ Đặc Huấn",
-                originalTitle = "Kimetsu no Yaiba: Hashira Geiko-hen",
-                posterUrl = "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=600",
-                bannerUrl = "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1200",
-                description = "Tanjiro và Sát Quỷ Đội bắt đầu đợt tập huấn khắc nghiệt dưới sự hướng dẫn của các Trụ Cột trước trận quyết chiến tại Vô Hạn Thành.",
-                episodeCount = 8,
-                currentEpisode = "Tập 8/8 End",
-                rating = 4.88f,
-                ratingCount = 9800,
-                status = AnimeStatus.COMPLETED,
-                releaseYear = CategoryLink("2024"),
-                genres = listOf(CategoryLink("Hành Động"), CategoryLink("Shounen")),
-                authors = listOf(CategoryLink("Koyoharu Gotouge")),
-                studio = CategoryLink("ufotable"),
-                seasonOf = null,
-                isFeatured = true,
-                views = 3400000,
-                episodes = dsS3Eps,
-                seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("demon_slayer_s1", "Phần 1: Phố Đèn Đỏ"),
-                    git.shin.komorei.model.AnimeSeason("demon_slayer_s2", "Phần 2: Làng Thợ Rèn"),
-                    git.shin.komorei.model.AnimeSeason("demon_slayer_hashira", "Phần 3: Đại Trụ Đặc Huấn")
-                )
-            ),
-            Anime(
-                id = "mushoku_tensei_s2",
-                sourceId = "hidive",
-                title = "Thất Nghiệp Chuyển Sinh: Mùa 2 Phần 2",
-                originalTitle = "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
-                posterUrl = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600",
-                bannerUrl = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200",
-                description = "Rudeus Greyrat đến Mê Cung Rapan để giải cứu mẹ Zenith cùng cha Paul và sư phục Roxy, trải qua thử thách đầy cảm xúc.",
-                episodeCount = 12,
-                currentEpisode = "Tập 12/12 End",
-                rating = 4.93f,
-                ratingCount = 11000,
-                status = AnimeStatus.COMPLETED,
-                releaseYear = CategoryLink("2024"),
-                genres = listOf(CategoryLink("Chuyển Sinh"), CategoryLink("Phiêu Lưu")),
-                authors = listOf(CategoryLink("Rifujin na Magonote")),
-                studio = CategoryLink("Studio Bind"),
-                seasonOf = null,
-                isFeatured = false,
-                views = 2200000,
-                episodes = mushokuS2Eps,
-                seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("mushoku_tensei", "Phần 1: Học Viện"),
-                    git.shin.komorei.model.AnimeSeason("mushoku_tensei_s2", "Phần 2: Mê Cung Rapan")
-                )
-            ),
-            Anime(
-                id = "kimi_no_na_wa",
-                sourceId = "animevietsub",
-                title = "Your Name (Tên Cậu Là Gì?)",
-                originalTitle = "Kimi no Na wa.",
-                posterUrl = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600",
-                bannerUrl = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1200",
-                description = "Kiệt tác điện ảnh của đạo diễn Makoto Shinkai kể về cuộc hoán đổi thân xác kỳ diệu giữa Mitsuha ở vùng quê Itomori và Taki ở Tokyo náo nhiệt.",
-                episodeCount = 1,
-                currentEpisode = "Bản Chiếu Rạp FHD",
-                rating = 4.99f,
-                ratingCount = 25000,
-                status = AnimeStatus.COMPLETED,
-                releaseYear = CategoryLink("2016"),
-                genres = listOf(CategoryLink("Romance"), CategoryLink("Siêu Nhiên")),
-                authors = listOf(CategoryLink("Makoto Shinkai")),
-                studio = CategoryLink("CoMix Wave Films"),
-                seasonOf = null,
-                isFeatured = false,
-                views = 8900000,
-                episodes = generateEpisodes("kimi_no_na_wa", "animevietsub", 1, "Bản Chiếu Rạp Full HD Vietsub"),
-                seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("kimi_no_na_wa", "Bản Chiếu Rạp")
-                )
-            ),
-            Anime(
-                id = "suzume_no_tojimari",
-                sourceId = "vuighe",
-                title = "Khóa Chặt Cửa Nào Suzume",
-                originalTitle = "Suzume no Tojimari",
-                posterUrl = "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=600",
-                bannerUrl = "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1200",
-                description = "Cô gái 17 tuổi Suzume tình cờ gặp một thanh niên bí ẩn tìm kiếm một cánh cửa. Hai người cùng lên đường khóa những cánh cửa tai họa khắp Nhật Bản.",
-                episodeCount = 1,
-                currentEpisode = "Bản Chiếu Rạp FHD",
-                rating = 4.92f,
-                ratingCount = 18000,
-                status = AnimeStatus.COMPLETED,
-                releaseYear = CategoryLink("2022"),
-                genres = listOf(CategoryLink("Phiêu Lưu"), CategoryLink("Siêu Nhiên")),
-                authors = listOf(CategoryLink("Makoto Shinkai")),
-                studio = CategoryLink("CoMix Wave Films"),
-                seasonOf = null,
-                isFeatured = false,
-                views = 4700000,
-                episodes = generateEpisodes("suzume_no_tojimari", "vuighe", 1, "Bản Chiếu Rạp Chuẩn Rạp"),
-                seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("suzume_no_tojimari", "Bản Chiếu Rạp")
-                )
-            ),
-            Anime(
-                id = "kaiju_no_8",
-                sourceId = "gogoanime",
-                title = "Kaiju Số 8",
-                originalTitle = "Kaijuu 8-gou",
-                posterUrl = "https://images.unsplash.com/photo-1563089145-599997674d42?w=600",
-                bannerUrl = "https://images.unsplash.com/photo-1563089145-599997674d42?w=1200",
-                description = "Kafka Hibino 32 tuổi biến thành quái thú Kaiju Số 8 nhưng vẫn nuôi ước mơ gia nhập Lực Lượng Phòng Vệ Nhật Bản.",
-                episodeCount = 12,
-                currentEpisode = "Tập 12/12 End",
-                rating = 4.87f,
-                ratingCount = 7600,
-                status = AnimeStatus.COMPLETED,
-                releaseYear = CategoryLink("2024"),
-                genres = listOf(CategoryLink("Hành Động"), CategoryLink("Sci-Fi")),
-                authors = listOf(CategoryLink("Naoya Matsumoto")),
-                studio = CategoryLink("Production I.G"),
-                seasonOf = null,
-                isFeatured = false,
-                views = 2500000,
-                episodes = generateEpisodes("kaiju_no_8", "gogoanime", 12, "Thức Tỉnh Kaiju"),
-                seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("kaiju_no_8", "Phần 1: Thức Tỉnh")
-                )
-            ),
-            Anime(
-                id = "solo_leveling",
-                sourceId = "animevietsub",
-                title = "Solo Leveling (Phần 1)",
-                originalTitle = "Ore dake Level Up na Ken",
-                posterUrl = "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600",
-                bannerUrl = "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200",
-                description = "Hành trình từ thợ săn yếu nhất đến đỉnh cao.",
-                episodeCount = 12,
-                currentEpisode = "Full 12/12",
-                rating = 4.9f,
-                ratingCount = 8000,
-                status = AnimeStatus.COMPLETED,
-                releaseYear = CategoryLink("2024"),
-                genres = listOf(CategoryLink("Hành Động")),
-                authors = listOf(CategoryLink("Chugong")),
-                studio = CategoryLink("A-1 Pictures"),
-                seasonOf = null,
-                episodes = soloS1Eps,
-                seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("solo_leveling", "Phần 1: Thức Tỉnh"),
-                    git.shin.komorei.model.AnimeSeason("solo_leveling_s2", "Phần 2: Arise")
-                )
-            ),
-            Anime(
-                id = "/conan-phan-1/",
-                sourceId = "gogoanime",
-                title = "Thám Tử Lừng Danh Conan",
-                originalTitle = "Detective Conan",
-                posterUrl = "https://images.unsplash.com/photo-1528459584353-5297db1a9c01?w=600",
-                bannerUrl = "https://images.unsplash.com/photo-1528459584353-5297db1a9c01?w=1200",
-                description = "Kudo Shinichi bị teo nhỏ thành cậu học sinh tiểu học sau khi trúng độc của tổ chức Áo Đen, mang tên Conan Edogawa tiếp tục phá án và truy tìm tổ chức bí ẩn.",
-                episodeCount = 1000,
-                currentEpisode = "Tập 973/1000",
-                rating = 4.85f,
-                ratingCount = 25000,
-                status = AnimeStatus.ONGOING,
-                releaseYear = CategoryLink("1996"),
-                genres = listOf(CategoryLink("Trinh Thám"), CategoryLink("Shounen")),
-                authors = listOf(CategoryLink("Aoyama Gosho")),
-                studio = CategoryLink("TMS Entertainment"),
-                seasonOf = null,
-                isFeatured = true,
-                views = 58000000,
-                episodes = generateEpisodes("/conan-phan-1/", "gogoanime", 1000, "Phiên Tòa"),
-                seasons = listOf(
-                    git.shin.komorei.model.AnimeSeason("/conan-phan-1/", "Phần 1: Thám Tử Nhí")
-                )
-            )
-        )
-    }
+    // ── search ─────────────────────────────────────────────────────────────
 
     /**
-     * Get featured anime for Home tab
+     * The source's search filters — a 1:1 mirror of the runner's `filters()`
+     * export. Used by the Search screen and by [searchMultiSource] to translate
+     * a genre selection into the source's own filter ids.
      */
-    fun getFeaturedAnime(sourceId: String): List<Anime> {
-        val list = if (sourceId == "all") allAnimes else allAnimes.filter { it.sourceId == sourceId }
-        val featured = list.filter { it.isFeatured }
-        return if (featured.isNotEmpty()) featured else list.take(3)
+    suspend fun getFilters(sourceId: String): List<Filter> {
+        return registry.call(sourceId) { it.filters().map { f -> f.toAppModel() } } ?: emptyList()
     }
 
     /**
-     * Get grouped sections for the Home Hub by source
+     * Paginated per-source search — a 1:1 mirror of the runner's `search()`
+     * export. Returns a page of Lite [Anime] cards (upgrade with
+     * [getAnimeUpdate] before stream access). Runs on the source's own thread.
      */
-    fun getSectionsForSource(sourceId: String): Map<String, List<Anime>> {
-        val baseList = if (sourceId == "all") allAnimes else allAnimes.filter { it.sourceId == sourceId }
-        return linkedMapOf(
-            "Mới Cập Nhật" to baseList.filter { it.id in listOf("dandadan", "demon_slayer_hashira", "kaiju_no_8", "/conan-phan-1/") },
-            "Xu Hướng Mùa Này" to baseList.filter { it.id in listOf("solo_leveling_s2", "frieren_journey") },
-            "Anime Bộ Hot" to baseList.filter { it.id in listOf("jujutsu_kaisen_s2", "mushoku_tensei_s2", "frieren_journey") },
-            "Anime Lẻ Chiếu Rạp" to baseList.filter { it.id in listOf("kimi_no_na_wa", "suzume_no_tojimari") }
-        )
+    suspend fun search(
+        sourceId: String,
+        query: String?,
+        page: Int,
+        selected: List<FilterValue> = emptyList(),
+    ): KrxPage<Anime> {
+        return registry.call(sourceId) { runner ->
+            runner.search(query, page, selected.map { it.toRunner() }).toAppPage()
+        } ?: KrxPage(emptyList(), false)
     }
 
     /**
-     * Parallel multi-source search
+     * Parallel multi-source search. Each source is queried on its own thread;
+     * results keyed by their [Source]. A genre selection is translated into the
+     * source's own genre filter id/options (exposed by `filters()`).
      */
     suspend fun searchMultiSource(
         query: String,
         selectedGenreId: String? = null
-    ): Map<Source, List<Anime>> = coroutineScope {
-        delay(120) // simulation
-
+    ): Map<Source, List<Anime>> {
+        val genreName = selectedGenreId?.let { id -> genres.find { it.id == id }?.name }
         val activeSources = sources.filter { !it.isAggregator }
 
-        val genreName = selectedGenreId?.let { id ->
-            genres.find { it.id == id }?.name
-        }
-
-        val deferredResults = activeSources.map { source ->
-            async {
-                val matched = allAnimes.filter { anime ->
-                    val matchesSource = anime.sourceId == source.id || anime.sourceId == "all"
-                    val matchesQuery = query.isBlank() ||
-                            anime.title.contains(query, ignoreCase = true) ||
-                            anime.originalTitle.contains(query, ignoreCase = true)
-                    val matchesGenre = genreName == null || anime.genres.any {
-                        it.name.equals(
-                            genreName,
-                            ignoreCase = true
-                        )
-                    }
-
-                    matchesSource && matchesQuery && matchesGenre
+        return coroutineScope {
+            activeSources.map { source ->
+                async {
+                    val genreValues = genreName?.let { name -> buildGenreFilter(source.id, name) }
+                        ?: emptyList()
+                    source to search(source.id, query.ifBlank { null }, 1, genreValues).entries
                 }
-                source to matched
+            }.awaitAll()
+                .filter { (_, animes) -> animes.isNotEmpty() }
+                .toMap()
+        }
+    }
+
+    private suspend fun buildGenreFilter(sourceId: String, genreName: String): List<FilterValue> {
+        val genreFilter = getFilters(sourceId).firstOrNull { f ->
+            when (val k = f.kind) {
+                is git.shin.komorei.model.FilterKind.Select -> k.isGenre
+                is git.shin.komorei.model.FilterKind.MultiSelect -> k.isGenre
+                else -> false
+            }
+        } ?: return emptyList()
+        return when (val kind = genreFilter.kind) {
+            is git.shin.komorei.model.FilterKind.MultiSelect ->
+                listOf(FilterValue.MultiSelect(genreFilter.id, listOf(genreName), emptyList()))
+            is git.shin.komorei.model.FilterKind.Select ->
+                listOf(FilterValue.Select(genreFilter.id, genreName))
+            else -> emptyList()
+        }
+    }
+
+    // ── home ───────────────────────────────────────────────────────────────
+
+    /**
+     * Home layouts are cached per source so repeated reads reuse ONE `home()`
+     * wasm call (Home tab + player related list both consume them).
+     */
+    private val homeCache = ConcurrentHashMap<String, CompletableDeferred<List<HomeComponent>>>()
+
+    /**
+     * The FULL home layout of a source — a lossless mirror of the runner's
+     * `home()` (`get_home`) export: every [HomeComponent] row with its original
+     * [HomeComponentValue] (BigScroller / AnimeEpisodeList / AnimeList /
+     * Scroller / ImageScroller / Filters / Links), in order. "all" merges every
+     * source's components (each queried in parallel on its own thread).
+     */
+    suspend fun getHome(sourceId: String): List<HomeComponent> {
+        if (sourceId == AGGREGATOR_ID) {
+            return coroutineScope {
+                sources.filter { !it.isAggregator }.map { s -> async { getHome(s.id) } }
+                    .awaitAll().flatten()
             }
         }
+        homeCache[sourceId]?.let { return it.await() }
+        val deferred = CompletableDeferred<List<HomeComponent>>()
+        val existing = homeCache.putIfAbsent(sourceId, deferred)
+        if (existing != null) return existing.await()
+        return try {
+            val components = registry.call(sourceId) { runner ->
+                runner.home().components.map { it.toAppModel() }
+            } ?: emptyList()
+            deferred.complete(components)
+            components
+        } catch (e: Exception) {
+            homeCache.remove(sourceId, deferred)
+            deferred.complete(emptyList()) // degrade: a failing source won't crash the Home tab
+            emptyList()
+        }
+    }
 
-        deferredResults.map { it.await() }
-            .filter { (_, results) -> results.isNotEmpty() }
-            .toMap()
+    /**
+     * Featured anime for the Home tab — the `BigScroller` components of
+     * [getHome]. "all" aggregates every source (in parallel, cached).
+     */
+    suspend fun getFeaturedAnime(sourceId: String): List<Anime> {
+        return getHome(sourceId)
+            .flatMap { comp -> (comp.value as? HomeComponentValue.BigScroller)?.entries ?: emptyList() }
+            .distinctBy { it.id }
+    }
+
+    /**
+     * Grouped sections for the Home hub, built from [getHome]: anime rails
+     * (AnimeEpisodeList / AnimeList / Scroller) keyed by component title.
+     * "all" merges same-named sections across sources.
+     */
+    suspend fun getSectionsForSource(sourceId: String): Map<String, List<Anime>> {
+        val combined = linkedMapOf<String, MutableList<Anime>>()
+        getHome(sourceId).forEach { comp ->
+            val title = comp.title ?: return@forEach
+            val items: List<Anime> = when (val v = comp.value) {
+                is HomeComponentValue.AnimeEpisodeList -> v.entries.map { it.anime }
+                is HomeComponentValue.AnimeList -> v.entries.mapNotNull { it.anime }
+                is HomeComponentValue.Scroller -> v.entries.mapNotNull { it.anime }
+                else -> return@forEach
+            }
+            if (items.isEmpty()) return@forEach
+            combined.getOrPut(title) { mutableListOf() }.addAll(items)
+        }
+        return combined.mapValues { (_, list) -> list.distinctBy { it.id } }
+    }
+
+    /** Merged home data across all sources (used for the player's related list). */
+    suspend fun allAnimes(): List<Anime> = aggregateSources { sourceId ->
+        getFeaturedAnime(sourceId) + getSectionsForSource(sourceId).values.flatten()
+    }
+
+    private suspend fun aggregateSources(block: suspend (String) -> List<Anime>): List<Anime> {
+        return coroutineScope {
+            sources.filter { !it.isAggregator }.map { s ->
+                async { block(s.id) }
+            }.awaitAll().flatten().distinctBy { it.id }
+        }
+    }
+
+    /**
+     * Locates a Lite anime card by id across all sources (page through each
+     * source's `search(null, ...)` until found). Used by process-death restore.
+     */
+    suspend fun findAnimeById(animeId: String): Anime? {
+        val ids = sources.filter { !it.isAggregator }.map { it.id }
+        for (id in ids) {
+            var page = 1
+            while (true) {
+                val result = registry.call(id) { runner ->
+                    runner.search(null, page, emptyList())
+                } ?: break
+                val found = result.entries.firstOrNull { it.key == animeId }
+                if (found != null) return found.toAppModel()
+                if (!result.hasNextPage) break
+                page++
+            }
+        }
+        return null
     }
 }

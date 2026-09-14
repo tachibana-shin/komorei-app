@@ -14,6 +14,8 @@ import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.local.KomoreiDatabase
 import git.shin.komorei.data.local.dao.AnimeDao
 import git.shin.komorei.data.remote.WebViewCookieJar
+import git.shin.komorei.sdk.KrxHostImpl
+import git.shin.komorei.sdk.KrxSourceRegistry
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import javax.inject.Singleton
@@ -86,7 +88,25 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideAnimeRepository(): AnimeRepository {
-        return AnimeRepository()
+    fun provideKrxHost(
+        @ApplicationContext context: Context,
+        okHttpClient: OkHttpClient,
+    ): KrxHostImpl {
+        return KrxHostImpl(context, okHttpClient)
+    }
+
+    @Provides
+    @Singleton
+    fun provideKrxSourceRegistry(
+        @ApplicationContext context: Context,
+        krxHost: KrxHostImpl,
+    ): KrxSourceRegistry {
+        return KrxSourceRegistry(context, krxHost)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAnimeRepository(registry: KrxSourceRegistry): AnimeRepository {
+        return AnimeRepository(registry)
     }
 }

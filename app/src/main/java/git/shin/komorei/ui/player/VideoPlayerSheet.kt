@@ -73,7 +73,7 @@ fun VideoPlayerSheet(
     // player engine, playback state and every action — so no callback plumbing.
     val playbackState by playerViewModel.playbackState.collectAsState()
     val player = playerViewModel.player
-    val relatedAnimeList = playerViewModel.allAnimes
+    val relatedAnimeList by playerViewModel.allAnimes.collectAsState()
     val onStateChange: (PlayerSheetValue) -> Unit = { playerViewModel.setPlayerSheetValue(it) }
     val onPlayPauseToggle = { playerViewModel.togglePlayPause() }
     val onToggleFullscreen = { playerViewModel.toggleFullscreen() }

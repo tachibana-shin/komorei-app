@@ -48,12 +48,18 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
-import git.shin.komorei.ui.components.AnimeSection
+import git.shin.komorei.model.HomeComponentValue
 import git.shin.komorei.ui.components.AppIcons
-import git.shin.komorei.ui.components.BannerCarousel
 import git.shin.komorei.ui.components.BannerCarouselSkeleton
 import git.shin.komorei.ui.components.SectionSkeleton
 import git.shin.komorei.ui.components.SourceTabBar
+import git.shin.komorei.ui.components.home.AnimeEpisodeListRow
+import git.shin.komorei.ui.components.home.AnimeListRow
+import git.shin.komorei.ui.components.home.BigScrollerRow
+import git.shin.komorei.ui.components.home.FiltersRow
+import git.shin.komorei.ui.components.home.ImageScrollerRow
+import git.shin.komorei.ui.components.home.LinksRow
+import git.shin.komorei.ui.components.home.ScrollerRow
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeRedContainer
 import git.shin.komorei.ui.theme.BackgroundDark
@@ -220,7 +226,7 @@ fun HomeScreen(
                     }
                 }
 
-                sourceData.isLoading && sourceData.featured.isEmpty() -> {
+                sourceData.isLoading && sourceData.home.isEmpty() -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 120.dp)
@@ -231,7 +237,7 @@ fun HomeScreen(
                 }
 
                 // Loaded successfully but the source has nothing to show.
-                sourceData.featured.isEmpty() && sourceData.sections.values.all { it.isEmpty() } -> {
+                sourceData.home.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -245,29 +251,87 @@ fun HomeScreen(
                 }
 
                 else -> {
+                    // Render the source's FULL home layout — a lossless mirror of
+                    // the runner's get_home: one dedicated composable per variant.
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 120.dp)
                     ) {
-                        // Banner Carousel displaying Hot Spotlights with Anime Description
-                        if (sourceData.featured.isNotEmpty()) {
-                            item {
-                                BannerCarousel(
-                                    featuredList = sourceData.featured,
-                                    onAnimeClick = onAnimeClick
-                                )
-                            }
-                        }
+                        sourceData.home.forEachIndexed { index, comp ->
+                            val baseKey = "${source.id}_${(comp.title ?: "").ifEmpty { index.toString() }}"
+                            when (val v = comp.value) {
+                                is HomeComponentValue.ImageScroller -> if (v.links.isNotEmpty()) {
+                                    item(key = "${baseKey}_image") {
+                                        ImageScrollerRow(
+                                            title = comp.title,
+                                            links = v.links,
+                                            autoScrollInterval = v.autoScrollInterval,
+                                            onAnimeClick = onAnimeClick
+                                        )
+                                    }
+                                }
 
-                        // Sections / Categories for this source (skip empty sections)
-                        sourceData.sections.filterValues { it.isNotEmpty() }.forEach { (sectionTitle, animeList) ->
-                            item(key = "${source.id}_$sectionTitle") {
-                                AnimeSection(
-                                    title = sectionTitle,
-                                    animeList = animeList,
-                                    onAnimeClick = onAnimeClick,
-                                    getSourceName = { viewModel.getSourceName(it) }
-                                )
+                                is HomeComponentValue.BigScroller -> if (v.entries.isNotEmpty()) {
+                                    item(key = "${baseKey}_big") {
+                                        BigScrollerRow(
+                                            entries = v.entries,
+                                            autoScrollInterval = v.autoScrollInterval,
+                                            onAnimeClick = onAnimeClick
+                                        )
+                                    }
+                                }
+
+                                is HomeComponentValue.Scroller -> if (v.entries.isNotEmpty()) {
+                                    item(key = "${baseKey}_scroller") {
+                                        ScrollerRow(
+                                            title = comp.title,
+                                            entries = v.entries,
+                                            onAnimeClick = onAnimeClick,
+                                            getSourceName = { viewModel.getSourceName(it) }
+                                        )
+                                    }
+                                }
+
+                                is HomeComponentValue.AnimeEpisodeList -> if (v.entries.isNotEmpty()) {
+                                    item(key = "${baseKey}_episodes") {
+                                        AnimeEpisodeListRow(
+                                            title = comp.title,
+                                            entries = v.entries,
+                                            pageSize = v.pageSize,
+                                            onAnimeClick = onAnimeClick
+                                        )
+                                    }
+                                }
+
+                                is HomeComponentValue.AnimeList -> if (v.entries.isNotEmpty()) {
+                                    item(key = "${baseKey}_list") {
+                                        AnimeListRow(
+                                            title = comp.title,
+                                            entries = v.entries,
+                                            ranking = v.ranking,
+                                            pageSize = v.pageSize,
+                                            onAnimeClick = onAnimeClick
+                                        )
+                                    }
+                                }
+
+                                is HomeComponentValue.Filters -> if (v.items.isNotEmpty()) {
+                                    item(key = "${baseKey}_filters") {
+                                        FiltersRow(
+                                            title = comp.title,
+                                            items = v.items
+                                        )
+                                    }
+                                }
+
+                                is HomeComponentValue.Links -> if (v.links.isNotEmpty()) {
+                                    item(key = "${baseKey}_links") {
+                                        LinksRow(
+                                            title = comp.title,
+                                            links = v.links
+                                        )
+                                    }
+                                }
                             }
                         }
 

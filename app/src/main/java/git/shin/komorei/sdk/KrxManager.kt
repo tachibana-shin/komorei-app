@@ -1,7 +1,21 @@
 package git.shin.komorei.sdk
 
+import android.util.Log
 import git.shin.komorei.sdk.runner.KomoreiRunner
+import org.json.JSONObject
 import java.util.zip.ZipInputStream
+
+/**
+ * Lightweight representation of the `source.json` manifest inside a `.krx` archive.
+ */
+data class KrxSourceMeta(
+    val id: String,
+    val name: String,
+    val version: Int,
+    val url: String,
+    val languages: List<String>,
+    val contentRating: Int,
+)
 
 /**
  * Loads `.krx` source packages for the embedded runner.
@@ -13,6 +27,8 @@ import java.util.zip.ZipInputStream
  * handle for all source calls (search / details / streams / filters / ...).
  */
 object KrxManager {
+
+    private const val TAG = "KrxManager"
 
     /** The wasm payload path inside a `.krx` archive. */
     const val MAIN_WASM_ENTRY = "Payload/main.wasm"
@@ -27,6 +43,44 @@ object KrxManager {
             while (entry != null) {
                 if (entry.name == MAIN_WASM_ENTRY) {
                     return zip.readBytes()
+                }
+                entry = zip.nextEntry
+            }
+        }
+        return null
+    }
+
+    /**
+     * Reads `source.json` from a `.krx` archive and parses the manifest.
+     * Returns null when the entry is missing or malformed.
+     *
+     * Both packaging layouts are accepted: the aidoku convention puts the
+     * manifest at the archive ROOT (`source.json`), while payload-scoped
+     * packages keep it next to the wasm (`Payload/source.json`).
+     */
+    fun readInfo(krx: ByteArray): KrxSourceMeta? {
+        ZipInputStream(krx.inputStream()).use { zip ->
+            var entry = zip.nextEntry
+            while (entry != null) {
+                val name = entry.name
+                if (name == "source.json" || name == "Payload/source.json") {
+                    return try {
+                        val json = zip.readBytes().toString(Charsets.UTF_8)
+                        val info = JSONObject(json).getJSONObject("info")
+                        KrxSourceMeta(
+                            id = info.getString("id"),
+                            name = info.getString("name"),
+                            version = info.optInt("version", 1),
+                            url = info.optString("url", ""),
+                            languages = info.optJSONArray("languages")?.let { arr ->
+                                (0 until arr.length()).map { arr.getString(it) }
+                            } ?: emptyList(),
+                            contentRating = info.optInt("contentRating", 0),
+                        )
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to parse source.json", e)
+                        null
+                    }
                 }
                 entry = zip.nextEntry
             }
