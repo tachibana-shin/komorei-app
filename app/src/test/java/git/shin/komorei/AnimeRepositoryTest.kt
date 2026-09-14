@@ -110,6 +110,7 @@ class AnimeRepositoryTest {
         assertEquals(ListingKind.LIST, updates.listing?.kind)
         assertTrue(updates.entries.all { it.episode.animeId == it.anime.id })
         assertTrue("episode carries the upload timestamp", updates.entries.all { it.episode.dateUploaded != null })
+        assertEquals("AnimeEpisodeList paged, 4 per page", 4, updates.pageSize)
 
         // 5. AnimeList — popular ranking (links carry poster covers)
         val popular = home[4].value as HomeComponentValue.AnimeList

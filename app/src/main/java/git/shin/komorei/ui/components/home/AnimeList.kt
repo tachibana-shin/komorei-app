@@ -54,7 +54,7 @@ import git.shin.komorei.ui.theme.AnimeRed
  */
 
 /** Upper bound for a paged cell's fixed width (≈67% of a phone's content width). */
-private val PAGED_CELL_WIDTH_MAX = 220.dp
+private val PAGED_CELL_WIDTH_MAX = 280.dp
 
 @Composable
 fun AnimeListRow(

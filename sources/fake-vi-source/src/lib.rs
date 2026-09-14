@@ -1042,7 +1042,7 @@ impl Home for FakeViSource {
 					title: Some(String::from("Mới Cập Nhật")),
 					subtitle: None,
 					value: HomeComponentValue::AnimeEpisodeList {
-						page_size: None,
+						page_size: Some(4),
 						entries: latest_episodes,
 						listing: Some(Listing { id: String::from("latest"), name: String::from("Mới nhất"), kind: ListingKind::List }),
 					},
