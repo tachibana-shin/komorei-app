@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.TextPrimary
-import git.shin.komorei.ui.theme.TextSecondary
 
 @Composable
 fun SectionHeader(
@@ -35,8 +34,19 @@ fun SectionHeader(
     onSeeAll: (() -> Unit)? = null,
 ) {
     Row(
+        // When the section links to a listing, the WHOLE header is the tap
+        // target (clip+clickable sit OUTSIDE the padding so the ripple covers
+        // the full strip) and a chevron floats at the right end — no "Xem tất
+        // cả" label. Without a link the header is inert and trailing-empty.
         modifier = modifier
             .fillMaxWidth()
+            .let { m ->
+                if (onSeeAll != null) {
+                    m.clip(RoundedCornerShape(6.dp)).clickable(onClick = onSeeAll)
+                } else {
+                    m
+                }
+            }
             .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -55,37 +65,16 @@ fun SectionHeader(
         )
 
         if (rightContent != null) {
+            Spacer(modifier = Modifier.weight(1f))
             rightContent()
         } else if (onSeeAll != null) {
-            // Real "Xem tất cả" — opens the row's listing (see HomeScreen).
+            // Chevron-only affordance: the whole header row already navigates.
             Spacer(modifier = Modifier.weight(1f))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .clickable(onClick = onSeeAll)
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.section_see_all),
-                    color = AnimeRed,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = AnimeRed,
-                    modifier = Modifier.size(14.dp)
-                )
-            }
-        } else {
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = stringResource(R.string.section_see_all),
-                color = TextSecondary,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = stringResource(R.string.section_see_all),
+                tint = AnimeRed,
+                modifier = Modifier.size(18.dp)
             )
         }
     }

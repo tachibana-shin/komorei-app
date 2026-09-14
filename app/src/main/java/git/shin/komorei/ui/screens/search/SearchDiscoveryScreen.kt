@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -48,6 +47,7 @@ import git.shin.komorei.ui.components.AnimeSection
 import git.shin.komorei.ui.components.AppIcons
 import git.shin.komorei.ui.components.GenreChipCompact
 import git.shin.komorei.ui.components.GenreGridCard
+import git.shin.komorei.ui.components.SearchResultSkeleton
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeRedContainer
 import git.shin.komorei.ui.theme.BackgroundDark
@@ -229,24 +229,9 @@ fun SearchDiscoveryScreen(
             }
 
             is SearchUiState.Loading -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = AnimeRed,
-                        modifier = Modifier.size(36.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(R.string.search_loading_message),
-                        color = TextSecondary,
-                        fontSize = 13.sp
-                    )
-                }
+                SearchResultSkeleton(
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
             is SearchUiState.Success -> {

@@ -91,6 +91,11 @@ fun MainScreen(
         val isPlayerExpanded = playbackState.sheetValue == PlayerSheetValue.EXPANDED
         val isFullscreen = playbackState.isFullscreen
 
+        // The listing route is a full-screen browsing page — it owns the whole
+        // viewport, so the bottom toolbar is hidden there (only in the phone
+        // portrait scaffold; wide screens use the rail and are unaffected).
+        val isListingRoute = currentRoute == Screen.Listing.route
+
         Box(modifier = Modifier.fillMaxSize()) {
             if (isWideScreen) {
                 // TABLET / LANDSCAPE: Navigation Rail on the left
@@ -194,7 +199,7 @@ fun MainScreen(
                 Scaffold(
                     bottomBar = {
                         AnimatedVisibility(
-                            visible = !isPlayerExpanded && !isFullscreen,
+                            visible = !isPlayerExpanded && !isFullscreen && !isListingRoute,
                             enter = slideInVertically(initialOffsetY = { it }),
                             exit = slideOutVertically(targetOffsetY = { it })
                         ) {

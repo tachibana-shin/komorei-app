@@ -34,7 +34,7 @@
 | `Home` | ✅ | `HomeScreen` render đủ 7 component |
 | `DynamicFilters` | ◐ | Model + mapping đủ; UI search dùng riêng danh sách genre của app |
 | `DynamicSettings` | ◐ | Runner đọc `prefer_fhd` qua `defaults_get`; app chưa có màn Settings |
-| `DynamicListings` | ◐ | `get_dynamic_listings` → `AnimeRepository.getListings`; UI Listing dùng listing mang theo link (nav arg) chứ chưa gọi trực tiếp |
+| `DynamicListings` | ✅ | `get_dynamic_listings` → `AnimeRepository.getListings` + chips row Aidoku-style trên Home (`ListingChipsRow`): tap chip đổi content bên dưới sang listing phân trang inline (`HomeListingGrid`) |
 | `NotificationHandler` | ➖ | Source no-op (chỉ nhận key) |
 | `DeepLinkHandler` | ❌ | App chưa có routing deep link |
 | `MigrationHandler` | ❌ | Source identity; app chưa dùng |
@@ -53,7 +53,7 @@
 | `get_home` (L926) | `() -> HomeLayout` | 7 component (xem §5.6) | ✅ `getHome` cache + `HomeScreen` |
 | `get_dynamic_filters` (L1093) | `() -> Vec<Filter>` | 5 filter + 1 note (xem §5.7) | ◐ mapping đủ; UI một phần |
 | `get_dynamic_settings` (L1139) | `() -> Vec<Setting>` | 2 toggle: `prefer_fhd`, `show_intro` | ◐ `prefer_fhd` được runner đọc; chưa có UI set |
-| `get_dynamic_listings` (L1160) | `() -> Vec<Listing>` | latest / popular / ongoing / completed | ◐ `AnimeRepository.getListings` sẵn (test); UI Listing dùng listing theo link |
+| `get_dynamic_listings` (L1160) | `() -> Vec<Listing>` | latest / popular / ongoing / completed | ✅ chips `[Trang chủ]+listings` trên Home mỗi source; tap đổi content inline (HomeViewModel: `loadListings`/`selectListing`/`loadListingPage`) |
 | `handle_notification` (L1173) | `(key: String)` | No-op | ➖ |
 | `handle_deep_link` (L1182) | `(url) -> Option<DeepLinkResult>` | `/anime/<key>` · `/watch/<anime>/<ep>` · `/list/<id>` | ❌ |
 | `handle_anime_migration` (L1218) | `(key) -> String` | Identity | ❌ |

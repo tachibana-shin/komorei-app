@@ -38,7 +38,6 @@
     <string name="no_results_title">Không tìm thấy anime phù hợp</string>
     <string name="no_results_subtitle">Thử đổi từ khóa hoặc chọn nguồn phát khác</string>
     <string name="anime_count_format">%1$d Anime</string>
-    <string name="search_loading_message">Đang tìm kiếm trên các nguồn…</string>
     <string name="search_results_count">Tìm thấy %1$d kết quả trên các nguồn:</string>
 
     <!-- Library Screen -->

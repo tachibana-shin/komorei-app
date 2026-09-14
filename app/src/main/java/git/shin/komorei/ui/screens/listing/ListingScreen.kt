@@ -25,7 +25,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,6 +43,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.ui.components.AnimeCard
+import git.shin.komorei.ui.components.ShimmerLoadingRow
 import git.shin.komorei.ui.components.shimmerEffect
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeRedContainer
@@ -194,16 +194,7 @@ private fun ListingTopBar(title: String, subtitle: String, onBack: () -> Unit) {
 
 @Composable
 private fun ListingLoadingRow() {
-    Box(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        CircularProgressIndicator(
-            color = AnimeRed,
-            strokeWidth = 2.dp,
-            modifier = Modifier.size(18.dp),
-        )
-    }
+    ShimmerLoadingRow()
 }
 
 @Composable
