@@ -39,7 +39,7 @@
 | `DynamicSettings` | ✅ | `get_settings` → `SourceSettingsScreen` (toggle + persist qua `KrxDefaultsStore`, key scoped `{sourceId}.`) |
 | `DynamicListings` | ✅ | `get_dynamic_listings` → `AnimeRepository.getListings` + chips row Aidoku-style trên Home (`ListingChipsRow`): tap chip đổi content bên dưới sang listing phân trang inline (`HomeListingGrid`) |
 | `NotificationHandler` | ✅ | App gọi khi 1 setting đổi có khai `notification` (xem §4.11/§3) qua `handleNotification` → runner `notify` → wasm; nguồn mirror sang defaults `last_notification` (round-trip kiểm chứng được) |
-| `DeepLinkHandler` | ❌ | App chưa có routing deep link |
+| `DeepLinkHandler` | ✅ | `MainActivity` intent-filter (`komorei://komorei.example/…`) → `DeepLinkManager` → `DeepLinkViewModel` → `DeepLinkResolver` (hỏi từng source, ưu tiên source host khớp) → mở player (`/anime/`, `/watch/`) hoặc listing route (`/list/`) |
 | `MigrationHandler` | ❌ | Source identity; app chưa dùng |
 | `SegmentUrlInterceptor` | ✅ | App wrap qua `TransformableHttpDataSource` (`data/remote/`) |
 | `SegmentDataInterceptor` | ✅ | Như trên |
@@ -58,7 +58,7 @@
 | `get_dynamic_settings` (L1140) | `() -> Vec<Setting>` | 2 toggle: `prefer_fhd`, `show_intro` + 1 button `clear_cache` | ✅ màn Settings render + ghi được (persist → runner đọc lại qua `defaults_get`); notification của toggle/button được forward về `handle_notification`; `show_intro` chưa có hiệu ứng runtime |
 | `get_dynamic_listings` (L1160) | `() -> Vec<Listing>` | latest / popular / ongoing / completed | ✅ chips `[Trang chủ]+listings` trên Home mỗi source; tap đổi content inline (HomeViewModel: `loadListings`/`selectListing`/`loadListingPage`) |
 | `handle_notification` (L1186) | `(key: String)` | App gửi sau mỗi setting change khai `notification` (toggle + button, Aidoku-style): `AnimeRepository.handleNotification` → `runner.notify` → wasm; nguồn mirror key vào defaults `last_notification` + đếm `clear_cache` | ✅ round-trip (settings screen → wasm → defaults, test kiểm chứng) |
-| `handle_deep_link` (L1182) | `(url) -> Option<DeepLinkResult>` | `/anime/<key>` · `/watch/<anime>/<ep>` · `/list/<id>` | ❌ |
+| `handle_deep_link` (L1182) | `(url) -> Option<DeepLinkResult>` | `/anime/<key>` · `/watch/<anime>/<ep>` · `/list/<id>` | ✅ `AnimeRepository.handleDeepLink` → `DeepLinkResolver` (deep link) → `DeepLinkViewModel` → player sheet / listing route |
 | `handle_anime_migration` (L1218) | `(key) -> String` | Identity | ❌ |
 | `handle_episode_migration` (L1219) | `(anime_key, episode_key) -> String` | Identity | ❌ |
 | `intercept_segment_url` (L1225) | `(opt StreamData, url) -> String` | Passthrough | ✅ plumbing sẵn |
@@ -179,9 +179,9 @@
 | Mục | Giá trị | Tiêu thụ | Trạng thái |
 |---|---|---|---|
 | `Listing` | `latest` (Mới nhất), `popular` (Phổ biến), `ongoing` (Đang phát), `completed` (Hoàn thành) — tất cả `kind=List` | Listing screen | ✅ grid 3 cột, infinite scroll (15/page) |
-| `DeepLinkResult::Anime` | `/anime/<key>` | | ❌ |
-| `DeepLinkResult::Episode` | `/watch/<anime>/<ep>` | | ❌ |
-| `DeepLinkResult::Listing` | `/list/<id>` | | ❌ |
+| `DeepLinkResult::Anime` | `/anime/<key>` | `DeepLinkTarget.Anime` → `playerViewModel.openAnime(stub)` (upgrade Lite→full) | ✅ |
+| `DeepLinkResult::Episode` | `/watch/<anime>/<ep>` | `DeepLinkTarget.Episode` → `openAnime(stub, stubEp)`; `PlayerViewModel.loadStreams` đổi episode stub sang bản full theo key sau `getAnimeUpdate` | ✅ |
+| `DeepLinkResult::Listing` | `/list/<id>` | `DeepLinkTarget.Listing` → route `listing/{sourceId}/{listingArg}` (ListingArgCodec) | ✅ |
 
 ### 4.11 App-injected — không đến từ source (Aidoku-style, komorei tự làm)
 
@@ -241,7 +241,7 @@ Các phần tử app tự chèn vào UI/settings của từng nguồn — source
 - [x] **Source home per-source**: `SourceHomeScreen` (home reactive theo từng source, ⋮ menu, vào Settings/actions).
 - [x] **App-injected actions**: language picker (`{sourceId}.languages` — hiện khi `languages.size > 1`), Reset settings (xoá mọi `{sourceId}.` rows), Xoá cookie (domain nguồn), Xoá bộ nhớ đệm (home cache) — §4.11.
 - [x] **NotificationHandler**: setting đổi (toggle/select/stepper/text…) có khai `notification` → app `repository.handleNotification` → wasm `handle_notification`; button ("Xoá bộ nhớ đệm nguồn") bấm → gửi `"clear_cache"`; nguồn mirror sang defaults `last_notification` để kiểm chứng round-trip — §3, §4.9.
-- [ ] **Deep link**: `/anime/…`, `/watch/…`, `/list/…` (source đã có `handle_deep_link`).
+- [x] **Deep link**: `komorei://komorei.example/anime/…` · `/watch/<anime>/<ep>` · `/list/<id>` — `MainActivity` nhận intent (cold + `onNewIntent`) → `DeepLinkManager` → `DeepLinkViewModel` (collect → `DeepLinkResolver` hỏi từng source theo host trước) → `/anime/`, `/watch/` mở player sheet (`openAnime` stub Lite, `loadStreams` swap episode full theo key), `/list/` navigate listing route. Test: `DeepLinkResolverTest` (5 case) + `DeepLinkViewModelTest` (6 case).
 - [ ] **Migration**: source identity — app chưa dùng `MigrationHandler`.
 - [x] **DynamicFilters search (per-source)**: nút 🔍 trước chips trên home mỗi source (ẩn cho aggregator) → `SourceSearchScreen` YouTube-style (field autofocus + Hủy, sticky filter header, debounce 300ms, skeleton/error/empty/end, infinite scroll). Components tách file trong `ui/components/search/` + `ui/screens/search/` — Aidoku `SearchViewController` + `FilterHeaderView`/`FilterListSheetView`/`Filter*GroupView` port. Test: `SourceSearchViewModelTest` (6 case, real runner + fake krx).
 - [x] **Global search (Khám Phá)**: tab Search (Khám Phá) tái triển khai theo kiểu tìm kiếm toàn cục: thanh search + 3 filter Aidoku-style — **Xếp hạng nội dung** (Tất cả/An toàn/18+ theo `contentRating` manifest), **Ngôn ngữ** (hợp nhất `languages` các nguồn), **Nguồn** (multi-select whitelist) — thay cho chips genre cũ; kết quả merge thành **grid phẳng 3 cột** giống per-source search (`DiscoverFilterHeaderRow` dùng lại `FilterPill`/`FilterBottomSheet`/`SelectFilterGroup`/`MultiSelectFilterGroup` với `FilterKind` dựng tay, không cần gọi `filters()`). `searchMultiSource` mở rộng tham số `contentRating`/`languages`/`sourceIds` (lọc nguồn trước khi query); `SearchViewModel` gộp query + genre shortcut + 3 filter vào 1 pipeline `combine(...).debounce { 300 }.distinctUntilChanged()` (seam `searchDebounceMillis`). Test: `SearchViewModelTest` (8 case).
