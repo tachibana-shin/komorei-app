@@ -35,7 +35,7 @@
 | `Source` | ✅ | Đi qua runner (`registry.call`) |
 | `ListingProvider` | ✅ | `get_anime_list` (4 listing) → `AnimeRepository.getListing` → Listing screen (grid + infinite scroll) |
 | `Home` | ✅ | `HomeScreen` render đủ 7 component |
-| `DynamicFilters` | ◐ | Model + mapping đủ; UI search dùng riêng danh sách genre của app |
+| `DynamicFilters` | ✅ | Per-source search screen (`SourceSearchScreen`) — Aidoku `SearchViewController` + `FilterHeaderView` port: nút 🔍 trước chips → query + bộ lọc debounce 300ms, phân trang |
 | `DynamicSettings` | ✅ | `get_settings` → `SourceSettingsScreen` (toggle + persist qua `KrxDefaultsStore`, key scoped `{sourceId}.`) |
 | `DynamicListings` | ✅ | `get_dynamic_listings` → `AnimeRepository.getListings` + chips row Aidoku-style trên Home (`ListingChipsRow`): tap chip đổi content bên dưới sang listing phân trang inline (`HomeListingGrid`) |
 | `NotificationHandler` | ✅ | App gọi khi 1 setting đổi có khai `notification` (xem §4.11/§3) qua `handleNotification` → runner `notify` → wasm; nguồn mirror sang defaults `last_notification` (round-trip kiểm chứng được) |
@@ -48,13 +48,13 @@
 
 | Hàm | Signature | Mô tả | Tiêu thụ app |
 |---|---|---|---|
-| `get_search_anime_list` (L759) | `(query: Option<String>, page: i32, filters: Vec<FilterValue>) -> AnimePageResult` | Search theo title/original_title + lọc + sắp xếp, phân trang 15 | ✅ `AnimeRepository.search` → Search screen |
+| `get_search_anime_list` (L759) | `(query: Option<String>, page: i32, filters: Vec<FilterValue>) -> AnimePageResult` | Search theo title/original_title + lọc + sắp xếp, phân trang 15 | ✅ `AnimeRepository.search` → Search screen + `SourceSearchViewModel` (per-source) |
 | `get_anime_update` (L794) | `(anime, needs_details, needs_chapters) -> Anime` | `needs_details` → bản full (`copy_from`); `needs_chapters` → episode của **đúng season key hiện tại** | ✅ `AnimeRepository.getAnimeUpdate` (player + detail) |
 | `get_stream_list` (L813) | `(anime, episode) -> Vec<StreamInfo>` | 3 server: `hls`, `mp4_720`, `mp4_fhd`; đọc default `prefer_fhd` để đảo thứ tự | ✅ `getStreamList` → server picker |
 | `get_stream` (L842) | `(anime, episode, stream) -> StreamData` | Chọn URL/type theo `stream.key`; kèm headers, subtitle vi, intro/outro | ✅ `getStream` → player (Media3) |
 | `get_anime_list` (L895) | `(listing, page) -> AnimePageResult` | `ongoing` / `completed` / `popular` (sort views) / `latest`=all | ✅ `AnimeRepository.getListing` → Listing screen (15/page) |
 | `get_home` (L926) | `() -> HomeLayout` | 7 component (xem §5.6) | ✅ `getHome` cache + `HomeScreen` |
-| `get_dynamic_filters` (L1093) | `() -> Vec<Filter>` | 5 filter + 1 note (xem §5.7) | ◐ mapping đủ; UI một phần |
+| `get_dynamic_filters` (L1093) | `() -> Vec<Filter>` | 5 filter + 1 note (xem §4.8) | ✅ `SourceSearchScreen`: header pills + aggregate sheet + debounce search |
 | `get_dynamic_settings` (L1140) | `() -> Vec<Setting>` | 2 toggle: `prefer_fhd`, `show_intro` + 1 button `clear_cache` | ✅ màn Settings render + ghi được (persist → runner đọc lại qua `defaults_get`); notification của toggle/button được forward về `handle_notification`; `show_intro` chưa có hiệu ứng runtime |
 | `get_dynamic_listings` (L1160) | `() -> Vec<Listing>` | latest / popular / ongoing / completed | ✅ chips `[Trang chủ]+listings` trên Home mỗi source; tap đổi content inline (HomeViewModel: `loadListings`/`selectListing`/`loadListingPage`) |
 | `handle_notification` (L1186) | `(key: String)` | App gửi sau mỗi setting change khai `notification` (toggle + button, Aidoku-style): `AnimeRepository.handleNotification` → `runner.notify` → wasm; nguồn mirror key vào defaults `last_notification` + đếm `clear_cache` | ✅ round-trip (settings screen → wasm → defaults, test kiểm chứng) |
@@ -159,12 +159,12 @@
 
 | Kiểu | Field | Tiêu thụ | Trạng thái |
 |---|---|---|---|
-| `TextFilter` | `id="search"`, title/placeholder | Search box app tự quản | ◐ |
-| `SortFilter` | `id="sort"`, options Đánh giá/Phổ biến/A-Z | Sort trong `get_search_anime_list` (`sort_entries` L735: rating/views/title) | ◐ model có, UI sort chưa thấy |
-| `MultiSelectFilter` | `id="genres"`, `is_genre=true`, `uses_tag_style=true`, 12 options | Genre chip home + `searchMultiSource` qua `buildGenreFilter` | ✅ |
-| `SelectFilter` | `id="status"`, options Tất cả/Đang phát/Hoàn thành | `matches_filter` L715 | ◐ |
-| `RangeFilter` | `id="year"`, min 1996, max 2025, `decimal=false` | — | ❌ chưa có UI slider |
-| `Filter::note` | "Nguồn dữ liệu demo — Komorei Fake (VI)" | — | ◐ |
+| `TextFilter` | `id="search"`, title/placeholder | `TextFilterRow` trong aggregate sheet (value → `FilterValue.Text`) | ✅ |
+| `SortFilter` | `id="sort"`, options Đánh giá/Phổ biến/A-Z | `SortFilterPill` dropdown (arrow ⇅ khi `canAscend`) + `SortFilterGroup` (chạy qua `sort_entries` L735) | ✅ |
+| `MultiSelectFilter` | `id="genres"`, `is_genre=true`, `uses_tag_style=true`, 12 options | Genre chip home + `searchMultiSource` + `MultiSelectFilterPill` tag chips (✓ + badge count) | ✅ |
+| `SelectFilter` | `id="status"`, options Tất cả/Đang phát/Hoàn thành | `SelectFilterPill` + `SelectFilterGroup` → `matches_filter` L715 | ✅ |
+| `RangeFilter` | `id="year"`, min 1996, max 2025, `decimal=false` | `RangeFilterRow` (Từ/Đến number fields, từ≤đến) trong aggregate sheet | ✅ |
+| `Filter::note` | "Nguồn dữ liệu demo — Komorei Fake (VI)" | Hiển thị trong aggregate sheet (muted) | ✅ |
 
 ### 4.9 `Setting` — 2 toggle (L1141–1152)
 
@@ -243,8 +243,9 @@ Các phần tử app tự chèn vào UI/settings của từng nguồn — source
 - [x] **NotificationHandler**: setting đổi (toggle/select/stepper/text…) có khai `notification` → app `repository.handleNotification` → wasm `handle_notification`; button ("Xoá bộ nhớ đệm nguồn") bấm → gửi `"clear_cache"`; nguồn mirror sang defaults `last_notification` để kiểm chứng round-trip — §3, §4.9.
 - [ ] **Deep link**: `/anime/…`, `/watch/…`, `/list/…` (source đã có `handle_deep_link`).
 - [ ] **Migration**: source identity — app chưa dùng `MigrationHandler`.
-- [ ] **RangeFilter (Năm phát hành)**: model đủ, chưa có UI slider search.
-- [ ] **Sort UI**: `SortFilter` (Đánh giá/Phổ biến/A-Z) chạy được trong search nhưng chưa có giao diện chọn.
+- [x] **DynamicFilters search (per-source)**: nút 🔍 trước chips trên home mỗi source (ẩn cho aggregator) → `SourceSearchScreen` YouTube-style (field autofocus + Hủy, sticky filter header, debounce 300ms, skeleton/error/empty/end, infinite scroll). Components tách file trong `ui/components/search/` + `ui/screens/search/` — Aidoku `SearchViewController` + `FilterHeaderView`/`FilterListSheetView`/`Filter*GroupView` port. Test: `SourceSearchViewModelTest` (6 case, real runner + fake krx).
+- [x] **RangeFilter (Năm phát hành)**: `RangeFilterRow` Aidoku-style (Từ/Đến) trong sheet tổng hợp.
+- [x] **Sort UI**: `SortFilterPill` + `SortFilterGroup` (chọn index + đảo asc/desc).
 - [ ] **Link Url**: "Trang nguồn Komorei" display-only.
 
 ---
