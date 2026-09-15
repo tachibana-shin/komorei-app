@@ -55,4 +55,15 @@ sealed class Screen(val route: String) {
     data object SourceSettings : Screen("source_settings/{sourceId}") {
         fun createRoute(sourceId: String): String = "source_settings/${Uri.encode(sourceId)}"
     }
+
+    /**
+     * The per-source search screen (Aidoku SearchViewController + the
+     * DynamicFilters UI): a YouTube-style dark page with a search field + the
+     * filter header (aggregate sheet button + per-filter dropdown pills) and
+     * debounced, paginated results. [sourceId] is URL-encoded like the other
+     * source routes.
+     */
+    data object SourceSearch : Screen("source_search/{sourceId}") {
+        fun createRoute(sourceId: String): String = "source_search/${Uri.encode(sourceId)}"
+    }
 }

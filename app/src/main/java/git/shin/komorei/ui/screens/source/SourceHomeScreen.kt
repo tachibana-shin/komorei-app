@@ -71,6 +71,7 @@ fun SourceHomeScreen(
     onAnimeClick: (Anime) -> Unit,
     onOpenListing: (sourceId: String, listing: Listing) -> Unit,
     onOpenSettings: (sourceId: String) -> Unit,
+    onOpenSearch: (sourceId: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
@@ -189,6 +190,7 @@ fun SourceHomeScreen(
                 onOpenListing = { listing -> onOpenListing(sourceId, listing) },
                 onAnimeClick = onAnimeClick,
                 getSourceName = { viewModel.getSourceName(it) },
+                onOpenSearch = onOpenSearch,
                 modifier = Modifier.weight(1f),
             )
         }

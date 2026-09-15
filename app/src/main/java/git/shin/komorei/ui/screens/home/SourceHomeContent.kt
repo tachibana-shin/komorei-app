@@ -9,10 +9,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,6 +46,7 @@ import git.shin.komorei.ui.components.home.LinksRow
 import git.shin.komorei.ui.components.home.ListingChipsRow
 import git.shin.komorei.ui.components.home.ListingChipsSkeleton
 import git.shin.komorei.ui.components.home.ScrollerRow
+import git.shin.komorei.ui.components.search.SourceSearchButton
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeRedContainer
 import git.shin.komorei.ui.theme.TextMuted
@@ -70,27 +74,44 @@ fun SourceHomeContent(
     onOpenListing: (Listing) -> Unit,
     onAnimeClick: (Anime) -> Unit,
     getSourceName: (String) -> String,
+    onOpenSearch: (sourceId: String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        // Aidoku listings header: [Trang chủ] + get_dynamic_listings chips.
-        AnimatedVisibility(
-            visible = listingState.listingsLoading && listingState.listings.isEmpty(),
-            enter = fadeIn(),
-            exit = fadeOut(),
+        // Aidoku listings header: [🔍] [Trang chủ] + get_dynamic_listings chips.
+        // The search button sits fixed before the chips rail (the aggregator
+        // "all" has no own search — it aggregates other sources' results).
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            ListingChipsSkeleton()
-        }
-        AnimatedVisibility(
-            visible = listingState.listings.isNotEmpty(),
-            enter = fadeIn() + expandHorizontally(),
-            exit = fadeOut(),
-        ) {
-            ListingChipsRow(
-                listings = listingState.listings,
-                selectedIndex = listingState.selectedIndex,
-                onSelect = onSelectListing,
-            )
+            if (!source.isAggregator) {
+                SourceSearchButton(
+                    onClick = { onOpenSearch(source.id) },
+                    modifier = Modifier.padding(start = 16.dp, top = 6.dp, bottom = 8.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                AnimatedVisibility(
+                    visible = listingState.listingsLoading && listingState.listings.isEmpty(),
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                ) {
+                    ListingChipsSkeleton()
+                }
+                AnimatedVisibility(
+                    visible = listingState.listings.isNotEmpty(),
+                    enter = fadeIn() + expandHorizontally(),
+                    exit = fadeOut(),
+                ) {
+                    ListingChipsRow(
+                        listings = listingState.listings,
+                        selectedIndex = listingState.selectedIndex,
+                        onSelect = onSelectListing,
+                    )
+                }
+            }
         }
 
         // Aidoku listings header content: animate the home↔listing swap.

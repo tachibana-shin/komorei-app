@@ -41,6 +41,40 @@
     <string name="anime_count_format">%1$d Anime</string>
     <string name="search_results_count">Tìm thấy %1$d kết quả trên các nguồn:</string>
 
+    <!-- Per-source search (DynamicFilters) -->
+    <string name="source_search_entry_cd">Tìm trong nguồn này</string>
+    <string name="source_search_hint">Tìm trong nguồn…</string>
+    <string name="source_search_cancel">Hủy</string>
+    <string name="source_search_idle_title">Tìm kiếm trong nguồn</string>
+    <string name="source_search_idle_subtitle">Nhập từ khóa hoặc bật bộ lọc để bắt đầu</string>
+    <string name="source_search_results_count">Tìm thấy %1$d kết quả</string>
+    <string name="source_search_end">Hết kết quả</string>
+    <string name="source_search_error">Không thể tìm kiếm trong nguồn này</string>
+    <string name="filter_sheet_title">Bộ lọc</string>
+    <string name="filter_sheet_cd">Mở bộ lọc</string>
+    <string name="filter_apply">Áp dụng</string>
+    <string name="filter_reset">Đặt lại</string>
+    <string name="filter_cancel">Hủy</string>
+    <string name="filter_none">Nguồn này chưa có bộ lọc</string>
+    <string name="filter_sort_label_format">%1$s: %2$s</string>
+    <string name="filter_sort_asc_cd">Sắp xếp tăng dần</string>
+    <string name="filter_sort_desc_cd">Sắp xếp giảm dần</string>
+    <string name="filter_range_from">Từ</string>
+    <string name="filter_range_to">Đến</string>
+    <string name="filter_range_error">Giá trị nằm ngoài khoảng phù hợp</string>
+    <string name="filter_check_on">Bật</string>
+    <string name="filter_check_off">Tắt</string>
+    <string name="filter_check_excluded">Loại trừ</string>
+    <string name="filter_check_on_cd">Bật</string>
+    <string name="filter_check_off_cd">Tắt</string>
+    <string name="filter_check_excluded_cd">Loại trừ</string>
+    <string name="filter_multiselect_included">Đã chọn</string>
+    <string name="filter_multiselect_excluded">Đã loại trừ</string>
+    <string name="filter_clear_field_cd">Xóa</string>
+    <string name="filter_included_cd">Bao gồm</string>
+    <string name="filter_excluded_cd">Loại trừ</string>
+    <string name="search_result_open">Mở kết quả</string>
+
     <!-- Library Screen -->
     <string name="library_title">Tủ Phim Của Bạn</string>
     <string name="library_tab_following">Đang Theo Dõi</string>

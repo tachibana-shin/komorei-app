@@ -61,6 +61,7 @@ import git.shin.komorei.ui.screens.home.HomeScreen
 import git.shin.komorei.ui.screens.library.LibraryScreen
 import git.shin.komorei.ui.screens.listing.ListingScreen
 import git.shin.komorei.ui.screens.search.SearchDiscoveryScreen
+import git.shin.komorei.ui.screens.search.SourceSearchScreen
 import git.shin.komorei.ui.screens.source.SourceHomeScreen
 import git.shin.komorei.ui.screens.source.SourceSettingsScreen
 import git.shin.komorei.ui.screens.sources.SourceReposScreen
@@ -105,6 +106,7 @@ fun MainScreen(
         val isSourceReposRoute = currentRoute == Screen.SourceRepos.route
         val isSourceHomeRoute = currentRoute == Screen.SourceHome.route
         val isSourceSettingsRoute = currentRoute == Screen.SourceSettings.route
+        val isSourceSearchRoute = currentRoute == Screen.SourceSearch.route
 
         Box(modifier = Modifier.fillMaxSize()) {
             if (isWideScreen) {
@@ -236,7 +238,7 @@ fun MainScreen(
                 Scaffold(
                     bottomBar = {
                         AnimatedVisibility(
-                            visible = !isPlayerExpanded && !isFullscreen && !isListingRoute && !isSourceReposRoute && !isSourceHomeRoute && !isSourceSettingsRoute,
+                            visible = !isPlayerExpanded && !isFullscreen && !isListingRoute && !isSourceReposRoute && !isSourceHomeRoute && !isSourceSettingsRoute && !isSourceSearchRoute,
                             enter = slideInVertically(initialOffsetY = { it }),
                             exit = slideOutVertically(targetOffsetY = { it })
                         ) {
@@ -404,6 +406,7 @@ fun MainNavigationHost(
     navController: NavHostController,
     onAnimeSelect: (Anime) -> Unit,
     onOpenListing: (sourceId: String, listing: git.shin.komorei.model.Listing) -> Unit = { _, _ -> },
+    onOpenSearch: (sourceId: String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     NavHost(
@@ -412,7 +415,11 @@ fun MainNavigationHost(
         modifier = modifier.fillMaxSize()
     ) {
         composable(Screen.Home.route) {
-            HomeScreen(onAnimeClick = onAnimeSelect, onOpenListing = onOpenListing)
+            HomeScreen(
+                onAnimeClick = onAnimeSelect,
+                onOpenListing = onOpenListing,
+                onOpenSearch = onOpenSearch,
+            )
         }
         composable(Screen.Search.route) {
             SearchDiscoveryScreen(onAnimeClick = onAnimeSelect)
@@ -441,6 +448,19 @@ fun MainNavigationHost(
                 onOpenSettings = { sourceId ->
                     navController.navigate(Screen.SourceSettings.createRoute(sourceId))
                 },
+                onOpenSearch = onOpenSearch,
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = Screen.SourceSearch.route,
+            arguments = listOf(
+                navArgument("sourceId") { type = NavType.StringType },
+            ),
+        ) { entry ->
+            SourceSearchScreen(
+                sourceId = entry.arguments?.getString("sourceId").orEmpty(),
+                onAnimeClick = onAnimeSelect,
                 onBack = { navController.popBackStack() },
             )
         }

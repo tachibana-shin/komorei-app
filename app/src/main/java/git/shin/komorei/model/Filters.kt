@@ -93,27 +93,30 @@ sealed class FilterKind {
  * Mirrors `FilterValue` in komorei-sdk.
  */
 sealed class FilterValue {
+    /** The filter id this value belongs to. */
+    abstract val id: String
+
     /** A string from a text field. */
-    data class Text(val id: String, val value: String) : FilterValue()
+    data class Text(override val id: String, val value: String) : FilterValue()
 
     /** A value from a sort filter. */
-    data class Sort(val id: String, val index: Int, val ascending: Boolean) : FilterValue()
+    data class Sort(override val id: String, val index: Int, val ascending: Boolean) : FilterValue()
 
     /** A value from a check filter. */
-    data class Check(val id: String, val value: Int) : FilterValue()
+    data class Check(override val id: String, val value: Int) : FilterValue()
 
     /** A value from a select filter. */
-    data class Select(val id: String, val value: String) : FilterValue()
+    data class Select(override val id: String, val value: String) : FilterValue()
 
     /** A list of values from a multi-select filter. */
     data class MultiSelect(
-        val id: String,
+        override val id: String,
         val included: List<String>,
         val excluded: List<String>
     ) : FilterValue()
 
     /** A range of values from a range filter. */
-    data class Range(val id: String, val from: Float?, val to: Float?) : FilterValue()
+    data class Range(override val id: String, val from: Float?, val to: Float?) : FilterValue()
 }
 
 /**

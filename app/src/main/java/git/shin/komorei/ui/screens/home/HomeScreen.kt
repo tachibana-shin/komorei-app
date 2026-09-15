@@ -60,6 +60,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
     onOpenListing: (sourceId: String, listing: Listing) -> Unit = { _, _ -> },
+    onOpenSearch: (sourceId: String) -> Unit = {},
 ) {
     val coroutineScope = rememberCoroutineScope()
     val sources by viewModel.sources.collectAsState()
@@ -202,6 +203,7 @@ fun HomeScreen(
                 onOpenListing = { listing -> onOpenListing(source.id, listing) },
                 onAnimeClick = onAnimeClick,
                 getSourceName = { viewModel.getSourceName(it) },
+                onOpenSearch = onOpenSearch,
             )
         }
     }
