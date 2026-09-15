@@ -32,6 +32,7 @@ import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +54,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
+import git.shin.komorei.ui.deeplink.DeepLinkAction
+import git.shin.komorei.ui.deeplink.DeepLinkViewModel
 import git.shin.komorei.ui.navigation.Screen
 import git.shin.komorei.ui.player.PlayerViewModel
 import git.shin.komorei.ui.player.PlayerSheetValue
@@ -81,6 +84,27 @@ fun MainScreen(
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Home.route
 
     val playbackState by playerViewModel.playbackState.collectAsState()
+
+    // Incoming deep links (MainActivity → DeepLinkManager): resolve the URL
+    // against the sources and open the target — anime/episode into the player
+    // sheet (Lite stubs upgraded inside), listings onto the listing route.
+    val deepLinkViewModel: DeepLinkViewModel = hiltViewModel()
+    val deepLinkAction by deepLinkViewModel.action.collectAsState()
+    LaunchedEffect(deepLinkAction) {
+        when (val action = deepLinkAction) {
+            is DeepLinkAction.OpenAnime -> {
+                playerViewModel.openAnime(action.anime, action.episode)
+                deepLinkViewModel.markConsumed()
+            }
+
+            is DeepLinkAction.OpenListing -> {
+                navController.navigate(Screen.Listing.createRoute(action.sourceId, action.listing))
+                deepLinkViewModel.markConsumed()
+            }
+
+            null -> Unit
+        }
+    }
 
     val onAnimeSelected: (Anime) -> Unit = { anime ->
         playerViewModel.openAnime(anime)

@@ -514,7 +514,13 @@ class PlayerViewModel @Inject constructor(
         _playbackState.update { it.copy(isLoadingStreams = true, streamError = null, error = null) }
         runCatching {
             val full = repository.getAnimeUpdate(anime, needsDetails = true, needsChapters = true)
-            finishLoadStreams(full, episode, restorePosition)
+            // The passed episode may be a Lite stub (deep link / first-episode
+            // fallback) — swap in the full record by key so the source gets the
+            // real episode (title/number) for stream resolution and the UI shows
+            // its proper name. Falls back to the stub if the key isn't found.
+            val fullEpisode = full.episodes.find { it.id == episode.id } ?: episode
+            _playbackState.update { it.copy(currentEpisode = fullEpisode) }
+            finishLoadStreams(full, fullEpisode, restorePosition)
         }.onFailure { e ->
             _playbackState.update {
                 it.copy(

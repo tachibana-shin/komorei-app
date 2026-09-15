@@ -26,6 +26,19 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- Demo deep-link scheme: sources resolve paths like
+                     /anime/<key>, /watch/<anime>/<ep>, /list/<id> themselves
+                     via their `handle_deep_link` (Aidoku-style). -->
+                <data
+                    android:scheme="komorei"
+                    android:host="komorei.example" />
+            </intent-filter>
         </activity>
     </application>
 

@@ -5,6 +5,7 @@ import git.shin.komorei.model.AnimeSeason
 import git.shin.komorei.model.AnimeStatus
 import git.shin.komorei.model.AnimeWithEpisode
 import git.shin.komorei.model.CategoryLink
+import git.shin.komorei.model.DeepLinkTarget
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.Filter
 import git.shin.komorei.model.FilterItem
@@ -26,6 +27,7 @@ import git.shin.komorei.sdk.runner.AnimeSeason as RunnerAnimeSeason
 import git.shin.komorei.sdk.runner.AnimeStatus as RunnerAnimeStatus
 import git.shin.komorei.sdk.runner.AnimeWithEpisode as RunnerAnimeWithEpisode
 import git.shin.komorei.sdk.runner.CategoryLink as RunnerCategoryLink
+import git.shin.komorei.sdk.runner.DeepLinkResult as RunnerDeepLinkResult
 import git.shin.komorei.sdk.runner.Episode as RunnerEpisode
 import git.shin.komorei.sdk.runner.Filter as RunnerFilter
 import git.shin.komorei.sdk.runner.FilterItem as RunnerFilterItem
@@ -242,6 +244,14 @@ fun Listing.toRunner(): RunnerListing = RunnerListing(
     name = name,
     kind = kind.toRunner(),
 )
+
+// ── deep links ──────────────────────────────────────────────────────────────
+
+fun RunnerDeepLinkResult.toAppModel(): DeepLinkTarget = when (this) {
+    is RunnerDeepLinkResult.Anime -> DeepLinkTarget.Anime(key)
+    is RunnerDeepLinkResult.Episode -> DeepLinkTarget.Episode(animeKey, key)
+    is RunnerDeepLinkResult.Listing -> DeepLinkTarget.Listing(v1.toAppModel())
+}
 
 fun RunnerLinkValue.toAppModel(): LinkValue = when (this) {
     is RunnerLinkValue.Url -> LinkValue.Url(url = v1)

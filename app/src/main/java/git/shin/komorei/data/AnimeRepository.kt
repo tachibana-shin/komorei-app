@@ -3,6 +3,7 @@ package git.shin.komorei.data
 import git.shin.komorei.data.remote.SegmentDataInterceptor
 import git.shin.komorei.data.remote.SegmentUrlInterceptor
 import git.shin.komorei.model.Anime
+import git.shin.komorei.model.DeepLinkTarget
 import git.shin.komorei.model.Episode
 import git.shin.komorei.model.Filter
 import git.shin.komorei.model.FilterValue
@@ -146,6 +147,19 @@ class AnimeRepository @Inject constructor(
         return registry.call(anime.sourceId) { runner ->
             runner.stream(anime.toRunner(), episode.toRunner(), stream.toRunner()).toAppModel()
         } ?: throw IllegalStateException("Source unavailable: ${anime.sourceId}")
+    }
+
+    // ── deep links ─────────────────────────────────────────────────────────
+
+    /**
+     * Asks [sourceId]'s `handle_deep_link` export whether it recognizes [url].
+     * Returns the app-model [DeepLinkTarget], or null when the source doesn't
+     * handle the URL (or the source can't be loaded).
+     */
+    suspend fun handleDeepLink(sourceId: String, url: String): DeepLinkTarget? {
+        return registry.call(sourceId) { runner ->
+            runner.deepLink(url)?.toAppModel()
+        }
     }
 
     // ── search ─────────────────────────────────────────────────────────────
