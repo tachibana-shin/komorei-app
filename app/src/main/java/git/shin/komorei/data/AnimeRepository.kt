@@ -162,6 +162,22 @@ class AnimeRepository @Inject constructor(
         }
     }
 
+    /**
+     * Asks [sourceId]'s `handle_anime_migration` to map [key] to its current
+     * form (null when the source can't be loaded).
+     */
+    suspend fun migrateAnime(sourceId: String, key: String): String? {
+        return registry.call(sourceId) { runner -> runner.migrateAnime(key) }
+    }
+
+    /**
+     * Asks [sourceId]'s `handle_episode_migration` to map [episodeKey] under
+     * the (old) [animeKey] to its current form.
+     */
+    suspend fun migrateEpisode(sourceId: String, animeKey: String, episodeKey: String): String? {
+        return registry.call(sourceId) { runner -> runner.migrateEpisode(animeKey, episodeKey) }
+    }
+
     // ── search ─────────────────────────────────────────────────────────────
 
     /**

@@ -2,9 +2,12 @@ package git.shin.komorei
 
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
+import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import git.shin.komorei.data.AnimeRepository
+import git.shin.komorei.data.SourceMigrationRepository
 import git.shin.komorei.data.SourceStateStore
+import git.shin.komorei.data.local.KomoreiDatabase
 import git.shin.komorei.data.local.KrxDefaultsStore
 import git.shin.komorei.model.SourceSettingValue
 import git.shin.komorei.sdk.KrxHostImpl
@@ -44,9 +47,12 @@ import java.io.File
 class SourceHomeScopedTest {
 
     private lateinit var repository: AnimeRepository
+    private lateinit var context: Context
     private lateinit var host: KrxHostImpl
     private lateinit var registry: KrxSourceRegistry
     private lateinit var defaultsStore: KrxDefaultsStore
+    private lateinit var database: KomoreiDatabase
+    private lateinit var migrationRepository: SourceMigrationRepository
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     companion object {
@@ -60,19 +66,24 @@ class SourceHomeScopedTest {
             "missing uniffi.component.komorei_runner.libraryOverride (set by app/build.gradle.kts)",
             System.getProperty("uniffi.component.komorei_runner.libraryOverride"),
         )
-        val context = ApplicationProvider.getApplicationContext<Context>()
+        context = ApplicationProvider.getApplicationContext<Context>()
         host = KrxHostImpl(context)
         defaultsStore = host.defaultsStore
         registry = KrxSourceRegistry(context, host)
         val runner = registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
         assertNotNull("fake source should load", runner)
         repository = AnimeRepository(registry)
+        database = Room.inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
+        migrationRepository = SourceMigrationRepository(database.animeDao(), repository)
         Dispatchers.setMain(mainDispatcher)
     }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+        database.close()
     }
 
     @Test
@@ -134,8 +145,10 @@ class SourceHomeScopedTest {
     @Test
     fun settingChangeWithNotificationIsForwardedToTheSource() = runBlocking {
         val vm = SourceSettingsViewModel(
+            context,
             repository,
             defaultsStore,
+            migrationRepository,
             SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
         )
         awaitUntil { vm.uiState.value.settings != null }
@@ -156,8 +169,10 @@ class SourceHomeScopedTest {
     @Test
     fun buttonSettingClickSendsItsNotificationToTheSource() = runBlocking {
         val vm = SourceSettingsViewModel(
+            context,
             repository,
             defaultsStore,
+            migrationRepository,
             SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
         )
         awaitUntil { vm.uiState.value.settings != null }
@@ -190,8 +205,10 @@ class SourceHomeScopedTest {
     @Test
     fun settingsViewModelTogglePolicyWritesAndReloads() = runBlocking {
         val vm = SourceSettingsViewModel(
+            context,
             repository,
             defaultsStore,
+            migrationRepository,
             SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
         )
         awaitUntil { vm.uiState.value.settings != null }
@@ -212,8 +229,10 @@ class SourceHomeScopedTest {
     @Test
     fun languagePickerWriteIsReadableByTheSourceScopedHost() = runBlocking {
         val vm = SourceSettingsViewModel(
+            context,
             repository,
             defaultsStore,
+            migrationRepository,
             SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
         )
         awaitUntil { vm.uiState.value.settings != null }
@@ -231,8 +250,10 @@ class SourceHomeScopedTest {
     @Test
     fun resetSettingsWipesOnlyTheSourceOwnRows() = runBlocking {
         val vm = SourceSettingsViewModel(
+            context,
             repository,
             defaultsStore,
+            migrationRepository,
             SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
         )
         awaitUntil { vm.uiState.value.settings != null }
@@ -266,8 +287,10 @@ class SourceHomeScopedTest {
     @Test
     fun settingsViewModelLoadsFromNavArgs() = runBlocking {
         val vm = SourceSettingsViewModel(
+            context,
             repository,
             defaultsStore,
+            migrationRepository,
             SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
         )
 

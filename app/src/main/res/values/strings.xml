@@ -146,6 +146,13 @@
     <string name="source_settings_reset_settings">Đặt lại cài đặt</string>
     <string name="source_settings_reset_confirm">Xoá toàn bộ giá trị đã lưu của %1$s? Các tuỳ chọn sẽ trở về mặc định của nguồn.</string>
     <string name="source_settings_reset_confirm_action">Đặt lại</string>
+    <string name="source_settings_migrate_data">Di trú dữ liệu nguồn</string>
+    <string name="source_settings_migrate_confirm">Di trú dữ liệu?</string>
+    <string name="source_settings_migrate_confirm_message">Sẽ hỏi nguồn %1$s để chuyển các khoá cũ thành khoá hiện tại, rồi cập nhật bộ sưu tập và lịch sử xem. Nguồn không đổi khoá thì không có gì thay đổi.</string>
+    <string name="source_settings_migrate_confirm_action">Di trú</string>
+    <string name="source_settings_migrate_none">Không có dữ liệu cần di trú</string>
+    <string name="source_settings_migrate_done">Đã di trú %1$d anime, %2$d tập (kiểm tra %3$d anime, %4$d tập)</string>
+    <string name="source_settings_migrate_failed">Không thể di trú dữ liệu nguồn</string>
     <string name="source_settings_readonly">Các tuỳ chọn do nguồn cung cấp, đang ở chế độ xem</string>
     <string name="source_settings_on">Bật</string>
     <string name="source_settings_off">Tắt</string>

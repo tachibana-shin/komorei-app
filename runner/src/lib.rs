@@ -198,6 +198,28 @@ impl KomoreiRunner {
 		})
 	}
 
+	/// `handle_key_migration` — the MigrationHandler export is a single wasm
+	/// function taking a `key_kind` discriminator (0 = anime, 1 = episode).
+	/// Maps an outdated key to the current one after the source changed its id
+	/// scheme (Aidoku migration contract); identity sources echo the key.
+	pub fn migrate_anime(&self, key: String) -> Result<String, RunnerError> {
+		self.with_engine(|engine| {
+			let desc = engine.encode(&key)?;
+			let ptr = engine.call3("handle_key_migration", 0, desc, 0)?;
+			engine.decode::<String>(ptr)
+		})
+	}
+
+	/// Same export, `key_kind = 1` (episode): `(anime_key, episode_key)`.
+	pub fn migrate_episode(&self, anime_key: String, episode_key: String) -> Result<String, RunnerError> {
+		self.with_engine(|engine| {
+			let anime_desc = engine.encode(&anime_key)?;
+			let ep_desc = engine.encode(&episode_key)?;
+			let ptr = engine.call3("handle_key_migration", 1, anime_desc, ep_desc)?;
+			engine.decode::<String>(ptr)
+		})
+	}
+
 	/// `intercept_segment_url(stream_data, url)` — header injection happens in
 	/// the media requests, so this resolves the *final* segment URL.
 	pub fn intercept_segment_url(&self, stream_data: Option<StreamData>, url: String) -> Result<String, RunnerError> {

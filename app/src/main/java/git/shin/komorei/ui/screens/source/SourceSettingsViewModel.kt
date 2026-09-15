@@ -1,11 +1,15 @@
 package git.shin.komorei.ui.screens.source
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import git.shin.komorei.R
 import git.shin.komorei.data.AnimeRepository
+import git.shin.komorei.data.SourceMigrationRepository
 import git.shin.komorei.data.local.KrxDefaultsStore
 import git.shin.komorei.data.local.krxDefaultsKey
 import git.shin.komorei.data.remote.clearCookiesForHost
@@ -13,8 +17,10 @@ import git.shin.komorei.model.Source
 import git.shin.komorei.model.SourceSetting
 import git.shin.komorei.model.SourceSettingValue
 import git.shin.komorei.sdk.runner.HostDefaultValue
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -34,12 +40,18 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SourceSettingsViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: AnimeRepository,
     private val defaultsStore: KrxDefaultsStore,
+    private val migrationRepository: SourceMigrationRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val sourceId: String = savedStateHandle.get<String>("sourceId").orEmpty()
+
+    /** One-shot user-facing messages (toasts), e.g. the migration result. */
+    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 16)
+    val messages = _messages.asSharedFlow()
 
     data class UiState(
         val source: Source? = null,
@@ -267,5 +279,33 @@ class SourceSettingsViewModel @Inject constructor(
         val baseUrl = (uiState.value.source ?: repository.getSource(sourceId))?.baseUrl ?: return
         val host = Uri.parse(baseUrl).host ?: return
         clearCookiesForHost(host)
+    }
+
+    /**
+     * "Di trú dữ liệu nguồn" — re-keys every stored library + watch-history
+     * item of this source through its `handle_anime_migration` /
+     * `handle_episode_migration` exports and rewrites the moved Room rows
+     * (Aidoku's library migration). Emits the outcome as a one-shot toast.
+     */
+    fun migrateData() {
+        viewModelScope.launch {
+            val report = runCatching { migrationRepository.migrateLibrary(sourceId) }.getOrNull()
+                ?: run {
+                    _messages.emit(appContext.getString(R.string.source_settings_migrate_failed))
+                    return@launch
+                }
+            val message = if (report.migratedAnimes == 0 && report.migratedEpisodes == 0) {
+                appContext.getString(R.string.source_settings_migrate_none)
+            } else {
+                appContext.getString(
+                    R.string.source_settings_migrate_done,
+                    report.migratedAnimes,
+                    report.migratedEpisodes,
+                    report.examinedAnimes,
+                    report.examinedEpisodes,
+                )
+            }
+            _messages.emit(message)
+        }
     }
 }

@@ -75,4 +75,53 @@ interface AnimeDao {
         }
         upsertWatchHistory(history)
     }
+
+    // --- Source-key migration (MigrationHandler) ---
+
+    @Query("SELECT * FROM anime_library WHERE sourceId = :sourceId")
+    suspend fun getAnimesForSource(sourceId: String): List<AnimeEntity>
+
+    @Query("SELECT * FROM watch_history WHERE sourceId = :sourceId")
+    suspend fun getWatchHistoryForSource(sourceId: String): List<WatchHistoryEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAnimes(items: List<AnimeEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertWatchHistoryBatch(items: List<WatchHistoryEntity>)
+
+    @Query("DELETE FROM anime_library WHERE sourceId = :sourceId AND id IN (:ids)")
+    suspend fun deleteAnimes(sourceId: String, ids: List<String>)
+
+    @Query("DELETE FROM watch_history WHERE sourceId = :sourceId AND animeId IN (:animeIds)")
+    suspend fun deleteWatchHistoryByAnimes(sourceId: String, animeIds: List<String>)
+
+    @Query("DELETE FROM watch_history WHERE sourceId = :sourceId AND animeId = :animeId AND episodeId = :episodeId")
+    suspend fun deleteWatchHistoryEntry(sourceId: String, animeId: String, episodeId: String)
+
+    /**
+     * Applies a computed migration plan in ONE transaction: stale rows are
+     * deleted, migrated rows re-inserted with `REPLACE` (a target-key conflict
+     * — two old keys mapping onto one new — is merged, the re-insert wins).
+     *
+     * The expensive part (asking the source for the new keys) happens BEFORE
+     * this call so wasm work never runs inside a DB transaction.
+     */
+    @Transaction
+    suspend fun applyLibraryMigration(
+        sourceId: String,
+        deleteAnimeIds: List<String>,
+        insertAnimes: List<AnimeEntity>,
+        deleteHistoryByAnimeIds: List<String>,
+        deleteHistoryEntries: List<WatchHistoryEntity>,
+        insertHistory: List<WatchHistoryEntity>,
+    ) {
+        if (deleteAnimeIds.isNotEmpty()) deleteAnimes(sourceId, deleteAnimeIds)
+        if (insertAnimes.isNotEmpty()) upsertAnimes(insertAnimes)
+        if (deleteHistoryByAnimeIds.isNotEmpty()) deleteWatchHistoryByAnimes(sourceId, deleteHistoryByAnimeIds)
+        for (entry in deleteHistoryEntries) {
+            deleteWatchHistoryEntry(sourceId, entry.animeId, entry.episodeId)
+        }
+        if (insertHistory.isNotEmpty()) upsertWatchHistoryBatch(insertHistory)
+    }
 }

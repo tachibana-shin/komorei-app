@@ -33,7 +33,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
@@ -72,6 +74,12 @@ fun SourceSettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -117,6 +125,7 @@ fun SourceSettingsScreen(
                 var dialogText by remember { mutableStateOf("") }
                 var languageDialog by remember { mutableStateOf(false) }
                 var resetConfirm by remember { mutableStateOf(false) }
+                var migrateConfirm by remember { mutableStateOf(false) }
 
                 Column(
                     modifier = Modifier
@@ -208,6 +217,13 @@ fun SourceSettingsScreen(
                     ActionRow(
                         label = stringResource(R.string.source_settings_reset_settings),
                         onClick = { resetConfirm = true },
+                    )
+
+                    // Migrate — re-keys stored library + watch history through the
+                    // source's handle_anime_migration / handle_episode_migration.
+                    ActionRow(
+                        label = stringResource(R.string.source_settings_migrate_data),
+                        onClick = { migrateConfirm = true },
                     )
 
                     Spacer(Modifier.height(16.dp))
@@ -305,6 +321,49 @@ fun SourceSettingsScreen(
                         },
                         dismissButton = {
                             TextButton(onClick = { resetConfirm = false }) {
+                                Text(
+                                    stringResource(R.string.source_settings_cancel),
+                                    color = TextSecondary,
+                                )
+                            }
+                        },
+                    )
+                }
+
+                // Migration confirmation — re-keys stored library + watch history
+                // through the source's migration exports.
+                if (migrateConfirm) {
+                    AlertDialog(
+                        onDismissRequest = { migrateConfirm = false },
+                        containerColor = CardDark,
+                        title = {
+                            Text(
+                                stringResource(R.string.source_settings_migrate_confirm),
+                                color = TextPrimary, fontSize = 16.sp,
+                            )
+                        },
+                        text = {
+                            Text(
+                                stringResource(
+                                    R.string.source_settings_migrate_confirm_message,
+                                    uiState.source?.name.orEmpty(),
+                                ),
+                                color = TextSecondary, fontSize = 14.sp,
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                viewModel.migrateData()
+                                migrateConfirm = false
+                            }) {
+                                Text(
+                                    stringResource(R.string.source_settings_migrate_confirm_action),
+                                    color = AnimeRed,
+                                )
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { migrateConfirm = false }) {
                                 Text(
                                     stringResource(R.string.source_settings_cancel),
                                     color = TextSecondary,
