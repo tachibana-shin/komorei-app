@@ -48,7 +48,7 @@
 
 | Hàm | Signature | Mô tả | Tiêu thụ app |
 |---|---|---|---|
-| `get_search_anime_list` (L759) | `(query: Option<String>, page: i32, filters: Vec<FilterValue>) -> AnimePageResult` | Search theo title/original_title + lọc + sắp xếp, phân trang 15 | ✅ `AnimeRepository.search` → Search screen + `SourceSearchViewModel` (per-source) |
+| `get_search_anime_list` (L759) | `(query: Option<String>, page: i32, filters: Vec<FilterValue>) -> AnimePageResult` | Search theo title/original_title + lọc + sắp xếp, phân trang 15 | ✅ `AnimeRepository.search` → per-source search (`SourceSearchViewModel`) + global search tab Khám Phá (`SearchViewModel` → `searchMultiSource`) |
 | `get_anime_update` (L794) | `(anime, needs_details, needs_chapters) -> Anime` | `needs_details` → bản full (`copy_from`); `needs_chapters` → episode của **đúng season key hiện tại** | ✅ `AnimeRepository.getAnimeUpdate` (player + detail) |
 | `get_stream_list` (L813) | `(anime, episode) -> Vec<StreamInfo>` | 3 server: `hls`, `mp4_720`, `mp4_fhd`; đọc default `prefer_fhd` để đảo thứ tự | ✅ `getStreamList` → server picker |
 | `get_stream` (L842) | `(anime, episode, stream) -> StreamData` | Chọn URL/type theo `stream.key`; kèm headers, subtitle vi, intro/outro | ✅ `getStream` → player (Media3) |
@@ -244,6 +244,7 @@ Các phần tử app tự chèn vào UI/settings của từng nguồn — source
 - [ ] **Deep link**: `/anime/…`, `/watch/…`, `/list/…` (source đã có `handle_deep_link`).
 - [ ] **Migration**: source identity — app chưa dùng `MigrationHandler`.
 - [x] **DynamicFilters search (per-source)**: nút 🔍 trước chips trên home mỗi source (ẩn cho aggregator) → `SourceSearchScreen` YouTube-style (field autofocus + Hủy, sticky filter header, debounce 300ms, skeleton/error/empty/end, infinite scroll). Components tách file trong `ui/components/search/` + `ui/screens/search/` — Aidoku `SearchViewController` + `FilterHeaderView`/`FilterListSheetView`/`Filter*GroupView` port. Test: `SourceSearchViewModelTest` (6 case, real runner + fake krx).
+- [x] **Global search (Khám Phá)**: tab Search (Khám Phá) tái triển khai theo kiểu tìm kiếm toàn cục: thanh search + 3 filter Aidoku-style — **Xếp hạng nội dung** (Tất cả/An toàn/18+ theo `contentRating` manifest), **Ngôn ngữ** (hợp nhất `languages` các nguồn), **Nguồn** (multi-select whitelist) — thay cho chips genre cũ; kết quả merge thành **grid phẳng 3 cột** giống per-source search (`DiscoverFilterHeaderRow` dùng lại `FilterPill`/`FilterBottomSheet`/`SelectFilterGroup`/`MultiSelectFilterGroup` với `FilterKind` dựng tay, không cần gọi `filters()`). `searchMultiSource` mở rộng tham số `contentRating`/`languages`/`sourceIds` (lọc nguồn trước khi query); `SearchViewModel` gộp query + genre shortcut + 3 filter vào 1 pipeline `combine(...).debounce { 300 }.distinctUntilChanged()` (seam `searchDebounceMillis`). Test: `SearchViewModelTest` (8 case).
 - [x] **RangeFilter (Năm phát hành)**: `RangeFilterRow` Aidoku-style (Từ/Đến) trong sheet tổng hợp.
 - [x] **Sort UI**: `SortFilterPill` + `SortFilterGroup` (chọn index + đảo asc/desc).
 - [ ] **Link Url**: "Trang nguồn Komorei" display-only.
