@@ -39,7 +39,6 @@
     <string name="no_results_title">Không tìm thấy anime phù hợp</string>
     <string name="no_results_subtitle">Thử đổi từ khóa hoặc chọn nguồn phát khác</string>
     <string name="anime_count_format">%1$d Anime</string>
-    <string name="search_results_count">Tìm thấy %1$d kết quả trên các nguồn:</string>
 
     <!-- Per-source search (DynamicFilters) -->
     <string name="source_search_entry_cd">Tìm trong nguồn này</string>
@@ -74,6 +73,17 @@
     <string name="filter_included_cd">Bao gồm</string>
     <string name="filter_excluded_cd">Loại trừ</string>
     <string name="search_result_open">Mở kết quả</string>
+
+    <!-- Discover (Khám Phá) global search filters -->
+    <string name="discover_filter_rating">Xếp hạng nội dung</string>
+    <string name="discover_filter_language">Ngôn ngữ</string>
+    <string name="discover_filter_sources">Nguồn</string>
+    <string name="discover_filter_value_format">%1$s: %2$s</string>
+    <string name="discover_rating_all">Tất cả</string>
+    <string name="discover_rating_safe">An toàn</string>
+    <string name="discover_rating_nsfw">18+</string>
+    <string name="discover_language_all">Tất cả ngôn ngữ</string>
+    <string name="discover_results_count">Tìm thấy %1$d kết quả</string>
 
     <!-- Library Screen -->
     <string name="library_title">Tủ Phim Của Bạn</string>

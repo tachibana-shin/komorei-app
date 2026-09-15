@@ -15,8 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -33,21 +35,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
-import git.shin.komorei.ui.components.AnimeSection
-import git.shin.komorei.ui.components.AppIcons
-import git.shin.komorei.ui.components.GenreChipCompact
+import git.shin.komorei.ui.components.AnimeCard
 import git.shin.komorei.ui.components.GenreGridCard
-import git.shin.komorei.ui.components.SearchResultSkeleton
+import git.shin.komorei.ui.components.ListingGridSkeleton
+import git.shin.komorei.ui.components.search.DiscoverFilterHeaderRow
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeRedContainer
 import git.shin.komorei.ui.theme.BackgroundDark
@@ -58,6 +57,12 @@ import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
 
+/**
+ * Khám Phá tab — an Aidoku-style global search: a search bar, the three global
+ * filter pills (Xếp hạng nội dung / Ngôn ngữ / Nguồn) and a flat 3-column
+ * results grid shared with the per-source search. The idle state keeps the
+ * genre discovery grid; tapping a genre starts a genre-filtered search.
+ */
 @Composable
 fun SearchDiscoveryScreen(
     onAnimeClick: (Anime) -> Unit,
@@ -66,8 +71,12 @@ fun SearchDiscoveryScreen(
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedGenre by viewModel.selectedGenre.collectAsState()
+    val contentRating by viewModel.contentRating.collectAsState()
+    val language by viewModel.language.collectAsState()
+    val sourceFilter by viewModel.sourceFilter.collectAsState()
     val searchUiState by viewModel.searchUiState.collectAsState()
     val genres = viewModel.genres
+    val sources = viewModel.sources
 
     Column(
         modifier = modifier
@@ -148,23 +157,17 @@ fun SearchDiscoveryScreen(
             )
         }
 
-        // Horizontal Genre Quick-Filter Chips
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp)
-        ) {
-            items(items = genres, key = { it.id }) { genre ->
-                val isSelected = selectedGenre?.id == genre.id
-                GenreChipCompact(
-                    genre = genre,
-                    isSelected = isSelected,
-                    onClick = { viewModel.selectGenre(genre) }
-                )
-            }
-        }
+        // Aidoku-style global filters (content rating / language / sources)
+        // — replaces the old per-genre quick chips.
+        DiscoverFilterHeaderRow(
+            contentRating = contentRating,
+            language = language,
+            includedSourceIds = sourceFilter,
+            sources = sources,
+            onContentRatingChange = viewModel::setContentRating,
+            onLanguageChange = viewModel::setLanguage,
+            onSourcesChange = viewModel::setSourceFilter,
+        )
 
         // Search Results / Discovery Content
         when (val state = searchUiState) {
@@ -229,7 +232,7 @@ fun SearchDiscoveryScreen(
             }
 
             is SearchUiState.Loading -> {
-                SearchResultSkeleton(
+                ListingGridSkeleton(
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -257,51 +260,37 @@ fun SearchDiscoveryScreen(
                         )
                     }
                 } else {
-                    // Multi-source grouped results
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 120.dp)
+                    // Flat 3-column grid like the per-source search — results
+                    // from all matched sources merged into one scrollable.
+                    val flatResults = state.resultsBySource.values.flatten()
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 8.dp,
+                            bottom = 24.dp,
+                        ),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("discover_search_grid")
                     ) {
-                        item {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
                             Text(
-                                text = stringResource(
-                                    R.string.search_results_count,
-                                    state.totalCount
-                                ),
+                                text = stringResource(R.string.discover_results_count, state.totalCount),
                                 color = TextSecondary,
                                 fontSize = 13.sp,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                                modifier = Modifier.padding(vertical = 6.dp)
                             )
                         }
-
-                        state.resultsBySource.forEach { (source, animeList) ->
-                            if (animeList.isNotEmpty()) {
-                                item {
-                                    AnimeSection(
-                                        title = source.name,
-                                        animeList = animeList,
-                                        onAnimeClick = onAnimeClick,
-                                        icon = AppIcons.getSourceIcon(source.id),
-                                        getSourceName = { viewModel.getSourceName(it) },
-                                        rightContent = {
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .background(Color(0x33FFFFFF))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    text = "${animeList.size}",
-                                                    color = TextSecondary,
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                        }
-                                    )
-                                }
-                            }
+                        items(flatResults, key = { it.id }) { anime ->
+                            AnimeCard(
+                                anime = anime,
+                                onClick = { onAnimeClick(anime) },
+                                getSourceName = viewModel::getSourceName,
+                            )
                         }
                     }
                 }

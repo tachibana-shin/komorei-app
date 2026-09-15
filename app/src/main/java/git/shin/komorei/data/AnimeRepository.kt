@@ -179,16 +179,28 @@ class AnimeRepository @Inject constructor(
      * Parallel multi-source search. Each source is queried on its own thread;
      * results keyed by their [Source]. A genre selection is translated into the
      * source's own genre filter id/options (exposed by `filters()`).
+     *
+     * The candidate sources can be narrowed before querying:
+     * [contentRating] restricts by the source's manifest rating (`0` = safe-only,
+     * `> 0` = 18+-only, `null` = all), [languages] keeps sources publishing at
+     * least one of the codes (empty = all) and [sourceIds] whitelists sources
+     * by id (empty = all non-aggregator sources).
      */
     suspend fun searchMultiSource(
         query: String,
-        selectedGenreId: String? = null
+        selectedGenreId: String? = null,
+        contentRating: Int? = null,
+        languages: Set<String> = emptySet(),
+        sourceIds: Set<String> = emptySet(),
     ): Map<Source, List<Anime>> {
         val genreName = selectedGenreId?.let { id -> genres.find { it.id == id }?.name }
-        val activeSources = sources.filter { !it.isAggregator }
+        val candidateSources = sources.filter { !it.isAggregator }
+            .filter { sourceIds.isEmpty() || it.id in sourceIds }
+            .filter { contentRating == null || ratingMatches(it.contentRating, contentRating) }
+            .filter { languages.isEmpty() || it.languages.any { lang -> lang in languages } }
 
         return coroutineScope {
-            activeSources.map { source ->
+            candidateSources.map { source ->
                 async {
                     val genreValues = genreName?.let { name -> buildGenreFilter(source.id, name) }
                         ?: emptyList()
@@ -199,6 +211,10 @@ class AnimeRepository @Inject constructor(
                 .toMap()
         }
     }
+
+    /** [filterRating] `0` = safe-only, anything else = 18+-only. */
+    private fun ratingMatches(sourceRating: Int, filterRating: Int): Boolean =
+        if (filterRating == 0) sourceRating == 0 else sourceRating > 0
 
     private suspend fun buildGenreFilter(sourceId: String, genreName: String): List<FilterValue> {
         val genreFilter = getFilters(sourceId).firstOrNull { f ->
