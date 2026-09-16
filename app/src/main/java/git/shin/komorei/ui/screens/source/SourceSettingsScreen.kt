@@ -299,17 +299,19 @@ fun SourceSettingsScreen(
 
                 // App-injected language picker.
                 if (languageDialog) {
-                    val source = uiState.source ?: return@Column
-                    LanguageDialog(
-                        title = stringResource(R.string.source_settings_language),
-                        options = source.languages,
-                        current = uiState.selectedLanguages,
-                        onConfirm = { selection ->
-                            viewModel.setLanguages(selection)
-                            languageDialog = false
-                        },
-                        onDismiss = { languageDialog = false },
-                    )
+                    val source = uiState.source
+                    if (source != null) {
+                        LanguageDialog(
+                            title = stringResource(R.string.source_settings_language),
+                            options = source.languages,
+                            current = uiState.selectedLanguages,
+                            onConfirm = { selection ->
+                                viewModel.setLanguages(selection)
+                                languageDialog = false
+                            },
+                            onDismiss = { languageDialog = false },
+                        )
+                    }
                 }
 
                 // Reset Settings confirmation.

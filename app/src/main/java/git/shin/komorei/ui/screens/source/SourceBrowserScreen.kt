@@ -208,7 +208,7 @@ fun SourceBrowserScreen(
                             request: WebResourceRequest,
                         ): Boolean = false
 
-                        override fun onPageStarted(view: WebView, url: String?) {
+                        override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
                             url?.let { urlText = it }
                         }
 

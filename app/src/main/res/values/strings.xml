@@ -142,6 +142,8 @@
     <string name="source_browser_cd_reload">Tải lại</string>
     <string name="source_browser_cd_back">Quay lại</string>
     <string name="source_browser_cd_forward">Tiến tới</string>
+    <string name="source_browser_cd_share">Chia sẻ</string>
+    <string name="source_browser_cd_open_external">Mở ngoài</string>
     <string name="source_home_open_website">Mở trang web</string>
     <string name="source_settings_title">Cài đặt nguồn</string>
     <string name="source_settings_section">Cài đặt nguồn</string>
