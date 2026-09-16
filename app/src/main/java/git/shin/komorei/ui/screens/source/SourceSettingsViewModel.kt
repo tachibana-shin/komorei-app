@@ -78,7 +78,9 @@ class SourceSettingsViewModel @Inject constructor(
     fun loadSettings() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = false) }
-            val languages = currentLanguages()
+            val languages = currentLanguages().ifEmpty {
+                repository.getSource(sourceId)?.languages.orEmpty()
+            }
             runCatching { repository.getSettings(sourceId) }
                 .onSuccess { settings ->
                     _uiState.update {

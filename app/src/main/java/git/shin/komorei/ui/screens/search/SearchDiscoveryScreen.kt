@@ -1,5 +1,6 @@
 package git.shin.komorei.ui.screens.search
 
+import git.shin.komorei.ui.components.search.CompactInput
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -107,53 +108,15 @@ fun SearchDiscoveryScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Multi-source Search Bar with OutlinedTextField
-            OutlinedTextField(
+            CompactInput(
                 value = searchQuery,
                 onValueChange = { viewModel.onSearchQueryChange(it) },
-                placeholder = {
-                    Text(
-                        text = stringResource(R.string.search_hint),
-                        color = TextMuted,
-                        fontSize = 14.sp
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = stringResource(R.string.search_icon_cd),
-                        tint = if (searchQuery.isNotBlank()) AnimeRed else TextMuted,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty() || selectedGenre != null) {
-                        IconButton(
-                            onClick = { viewModel.clearSearch() },
-                            modifier = Modifier.testTag("clear_search_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Clear,
-                                contentDescription = stringResource(R.string.search_clear_cd),
-                                tint = TextSecondary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = CardDark,
-                    unfocusedContainerColor = CardDark,
-                    focusedBorderColor = AnimeRed,
-                    unfocusedBorderColor = CardBorderDark,
-                    cursorColor = AnimeRed,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary
-                ),
+                hint = stringResource(R.string.search_hint),
+                leadingIcon = Icons.Default.Search,
+                showClear = searchQuery.isNotEmpty() || selectedGenre != null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("search_input_field")
+                    .testTag("search_input_field"),
             )
         }
 

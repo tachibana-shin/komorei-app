@@ -66,4 +66,15 @@ sealed class Screen(val route: String) {
     data object SourceSearch : Screen("source_search/{sourceId}") {
         fun createRoute(sourceId: String): String = "source_search/${Uri.encode(sourceId)}"
     }
+
+    /**
+     * A real in-app WebView browser for a source's website. [sourceId] and
+     * [url] are both URL-encoded like the other source routes. Logging in here
+     * writes into the shared CookieManager that backs [git.shin.komorei.data.network.WebViewCookieJar],
+     * so every media request from that source automatically carries the session.
+     */
+    data object SourceBrowser : Screen("source_browser/{sourceId}/{url}") {
+        fun createRoute(sourceId: String, url: String): String =
+            "source_browser/${Uri.encode(sourceId)}/${Uri.encode(url)}"
+    }
 }

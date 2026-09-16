@@ -1,5 +1,6 @@
 package git.shin.komorei.ui.screens.sources
 
+import git.shin.komorei.ui.components.search.CompactInput
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -513,28 +514,13 @@ fun AddRepoDialog(
         title = { Text(stringResource(R.string.sources_repos_add)) },
         text = {
             Column {
-                OutlinedTextField(
+                CompactInput(
                     value = url,
                     onValueChange = { url = it },
-                    placeholder = {
-                        Text(
-                            text = stringResource(R.string.sources_repos_add_hint),
-                            color = TextMuted,
-                            fontSize = 14.sp,
-                        )
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = CardDark,
-                        unfocusedContainerColor = CardDark,
-                        focusedBorderColor = AnimeRed,
-                        unfocusedBorderColor = CardBorderDark,
-                        cursorColor = AnimeRed,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                    ),
-                    modifier = Modifier.fillMaxWidth().testTag("add_repo_url_input"),
+                    hint = stringResource(R.string.sources_repos_add_hint),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("add_repo_url_input"),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(

@@ -66,6 +66,7 @@ import git.shin.komorei.ui.screens.listing.ListingScreen
 import git.shin.komorei.ui.screens.search.SearchDiscoveryScreen
 import git.shin.komorei.ui.screens.search.SourceSearchScreen
 import git.shin.komorei.ui.screens.source.SourceHomeScreen
+import git.shin.komorei.ui.screens.source.SourceBrowserScreen
 import git.shin.komorei.ui.screens.source.SourceSettingsScreen
 import git.shin.komorei.ui.screens.sources.SourceReposScreen
 import git.shin.komorei.ui.screens.sources.SourcesScreen
@@ -254,7 +255,13 @@ fun MainScreen(
 
                     // Main Content
                     Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                        MainNavigationHost(navController = navController, onAnimeSelect = onAnimeSelected)
+                        MainNavigationHost(
+                            navController = navController,
+                            onAnimeSelect = onAnimeSelected,
+                            onOpenSearch = { sourceId ->
+                                navController.navigate(Screen.SourceSearch.createRoute(sourceId))
+                            },
+                        )
                     }
                 }
             } else {
@@ -402,7 +409,10 @@ fun MainScreen(
                                 onAnimeSelect = onAnimeSelected,
                                 onOpenListing = { sourceId, listing ->
                                     navController.navigate(Screen.Listing.createRoute(sourceId, listing))
-                                }
+                                },
+                                onOpenSearch = { sourceId ->
+                                    navController.navigate(Screen.SourceSearch.createRoute(sourceId))
+                                },
                             )
                         }
                     }
@@ -495,6 +505,22 @@ fun MainNavigationHost(
             ),
         ) { entry ->
             SourceSettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenBrowser = { url ->
+                    val sourceId = entry.arguments?.getString("sourceId").orEmpty()
+                    navController.navigate(Screen.SourceBrowser.createRoute(sourceId, url))
+                },
+            )
+        }
+        composable(
+            route = Screen.SourceBrowser.route,
+            arguments = listOf(
+                navArgument("sourceId") { type = NavType.StringType },
+                navArgument("url") { type = NavType.StringType },
+            ),
+        ) { entry ->
+            SourceBrowserScreen(
+                initialUrl = entry.arguments?.getString("url").orEmpty(),
                 onBack = { navController.popBackStack() },
             )
         }

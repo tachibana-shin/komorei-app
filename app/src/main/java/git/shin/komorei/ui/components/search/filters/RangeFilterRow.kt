@@ -1,5 +1,6 @@
 package git.shin.komorei.ui.components.search.filters
 
+import git.shin.komorei.ui.components.search.CompactInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -129,27 +130,15 @@ private fun RangeField(
     decimal: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    OutlinedTextField(
+    CompactInput(
         value = text,
         onValueChange = onTextChange,
-        label = {
-            Text(text = label, color = TextMuted, fontSize = 12.sp, lineHeight = 14.sp)
-        },
-        singleLine = true,
+        hint = label,
         isError = error,
         keyboardOptions = KeyboardOptions(
             keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number,
         ),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = CardDark,
-            unfocusedContainerColor = CardDark,
-            focusedBorderColor = if (error) AnimeRed else AnimeRed,
-            unfocusedBorderColor = if (error) AnimeRed else CardBorderDark,
-            cursorColor = AnimeRed,
-            focusedTextColor = TextPrimary,
-            unfocusedTextColor = TextPrimary,
-        ),
+        cursorColor = AnimeRed,
         modifier = modifier,
     )
 }

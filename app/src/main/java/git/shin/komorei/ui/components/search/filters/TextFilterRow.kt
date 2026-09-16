@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import git.shin.komorei.ui.components.search.CompactInput
 import git.shin.komorei.R
 import git.shin.komorei.model.Filter
 import git.shin.komorei.model.FilterKind
@@ -43,30 +44,11 @@ fun TextFilterRow(
             fontSize = 12.sp,
             lineHeight = 14.sp,
         )
-        OutlinedTextField(
+        CompactInput(
             value = value,
             onValueChange = onValueChange,
-            placeholder = {
-                Text(
-                    text = kind.placeholder.orEmpty(),
-                    color = TextMuted,
-                    fontSize = 14.sp,
-                )
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = CardDark,
-                unfocusedContainerColor = CardDark,
-                focusedBorderColor = AnimeRed,
-                unfocusedBorderColor = CardBorderDark,
-                cursorColor = AnimeRed,
-                focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary,
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp),
+            hint = kind.placeholder.orEmpty(),
+            modifier = Modifier.padding(top = 4.dp),
         )
     }
 }

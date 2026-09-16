@@ -134,6 +134,14 @@
     <!-- Sources: Home & Settings -->
     <string name="source_home_menu_cd">Tùy chọn nguồn</string>
     <string name="source_home_settings">Cài đặt</string>
+    <string name="source_settings_open_browser">Mở trình duyệt web</string>
+    <string name="source_settings_login_label">Đăng nhập</string>
+    <string name="source_browser_title">Trình duyệt web</string>
+    <string name="source_browser_url_hint">Nhập địa chỉ web</string>
+    <string name="source_browser_cd_go">Đi</string>
+    <string name="source_browser_cd_reload">Tải lại</string>
+    <string name="source_browser_cd_back">Quay lại</string>
+    <string name="source_browser_cd_forward">Tiến tới</string>
     <string name="source_home_open_website">Mở trang web</string>
     <string name="source_settings_title">Cài đặt nguồn</string>
     <string name="source_settings_section">Cài đặt nguồn</string>
