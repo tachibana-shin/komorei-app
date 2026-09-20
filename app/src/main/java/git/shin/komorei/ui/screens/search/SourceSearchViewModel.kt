@@ -11,6 +11,7 @@ import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Filter
 import git.shin.komorei.model.FilterValue
+import git.shin.komorei.ui.navigation.SearchArgsCodec
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -52,6 +54,11 @@ data class SourceSearchUiState(
  * one throttle. A blank query with no active filters stays idle — nothing is
  * fetched — while filters alone (or a non-blank query alone) drive a real
  * search (Aidoku searches with `query: nil` + the enabled filters).
+ *
+ * The search rides the route URL (`source_search/{sourceId}?query=&filters=`,
+ * see [git.shin.komorei.ui.navigation.SearchArgsCodec]) and every change is
+ * mirrored back into the [SavedStateHandle], so leaving the screen (tab
+ * switch / process death) and returning re-creates the exact search.
  */
 @OptIn(FlowPreview::class)
 @HiltViewModel
@@ -61,9 +68,18 @@ class SourceSearchViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    val sourceId: String = savedStateHandle.get<String>("sourceId").orEmpty()
+    private companion object {
+        // Same names as the route's optional query arguments; writing a handle
+        // key shadows the immutable nav argument so `get` returns the live value.
+        const val KEY_QUERY = "query"
+        const val KEY_FILTERS = "filters"
+    }
 
-    private val _query = MutableStateFlow("")
+    private val handle = savedStateHandle
+
+    val sourceId: String = handle.get<String>("sourceId").orEmpty()
+
+    private val _query = MutableStateFlow(handle.get<String>(KEY_QUERY).orEmpty())
     val query: StateFlow<String> = _query.asStateFlow()
 
     private val _filters = MutableStateFlow<List<Filter>>(emptyList())
@@ -72,7 +88,7 @@ class SourceSearchViewModel @Inject constructor(
     private val _filtersLoading = MutableStateFlow(false)
     val filtersLoading: StateFlow<Boolean> = _filtersLoading.asStateFlow()
 
-    private val _enabledFilters = MutableStateFlow<List<FilterValue>>(emptyList())
+    private val _enabledFilters = MutableStateFlow(SearchArgsCodec.fromJson(handle.get<String>(KEY_FILTERS)))
     val enabledFilters: StateFlow<List<FilterValue>> = _enabledFilters.asStateFlow()
 
     private val _uiState = MutableStateFlow(SourceSearchUiState())
@@ -90,6 +106,11 @@ class SourceSearchViewModel @Inject constructor(
     init {
         loadFilters()
         combine(_query, _enabledFilters) { q, f -> q to f }
+            // The first emission (the restored/default params at collection) is
+            // dropped: its debounce would read the default 300ms window even
+            // when the test set 0 after construction. Restored non-default
+            // searches run directly below instead.
+            .drop(1)
             .debounce { searchDebounceMillis }
             .distinctUntilChanged()
             .onEach { (q, f) ->
@@ -101,6 +122,12 @@ class SourceSearchViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+
+        // Restored search (route args / tab switch / process death): run it
+        // without waiting for a debounced pipeline emission.
+        if (_query.value.isNotBlank() || _enabledFilters.value.isNotEmpty()) {
+            runSearch(query = _query.value.ifBlank { null }, filters = _enabledFilters.value, reset = true)
+        }
     }
 
     fun loadFilters() {
@@ -116,11 +143,13 @@ class SourceSearchViewModel @Inject constructor(
 
     fun onQueryChange(query: String) {
         _query.value = query
+        handle[KEY_QUERY] = query
     }
 
     /** Clears the query but keeps the enabled filters. */
     fun clearQuery() {
         _query.value = ""
+        handle[KEY_QUERY] = ""
     }
 
     /**
@@ -129,15 +158,23 @@ class SourceSearchViewModel @Inject constructor(
      */
     fun setFilterValue(id: String, value: FilterValue?) {
         _enabledFilters.value = _enabledFilters.value.filter { it.id != id } + listOfNotNull(value)
+        mirrorFilters()
     }
 
     /** Replaces ALL filter values at once (full sheet "Áp dụng"). */
     fun replaceAllFilters(values: List<FilterValue>) {
         _enabledFilters.value = values
+        mirrorFilters()
     }
 
     fun resetAllFilters() {
         _enabledFilters.value = emptyList()
+        mirrorFilters()
+    }
+
+    /** Persists the enabled filters so the restored VM re-creates the search. */
+    private fun mirrorFilters() {
+        handle[KEY_FILTERS] = SearchArgsCodec.toJson(_enabledFilters.value)
     }
 
     /** Appends the next page using the current query + filters. */

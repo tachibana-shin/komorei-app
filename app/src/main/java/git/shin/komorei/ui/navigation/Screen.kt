@@ -62,9 +62,26 @@ sealed class Screen(val route: String) {
      * filter header (aggregate sheet button + per-filter dropdown pills) and
      * debounced, paginated results. [sourceId] is URL-encoded like the other
      * source routes.
+     *
+     * The optional query arguments carry the ACTIVE search — `query` + a
+     * URL-safe JSON of the enabled [git.shin.komorei.model.FilterValue]s (see
+     * [SearchArgsCodec]) — so a search in progress rides the URL (deep-linkable
+     * and restored across process death). Navigation percent-decodes query
+     * arguments when matching.
      */
-    data object SourceSearch : Screen("source_search/{sourceId}") {
-        fun createRoute(sourceId: String): String = "source_search/${Uri.encode(sourceId)}"
+    data object SourceSearch : Screen("source_search/{sourceId}?query={query}&filters={filters}") {
+        fun createRoute(sourceId: String): String = createRoute(sourceId, "", emptyList())
+
+        fun createRoute(
+            sourceId: String,
+            query: String,
+            filters: List<git.shin.komorei.model.FilterValue>,
+        ): String {
+            val base = Uri.encode(sourceId)
+            val q = SearchArgsCodec.encodeQuery(query)
+            val f = SearchArgsCodec.encodeFilters(filters)
+            return "source_search/$base?query=$q&filters=$f"
+        }
     }
 
     /**

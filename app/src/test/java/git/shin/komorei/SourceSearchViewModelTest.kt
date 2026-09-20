@@ -8,6 +8,7 @@ import git.shin.komorei.model.FilterKind
 import git.shin.komorei.model.FilterValue
 import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
+import git.shin.komorei.ui.navigation.SearchArgsCodec
 import git.shin.komorei.ui.screens.search.SourceSearchViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -72,11 +73,13 @@ class SourceSearchViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun newViewModel(): SourceSearchViewModel =
+    private fun newViewModel(
+        handle: SavedStateHandle = SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
+    ): SourceSearchViewModel =
         SourceSearchViewModel(
             appContext = ApplicationProvider.getApplicationContext(),
             repository = repository,
-            savedStateHandle = SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
+            savedStateHandle = handle,
         ).also { it.searchDebounceMillis = 0 }
 
     @Test
@@ -196,6 +199,52 @@ class SourceSearchViewModelTest {
         // First page descending by views.
         val views = vm.uiState.value.items.map { it.views }
         assertEquals(views.sortedDescending(), views)
+    }
+
+    @Test
+    fun restoresQueryFromRouteArgs() = runBlocking {
+        // A recreated VM re-reads the query/filters from the entry's state.
+        val handle = SavedStateHandle(mapOf("sourceId" to "vi.fake-source", "query" to "Frieren"))
+        val vm = newViewModel(handle)
+
+        assertEquals("Frieren", vm.query.value)
+        awaitUntil { vm.uiState.value.items.size == 1 }
+        assertEquals("Frieren: Pháp Sư Tiễn Táng", vm.uiState.value.items.first().title)
+    }
+
+    @Test
+    fun restoresFiltersFromRouteArgs() = runBlocking {
+        val handle = SavedStateHandle(
+            mapOf(
+                "sourceId" to "vi.fake-source",
+                "filters" to SearchArgsCodec.toJson(listOf(FilterValue.Select("status", "Hoàn thành"))),
+            ),
+        )
+        val vm = newViewModel(handle)
+
+        assertEquals(listOf(FilterValue.Select("status", "Hoàn thành")), vm.enabledFilters.value)
+        awaitUntil { vm.uiState.value.items.size == 15 }
+        assertEquals(15, vm.uiState.value.items.size)
+        assertTrue(vm.uiState.value.hasNextPage)
+        assertEquals(listOf(FilterValue.Select("status", "Hoàn thành")), vm.enabledFilters.value)
+    }
+
+    @Test
+    fun mirrorsChangesToSavedStateHandle() = runBlocking {
+        val handle = SavedStateHandle(mapOf("sourceId" to "vi.fake-source"))
+        val vm = newViewModel(handle)
+
+        vm.onQueryChange("frieren")
+        assertEquals("frieren", handle.get<String>("query"))
+
+        vm.setFilterValue("status", FilterValue.Select("status", "Hoàn thành"))
+        assertEquals(
+            listOf(FilterValue.Select("status", "Hoàn thành")),
+            SearchArgsCodec.fromJson(handle.get<String>("filters")),
+        )
+
+        vm.resetAllFilters()
+        assertEquals(emptyList<FilterValue>(), SearchArgsCodec.fromJson(handle.get<String>("filters")))
     }
 
     private suspend fun awaitUntil(condition: () -> Boolean) {

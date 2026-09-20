@@ -1,6 +1,7 @@
 package git.shin.komorei
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.model.ContentRatingFilter
@@ -68,10 +69,11 @@ class SearchViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun newViewModel(): SearchViewModel =
+    private fun newViewModel(handle: SavedStateHandle = SavedStateHandle()): SearchViewModel =
         SearchViewModel(
             appContext = ApplicationProvider.getApplicationContext(),
             repository = repository,
+            savedStateHandle = handle,
         ).also { it.searchDebounceMillis = 0 }
 
     private suspend fun currentSuccess(vm: SearchViewModel): SearchUiState.Success {
@@ -186,6 +188,55 @@ class SearchViewModelTest {
         vm.setSourceFilter(emptySet())
         vm.setLanguage(null)
         awaitUntil { vm.searchUiState.value is SearchUiState.Idle }
+    }
+
+    @Test
+    fun restoresSearchParamsFromSavedState() = runBlocking {
+        // A recreated VM (tab switch / process death) reads the mirrored keys.
+        val handle = SavedStateHandle(
+            mapOf(
+                "search_query" to "Frieren",
+                "search_rating" to ContentRatingFilter.SAFE.name,
+                "search_language" to "vi",
+                "search_sources" to "vi.fake-source",
+            ),
+        )
+        val vm = newViewModel(handle)
+
+        assertEquals("Frieren", vm.searchQuery.value)
+        assertEquals(ContentRatingFilter.SAFE, vm.contentRating.value)
+        assertEquals("vi", vm.language.value)
+        assertEquals(setOf("vi.fake-source"), vm.sourceFilter.value)
+
+        // The restored params drive a real search — not the idle state.
+        val state = currentSuccess(vm)
+        assertEquals(1, state.totalCount)
+    }
+
+    @Test
+    fun mirrorsSearchParamsToSavedState() = runBlocking {
+        val handle = SavedStateHandle()
+        val vm = newViewModel(handle)
+
+        vm.onSearchQueryChange("Frieren")
+        vm.setContentRating(ContentRatingFilter.SAFE)
+        vm.setLanguage("vi")
+        vm.setSourceFilter(setOf("vi.fake-source"))
+        vm.selectGenre(vm.genres.first { it.name == "Hành Động" })
+
+        assertEquals("Frieren", handle.get<String>("search_query"))
+        assertEquals(ContentRatingFilter.SAFE.name, handle.get<String>("search_rating"))
+        assertEquals("vi", handle.get<String>("search_language"))
+        assertEquals("vi.fake-source", handle.get<String>("search_sources"))
+        assertEquals(vm.selectedGenre.value?.id, handle.get<String>("search_genre"))
+
+        // Clearing wipes the persisted state too.
+        vm.clearSearch()
+        assertEquals("", handle.get<String>("search_query"))
+        assertEquals(null, handle.get<String>("search_rating"))
+        assertEquals(null, handle.get<String>("search_language"))
+        assertEquals(null, handle.get<String>("search_sources"))
+        assertEquals(null, handle.get<String>("search_genre"))
     }
 
     private suspend fun awaitUntil(condition: () -> Boolean) {

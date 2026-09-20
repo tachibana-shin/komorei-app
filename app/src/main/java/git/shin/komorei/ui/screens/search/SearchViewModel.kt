@@ -1,6 +1,7 @@
 package git.shin.komorei.ui.screens.search
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -29,13 +31,26 @@ import javax.inject.Inject
  * the three global filters — content rating / language / sources — into a
  * single `AnimeRepository.searchMultiSource` call (results flattened into a
  * grid by [SearchDiscoveryScreen]).
+ *
+ * Every search parameter is mirrored into the [SavedStateHandle], so the search
+ * survives tab switches and process death: the tab navigation pops the entry
+ * with `saveState = true` and the restored VM re-reads these keys in `init`.
  */
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val repository: AnimeRepository,
+    savedStateHandle: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
+
+    internal companion object {
+        const val KEY_QUERY = "search_query"
+        const val KEY_GENRE = "search_genre"
+        const val KEY_RATING = "search_rating"
+        const val KEY_LANGUAGE = "search_language"
+        const val KEY_SOURCES = "search_sources"
+    }
 
     val genres: List<Genre> = repository.genres
 
@@ -47,6 +62,8 @@ class SearchViewModel @Inject constructor(
      * clock never advances, so a real 300ms debounce would never fire.
      */
     internal var searchDebounceMillis = 300L
+
+    private val handle = savedStateHandle
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -84,6 +101,20 @@ class SearchViewModel @Inject constructor(
     }
 
     init {
+        // Restore the last search from the SavedStateHandle (tab pop/recreate
+        // or process death) BEFORE the pipeline collects, so the first emission
+        // already carries the restored params and re-runs that search.
+        _searchQuery.value = handle.get<String>(KEY_QUERY).orEmpty()
+        handle.get<String>(KEY_GENRE)?.let { id -> _selectedGenre.value = genres.find { it.id == id } }
+        handle.get<String>(KEY_RATING)?.let { name ->
+            _contentRating.value = runCatching { ContentRatingFilter.valueOf(name) }.getOrNull()
+                ?: ContentRatingFilter.ALL
+        }
+        _language.value = handle.get<String>(KEY_LANGUAGE)
+        handle.get<String>(KEY_SOURCES)?.let { raw ->
+            _sourceFilter.value = raw.split(',').filter { it.isNotBlank() }.toSet()
+        }
+
         // One debounced pipeline: query, genre shortcut and the three global
         // filters all funnel into the same search call.
         combine(
@@ -91,30 +122,46 @@ class SearchViewModel @Inject constructor(
         ) { query, genre, rating, language, sourceIds ->
             Params(query, genre?.id, rating, language, sourceIds)
         }
+            // The first emission (the restored/default params at collection) is
+            // dropped: its debounce would read the default 300ms window even
+            // when the test set 0 after construction. Restored non-default
+            // searches run directly below instead.
+            .drop(1)
             .debounce { searchDebounceMillis }
             .distinctUntilChanged()
             .onEach { executeSearch(it) }
             .launchIn(viewModelScope)
+
+        // Restored search (tab switch / process death): run it without waiting
+        // for a debounced pipeline emission.
+        if (!currentParams().isDefault) {
+            executeSearch(currentParams())
+        }
     }
 
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
+        handle[KEY_QUERY] = query
     }
 
     fun selectGenre(genre: Genre) {
         _selectedGenre.value = if (_selectedGenre.value?.id == genre.id) null else genre
+        handle[KEY_GENRE] = _selectedGenre.value?.id
     }
 
     fun setContentRating(rating: ContentRatingFilter) {
         _contentRating.value = rating
+        handle[KEY_RATING] = rating.name
     }
 
     fun setLanguage(language: String?) {
         _language.value = language
+        handle[KEY_LANGUAGE] = language
     }
 
     fun setSourceFilter(sourceIds: Set<String>) {
         _sourceFilter.value = sourceIds
+        handle[KEY_SOURCES] = sourceIds.joinToString(",")
     }
 
     fun clearSearch() {
@@ -125,6 +172,11 @@ class SearchViewModel @Inject constructor(
         _sourceFilter.value = emptySet()
         _searchUiState.value = SearchUiState.Idle
         searchJob?.cancel()
+        handle[KEY_QUERY] = ""
+        handle[KEY_GENRE] = null
+        handle[KEY_RATING] = null
+        handle[KEY_LANGUAGE] = null
+        handle[KEY_SOURCES] = null
     }
 
     fun retrySearch() {

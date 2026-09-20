@@ -149,8 +149,9 @@ fun MainScreen(
                             onClick = {
                                 if (currentRoute != Screen.Home.route) {
                                     navController.navigate(Screen.Home.route) {
-                                        popUpTo(navController.graph.startDestinationId)
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
                                         launchSingleTop = true
+                                        restoreState = true
                                     }
                                 }
                             },
@@ -176,8 +177,9 @@ fun MainScreen(
                             onClick = {
                                 if (currentRoute != Screen.Search.route) {
                                     navController.navigate(Screen.Search.route) {
-                                        popUpTo(navController.graph.startDestinationId)
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
                                         launchSingleTop = true
+                                        restoreState = true
                                     }
                                 }
                             },
@@ -203,8 +205,9 @@ fun MainScreen(
                             onClick = {
                                 if (currentRoute != Screen.Sources.route) {
                                     navController.navigate(Screen.Sources.route) {
-                                        popUpTo(navController.graph.startDestinationId)
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
                                         launchSingleTop = true
+                                        restoreState = true
                                     }
                                 }
                             },
@@ -230,8 +233,9 @@ fun MainScreen(
                             onClick = {
                                 if (currentRoute != Screen.Library.route) {
                                     navController.navigate(Screen.Library.route) {
-                                        popUpTo(navController.graph.startDestinationId)
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
                                         launchSingleTop = true
+                                        restoreState = true
                                     }
                                 }
                             },
@@ -285,8 +289,9 @@ fun MainScreen(
                                     onClick = {
                                         if (currentRoute != Screen.Home.route) {
                                             navController.navigate(Screen.Home.route) {
-                                                popUpTo(navController.graph.startDestinationId)
+                                                popUpTo(navController.graph.startDestinationId) { saveState = true }
                                                 launchSingleTop = true
+                                                restoreState = true
                                             }
                                         }
                                     },
@@ -312,8 +317,9 @@ fun MainScreen(
                                     onClick = {
                                         if (currentRoute != Screen.Search.route) {
                                             navController.navigate(Screen.Search.route) {
-                                                popUpTo(navController.graph.startDestinationId)
+                                                popUpTo(navController.graph.startDestinationId) { saveState = true }
                                                 launchSingleTop = true
+                                                restoreState = true
                                             }
                                         }
                                     },
@@ -339,8 +345,9 @@ fun MainScreen(
                                     onClick = {
                                         if (currentRoute != Screen.Sources.route) {
                                             navController.navigate(Screen.Sources.route) {
-                                                popUpTo(navController.graph.startDestinationId)
+                                                popUpTo(navController.graph.startDestinationId) { saveState = true }
                                                 launchSingleTop = true
+                                                restoreState = true
                                             }
                                         }
                                     },
@@ -366,8 +373,9 @@ fun MainScreen(
                                     onClick = {
                                         if (currentRoute != Screen.Library.route) {
                                             navController.navigate(Screen.Library.route) {
-                                                popUpTo(navController.graph.startDestinationId)
+                                                popUpTo(navController.graph.startDestinationId) { saveState = true }
                                                 launchSingleTop = true
+                                                restoreState = true
                                             }
                                         }
                                     },
@@ -490,6 +498,8 @@ fun MainNavigationHost(
             route = Screen.SourceSearch.route,
             arguments = listOf(
                 navArgument("sourceId") { type = NavType.StringType },
+                navArgument("query") { type = NavType.StringType; defaultValue = "" },
+                navArgument("filters") { type = NavType.StringType; defaultValue = "" },
             ),
         ) { entry ->
             SourceSearchScreen(
