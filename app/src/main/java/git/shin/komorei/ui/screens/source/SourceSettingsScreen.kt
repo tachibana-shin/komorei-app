@@ -24,10 +24,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import git.shin.komorei.ui.components.search.CompactInput
@@ -73,7 +71,6 @@ import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SourceSettingsScreen(
     onBack: () -> Unit,
@@ -89,9 +86,16 @@ fun SourceSettingsScreen(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onBack,
-        containerColor = CardDark,
+    // A full-screen page (NOT a ModalBottomSheet): a sheet used as a NavHost
+    // destination leaves everything above it BLACK — NavHost doesn't draw the
+    // previous destination behind it, so the sheet's scrim only dims the app's
+    // empty background. All other source sub-pages are full-screen.
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundDark)
+            .statusBarsPadding()
+            .navigationBarsPadding(),
     ) {
         // ── Top bar: back + source name ─────────────────────────────────
         Row(
