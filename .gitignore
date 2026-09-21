@@ -16,16 +16,9 @@ app/src/main/jniLibs
 # runner/Cargo.toml); never commit it into the app repo.
 komorei-sdk/
 
-# Fake source: target symlink → /mnt/komorei-data/komorei-builds/, and the
-# built package.krx (build artifact; the committed fixture lives at
-# app/src/main/assets/sources/fake-vi-source.krx). NO trailing slash on target:
-# the dir is a symlink, and git only matches trailing-slash patterns against
-# real directories.
-sources/fake-vi-source/target
-sources/fake-vi-source/package.krx
-
-# OPhim source: plain local cargo target + the assembled package.krx are
-# regenerable build artifacts (the JVM integration test rebuilds on demand).
-sources/ophim/target/
-sources/ophim/package.krx
+# The sources collection is a SEPARATE git repository too (like komorei-sdk/):
+# reached by relative path from app/build.gradle.kts and the JVM integration
+# tests. Never commit it into the app repo. Build/publish it from inside
+# `sources/` with `komorei repo build`.
+sources/
 Aidoku/
