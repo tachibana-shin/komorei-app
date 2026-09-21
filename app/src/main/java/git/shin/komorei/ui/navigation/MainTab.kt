@@ -3,18 +3,14 @@ package git.shin.komorei.ui.navigation
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Leaderboard
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Settings
@@ -51,20 +47,6 @@ val mainTabs: List<MainTab> = listOf(
         labelRes = R.string.tab_search,
         selectedIcon = Icons.Filled.Explore,
         unselectedIcon = Icons.Outlined.Explore,
-    ),
-    MainTab(
-        key = "schedule",
-        route = Screen.Schedule.route,
-        labelRes = R.string.tab_schedule,
-        selectedIcon = Icons.Filled.CalendarMonth,
-        unselectedIcon = Icons.Outlined.CalendarMonth,
-    ),
-    MainTab(
-        key = "rankings",
-        route = Screen.Rankings.route,
-        labelRes = R.string.tab_rankings,
-        selectedIcon = Icons.Filled.Leaderboard,
-        unselectedIcon = Icons.Outlined.Leaderboard,
     ),
     MainTab(
         key = "notifications",

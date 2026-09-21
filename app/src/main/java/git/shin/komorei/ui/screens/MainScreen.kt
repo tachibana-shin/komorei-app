@@ -45,8 +45,6 @@ import git.shin.komorei.ui.screens.home.HomeScreen
 import git.shin.komorei.ui.screens.library.LibraryScreen
 import git.shin.komorei.ui.screens.listing.ListingScreen
 import git.shin.komorei.ui.screens.notifications.NotificationsScreen
-import git.shin.komorei.ui.screens.rankings.RankingsScreen
-import git.shin.komorei.ui.screens.schedule.ScheduleScreen
 import git.shin.komorei.ui.screens.search.SearchDiscoveryScreen
 import git.shin.komorei.ui.screens.search.SourceSearchScreen
 import git.shin.komorei.ui.screens.settings.SettingsScreen
@@ -319,12 +317,6 @@ fun MainNavigationHost(
         }
         composable(Screen.Library.route) {
             LibraryScreen(onAnimeClick = onAnimeSelect)
-        }
-        composable(Screen.Schedule.route) {
-            ScheduleScreen(onAnimeClick = onAnimeSelect)
-        }
-        composable(Screen.Rankings.route) {
-            RankingsScreen(onAnimeClick = onAnimeSelect)
         }
         composable(Screen.Notifications.route) {
             NotificationsScreen()

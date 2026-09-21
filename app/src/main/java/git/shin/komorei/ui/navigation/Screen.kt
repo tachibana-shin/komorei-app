@@ -41,12 +41,6 @@ sealed class Screen(val route: String) {
 
     data object SourceRepos : Screen("sources/repos")
 
-    /** Airing schedule: which followed/known anime drop an episode on each weekday. */
-    data object Schedule : Screen("schedule")
-
-    /** Rankings: top anime by day / week / month. */
-    data object Rankings : Screen("rankings")
-
     /** In-app notifications (new episodes for followed anime, source messages). */
     data object Notifications : Screen("notifications")
 
