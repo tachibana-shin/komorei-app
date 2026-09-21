@@ -6,8 +6,12 @@
     <!-- Bottom Navigation Tabs -->
     <string name="tab_home">Trang chủ</string>
     <string name="tab_search">Tìm Kiếm</string>
+    <string name="tab_schedule">Lịch chiếu</string>
+    <string name="tab_rankings">Xếp hạng</string>
+    <string name="tab_notifications">Thông báo</string>
     <string name="tab_sources">Nguồn</string>
     <string name="tab_library">Tủ phim</string>
+    <string name="tab_settings">Cài đặt</string>
 
     <!-- Home Screen -->
     <string name="badge_hot">HOT</string>
@@ -366,4 +370,71 @@
     <string name="player_settings_auto_next">Tự động phát tập tiếp theo</string>
     <string name="player_skip_intro">Bỏ qua mở đầu</string>
     <string name="player_skip_outro">Bỏ qua kết thúc</string>
+
+    <!-- Schedule Screen -->
+    <string name="schedule_title">Lịch chiếu</string>
+    <string name="schedule_subtitle">Lịch phát sóng trong tuần</string>
+    <string name="schedule_today">Hôm nay</string>
+    <string name="schedule_new_episode">Tập mới</string>
+    <string name="schedule_day_mon">Thứ 2</string>
+    <string name="schedule_day_tue">Thứ 3</string>
+    <string name="schedule_day_wed">Thứ 4</string>
+    <string name="schedule_day_thu">Thứ 5</string>
+    <string name="schedule_day_fri">Thứ 6</string>
+    <string name="schedule_day_sat">Thứ 7</string>
+    <string name="schedule_day_sun">Chủ nhật</string>
+    <string name="schedule_empty_title">Không có lịch chiếu</string>
+    <string name="schedule_empty_subtitle">Chưa có anime nào được lên lịch cho ngày này</string>
+
+    <!-- Rankings Screen -->
+    <string name="rankings_title">Xếp hạng</string>
+    <string name="rankings_subtitle">Anime nổi bật theo thời gian</string>
+    <string name="rankings_period_day">Ngày</string>
+    <string name="rankings_period_week">Tuần</string>
+    <string name="rankings_period_month">Tháng</string>
+    <string name="rankings_views">%1$s lượt xem</string>
+    <string name="rankings_empty_title">Chưa có xếp hạng</string>
+    <string name="rankings_empty_subtitle">Không có dữ liệu để xếp hạng lúc này</string>
+
+    <!-- Notifications Screen -->
+    <string name="notifications_title">Thông báo</string>
+    <string name="notifications_subtitle">Cập nhật tập mới và tin từ nguồn</string>
+    <string name="notifications_unread_count">%1$d thông báo chưa đọc</string>
+    <string name="notifications_mark_all_read">Đọc tất cả</string>
+    <string name="notifications_clear_all">Xoá tất cả</string>
+    <string name="notifications_empty_title">Không có thông báo</string>
+    <string name="notifications_empty_subtitle">Bạn sẽ thấy thông báo tập mới và cập nhật nguồn ở đây</string>
+    <string name="notification_new_episode_title">Tập mới đã lên sóng</string>
+    <string name="notification_new_episode_body">Một anime bạn đang theo dõi vừa có tập mới. Mở để xem ngay.</string>
+    <string name="notification_new_episode_body_2">Tập tiếp theo của anime trong tủ phim đã sẵn sàng.</string>
+    <string name="notification_new_episode_body_3">Anime bạn đánh dấu đã cập nhật tập mới nhất.</string>
+    <string name="notification_source_update_title">Nguồn đã cập nhật</string>
+    <string name="notification_source_update_body">Một nguồn bạn đã cài vừa có phiên bản mới. Cập nhật để nhận bản sửa lỗi.</string>
+    <string name="notification_system_title">Chào mừng đến Komorei</string>
+    <string name="notification_system_body">Thêm nguồn, theo dõi anime và bật thông báo để không bỏ lỡ tập mới.</string>
+    <string name="time_just_now">Vừa xong</string>
+    <string name="time_minutes_ago">%1$d phút trước</string>
+    <string name="time_hours_ago">%1$d giờ trước</string>
+    <string name="time_days_ago">%1$d ngày trước</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Cài đặt</string>
+    <string name="settings_subtitle">Quản lý nguồn, dữ liệu và thông tin ứng dụng</string>
+    <string name="settings_section_sources">Nguồn</string>
+    <string name="settings_manage_repos">Quản lý kho nguồn</string>
+    <string name="settings_manage_repos_subtitle">Thêm hoặc xoá nguồn từ kho bên ngoài</string>
+    <string name="settings_section_data">Dữ liệu</string>
+    <string name="settings_clear_image_cache">Xoá bộ nhớ đệm ảnh</string>
+    <string name="settings_clear_image_cache_subtitle">Giải phóng dung lượng ảnh đã tải</string>
+    <string name="settings_clear_cookies">Xoá cookie</string>
+    <string name="settings_clear_cookies_subtitle">Đăng xuất khỏi tất cả nguồn</string>
+    <string name="settings_clear_search_history">Xoá lịch sử tìm kiếm</string>
+    <string name="settings_clear_search_history_subtitle">Xoá các từ khoá đã tìm gần đây</string>
+    <string name="settings_cache_cleared">Đã xoá bộ nhớ đệm ảnh</string>
+    <string name="settings_cookies_cleared">Đã xoá cookie</string>
+    <string name="settings_search_history_cleared">Đã xoá lịch sử tìm kiếm</string>
+    <string name="settings_section_about">Giới thiệu</string>
+    <string name="settings_version">Phiên bản</string>
+    <string name="settings_about_app">Komorē</string>
+    <string name="settings_about_app_subtitle">Trình xem anime đa nguồn</string>
 </resources>
