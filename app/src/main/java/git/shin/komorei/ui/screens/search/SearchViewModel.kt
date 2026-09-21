@@ -235,6 +235,8 @@ class SearchViewModel @Inject constructor(
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             _searchUiState.value = SearchUiState.Loading
+            val resultsBySource = mutableMapOf<Source, List<Anime>>()
+            val sourceErrors = mutableMapOf<Source, String>()
             try {
                 val events = repository.searchMultiSourceStream(
                     query = params.query,
@@ -243,26 +245,34 @@ class SearchViewModel @Inject constructor(
                     languages = params.language?.let { setOf(it) } ?: emptySet(),
                     sourceIds = params.sourceIds,
                 )
-                val resultsBySource = mutableMapOf<Source, List<Anime>>()
-                val sourceErrors = mutableMapOf<Source, String>()
-                for (event in events) {
-                    when (event) {
-                        is SourceSearchEvent.Completed -> {
-                            if (event.results.isNotEmpty()) {
-                                resultsBySource[event.source] = event.results
+                if (events.isEmpty()) {
+                    // No candidate sources matched the filters — emit empty success.
+                    _searchUiState.value = SearchUiState.Success(
+                        resultsBySource = resultsBySource,
+                        totalCount = 0,
+                        sourceErrors = sourceErrors,
+                    )
+                } else {
+                    for (event in events) {
+                        when (event) {
+                            is SourceSearchEvent.Completed -> {
+                                if (event.results.isNotEmpty()) {
+                                    resultsBySource[event.source] = event.results
+                                }
+                            }
+                            is SourceSearchEvent.Failed -> {
+                                sourceErrors[event.source] = event.message
                             }
                         }
-                        is SourceSearchEvent.Failed -> {
-                            sourceErrors[event.source] = event.message
-                        }
+                        // Emit incremental state after each source so results
+                        // appear immediately as each source completes.
+                        _searchUiState.value = SearchUiState.Success(
+                            resultsBySource = resultsBySource,
+                            totalCount = resultsBySource.values.sumOf { it.size },
+                            sourceErrors = sourceErrors,
+                        )
                     }
                 }
-                val totalCount = resultsBySource.values.sumOf { it.size }
-                _searchUiState.value = SearchUiState.Success(
-                    resultsBySource = resultsBySource,
-                    totalCount = totalCount,
-                    sourceErrors = sourceErrors,
-                )
             } catch (e: Exception) {
                 _searchUiState.value = SearchUiState.Error(
                     e.localizedMessage ?: appContext.getString(R.string.error_search),

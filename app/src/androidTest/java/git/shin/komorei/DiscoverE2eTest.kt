@@ -70,8 +70,8 @@ class DiscoverE2eTest {
         composeTestRule.onNodeWithTag("search_input_field")
             .performTextInput("Frieren")
 
-        // After debounce, search results grid should appear
-        composeTestRule.onNodeWithTag("discover_search_grid")
+        // After debounce, search results sections should appear
+        composeTestRule.onNodeWithTag("search_results_list")
             .performClick()
 
         // ── Step 7: Navigate to Sources tab ──
@@ -227,8 +227,8 @@ class DiscoverE2eTest {
         composeTestRule.onNodeWithTag("search_input_field")
             .performTextInput("test")
 
-        // Search grid should eventually appear
-        composeTestRule.onNodeWithTag("discover_search_grid")
+        // Search results sections should eventually appear
+        composeTestRule.onNodeWithTag("search_results_list")
             .performClick()
     }
 

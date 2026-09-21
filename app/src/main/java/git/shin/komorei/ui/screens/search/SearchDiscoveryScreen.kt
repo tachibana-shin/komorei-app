@@ -17,10 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -45,6 +43,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Source
+import git.shin.komorei.ui.components.AppIcons
 import git.shin.komorei.ui.components.AnimeCard
 import git.shin.komorei.ui.components.ListingGridSkeleton
 import git.shin.komorei.ui.components.search.DiscoverFilterHeaderRow
@@ -279,10 +278,8 @@ fun SearchDiscoveryScreen(
             }
 
             is SearchUiState.Success -> {
-                // Per-source sections like Aidoku — each source is its own
-                // section with its own header showing the source name and
-                // any error that source encountered.
-                if (state.totalCount == 0 && state.sourceErrors.isEmpty()) {
+                val sourcesWithResults = state.resultsBySource.keys.toList()
+                if (sourcesWithResults.isEmpty() && state.sourceErrors.isEmpty()) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -304,21 +301,20 @@ fun SearchDiscoveryScreen(
                         )
                     }
                 } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("search_results_list"),
                         contentPadding = PaddingValues(
                             start = 16.dp,
                             end = 16.dp,
                             top = 8.dp,
                             bottom = 24.dp,
                         ),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .testTag("discover_search_grid")
                     ) {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
+                        // Total count header
+                        item {
                             Text(
                                 text = stringResource(R.string.discover_results_count, state.totalCount),
                                 color = TextSecondary,
@@ -326,20 +322,27 @@ fun SearchDiscoveryScreen(
                                 modifier = Modifier.padding(vertical = 6.dp)
                             )
                         }
-                        // Render each source as its own section.
-                        sources.forEach { source ->
-                            val animes = state.resultsBySource[source]
+                        // Per-source horizontal sections
+                        sourcesWithResults.forEach { source ->
+                            val animes = state.resultsBySource[source] ?: emptyList()
                             val error = state.sourceErrors[source]
-                            if (animes.isNullOrEmpty() && error == null) return@forEach
+                            if (animes.isEmpty() && error == null) return@forEach
 
-                            // Source header (spans full width).
-                            item(span = { GridItemSpan(maxLineSpan) }) {
+                            // Section header with source icon.
+                            item {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 4.dp)
+                                        .padding(top = 4.dp, bottom = 4.dp, end = 4.dp, start = 2.dp)
                                 ) {
+                                    Icon(
+                                        imageVector = AppIcons.getSourceIcon(source.id),
+                                        contentDescription = null,
+                                        tint = if (error != null) AnimeRed else TextPrimary,
+                                        modifier = Modifier.size(22.dp),
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = source.name,
                                         color = if (error != null) AnimeRed else TextPrimary,
@@ -357,14 +360,21 @@ fun SearchDiscoveryScreen(
                                     }
                                 }
                             }
-                            // Anime cards for this source.
-                            animes?.forEach { anime ->
-                                item(key = "${source.id}_${anime.id}") {
-                                    AnimeCard(
-                                        anime = anime,
-                                        onClick = { onAnimeClick(anime) },
-                                        getSourceName = { _ -> source.name },
-                                    )
+                            // Horizontal anime cards for this source.
+                            item {
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 2.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    items(animes) { anime ->
+                                        AnimeCard(
+                                            anime = anime,
+                                            onClick = { onAnimeClick(anime) },
+                                            getSourceName = { _ -> source.name },
+                                            cardWidth = 160.dp,
+                                        )
+                                    }
                                 }
                             }
                         }
