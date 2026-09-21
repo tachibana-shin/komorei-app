@@ -38,6 +38,10 @@ class SearchHistoryStore @Inject constructor(
     fun addQuery(query: String) {
         if (query.isBlank()) return
         val current = _history.value.toMutableList()
+        // Drop any existing entry that is a strict prefix of the new query —
+        // e.g. typing "test" after a pause recorded "t"/"te"/"tes" already;
+        // the settled query supersedes them so history stays clean.
+        current.removeAll { it in query && it.length < query.length }
         // Remove if already present (will be re-added at top)
         current.remove(query)
         // Add to front
