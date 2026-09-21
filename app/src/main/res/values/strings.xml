@@ -148,6 +148,10 @@
     <string name="source_browser_cd_share">Chia sẻ</string>
     <string name="source_browser_cd_open_external">Mở ngoài</string>
     <string name="source_home_open_website">Mở trang web</string>
+    <string name="challenge_dialog_title">Xác minh truy cập</string>
+    <string name="challenge_dialog_hint">Hoàn tất bước xác minh trong trang, cookies sẽ được lưu tự động. Khi đã xong hoặc không thấy trang chặn nữa, bấm “Tiếp tục”.</string>
+    <string name="challenge_dialog_continue">Đã xong — Tiếp tục</string>
+    <string name="challenge_dialog_cd_close">Đóng</string>
     <string name="source_settings_title">Cài đặt nguồn</string>
     <string name="source_settings_section">Cài đặt nguồn</string>
     <string name="source_settings_empty">Nguồn này chưa có cài đặt nào</string>

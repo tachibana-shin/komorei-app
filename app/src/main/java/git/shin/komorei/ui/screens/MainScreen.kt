@@ -54,6 +54,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
+import git.shin.komorei.sdk.JsChallengeCoordinator
+import git.shin.komorei.ui.components.dialogs.ChallengeBypassDialog
 import git.shin.komorei.ui.deeplink.DeepLinkAction
 import git.shin.komorei.ui.deeplink.DeepLinkViewModel
 import git.shin.komorei.ui.navigation.Screen
@@ -437,6 +439,20 @@ fun MainScreen(
                     },
                     // Mini player corners sit above the bottom toolbar (0 on wide screens).
                     bottomToolbarPadding = bottomBarHeightDp
+                )
+            }
+
+            // JS-challenge bypass (headless WebView + visible browser): when a
+            // source request lands on a Cloudflare-style challenge that needs a
+            // human, JsChallengeCoordinator.pending goes non-null and this
+            // dialog pops over everything (any tab / the player sheet). It is
+            // fed from KrxHostImpl.netRequest — see JsChallengeCoordinator.
+            val pendingChallenge by JsChallengeCoordinator.pending.collectAsState()
+            pendingChallenge?.let { challenge ->
+                ChallengeBypassDialog(
+                    url = challenge.url,
+                    onNext = { JsChallengeCoordinator.completeBypass() },
+                    onDismiss = { JsChallengeCoordinator.cancelBypass() },
                 )
             }
         }

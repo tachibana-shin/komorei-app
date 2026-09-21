@@ -5,10 +5,14 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.webkit.CookieManager
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.webkit.WebSettings
 import git.shin.komorei.data.local.KrxDefaultsStore
+import git.shin.komorei.data.remote.WEBVIEW_ANTI_FINGERPRINT_HEADERS
+import git.shin.komorei.data.remote.stripFingerprintHeaders
 import git.shin.komorei.data.local.krxDefaultsKey
 import git.shin.komorei.data.local.platformKrxDefaultsStore
 import git.shin.komorei.sdk.runner.HostDefaultValue
@@ -213,7 +217,7 @@ class KrxHostImpl(
         body: ByteArray,
         timeout: Double?,
     ): HostNetResponse {
-        val result = tryExecuteRequest(
+        var result = tryExecuteRequest(
             url = url,
             method = method,
             headers = headers,
@@ -221,13 +225,25 @@ class KrxHostImpl(
             timeout = timeout
         )
 
-        // If 403, load the URL in a WebView so JavaScript can execute
-        // and set cookies (Cloudflare/Turnstile/etc.). The WebViewCookieJar
-        // automatically picks up cookies from CookieManager for the retry.
-        if (result.status == 403) {
-            handleJsChallenge(url)
-            // Retry with cookies now stored in CookieManager via WebViewCookieJar
-            return tryExecuteRequest(
+        // A 403..503 with challenge markers is a JS challenge (Cloudflare and
+        // friends): clear it with a hidden WebView so JavaScript can set its
+        // cookies, fall back to the visible browser dialog when a human is
+        // needed, then retry with the fresh cookies (WebViewCookieJar rides
+        // the shared CookieManager automatically).
+        var retries = 0
+        while (isChallengeResponse(result) && retries < MAX_403_RETRIES) {
+            val solvedHeadless = runBlocking {
+                JsChallengeCoordinator.withHeadlessLock { solveHeadlessOnce(url) }
+            }
+            val solved = if (solvedHeadless) {
+                true
+            } else {
+                Log.w(TAG, "headless challenge not cleared for $url — asking the user")
+                runBlocking { JsChallengeCoordinator.requestUserBypass(url) }
+            }
+            if (!solved) break
+            retries++
+            result = tryExecuteRequest(
                 url = url,
                 method = method,
                 headers = headers,
@@ -237,6 +253,24 @@ class KrxHostImpl(
         }
 
         return result
+    }
+
+    /**
+     * True when [result] looks like a JS challenge — a page that runs a script
+     * and sets a cookie when a human/browser "proves" itself — rather than a
+     * plain error. A bare 403 (auth, geo-block, hotlink policy) is returned
+     * as-is: no WebView, no user dialog, no retry.
+     */
+    private fun isChallengeResponse(result: HostNetResponse): Boolean {
+        if (!result.ok) return false
+        if (result.status !in 403..503) return false
+        val contentType = result.headers.entries.firstOrNull { (name, _) ->
+            name.equals("Content-Type", ignoreCase = true)
+        }?.value.orEmpty().lowercase()
+        if (!contentType.contains("text/html")) return false
+        val body = String(result.data, Charsets.UTF_8)
+        return CHALLENGE_MARKERS.any { body.contains(it, ignoreCase = true) } ||
+            body.contains("<title></title>", ignoreCase = true) // empty-title JS redirect
     }
 
     /** Executes an HTTP request via OkHttp, returning the raw [HostNetResponse]. */
@@ -279,43 +313,83 @@ class KrxHostImpl(
     }
 
     /**
-     * Handles a 403 challenge by loading [url] in a headless WebView so that
-     * JavaScript can execute and set cookies via [android.webkit.CookieManager].
-     * The existing [WebViewCookieJar] automatically picks up these cookies
-     * on the subsequent OkHttp retry.
+     * Loads [url] in a hidden JS-enabled WebView, waits for the page, then
+     * polls the DOM until the challenge markers are gone (or a timeout).
+     * Returns true when the challenge cleared.
      *
-     * If the challenge requires human interaction (e.g. captcha), the WebView
-     * loads but may not complete — in that case, the source code should detect
-     * the insufficient cookies and prompt the user to open [SourceBrowserScreen].
+     * The solver cookies land in the shared [android.webkit.CookieManager], so
+     * the follow-up OkHttp retry rides the same session. The load + poll run on
+     * the runner thread — the main thread stays free to deliver `onPageFinished`
+     * and `evaluateJavascript` callbacks (blocking it here previously deadlocked:
+     * every 403 froze the app for the full load timeout and never solved anything).
      */
-    private fun handleJsChallenge(url: String) {
+    private fun solveHeadlessOnce(url: String): Boolean {
+        val state = onMainThread { createWebViewState() }
         try {
-            onMainThread {
-                // Reuse the existing WebView infrastructure (same as jsWebviewCreate).
-                val state = createWebViewState()
-                state.webView.settings.mixedContentMode =
-                    WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                val handle = nextHandle.getAndIncrement()
-                webviews[handle] = state
-
-                val latch = CountDownLatch(1)
-                val originalClient = state.webView.webViewClient
-                state.webView.webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView?, loadedUrl: String?) {
-                        if (originalClient != null) originalClient.onPageFinished(view, loadedUrl)
-                        latch.countDown()
-                    }
-                }
-
+            postToMain {
+                state.webView.settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                CookieManager.getInstance().setAcceptCookie(true)
                 state.beginLoad()
-                state.webView.loadUrl(url)
-                latch.await(WEBVIEW_LOAD_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                state.finishLoad(url)
-
-                webviews.remove(handle)
+                state.webView.loadUrl(url, WEBVIEW_ANTI_FINGERPRINT_HEADERS)
             }
+            onChallengeWebViewCreated?.invoke(state.webView)
+            // On the runner thread, wait for the page; on the main thread
+            // (Robolectric) the shadow WebView never delivers callbacks on its
+            // own, so the poll below drives the flow via jsEvalOverride.
+            if (Looper.myLooper() !== Looper.getMainLooper()) {
+                state.awaitLoaded(challengeLoadTimeoutMs)
+            }
+            return awaitChallengeClear(state.webView)
         } catch (e: Exception) {
-            Log.w(TAG, "JS challenge failed for $url: $e")
+            Log.w(TAG, "headless JS challenge failed for $url: $e")
+            return false
+        } finally {
+            postToMain { state.webView.destroy() }
+        }
+    }
+
+    /**
+     * Polls the page until the challenge markers disappear. Returns true on
+     * success or false when the window elapses without a clear.
+     */
+    private fun awaitChallengeClear(view: WebView): Boolean {
+        // Real monotonic time, NOT SystemClock.uptimeMillis(): the latter is a
+        // frozen shadow clock under Robolectric (PAUSED looper), so the deadline
+        // would never elapse and this loop would spin forever in tests.
+        val deadline = System.nanoTime() + challengeSolveTimeoutMs * 1_000_000
+        while (System.nanoTime() < deadline) {
+            val stillChallenging = evalBool(view, CHALLENGE_CHECK_JS)
+            if (stillChallenging == false) return true
+            // null = eval unavailable (no result yet); not proof of a clear.
+            Thread.sleep(challengePollIntervalMs)
+        }
+        return false
+    }
+
+    /**
+     * Evaluates [script] and interprets the WebView callback value as a JSON
+     * boolean (`true` / `"true"` / `false` / `"false"`), or null when no value
+     * came back at all.
+     */
+    private fun evalBool(view: WebView, script: String): Boolean? {
+        val raw = evaluate(view, script)?.trim()
+        return when (raw) {
+            "true", "\"true\"" -> true
+            "false", "\"false\"" -> false
+            else -> null
+        }
+    }
+
+    /**
+     * Runs [block] synchronously when already on the main thread (Robolectric
+     * tests drive the shadow WebView directly), otherwise posts it and returns
+     * immediately so the main looper stays free for WebView callbacks.
+     */
+    private fun postToMain(block: () -> Unit) {
+        if (Looper.myLooper() === Looper.getMainLooper()) {
+            block()
+        } else {
+            mainHandler.post(block)
         }
     }
 
@@ -717,6 +791,22 @@ class KrxHostImpl(
 
     // ---- js (WebView) -----------------------------------------------------
 
+    /**
+     * Test seam: the headless JS-challenge WebView created by [solveHeadlessOnce].
+     * Robolectric's shadow WebView cannot deliver page callbacks on its own, so
+     * tests grab the view here and drive them.
+     */
+    internal var onChallengeWebViewCreated: ((WebView) -> Unit)? = null
+
+    /** Test seam: headless challenge poll interval (production = 1.5s). */
+    internal var challengePollIntervalMs: Long = CHALLENGE_POLL_INTERVAL_MS
+
+    /** Test seam: headless challenge solve window (production = 15s). */
+    internal var challengeSolveTimeoutMs: Long = CHALLENGE_SOLVE_TIMEOUT_MS
+
+    /** Test seam: headless challenge page-load wait (production = 15s). */
+    internal var challengeLoadTimeoutMs: Long = CHALLENGE_LOAD_TIMEOUT_MS
+
     /** A JS value produced by `evaluateJavascript` (WebView returns JSON). */
     private sealed class JsValueData {
         object Undefined : JsValueData()
@@ -785,6 +875,15 @@ class KrxHostImpl(
                 state.finishLoad(url)
                 if (url != null) injectUserScripts(state, view, url, atDocumentEnd = true)
             }
+
+            // Anti-bot systems fingerprint Android's autogenerated
+            // `X-Requested-With` header to detect WebViews (the reference app
+            // strips it the same way); keep the load pipeline clean of it too.
+            override fun shouldInterceptRequest(
+                view: WebView,
+                request: WebResourceRequest,
+            ): WebResourceResponse? =
+                super.shouldInterceptRequest(view, stripFingerprintHeaders(request))
         }
         return state
     }
@@ -1078,6 +1177,45 @@ class KrxHostImpl(
     private companion object {
         const val TAG = "KrxHost"
         const val MAX_403_RETRIES = 2
+
+        /**
+         * Headless solve timing. 15s matches the reference app's headless
+         * timeout; the poll interval keeps the main-thread roundtrips light.
+         */
+        const val CHALLENGE_LOAD_TIMEOUT_MS = 15_000L
+        const val CHALLENGE_SOLVE_TIMEOUT_MS = 15_000L
+        const val CHALLENGE_POLL_INTERVAL_MS = 1_500L
+
+        /** Body markers that identify an HTML 403..503 as a JS challenge. */
+        val CHALLENGE_MARKERS = listOf(
+            "cf-challenge",
+            "cf-browser-verification",
+            "cf-error-details",
+            "challenge-platform",
+            "Just a moment",
+            "Xác Minh An Toàn",
+            "Xác minh khu vực",
+            "Lỗi Server",
+            "captcha",
+        )
+
+        /**
+         * Returns "true" while the challenge is still up, "false" once the
+         * document no longer carries any challenge markers. Mirrors the
+         * reference app's headless completion check.
+         */
+        const val CHALLENGE_CHECK_JS = "(function(){" +
+            "var b=document.body;if(!b)return\"true\";" +
+            "if(document.title&&document.title.indexOf(\"Just a moment\")!==-1)return\"true\";" +
+            "var t=b.innerText||\"\";" +
+            "if(t.indexOf(\"cf-challenge\")!==-1)return\"true\";" +
+            "if(t.indexOf(\"cf-browser-verification\")!==-1)return\"true\";" +
+            "if(t.indexOf(\"ray-id\")!==-1)return\"true\";" +
+            "if(t.indexOf(\"Xác Minh An Toàn\")!==-1)return\"true\";" +
+            "if(t.indexOf(\"Xác minh khu vực\")!==-1)return\"true\";" +
+            "if(document.querySelector(\".captcha-placeholder\")!==null)return\"true\";" +
+            "return\"false\";" +
+            "})()"
 
         const val KIND_UNKNOWN = 0
         const val KIND_NODE = 1
