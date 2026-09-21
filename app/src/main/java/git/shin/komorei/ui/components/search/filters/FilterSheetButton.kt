@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -42,6 +43,7 @@ fun FilterSheetButton(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier
+            .testTag("filter_sheet_button")
             .clip(shape)
             .background(SurfaceDark)
             .border(width = 1.dp, color = if (enabledCount > 0) AnimeRed.copy(alpha = 0.5f) else CardBorderDark, shape = shape)
@@ -54,8 +56,8 @@ fun FilterSheetButton(
             tint = if (enabledCount > 0) AnimeRed else Color.White.copy(alpha = 0.7f),
             modifier = Modifier.size(16.dp),
         )
-        if (enabledCount > 0) {
-            FilterBadge(count = enabledCount)
-        }
+        // Always render the badge (even when 0) so the Row's width
+        // doesn't change when data loads — prevents layout shift.
+        FilterBadge(count = enabledCount)
     }
 }

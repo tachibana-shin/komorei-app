@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
+import git.shin.komorei.model.Source
 import git.shin.komorei.ui.components.AnimeCard
 import git.shin.komorei.ui.components.GenreGridCard
 import git.shin.komorei.ui.components.ListingGridSkeleton
@@ -60,9 +61,9 @@ import git.shin.komorei.ui.theme.TextSecondary
 
 /**
  * Khám Phá tab — an Aidoku-style global search: a search bar, the three global
- * filter pills (Xếp hạng nội dung / Ngôn ngữ / Nguồn) and a flat 3-column
- * results grid shared with the per-source search. The idle state keeps the
- * genre discovery grid; tapping a genre starts a genre-filtered search.
+ * filter pills (Xếp hạng nội dung / Ngôn ngữ / Nguồn) and a per-source
+ * results grid where each source shows its own section. The idle state keeps
+ * the genre discovery grid; tapping a genre starts a genre-filtered search.
  */
 @Composable
 fun SearchDiscoveryScreen(
@@ -201,7 +202,10 @@ fun SearchDiscoveryScreen(
             }
 
             is SearchUiState.Success -> {
-                if (state.totalCount == 0) {
+                // Per-source sections like Aidoku — each source is its own
+                // section with its own header showing the source name and
+                // any error that source encountered.
+                if (state.totalCount == 0 && state.sourceErrors.isEmpty()) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -223,9 +227,6 @@ fun SearchDiscoveryScreen(
                         )
                     }
                 } else {
-                    // Flat 3-column grid like the per-source search — results
-                    // from all matched sources merged into one scrollable.
-                    val flatResults = state.resultsBySource.values.flatten()
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
                         contentPadding = PaddingValues(
@@ -248,12 +249,47 @@ fun SearchDiscoveryScreen(
                                 modifier = Modifier.padding(vertical = 6.dp)
                             )
                         }
-                        items(flatResults, key = { it.id }) { anime ->
-                            AnimeCard(
-                                anime = anime,
-                                onClick = { onAnimeClick(anime) },
-                                getSourceName = viewModel::getSourceName,
-                            )
+                        // Render each source as its own section.
+                        sources.forEach { source ->
+                            val animes = state.resultsBySource[source]
+                            val error = state.sourceErrors[source]
+                            if (animes.isNullOrEmpty() && error == null) return@forEach
+
+                            // Source header (spans full width).
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = source.name,
+                                        color = if (error != null) AnimeRed else TextPrimary,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    if (error != null) {
+                                        Text(
+                                            text = error,
+                                            color = AnimeRed,
+                                            fontSize = 11.sp,
+                                            modifier = Modifier.padding(start = 8.dp),
+                                        )
+                                    }
+                                }
+                            }
+                            // Anime cards for this source.
+                            animes?.forEach { anime ->
+                                item(key = "${source.id}_${anime.id}") {
+                                    AnimeCard(
+                                        anime = anime,
+                                        onClick = { onAnimeClick(anime) },
+                                        getSourceName = { _ -> source.name },
+                                    )
+                                }
+                            }
                         }
                     }
                 }

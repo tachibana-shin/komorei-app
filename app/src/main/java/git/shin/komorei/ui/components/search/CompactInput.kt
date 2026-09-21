@@ -1,13 +1,3 @@
-.md/*
- * Copyright (c) 2026 git.shin
- * SPDX-License-Identifier: Apache-2.0
- *
- * CompactInput — the app-wide "pill" text field.
- *
- * One thin (40dp tall, 20dp-radius) input that mirrors the accepted
- * Sources-tab pill recipe: rounded box + hairline border + BasicTextField.
- */
-
 package git.shin.komorei.ui.components.search
 
 import androidx.compose.foundation.background

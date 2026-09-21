@@ -8,7 +8,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -27,9 +30,8 @@ import git.shin.komorei.ui.theme.TextPrimary
  * list — text fields, sort chips, checkboxes, selects, multi-selects, range
  * bounds and note blocks.
  *
- * Edits land in a local [FilterDraftState] and are committed ONLY on
- * "Áp dụng" (dismissing or "Hủy" discards them); "Đặt lại" clears all
- * filters and applies immediately (Aidoku resets + dismisses).
+ * Changes are applied IMMEDIATELY (no draft, no "Áp dụng"/"Hủy" buttons).
+ * "Đặt lại" clears all filters and applies immediately.
  */
 @Composable
 fun FilterListSheet(
@@ -39,21 +41,22 @@ fun FilterListSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val draft = remember { FilterDraftState(initialEnabled) }
+    var enabledFilters by remember { mutableStateOf(initialEnabled) }
+
+    /** Applies the current filter list and optionally dismisses. */
+    fun applyAndDismiss(values: List<FilterValue>, dismiss: Boolean = false) {
+        enabledFilters = values
+        onApply(values)
+        if (dismiss) onDismiss()
+    }
 
     FilterBottomSheet(
         title = stringResource(R.string.filter_sheet_title),
         onDismiss = onDismiss,
         onReset = {
-            draft.reset()
-            onApply(emptyList())
-            onDismiss()
+            applyAndDismiss(emptyList(), dismiss = true)
         },
-        onCancel = onDismiss,
-        onApply = {
-            onApply(draft.values)
-            onDismiss()
-        },
+        // Changes commit instantly — no footer buttons
         modifier = modifier,
     ) {
         if (filters.isEmpty()) {
@@ -75,67 +78,82 @@ fun FilterListSheet(
                     when (val kind = filter.kind) {
                         is FilterKind.Text -> TextFilterRow(
                             filter = filter,
-                            value = draft.textState(filter),
+                            value = (enabledFilters.firstOrNull { it.id == filter.id } as? FilterValue.Text)?.value.orEmpty(),
                             onValueChange = { value ->
-                                draft.set(filter.id, textFilterValue(filter.id, value))
+                                val newValue = textFilterValue(filter.id, value)
+                                applyAndDismiss(upsertFilterValue(enabledFilters, filter.id, newValue))
                             },
                         )
                         is FilterKind.Sort -> {
-                            val s = draft.sortState(filter)
+                            val current = enabledFilters.firstOrNull { it.id == filter.id } as? FilterValue.Sort
+                            val d = sortFilterDefaults(kind)
+                            val index = current?.index ?: d.index
+                            val ascending = current?.ascending ?: d.ascending
                             FilterGroupHeader(title = filter.title.orEmpty())
                             SortFilterGroup(
                                 kind = kind,
-                                selectedIndex = s.index,
-                                ascending = s.ascending,
-                                onOptionChange = { index, asc ->
-                                    draft.set(filter.id, sortFilterValue(filter.id, kind, index, asc))
+                                selectedIndex = index,
+                                ascending = ascending,
+                                onOptionChange = { newIndex, newAscending ->
+                                    val newValue = sortFilterValue(filter.id, kind, newIndex, newAscending)
+                                    applyAndDismiss(upsertFilterValue(enabledFilters, filter.id, newValue))
                                 },
                             )
                         }
                         is FilterKind.Check -> {
-                            val state = draft.checkState(filter) ?: checkFilterDefaultState(kind)
+                            val state = (enabledFilters.firstOrNull { it.id == filter.id } as? FilterValue.Check)?.value ?: checkFilterDefaultState(kind)
                             FilterGroupHeader(title = filter.title.orEmpty())
                             CheckFilterGroup(
                                 filter = filter,
                                 state = state,
                                 onStateChange = { next ->
-                                    draft.set(filter.id, checkFilterValue(filter.id, next))
+                                    val newValue = checkFilterValue(filter.id, next)
+                                    applyAndDismiss(upsertFilterValue(enabledFilters, filter.id, newValue))
                                 },
                             )
                         }
                         is FilterKind.Select -> {
+                            val selected = (enabledFilters.firstOrNull { it.id == filter.id } as? FilterValue.Select)?.value ?: selectFilterDefaultValue(kind)
                             FilterGroupHeader(title = filter.title.orEmpty())
                             SelectFilterGroup(
                                 kind = kind,
-                                selected = draft.selectState(filter),
+                                selected = selected,
                                 onSelect = { value ->
-                                    draft.set(filter.id, selectFilterValue(filter.id, kind, value))
+                                    val newValue = selectFilterValue(filter.id, kind, value)
+                                    applyAndDismiss(upsertFilterValue(enabledFilters, filter.id, newValue))
                                 },
                             )
                         }
                         is FilterKind.MultiSelect -> {
-                            val m = draft.multiSelectState(filter)
+                            val current = enabledFilters.firstOrNull { it.id == filter.id } as? FilterValue.MultiSelect
+                            val d = multiSelectFilterDefaults(kind)
+                            val included = current?.included ?: d.included
+                            val excluded = current?.excluded ?: d.excluded
                             FilterGroupHeader(title = filter.title.orEmpty())
                             MultiSelectFilterGroup(
                                 kind = kind,
-                                included = m.included,
-                                excluded = m.excluded,
+                                included = included,
+                                excluded = excluded,
                                 onToggle = { nextIncluded, nextExcluded ->
-                                    draft.set(
-                                        filter.id,
-                                        multiSelectFilterValue(filter.id, kind, nextIncluded, nextExcluded),
-                                    )
+                                    val newValue = multiSelectFilterValue(filter.id, kind, nextIncluded, nextExcluded)
+                                    applyAndDismiss(upsertFilterValue(enabledFilters, filter.id, newValue))
                                 },
                             )
                         }
-                        is FilterKind.Range -> RangeFilterRow(
-                            filter = filter,
-                            from = draft.rangeState(filter).from,
-                            to = draft.rangeState(filter).to,
-                            onBoundsChange = { from, to ->
-                                draft.set(filter.id, rangeFilterValue(filter.id, from, to))
-                            },
-                        )
+                        is FilterKind.Range -> {
+                            val current = enabledFilters.firstOrNull { it.id == filter.id } as? FilterValue.Range
+                            val from = current?.from
+                            val to = current?.to
+                            RangeFilterRow(
+                                filter = filter,
+                                from = from,
+                                to = to,
+                                onBoundsChange = { newFrom, newTo ->
+                                    val newValue = rangeFilterValue(filter.id, newFrom, newTo)
+                                    applyAndDismiss(upsertFilterValue(enabledFilters, filter.id, newValue))
+                                },
+                            )
+                        }
                         is FilterKind.Note -> FilterGroupHeader(
                             title = kind.text,
                             muted = true,

@@ -1,9 +1,5 @@
 package git.shin.komorei.ui.components.search.filters
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import git.shin.komorei.model.Filter
 import git.shin.komorei.model.FilterKind
 import git.shin.komorei.model.FilterValue
 
@@ -119,67 +115,3 @@ fun toggleMultiSelectOption(
     option in excluded -> included to (excluded - option)
     else -> (included + option) to excluded
 }
-
-/**
- * A mutable draft of the enabled filter values for the full filter sheet
- * (Aidoku `FilterListSheetView`'s `newEnabledFilters`). Values are committed
- * only when the sheet's "Áp dụng" is pressed — dismissing discards the draft.
- */
-class FilterDraftState(initial: List<FilterValue>) {
-
-    var values by mutableStateOf(initial)
-        private set
-
-    fun value(id: String): FilterValue? = values.firstOrNull { it.id == id }
-
-    fun set(id: String, value: FilterValue?) {
-        values = upsertFilterValue(values, id, value)
-    }
-
-    fun reset() {
-        values = emptyList()
-    }
-
-    // ── typed accessors used by the group views ────────────────────────────
-
-    fun sortState(filter: Filter): SortState {
-        val kind = (filter.kind as? FilterKind.Sort) ?: return SortState()
-        val d = sortFilterDefaults(kind)
-        val v = value(filter.id) as? FilterValue.Sort
-        return SortState(v?.index ?: d.index, v?.ascending ?: d.ascending)
-    }
-
-    fun selectState(filter: Filter): String {
-        val kind = (filter.kind as? FilterKind.Select) ?: return ""
-        val v = value(filter.id) as? FilterValue.Select
-        return v?.value ?: selectFilterDefaultValue(kind)
-    }
-
-    fun multiSelectState(filter: Filter): MultiSelectState {
-        val kind = (filter.kind as? FilterKind.MultiSelect) ?: return MultiSelectState()
-        val d = multiSelectFilterDefaults(kind)
-        val v = value(filter.id) as? FilterValue.MultiSelect
-        return MultiSelectState(v?.included ?: d.included, v?.excluded ?: d.excluded)
-    }
-
-    fun checkState(filter: Filter): Int? {
-        val v = value(filter.id) as? FilterValue.Check
-        return v?.value
-    }
-
-    fun textState(filter: Filter): String = (value(filter.id) as? FilterValue.Text)?.value.orEmpty()
-
-    fun rangeState(filter: Filter): RangeState {
-        val v = value(filter.id) as? FilterValue.Range
-        return RangeState(v?.from, v?.to)
-    }
-}
-
-/** Snapshot of a sort filter's current selection. */
-data class SortState(val index: Int = 0, val ascending: Boolean = false)
-
-/** Snapshot of a multi-select filter's current selection. */
-data class MultiSelectState(val included: List<String> = emptyList(), val excluded: List<String> = emptyList())
-
-/** Snapshot of a range filter's current bounds. */
-data class RangeState(val from: Float? = null, val to: Float? = null)

@@ -2,9 +2,7 @@ package git.shin.komorei.ui.components.search.filters
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -19,23 +17,22 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
-import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 
 /**
  * Shared chrome for the filter bottom sheets: a [ModalBottomSheet] with a
- * [title] header (a leading dismiss X, an optional trailing "Đặt lại" action)
- * and an optional footer action bar (Hủy / Áp dụng).
+ * [title] header (a leading dismiss X, an optional trailing "Đặt lại" action).
  *
- * The pill dropdown sheets use it footer-less; the aggregate filter sheet
- * passes [onReset]/[onCancel]/[onApply].
+ * All filter sheets are footer-less — changes commit instantly when a
+ * value is toggled/selected.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,8 +41,6 @@ fun FilterBottomSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     onReset: (() -> Unit)? = null,
-    onCancel: (() -> Unit)? = null,
-    onApply: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     ModalBottomSheet(
@@ -63,14 +58,14 @@ fun FilterBottomSheet(
                     color = TextPrimary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("filter_sheet_title"),
                 )
                 if (onReset != null) {
-                    TextButton(onClick = onReset) {
+                    TextButton(onClick = onReset, modifier = Modifier.testTag("filter_reset_button")) {
                         Text(stringResource(R.string.filter_reset), color = TextMuted)
                     }
                 }
-                IconButton(onClick = onDismiss) {
+                IconButton(onClick = onDismiss, modifier = Modifier.testTag("filter_sheet_close")) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = stringResource(R.string.filter_cancel),
@@ -81,28 +76,6 @@ fun FilterBottomSheet(
             }
             HorizontalDivider(color = TextMuted.copy(alpha = 0.2f))
             content()
-            if (onCancel != null || onApply != null) {
-                HorizontalDivider(color = TextMuted.copy(alpha = 0.2f))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = 12.dp, vertical = 4.dp),
-                ) {
-                    if (onCancel != null) {
-                        TextButton(onClick = onCancel) {
-                            Text(stringResource(R.string.filter_cancel), color = TextMuted)
-                        }
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
-                    if (onApply != null) {
-                        TextButton(onClick = onApply) {
-                            Text(stringResource(R.string.filter_apply), color = AnimeRed)
-                        }
-                    }
-                }
-            }
         }
     }
 }

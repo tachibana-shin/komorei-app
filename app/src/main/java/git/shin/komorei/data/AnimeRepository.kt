@@ -22,6 +22,8 @@ import git.shin.komorei.sdk.toAppModel
 import git.shin.komorei.sdk.toAppPage
 import git.shin.komorei.sdk.toRunner
 import git.shin.komorei.sdk.runner.HostDefaultValue
+import git.shin.komorei.data.SourceSearchEvent.Completed
+import git.shin.komorei.data.SourceSearchEvent.Failed
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -239,6 +241,46 @@ class AnimeRepository @Inject constructor(
             }.awaitAll()
                 .filter { (_, animes) -> animes.isNotEmpty() }
                 .toMap()
+        }
+    }
+
+    /**
+      * Parallel multi-source search that reports each source's outcome
+      * independently ([SourceSearchEvent]). Unlike [searchMultiSource]
+      * which silently drops failures, this exposes every source —
+      * [Completed] with its results (possibly empty) and [Failed] with
+      * the error message — so the UI can render per-source sections
+      * and show which sources errored.
+      *
+      * Each source is queried on its own thread; a broken source only
+      * surfaces as its own [Failed] event and never blocks the others.
+      */
+    suspend fun searchMultiSourceStream(
+        query: String,
+        selectedGenreId: String? = null,
+        contentRating: Int? = null,
+        languages: Set<String> = emptySet(),
+        sourceIds: Set<String> = emptySet(),
+    ): List<SourceSearchEvent> {
+        val genreName = selectedGenreId?.let { id -> genres.find { it.id == id }?.name }
+        val candidateSources = sources.filter { !it.isAggregator }
+            .filter { sourceIds.isEmpty() || it.id in sourceIds }
+            .filter { contentRating == null || ratingMatches(it.contentRating, contentRating) }
+            .filter { languages.isEmpty() || it.languages.any { lang -> lang in languages } }
+
+        return coroutineScope {
+            candidateSources.map { source ->
+                async {
+                    try {
+                        val genreValues = genreName?.let { name -> buildGenreFilter(source.id, name) }
+                            ?: emptyList()
+                        val results = search(source.id, query.ifBlank { null }, 1, genreValues).entries
+                        Completed(source, results)
+                    } catch (e: Exception) {
+                        Failed(source, e.localizedMessage ?: e.javaClass.simpleName)
+                    }
+                }
+            }.awaitAll()
         }
     }
 

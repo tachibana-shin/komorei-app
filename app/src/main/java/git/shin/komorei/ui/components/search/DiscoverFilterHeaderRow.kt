@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import git.shin.komorei.R
@@ -45,9 +46,8 @@ private const val FILTER_SOURCES = "sources"
  * immediately.
  *
  * The leading [FilterSheetButton] opens a [FilterListSheet] that lists ALL
- * three global filters together — the per-pill dropdowns plus draft/apply
- * semantics (Áp dụng commits, Hủy discards, Đặt lại clears all) — matching the
- * source home's own filter header.
+ * three global filters together — changes commit instantly with no draft/apply
+ * buttons, matching the per-source filter header behavior.
  *
  * Reuses the per-source filter chrome ([FilterPill], [FilterBottomSheet],
  * [SelectFilterGroup], [MultiSelectFilterGroup]) with hand-built [FilterKind]
@@ -137,6 +137,7 @@ fun DiscoverFilterHeaderRow(
                     discoverEnabledValues(contentRating, language, includedSourceIds),
                 ),
                 onClick = { showAll = true },
+                modifier = Modifier.testTag("filter_sheet_button"),
             )
         }
         item(key = "rating") {
@@ -156,6 +157,7 @@ fun DiscoverFilterHeaderRow(
                 },
                 active = contentRating != ContentRatingFilter.ALL,
                 onClick = { showRating = true },
+                testTag = "filter_rating_pill",
             )
         }
         item(key = "language") {
@@ -168,6 +170,7 @@ fun DiscoverFilterHeaderRow(
                 ),
                 active = language != null,
                 onClick = { showLanguage = true },
+                testTag = "filter_language_pill",
             )
         }
         item(key = "sources") {
@@ -176,6 +179,7 @@ fun DiscoverFilterHeaderRow(
                 active = includedSourceIds.isNotEmpty(),
                 badgeCount = includedSourceIds.size,
                 onClick = { showSources = true },
+                testTag = "filter_sources_pill",
             )
         }
     }

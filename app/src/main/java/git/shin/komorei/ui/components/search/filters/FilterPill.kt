@@ -15,6 +15,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -43,6 +45,7 @@ fun FilterPill(
     badgeCount: Int = 0,
     chevron: Boolean = true,
     icon: ImageVector? = null,
+    testTag: String = "",
 ) {
     val shape = RoundedCornerShape(100)
     val borderColor = if (active) AnimeRed.copy(alpha = 0.5f) else CardBorderDark
@@ -50,16 +53,16 @@ fun FilterPill(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier
+            .testTag(if (testTag.isNotEmpty()) testTag else "filter_pill_$name")
             .clip(shape)
             .background(if (active) AnimeRed.copy(alpha = 0.16f) else SurfaceDark)
             .border(width = 1.dp, color = borderColor, shape = shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp),
     ) {
-        // Badge only when more than one sub-filter is enabled (Aidoku `hasBadge`).
-        if (badgeCount > 1) {
-            FilterBadge(count = badgeCount)
-        }
+        // Always render the badge (even when count <= 1) so the Row's
+        // width doesn't change when data loads — prevents layout shift.
+        FilterBadge(count = badgeCount)
         if (icon != null) {
             Icon(
                 imageVector = icon,
@@ -92,6 +95,7 @@ fun FilterPill(
 @Composable
 fun FilterBadge(count: Int, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(100)
+    val isVisible = count > 0
     Text(
         text = count.toString(),
         color = Color.White,
@@ -99,8 +103,10 @@ fun FilterBadge(count: Int, modifier: Modifier = Modifier) {
         lineHeight = 12.sp,
         fontWeight = FontWeight.Bold,
         modifier = modifier
+            .size(if (isVisible) 32.dp else 1.dp)
             .clip(shape)
-            .background(AnimeRed)
+            .background(if (isVisible) AnimeRed else Color.Transparent)
+            .alpha(if (isVisible) 1f else 0f)
             .padding(horizontal = 5.dp, vertical = 2.dp),
     )
 }

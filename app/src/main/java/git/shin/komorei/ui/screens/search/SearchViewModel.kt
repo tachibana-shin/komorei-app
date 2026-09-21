@@ -7,7 +7,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import git.shin.komorei.R
+import git.shin.komorei.data.SourceSearchEvent
 import git.shin.komorei.data.AnimeRepository
+import git.shin.komorei.model.Anime
 import git.shin.komorei.model.ContentRatingFilter
 import git.shin.komorei.model.Genre
 import git.shin.komorei.model.Source
@@ -94,10 +96,9 @@ class SearchViewModel @Inject constructor(
         val language: String?,
         val sourceIds: Set<String>,
     ) {
-        /** Nothing typed and every filter at its default → no search call. */
-        val isDefault: Boolean
-            get() = query.isBlank() && genreId == null &&
-                rating == ContentRatingFilter.ALL && language == null && sourceIds.isEmpty()
+        /** A non-blank query or selected genre means there is something to search for. */
+        val hasQueryOrGenre: Boolean
+            get() = query.isNotBlank() || genreId != null
     }
 
     init {
@@ -133,8 +134,11 @@ class SearchViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         // Restored search (tab switch / process death): run it without waiting
-        // for a debounced pipeline emission.
-        if (!currentParams().isDefault) {
+        // for a debounced pipeline emission — only if there's something
+        // meaningful to search for (query or genre; filters alone don't).
+        if (!currentParams().hasQueryOrGenre) {
+            _searchUiState.value = SearchUiState.Idle
+        } else {
             executeSearch(currentParams())
         }
     }
@@ -194,7 +198,7 @@ class SearchViewModel @Inject constructor(
     )
 
     private fun executeSearch(params: Params) {
-        if (params.isDefault) {
+        if (!params.hasQueryOrGenre) {
             searchJob?.cancel()
             _searchUiState.value = SearchUiState.Idle
             return
@@ -204,17 +208,32 @@ class SearchViewModel @Inject constructor(
         searchJob = viewModelScope.launch {
             _searchUiState.value = SearchUiState.Loading
             try {
-                val resultsBySource = repository.searchMultiSource(
+                val events = repository.searchMultiSourceStream(
                     query = params.query,
                     selectedGenreId = params.genreId,
                     contentRating = params.rating.repositoryValue,
                     languages = params.language?.let { setOf(it) } ?: emptySet(),
                     sourceIds = params.sourceIds,
                 )
+                val resultsBySource = mutableMapOf<Source, List<Anime>>()
+                val sourceErrors = mutableMapOf<Source, String>()
+                for (event in events) {
+                    when (event) {
+                        is SourceSearchEvent.Completed -> {
+                            if (event.results.isNotEmpty()) {
+                                resultsBySource[event.source] = event.results
+                            }
+                        }
+                        is SourceSearchEvent.Failed -> {
+                            sourceErrors[event.source] = event.message
+                        }
+                    }
+                }
                 val totalCount = resultsBySource.values.sumOf { it.size }
                 _searchUiState.value = SearchUiState.Success(
                     resultsBySource = resultsBySource,
                     totalCount = totalCount,
+                    sourceErrors = sourceErrors,
                 )
             } catch (e: Exception) {
                 _searchUiState.value = SearchUiState.Error(

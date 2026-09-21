@@ -2,6 +2,7 @@ package git.shin.komorei
 
 import androidx.test.core.app.ApplicationProvider
 import git.shin.komorei.data.AnimeRepository
+import git.shin.komorei.data.SourceSearchEvent
 import git.shin.komorei.model.FilterKind
 import git.shin.komorei.model.FilterValue
 import git.shin.komorei.model.HomeComponentValue
@@ -277,5 +278,32 @@ class AnimeRepositoryTest {
         val full = repository.getAnimeUpdate(lite, needsDetails = true, needsChapters = true)
         assertTrue("Full update should bring episodes", full.episodes.isNotEmpty())
         assertTrue("Rating present after upgrade", (full.rating ?: 0f) > 0.0f)
+    }
+
+    @Test
+    fun testSearchMultiSourceStreamReturnsPerSourceEvents() = runBlocking {
+        val events = repository.searchMultiSourceStream(query = "Frieren")
+
+        // Exactly one source (vi.fake-source) should return results.
+        val completed = events.filterIsInstance<SourceSearchEvent.Completed>()
+        assertTrue("at least one source completed", completed.isNotEmpty())
+        assertTrue("completed source should have results", completed.first().results.isNotEmpty())
+
+        // No source should fail with a simple query.
+        val failures = events.filterIsInstance<SourceSearchEvent.Failed>()
+        assertTrue("no failures expected for a working source", failures.isEmpty())
+    }
+
+    @Test
+    fun testSearchMultiSourceStreamReturnsEmptyResultsForGenre() = runBlocking {
+        // Genre "action" filters to a subset; results are still per-source.
+        val events = repository.searchMultiSourceStream(query = "", selectedGenreId = "action")
+
+        val completed = events.filterIsInstance<SourceSearchEvent.Completed>()
+        assertTrue("at least one source completed", completed.isNotEmpty())
+
+        // All completed results carry the genre tag.
+        val allResults = completed.flatMap { it.results }
+        assertTrue(allResults.all { anime -> anime.genres.any { it.name == "Hành Động" } })
     }
 }

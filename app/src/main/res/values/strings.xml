@@ -51,7 +51,6 @@
     <string name="source_search_error">Không thể tìm kiếm trong nguồn này</string>
     <string name="filter_sheet_title">Bộ lọc</string>
     <string name="filter_sheet_cd">Mở bộ lọc</string>
-    <string name="filter_apply">Áp dụng</string>
     <string name="filter_reset">Đặt lại</string>
     <string name="filter_cancel">Hủy</string>
     <string name="filter_none">Nguồn này chưa có bộ lọc</string>

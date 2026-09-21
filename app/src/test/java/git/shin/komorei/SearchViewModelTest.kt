@@ -36,6 +36,10 @@ import java.io.File
  * `searchDebounceMillis` is set to 0 because the test Main scheduler's virtual
  * clock never advances — a real 300ms debounce would never fire (same pattern
  * as [SourceSearchViewModelTest]).
+ *
+ * **Idle rule:** a blank query with no genre selected → idle genre grid.
+ * Filters alone (rating/language/sources) do NOT trigger a search — they
+ * only refine an active query+genre search, matching Aidoku's behaviour.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -81,6 +85,8 @@ class SearchViewModelTest {
         return vm.searchUiState.value as SearchUiState.Success
     }
 
+    // ── query-driven search ──────────────────────────────────────────
+
     @Test
     fun querySearchMergesAcrossSources() = runBlocking {
         val vm = newViewModel()
@@ -93,50 +99,98 @@ class SearchViewModelTest {
             "Frieren: Pháp Sư Tiễn Táng",
             state.resultsBySource.values.flatten().single().title,
         )
+        // No source errors on a successful search.
+        assertTrue(state.sourceErrors.isEmpty())
     }
 
     @Test
-    fun filterOnlySafeRatingSearchesCatalog() = runBlocking {
+    fun queryReturnsPerSourceSections() = runBlocking {
         val vm = newViewModel()
 
-        // The fake source is safe (contentRating = 0) → blank query + SAFE
-        // opens its full catalog (page size 15), mirroring per-source filters.
+        vm.onSearchQueryChange("Frieren")
+        val state = currentSuccess(vm)
+
+        // Each source that returned results appears as its own section.
+        assertTrue("should have at least one source section", state.resultsBySource.isNotEmpty())
+        assertTrue("no errors expected", state.sourceErrors.isEmpty())
+        state.resultsBySource.forEach { (source, animes) ->
+            assertTrue("source ${source.name} should have anime", animes.isNotEmpty())
+        }
+    }
+
+    // ── idle rule: filters alone do NOT trigger search ───────────────
+
+    @Test
+    fun filterOnlyStaysIdle() = runBlocking {
+        val vm = newViewModel()
+
+        // Changing ONLY a filter with a blank query → stays idle.
+        vm.setContentRating(ContentRatingFilter.SAFE)
+        awaitUntil { vm.searchUiState.value is SearchUiState.Idle }
+        assertTrue("rating-only change must stay idle", vm.searchUiState.value is SearchUiState.Idle)
+
+        // Language change also stays idle.
+        vm.setLanguage("en")
+        awaitUntil { vm.searchUiState.value is SearchUiState.Idle }
+        assertTrue("language-only change must stay idle", vm.searchUiState.value is SearchUiState.Idle)
+
+        // Source filter change also stays idle.
+        vm.setSourceFilter(setOf("vi.fake-source"))
+        awaitUntil { vm.searchUiState.value is SearchUiState.Idle }
+        assertTrue("source-only change must stay idle", vm.searchUiState.value is SearchUiState.Idle)
+    }
+
+    @Test
+    fun genreShortcutTriggersSearch() = runBlocking {
+        val vm = newViewModel()
+
+        // Genre is like a query — triggers search even without a keyword.
+        val action = vm.genres.first { it.name == "Hành Động" }
+        vm.selectGenre(action)
+        val state = currentSuccess(vm)
+
+        assertTrue("genre must trigger search", state.totalCount > 0)
+    }
+
+    // ── query + filter refinement ────────────────────────────────────
+
+    @Test
+    fun queryWithSafeRatingReturnsResults() = runBlocking {
+        val vm = newViewModel()
+
+        vm.onSearchQueryChange("Frieren")
         vm.setContentRating(ContentRatingFilter.SAFE)
         val state = currentSuccess(vm)
 
-        assertEquals(15, state.totalCount)
+        assertEquals(1, state.totalCount)
+        assertTrue(state.resultsBySource.isNotEmpty())
+        assertTrue(state.sourceErrors.isEmpty())
     }
 
     @Test
-    fun nsfwRatingExcludesSafeSources() = runBlocking {
+    fun languageFilterRefinesQueryResults() = runBlocking {
         val vm = newViewModel()
 
-        vm.setContentRating(ContentRatingFilter.NSFW)
-        val state = currentSuccess(vm)
-
-        assertEquals("no 18+ source installed", 0, state.totalCount)
-    }
-
-    @Test
-    fun languageFilterKeepsMatchingSource() = runBlocking {
-        val vm = newViewModel()
-
+        vm.onSearchQueryChange("Frieren")
         // "en" and "vi" are both published by the fake source → still searched.
         vm.setLanguage("en")
         val state = currentSuccess(vm)
 
-        assertEquals(15, state.totalCount)
+        assertEquals(1, state.totalCount)
+        assertTrue(state.resultsBySource.isNotEmpty())
     }
 
     @Test
-    fun languageFilterDropsSourcesWithoutTheCode() = runBlocking {
+    fun wrongLanguageYieldsNoResults() = runBlocking {
         val vm = newViewModel()
 
+        vm.onSearchQueryChange("Frieren")
         // "ja" is not among the fake source's languages (vi/en) → no candidates.
         vm.setLanguage("ja")
         val state = currentSuccess(vm)
 
         assertEquals(0, state.totalCount)
+        assertTrue(state.resultsBySource.isEmpty())
     }
 
     @Test
@@ -152,6 +206,7 @@ class SearchViewModelTest {
         vm.setSourceFilter(setOf("some.other.source"))
         val state = currentSuccess(vm)
         assertEquals(0, state.totalCount)
+        assertTrue(state.resultsBySource.isEmpty())
     }
 
     @Test
@@ -173,6 +228,21 @@ class SearchViewModelTest {
         )
     }
 
+    // ── per-source error tracking ────────────────────────────────────
+
+    @Test
+    fun sourceErrorsTrackedInState() = runBlocking {
+        val vm = newViewModel()
+
+        vm.onSearchQueryChange("Frieren")
+        val state = currentSuccess(vm)
+
+        // With the single installed source, there should be no errors.
+        assertTrue(state.sourceErrors.isEmpty())
+    }
+
+    // ── idle → query → idle transitions ─────────────────────────────
+
     @Test
     fun clearSearchReturnsToIdle() = runBlocking {
         val vm = newViewModel()
@@ -189,6 +259,8 @@ class SearchViewModelTest {
         vm.setLanguage(null)
         awaitUntil { vm.searchUiState.value is SearchUiState.Idle }
     }
+
+    // ── restore / persistence ────────────────────────────────────────
 
     @Test
     fun restoresSearchParamsFromSavedState() = runBlocking {
@@ -211,6 +283,9 @@ class SearchViewModelTest {
         // The restored params drive a real search — not the idle state.
         val state = currentSuccess(vm)
         assertEquals(1, state.totalCount)
+        // Sections present.
+        assertTrue(state.resultsBySource.isNotEmpty())
+        assertTrue(state.sourceErrors.isEmpty())
     }
 
     @Test
@@ -237,6 +312,24 @@ class SearchViewModelTest {
         assertEquals(null, handle.get<String>("search_language"))
         assertEquals(null, handle.get<String>("search_sources"))
         assertEquals(null, handle.get<String>("search_genre"))
+    }
+
+    // ── genre shortcut keeps idle when toggled off ───────────────────
+
+    @Test
+    fun genreToggleOffReturnsIdle() = runBlocking {
+        val vm = newViewModel()
+
+        // Select genre → search fires.
+        val action = vm.genres.first { it.name == "Hành Động" }
+        vm.selectGenre(action)
+        awaitUntil { vm.searchUiState.value is SearchUiState.Success }
+        assertTrue(vm.searchUiState.value is SearchUiState.Success)
+
+        // Deselect → idle again.
+        vm.selectGenre(action)
+        awaitUntil { vm.searchUiState.value is SearchUiState.Idle }
+        assertTrue("deselecting genre must return to idle", vm.searchUiState.value is SearchUiState.Idle)
     }
 
     private suspend fun awaitUntil(condition: () -> Boolean) {
