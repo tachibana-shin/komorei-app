@@ -40,18 +40,18 @@ val mainTabs: List<MainTab> = listOf(
         unselectedIcon = Icons.Outlined.Home,
     ),
     MainTab(
-        key = "search",
-        route = Screen.Search.route,
-        labelRes = R.string.tab_search,
-        selectedIcon = Icons.Filled.Search,
-        unselectedIcon = Icons.Outlined.Search,
-    ),
-    MainTab(
         key = "sources",
         route = Screen.Sources.route,
         labelRes = R.string.tab_sources,
         selectedIcon = Icons.Filled.Language,
         unselectedIcon = Icons.Outlined.Language,
+    ),
+    MainTab(
+        key = "search",
+        route = Screen.Search.route,
+        labelRes = R.string.tab_search,
+        selectedIcon = Icons.Filled.Search,
+        unselectedIcon = Icons.Outlined.Search,
     ),
     MainTab(
         key = "library",
