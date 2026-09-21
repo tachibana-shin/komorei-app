@@ -23,4 +23,9 @@ komorei-sdk/
 # real directories.
 sources/fake-vi-source/target
 sources/fake-vi-source/package.krx
+
+# OPhim source: plain local cargo target + the assembled package.krx are
+# regenerable build artifacts (the JVM integration test rebuilds on demand).
+sources/ophim/target/
+sources/ophim/package.krx
 Aidoku/

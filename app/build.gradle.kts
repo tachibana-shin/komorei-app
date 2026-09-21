@@ -75,6 +75,12 @@ android {
         "komorei.test.fakeKrx",
         rootProject.file("app/src/main/assets/sources/fake-vi-source.krx").absolutePath,
       )
+      // The real OPhim source (sources/ophim) — exercised end-to-end against a
+      // local classic-OPHIM fixture server in OphimSourceRunnerIntegrationTest.
+      test.systemProperty(
+        "komorei.test.ophimKrx",
+        rootProject.file("sources/ophim/package.krx").absolutePath,
+      )
     }
   } }
   dependenciesInfo {
