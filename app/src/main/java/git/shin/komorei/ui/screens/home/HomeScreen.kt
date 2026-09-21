@@ -21,7 +21,9 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,6 +63,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onOpenListing: (sourceId: String, listing: Listing) -> Unit = { _, _ -> },
     onOpenSearch: (sourceId: String) -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
 ) {
     val coroutineScope = rememberCoroutineScope()
     val sources by viewModel.sources.collectAsState()
@@ -158,6 +161,23 @@ fun HomeScreen(
                         color = AnimeRed,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(2.dp))
+
+                // Notification inbox (moved off the bottom bar into the Home header)
+                IconButton(
+                    onClick = onOpenNotifications,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .testTag("home_notifications_button"),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.NotificationsNone,
+                        contentDescription = stringResource(R.string.notifications_title),
+                        tint = TextPrimary,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }

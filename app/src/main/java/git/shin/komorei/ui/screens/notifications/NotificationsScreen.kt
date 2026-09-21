@@ -20,11 +20,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -55,6 +57,7 @@ import git.shin.komorei.ui.theme.TextPrimary
 
 @Composable
 fun NotificationsScreen(
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: NotificationsViewModel = hiltViewModel(),
 ) {
@@ -68,23 +71,44 @@ fun NotificationsScreen(
             .statusBarsPadding()
             .testTag("notifications_screen")
     ) {
-        Text(
-            text = stringResource(R.string.notifications_title),
-            color = TextPrimary,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Black,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
-        )
-        Text(
-            text = if (unreadCount > 0) {
-                stringResource(R.string.notifications_unread_count, unreadCount)
-            } else {
-                stringResource(R.string.notifications_subtitle)
-            },
-            color = TextMuted,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(horizontal = 16.dp),
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.testTag("notifications_back"),
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.cd_back),
+                    tint = TextPrimary,
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 16.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.notifications_title),
+                    color = TextPrimary,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Black,
+                )
+                Text(
+                    text = if (unreadCount > 0) {
+                        stringResource(R.string.notifications_unread_count, unreadCount)
+                    } else {
+                        stringResource(R.string.notifications_subtitle)
+                    },
+                    color = TextMuted,
+                    fontSize = 12.sp,
+                )
+            }
+        }
 
         if (notifications.isNotEmpty()) {
             Row(
@@ -124,7 +148,7 @@ fun NotificationsScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 114.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items(

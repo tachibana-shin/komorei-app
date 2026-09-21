@@ -63,10 +63,10 @@ fun SettingsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(BackgroundDark)
-            .verticalScroll(rememberScrollState())
             .statusBarsPadding()
             .testTag("settings_screen")
     ) {
+        // Fixed header — stays put while the settings list below scrolls.
         Text(
             text = stringResource(R.string.settings_title),
             color = TextPrimary,
@@ -81,60 +81,67 @@ fun SettingsScreen(
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Spacer(modifier = Modifier.height(20.dp))
 
-        SettingsSection(title = stringResource(R.string.settings_section_sources)) {
-            SettingsRow(
-                icon = Icons.Default.Storage,
-                title = stringResource(R.string.settings_manage_repos),
-                subtitle = stringResource(R.string.settings_manage_repos_subtitle),
-                onClick = onOpenSourceRepos,
-                testTag = "settings_manage_repos",
-            )
+            SettingsSection(title = stringResource(R.string.settings_section_sources)) {
+                SettingsRow(
+                    icon = Icons.Default.Storage,
+                    title = stringResource(R.string.settings_manage_repos),
+                    subtitle = stringResource(R.string.settings_manage_repos_subtitle),
+                    onClick = onOpenSourceRepos,
+                    testTag = "settings_manage_repos",
+                )
+            }
+
+            SettingsSection(title = stringResource(R.string.settings_section_data)) {
+                SettingsRow(
+                    icon = Icons.Default.CleaningServices,
+                    title = stringResource(R.string.settings_clear_image_cache),
+                    subtitle = stringResource(R.string.settings_clear_image_cache_subtitle),
+                    onClick = viewModel::clearImageCache,
+                    testTag = "settings_clear_image_cache",
+                )
+                SettingsRow(
+                    icon = Icons.Default.Cookie,
+                    title = stringResource(R.string.settings_clear_cookies),
+                    subtitle = stringResource(R.string.settings_clear_cookies_subtitle),
+                    onClick = viewModel::clearCookies,
+                    testTag = "settings_clear_cookies",
+                )
+                SettingsRow(
+                    icon = Icons.Default.History,
+                    title = stringResource(R.string.settings_clear_search_history),
+                    subtitle = stringResource(R.string.settings_clear_search_history_subtitle),
+                    onClick = viewModel::clearSearchHistory,
+                    testTag = "settings_clear_search_history",
+                )
+            }
+
+            SettingsSection(title = stringResource(R.string.settings_section_about)) {
+                SettingsRow(
+                    icon = Icons.Default.Info,
+                    title = stringResource(R.string.settings_version),
+                    subtitle = viewModel.appVersion,
+                    onClick = null,
+                    testTag = "settings_version",
+                )
+                SettingsRow(
+                    icon = Icons.Default.Tune,
+                    title = stringResource(R.string.settings_about_app),
+                    subtitle = stringResource(R.string.settings_about_app_subtitle),
+                    onClick = null,
+                    testTag = "settings_about",
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
-
-        SettingsSection(title = stringResource(R.string.settings_section_data)) {
-            SettingsRow(
-                icon = Icons.Default.CleaningServices,
-                title = stringResource(R.string.settings_clear_image_cache),
-                subtitle = stringResource(R.string.settings_clear_image_cache_subtitle),
-                onClick = viewModel::clearImageCache,
-                testTag = "settings_clear_image_cache",
-            )
-            SettingsRow(
-                icon = Icons.Default.Cookie,
-                title = stringResource(R.string.settings_clear_cookies),
-                subtitle = stringResource(R.string.settings_clear_cookies_subtitle),
-                onClick = viewModel::clearCookies,
-                testTag = "settings_clear_cookies",
-            )
-            SettingsRow(
-                icon = Icons.Default.History,
-                title = stringResource(R.string.settings_clear_search_history),
-                subtitle = stringResource(R.string.settings_clear_search_history_subtitle),
-                onClick = viewModel::clearSearchHistory,
-                testTag = "settings_clear_search_history",
-            )
-        }
-
-        SettingsSection(title = stringResource(R.string.settings_section_about)) {
-            SettingsRow(
-                icon = Icons.Default.Info,
-                title = stringResource(R.string.settings_version),
-                subtitle = viewModel.appVersion,
-                onClick = null,
-                testTag = "settings_version",
-            )
-            SettingsRow(
-                icon = Icons.Default.Tune,
-                title = stringResource(R.string.settings_about_app),
-                subtitle = stringResource(R.string.settings_about_app_subtitle),
-                onClick = null,
-                testTag = "settings_about",
-            )
-        }
-
-        Spacer(modifier = Modifier.height(114.dp))
     }
 }
 

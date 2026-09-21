@@ -6,7 +6,6 @@
     <!-- Bottom Navigation Tabs -->
     <string name="tab_home">Trang chủ</string>
     <string name="tab_search">Tìm Kiếm</string>
-    <string name="tab_notifications">Thông báo</string>
     <string name="tab_sources">Nguồn</string>
     <string name="tab_library">Tủ phim</string>
     <string name="tab_settings">Cài đặt</string>

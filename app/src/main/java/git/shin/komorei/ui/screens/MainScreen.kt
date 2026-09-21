@@ -111,6 +111,7 @@ fun MainScreen(
         val isSourceHomeRoute = currentRoute == Screen.SourceHome.route
         val isSourceSettingsRoute = currentRoute == Screen.SourceSettings.route
         val isSourceSearchRoute = currentRoute == Screen.SourceSearch.route
+        val isNotificationsRoute = currentRoute == Screen.Notifications.route
 
         Box(modifier = Modifier.fillMaxSize()) {
             if (isWideScreen) {
@@ -146,7 +147,7 @@ fun MainScreen(
                 Scaffold(
                     bottomBar = {
                         AnimatedVisibility(
-                            visible = !isPlayerExpanded && !isFullscreen && !isListingRoute && !isSourceReposRoute && !isSourceHomeRoute && !isSourceSettingsRoute && !isSourceSearchRoute,
+                            visible = !isPlayerExpanded && !isFullscreen && !isListingRoute && !isSourceReposRoute && !isSourceHomeRoute && !isSourceSettingsRoute && !isSourceSearchRoute && !isNotificationsRoute,
                             enter = slideInVertically(initialOffsetY = { it }),
                             exit = slideOutVertically(targetOffsetY = { it })
                         ) {
@@ -242,6 +243,7 @@ fun MainNavigationHost(
                 onAnimeClick = onAnimeSelect,
                 onOpenListing = onOpenListing,
                 onOpenSearch = onOpenSearch,
+                onOpenNotifications = { navController.navigate(Screen.Notifications.route) },
             )
         }
         composable(Screen.Search.route) {
@@ -319,7 +321,7 @@ fun MainNavigationHost(
             LibraryScreen(onAnimeClick = onAnimeSelect)
         }
         composable(Screen.Notifications.route) {
-            NotificationsScreen()
+            NotificationsScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.Settings.route) {
             SettingsScreen(
