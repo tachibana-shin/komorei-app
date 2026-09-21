@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
+import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
@@ -43,12 +44,18 @@ fun FilterBottomSheet(
     onReset: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
+    // The sheet's Dialog window does not reliably receive system-bar insets (zero
+    // on several devices/emulators), so the ModalBottomSheet default padding is
+    // often a no-op. Read the navigation-bar height from the HOST window here and
+    // pad the content explicitly so the last row never hides behind the nav bar.
+    val navBarBottom = rememberSystemNavigationBarBottom()
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = SurfaceDark,
         dragHandle = null,
     ) {
-        Column(modifier = modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        Column(modifier = modifier.fillMaxWidth().padding(bottom = navBarBottom + 8.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 4.dp, bottom = 2.dp),

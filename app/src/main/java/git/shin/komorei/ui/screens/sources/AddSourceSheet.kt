@@ -55,6 +55,7 @@ import git.shin.komorei.R
 import git.shin.komorei.data.ExternalSourceInfo
 import git.shin.komorei.ui.components.AppIcons
 import git.shin.komorei.ui.components.ShimmerLoadingRow
+import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.CardDark
@@ -104,13 +105,18 @@ fun AddSourceSheet(
         }
     }
 
+    // The sheet's Dialog window does not reliably receive system-bar insets, so
+    // the scrollable content is padded with the HOST window's nav-bar height to
+    // let the last repo/source row scroll clear of the system navigation bar.
+    val navBarBottom = rememberSystemNavigationBarBottom()
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = SurfaceDark,
     ) {
         Column(modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 24.dp)
+            .padding(bottom = navBarBottom + 24.dp)
             .verticalScroll(rememberScrollState())
             .testTag("add_source_sheet")) {
 

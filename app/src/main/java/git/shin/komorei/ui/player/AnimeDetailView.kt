@@ -81,6 +81,7 @@ import git.shin.komorei.ui.components.EpisodeProgressBar
 import git.shin.komorei.ui.components.MetadataDetailRow
 import git.shin.komorei.ui.components.ServerOptionChip
 import git.shin.komorei.ui.components.SectionHeader
+import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
 import git.shin.komorei.ui.player.components.EpisodesBottomSheet
 import git.shin.komorei.ui.theme.Accent
 import git.shin.komorei.ui.theme.AnimeGreen
@@ -860,6 +861,7 @@ fun AnimeDetailView(
     }
 
     if (showDescriptionSheet) {
+        val navBarBottom = rememberSystemNavigationBarBottom()
         ModalBottomSheet(
             onDismissRequest = { showDescriptionSheet = false },
             sheetState = descSheetState,
@@ -879,7 +881,7 @@ fun AnimeDetailView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 18.dp)
-                    .padding(bottom = 32.dp)
+                    .padding(bottom = navBarBottom + 24.dp)
             ) {
                 item {
                     // Header Bar

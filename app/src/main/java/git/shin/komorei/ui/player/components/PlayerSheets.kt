@@ -53,6 +53,7 @@ import git.shin.komorei.R
 import git.shin.komorei.model.*
 import git.shin.komorei.ui.player.PlayerPlaybackState
 import git.shin.komorei.ui.components.EpisodeProgressBar
+import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
 import git.shin.komorei.ui.theme.*
 import git.shin.komorei.ui.utils.animateScrollToItemCentered
 import kotlinx.coroutines.flow.first
@@ -74,6 +75,9 @@ fun EpisodesBottomSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    // Pad by the HOST window's nav-bar height: the sheet's Dialog window insets are
+    // unreliable, so the episode list would otherwise sit under the system nav bar.
+    val navBarBottom = rememberSystemNavigationBarBottom()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -105,6 +109,7 @@ fun EpisodesBottomSheet(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
+                .padding(bottom = navBarBottom + 8.dp)
                 .testTag("episodes_full_bottom_sheet")
         )
     }
@@ -978,6 +983,8 @@ fun UnifiedPlayerSettingsSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Pad by the HOST window's nav-bar height (the Dialog window insets are unreliable).
+    val navBarBottom = rememberSystemNavigationBarBottom()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -985,23 +992,25 @@ fun UnifiedPlayerSettingsSheet(
         containerColor = BackgroundDark,
         contentColor = TextPrimary
     ) {
-        SettingsContent(
-            playbackState = PlayerPlaybackState(
-                playbackSpeed = playbackSpeed,
-                availableTracks = availableTracks,
-                streams = streams,
-                selectedStreamId = selectedStreamId,
-                videoTrackOverride = videoTrackOverride,
-                videoSize = videoSize
-            ),
-            autoNextEnabled = autoNextEnabled,
-            onAutoNextChange = onAutoNextChange,
-            onSpeedChange = onSpeedChange,
-            onStreamSelected = onStreamSelected,
-            onTrackSelected = onTrackSelected,
-            onClearTrackType = onClearTrackType,
-            onDismiss = onDismiss
-        )
+        Box(modifier = Modifier.fillMaxWidth().padding(bottom = navBarBottom)) {
+            SettingsContent(
+                playbackState = PlayerPlaybackState(
+                    playbackSpeed = playbackSpeed,
+                    availableTracks = availableTracks,
+                    streams = streams,
+                    selectedStreamId = selectedStreamId,
+                    videoTrackOverride = videoTrackOverride,
+                    videoSize = videoSize
+                ),
+                autoNextEnabled = autoNextEnabled,
+                onAutoNextChange = onAutoNextChange,
+                onSpeedChange = onSpeedChange,
+                onStreamSelected = onStreamSelected,
+                onTrackSelected = onTrackSelected,
+                onClearTrackType = onClearTrackType,
+                onDismiss = onDismiss
+            )
+        }
     }
 }
 
