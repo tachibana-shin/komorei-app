@@ -35,7 +35,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.io.File
 
 /**
- * The REAL OPhim source (`sources/ophim` → `package.krx`) driven through the
+ * The REAL OPhim source (`sources/sources/vi.ophim` → `package.krx`) driven through the
  * real runner (uniffi bindings + linux cdylib) and the real Kotlin host
  * ([KrxHostImpl] — Jsoup + OkHttp + SharedPreferences), exactly like
  * [FakeViSourceRunnerIntegrationTest]. The krx is located via

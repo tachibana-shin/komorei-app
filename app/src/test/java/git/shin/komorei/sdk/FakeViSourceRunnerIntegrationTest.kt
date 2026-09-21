@@ -24,7 +24,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 /**
- * The app's own fake source (`sources/fake-vi-source`, packaged at
+ * The app's own fake source (`sources/sources/vi.fake-source`, packaged at
  * `app/src/main/assets/sources/fake-vi-source.krx`) driven through the REAL
  * runner (uniffi bindings + linux cdylib) and the REAL Kotlin host
  * ([KrxHostImpl] — Jsoup + OkHttp + SharedPreferences). Same harness as

@@ -1,6 +1,6 @@
 # API surface of the Komorei Fake source (VI)
 
-> Source file: `sources/fake-vi-source/src/lib.rs` (1273 lines)
+> Source file: `sources/sources/vi.fake-source/src/lib.rs` (1273 lines)
 > Purpose: list the **fields / functions the source exports** and cross-check **how much the app consumes them**, to track implementation progress. Update when the source or the app changes.
 
 ## Status legend

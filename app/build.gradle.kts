@@ -70,16 +70,26 @@ android {
         rootProject.file("komorei-sdk/examples/example-source/package.krx").absolutePath,
       )
       // The app's own fake source (rich catalog), packaged from
-      // sources/fake-vi-source/package.krx — the committed fixture in main assets.
+      // sources/sources/vi.fake-source/package.krx — the committed fixture in
+      // main assets.
       test.systemProperty(
         "komorei.test.fakeKrx",
         rootProject.file("app/src/main/assets/sources/fake-vi-source.krx").absolutePath,
       )
-      // The real OPhim source (sources/ophim) — exercised end-to-end against a
-      // local classic-OPHIM fixture server in OphimSourceRunnerIntegrationTest.
+      // The real OPhim source (sources/sources/vi.ophim) — exercised end-to-end
+      // against a local classic-OPHIM fixture server in
+      // OphimSourceRunnerIntegrationTest.
       test.systemProperty(
         "komorei.test.ophimKrx",
-        rootProject.file("sources/ophim/package.krx").absolutePath,
+        rootProject.file("sources/sources/vi.ophim/package.krx").absolutePath,
+      )
+      // The real Nguồn C source (sources/sources/vi.nguonc) — exercised
+      // end-to-end against a local fixture server (including the
+      // bootstrap → issue embed grant) in
+      // NguoncSourceRunnerIntegrationTest.
+      test.systemProperty(
+        "komorei.test.nguoncKrx",
+        rootProject.file("sources/sources/vi.nguonc/package.krx").absolutePath,
       )
     }
   } }
