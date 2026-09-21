@@ -59,7 +59,9 @@ class SourceReposRepository @Inject constructor(
                     }
             } ?: return RepoLoadResult.Unavailable
             val repo = parseManifest(text) ?: return RepoLoadResult.Unavailable
-            RepoLoadResult.Success(repo)
+            // Aidoku-style manifests advertise relative package/icon paths
+            // (`sources/<id>-v<N>.krx`); resolve them against the repo URL.
+            RepoLoadResult.Success(repo.withResolvedUrls(url))
         } catch (e: Exception) {
             RepoLoadResult.Unavailable
         }
@@ -115,6 +117,20 @@ class SourceReposRepository @Inject constructor(
         return "Kho nguồn (${first.optString("name").ifBlank { "?" }})"
     }
 
+    /**
+     * Resolves relative `downloadURL`/`iconUrl` values (the Aidoku manifest
+     * convention) against the repo base URL so the downloads work regardless of
+     * where the manifest is hosted.
+     */
+    private fun RepoSourceList.withResolvedUrls(baseUrl: String): RepoSourceList = copy(
+        sources = sources.map { source ->
+            source.copy(
+                downloadURL = source.downloadURL?.let { absolutizeUrl(baseUrl, it) },
+                iconUrl = source.iconUrl?.let { absolutizeUrl(baseUrl, it) },
+            )
+        },
+    )
+
     private fun parseSources(arr: JSONArray): List<ExternalSourceInfo> {
         val out = mutableListOf<ExternalSourceInfo>()
         for (i in 0 until arr.length()) {
@@ -146,6 +162,32 @@ class SourceReposRepository @Inject constructor(
             emptyList()
         }
     }
+}
+
+/**
+ * Resolves a URL that may be relative against a base URL. Absolute `http(s)`
+ * URLs pass through untouched; everything else (relative paths and
+ * root-relative `/...` paths alike) is resolved against [baseUrl] using the
+ * standard `URL(base, relative)` semantics. A file-like final path segment
+ * (e.g. `index.min.json`) is dropped so `https://host/repo` and
+ * `https://host/repo/index.min.json` both resolve `sources/x.krx` to
+ * `https://host/repo/sources/x.krx`. Returns [url] unchanged when [baseUrl] is
+ * not a valid URL.
+ */
+fun absolutizeUrl(baseUrl: String, url: String): String {
+    if (url.startsWith("http://") || url.startsWith("https://")) return url
+    val base = runCatching { java.net.URL(baseUrl) }.getOrNull() ?: return url
+    val directoryPath = when {
+        base.path.isEmpty() -> "/"
+        base.path.endsWith("/") -> base.path
+        else -> {
+            val last = base.path.substringAfterLast('/')
+            if (last.contains('.')) base.path.substringBeforeLast('/') + "/"
+            else base.path + "/"
+        }
+    }
+    val directory = java.net.URL(base.protocol, base.host, base.port, directoryPath)
+    return runCatching { java.net.URL(directory, url).toString() }.getOrNull() ?: url
 }
 
 /**
