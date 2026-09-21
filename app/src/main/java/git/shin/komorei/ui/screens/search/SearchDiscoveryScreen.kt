@@ -45,7 +45,7 @@ import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Source
 import git.shin.komorei.ui.components.AppIcons
 import git.shin.komorei.ui.components.AnimeCard
-import git.shin.komorei.ui.components.ListingGridSkeleton
+import git.shin.komorei.ui.components.AnimeCardSkeleton
 import git.shin.komorei.ui.components.search.DiscoverFilterHeaderRow
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeRedContainer
@@ -271,15 +271,29 @@ fun SearchDiscoveryScreen(
                 }
             }
 
-            is SearchUiState.Loading -> {
-                ListingGridSkeleton(
-                    modifier = Modifier.fillMaxSize()
+            is SearchUiState.Searching -> {
+                // Every candidate source renders its own section right away.
+                // Sources that already answered show results/errors; the rest
+                // keep their own loading shimmer until their event lands.
+                SearchSourceSections(
+                    sources = state.candidateSources,
+                    resultsBySource = state.resultsBySource,
+                    sourceErrors = state.sourceErrors,
+                    onAnimeClick = onAnimeClick,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("search_results_list"),
                 )
             }
 
             is SearchUiState.Success -> {
-                val sourcesWithResults = state.resultsBySource.keys.toList()
-                if (sourcesWithResults.isEmpty() && state.sourceErrors.isEmpty()) {
+                // Terminal state: sources with results or an error only.
+                val sourcesShown = (state.resultsBySource.keys + state.sourceErrors.keys)
+                    .distinct()
+                    .filter { source ->
+                        state.resultsBySource[source].isNullOrEmpty().not() || state.sourceErrors[source] != null
+                    }
+                if (sourcesShown.isEmpty()) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -301,84 +315,17 @@ fun SearchDiscoveryScreen(
                         )
                     }
                 } else {
-                    LazyColumn(
+                    SearchSourceSections(
+                        sources = sourcesShown,
+                        resultsBySource = state.resultsBySource,
+                        sourceErrors = state.sourceErrors,
+                        showCountHeader = true,
+                        totalCount = state.totalCount,
+                        onAnimeClick = onAnimeClick,
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag("search_results_list"),
-                        contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            top = 8.dp,
-                            bottom = 24.dp,
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        // Total count header
-                        item {
-                            Text(
-                                text = stringResource(R.string.discover_results_count, state.totalCount),
-                                color = TextSecondary,
-                                fontSize = 13.sp,
-                                modifier = Modifier.padding(vertical = 6.dp)
-                            )
-                        }
-                        // Per-source horizontal sections
-                        sourcesWithResults.forEach { source ->
-                            val animes = state.resultsBySource[source] ?: emptyList()
-                            val error = state.sourceErrors[source]
-                            if (animes.isEmpty() && error == null) return@forEach
-
-                            // Section header with source icon.
-                            item {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 4.dp, bottom = 4.dp, end = 4.dp, start = 2.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = AppIcons.getSourceIcon(source.id),
-                                        contentDescription = null,
-                                        tint = if (error != null) AnimeRed else TextPrimary,
-                                        modifier = Modifier.size(22.dp),
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = source.name,
-                                        color = if (error != null) AnimeRed else TextPrimary,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    if (error != null) {
-                                        Text(
-                                            text = error,
-                                            color = AnimeRed,
-                                            fontSize = 11.sp,
-                                            modifier = Modifier.padding(start = 8.dp),
-                                        )
-                                    }
-                                }
-                            }
-                            // Horizontal anime cards for this source.
-                            item {
-                                LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 2.dp),
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    items(animes) { anime ->
-                                        AnimeCard(
-                                            anime = anime,
-                                            onClick = { onAnimeClick(anime) },
-                                            getSourceName = { _ -> source.name },
-                                            cardWidth = 160.dp,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    )
                 }
             }
 
@@ -408,6 +355,122 @@ fun SearchDiscoveryScreen(
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                         )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Renders one horizontal section per source: a header row with the source's
+ * icon ([AppIcons.getSourceIcon]) + name (red + error message on failure),
+ * and below it either the result cards (horizontal swipe), a small loading
+ * shimmer row while that source is still resolving, or nothing for an error.
+ *
+ * Shared by the live [SearchUiState.Searching] phase (where pending sources
+ * keep their shimmer) and the terminal [SearchUiState.Success] phase (which
+ * only lists sources that produced results or an error).
+ */
+@Composable
+private fun SearchSourceSections(
+    sources: List<Source>,
+    resultsBySource: Map<Source, List<Anime>>,
+    sourceErrors: Map<Source, String>,
+    onAnimeClick: (Anime) -> Unit,
+    modifier: Modifier = Modifier,
+    showCountHeader: Boolean = false,
+    totalCount: Int = 0,
+) {
+    LazyColumn(
+        modifier = modifier.testTag("search_results_list"),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = 8.dp,
+            bottom = 24.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        if (showCountHeader) {
+            item {
+                Text(
+                    text = stringResource(R.string.discover_results_count, totalCount),
+                    color = TextSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(vertical = 6.dp)
+                )
+            }
+        }
+        sources.forEach { source ->
+            val animes = resultsBySource[source] ?: emptyList()
+            val error = sourceErrors[source]
+
+            // Section header with source icon.
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, bottom = 4.dp, end = 4.dp, start = 2.dp)
+                ) {
+                    Icon(
+                        imageVector = AppIcons.getSourceIcon(source.id),
+                        contentDescription = null,
+                        tint = if (error != null) AnimeRed else TextPrimary,
+                        modifier = Modifier.size(22.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = source.name,
+                        color = if (error != null) AnimeRed else TextPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (error != null) {
+                        Text(
+                            text = error,
+                            color = AnimeRed,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
+            }
+            // Source body: results (horizontal swipe), pending shimmer, or error.
+            item {
+                when {
+                    animes.isNotEmpty() -> {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding = PaddingValues(horizontal = 2.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            items(animes) { anime ->
+                                AnimeCard(
+                                    anime = anime,
+                                    onClick = { onAnimeClick(anime) },
+                                    getSourceName = { _ -> source.name },
+                                    cardWidth = 160.dp,
+                                )
+                            }
+                        }
+                    }
+                    error != null -> {
+                        // Nothing to show beyond the red header.
+                        Spacer(modifier = Modifier.height(2.dp))
+                    }
+                    else -> {
+                        // Source still resolving — its own loading shimmer row.
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            repeat(3) {
+                                AnimeCardSkeleton()
+                            }
+                        }
                     }
                 }
             }

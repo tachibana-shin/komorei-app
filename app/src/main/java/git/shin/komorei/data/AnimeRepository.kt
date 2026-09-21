@@ -29,7 +29,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -245,42 +247,57 @@ class AnimeRepository @Inject constructor(
     }
 
     /**
+      * The sources a multi-source search would query given the same filters —
+      * exposed so search UIs can render one section per candidate source
+      * (each with its own load/result/error state) before results arrive.
+      */
+    fun candidateSourcesForSearch(
+        contentRating: Int? = null,
+        languages: Set<String> = emptySet(),
+        sourceIds: Set<String> = emptySet(),
+    ): List<Source> = sources.filter { !it.isAggregator }
+        .filter { sourceIds.isEmpty() || it.id in sourceIds }
+        .filter { contentRating == null || ratingMatches(it.contentRating, contentRating) }
+        .filter { languages.isEmpty() || it.languages.any { lang -> lang in languages } }
+
+    /**
       * Parallel multi-source search that reports each source's outcome
-      * independently ([SourceSearchEvent]). Unlike [searchMultiSource]
-      * which silently drops failures, this exposes every source —
-      * [Completed] with its results (possibly empty) and [Failed] with
-      * the error message — so the UI can render per-source sections
-      * and show which sources errored.
+      * independently ([SourceSearchEvent]) — as a *cold stream* so results
+      * appear directly when each source finishes instead of waiting for all
+      * of them ([channelFlow] preserves completion order: the fastest source
+      * emits first). Unlike [searchMultiSource] which silently drops failures,
+      * this exposes every source — [Completed] with its results (possibly
+      * empty) and [Failed] with the error message — so the UI can render
+      * per-source sections (each with its own state) as they arrive.
       *
       * Each source is queried on its own thread; a broken source only
       * surfaces as its own [Failed] event and never blocks the others.
       */
-    suspend fun searchMultiSourceStream(
+    fun searchMultiSourceStream(
         query: String,
         selectedGenreId: String? = null,
         contentRating: Int? = null,
         languages: Set<String> = emptySet(),
         sourceIds: Set<String> = emptySet(),
-    ): List<SourceSearchEvent> {
+    ): Flow<SourceSearchEvent> = channelFlow {
         val genreName = selectedGenreId?.let { id -> genres.find { it.id == id }?.name }
-        val candidateSources = sources.filter { !it.isAggregator }
-            .filter { sourceIds.isEmpty() || it.id in sourceIds }
-            .filter { contentRating == null || ratingMatches(it.contentRating, contentRating) }
-            .filter { languages.isEmpty() || it.languages.any { lang -> lang in languages } }
+        val candidateSources = candidateSourcesForSearch(contentRating, languages, sourceIds)
 
-        return coroutineScope {
+        // Launch every source concurrently; each one sends its outcome the
+        // moment it completes so the collector gets per-source updates live.
+        coroutineScope {
             candidateSources.map { source ->
-                async {
+                launch {
                     try {
                         val genreValues = genreName?.let { name -> buildGenreFilter(source.id, name) }
                             ?: emptyList()
                         val results = search(source.id, query.ifBlank { null }, 1, genreValues).entries
-                        Completed(source, results)
+                        send(Completed(source, results))
                     } catch (e: Exception) {
-                        Failed(source, e.localizedMessage ?: e.javaClass.simpleName)
+                        send(Failed(source, e.localizedMessage ?: e.javaClass.simpleName))
                     }
                 }
-            }.awaitAll()
+            }
         }
     }
 

@@ -10,6 +10,7 @@ import git.shin.komorei.model.ListingKind
 import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.toList
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -282,7 +283,7 @@ class AnimeRepositoryTest {
 
     @Test
     fun testSearchMultiSourceStreamReturnsPerSourceEvents() = runBlocking {
-        val events = repository.searchMultiSourceStream(query = "Frieren")
+        val events = repository.searchMultiSourceStream(query = "Frieren").toList()
 
         // Exactly one source (vi.fake-source) should return results.
         val completed = events.filterIsInstance<SourceSearchEvent.Completed>()
@@ -297,7 +298,7 @@ class AnimeRepositoryTest {
     @Test
     fun testSearchMultiSourceStreamReturnsEmptyResultsForGenre() = runBlocking {
         // Genre "action" filters to a subset; results are still per-source.
-        val events = repository.searchMultiSourceStream(query = "", selectedGenreId = "action")
+        val events = repository.searchMultiSourceStream(query = "", selectedGenreId = "action").toList()
 
         val completed = events.filterIsInstance<SourceSearchEvent.Completed>()
         assertTrue("at least one source completed", completed.isNotEmpty())

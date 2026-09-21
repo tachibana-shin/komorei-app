@@ -6,14 +6,20 @@ import git.shin.komorei.model.Source
 /**
  * UI State for multi-source search and discovery.
  *
- * [resultsBySource] maps each source to its found anime (presented
- * as its own section in the UI). [sourceErrors] carries per-source
- * error messages so the UI can show which sources failed. A source
- * absent from both maps was not queried or returned empty results.
+ * [Searching] is the live phase: every candidate source renders its own
+ * section (header + horizontal row) the moment the search starts, and each
+ * section transitions to results/error independently as its [SourceSearchEvent]
+ * arrives — a slow source never blocks the sections that already finished.
+ * [resultsBySource] maps each source to its found anime; [sourceErrors] carries
+ * per-source error messages. [Success] is the terminal all-done state.
  */
 sealed interface SearchUiState {
     data object Idle : SearchUiState
-    data object Loading : SearchUiState
+    data class Searching(
+        val candidateSources: List<Source>,
+        val resultsBySource: Map<Source, List<Anime>> = emptyMap(),
+        val sourceErrors: Map<Source, String> = emptyMap(),
+    ) : SearchUiState
     data class Success(
         val resultsBySource: Map<Source, List<Anime>>,
         val totalCount: Int,

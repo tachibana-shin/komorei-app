@@ -19,6 +19,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -234,45 +235,53 @@ class SearchViewModel @Inject constructor(
 
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
-            _searchUiState.value = SearchUiState.Loading
+            val candidates = repository.candidateSourcesForSearch(
+                contentRating = params.rating.repositoryValue,
+                languages = params.language?.let { setOf(it) } ?: emptySet(),
+                sourceIds = params.sourceIds,
+            )
             val resultsBySource = mutableMapOf<Source, List<Anime>>()
             val sourceErrors = mutableMapOf<Source, String>()
+
+            // Search started — every candidate source renders its own section
+            // immediately; pending ones show their own loading shimmer.
+            _searchUiState.value = SearchUiState.Searching(
+                candidateSources = candidates,
+                resultsBySource = resultsBySource,
+                sourceErrors = sourceErrors,
+            )
             try {
-                val events = repository.searchMultiSourceStream(
+                repository.searchMultiSourceStream(
                     query = params.query,
                     selectedGenreId = params.genreId,
                     contentRating = params.rating.repositoryValue,
                     languages = params.language?.let { setOf(it) } ?: emptySet(),
                     sourceIds = params.sourceIds,
-                )
-                if (events.isEmpty()) {
-                    // No candidate sources matched the filters — emit empty success.
-                    _searchUiState.value = SearchUiState.Success(
-                        resultsBySource = resultsBySource,
-                        totalCount = 0,
-                        sourceErrors = sourceErrors,
-                    )
-                } else {
-                    for (event in events) {
-                        when (event) {
-                            is SourceSearchEvent.Completed -> {
-                                if (event.results.isNotEmpty()) {
-                                    resultsBySource[event.source] = event.results
-                                }
-                            }
-                            is SourceSearchEvent.Failed -> {
-                                sourceErrors[event.source] = event.message
+                ).collect { event ->
+                    when (event) {
+                        is SourceSearchEvent.Completed -> {
+                            if (event.results.isNotEmpty()) {
+                                resultsBySource[event.source] = event.results
                             }
                         }
-                        // Emit incremental state after each source so results
-                        // appear immediately as each source completes.
-                        _searchUiState.value = SearchUiState.Success(
-                            resultsBySource = resultsBySource,
-                            totalCount = resultsBySource.values.sumOf { it.size },
-                            sourceErrors = sourceErrors,
-                        )
+                        is SourceSearchEvent.Failed -> {
+                            sourceErrors[event.source] = event.message
+                        }
                     }
+                    // Update each source's own section as its result lands —
+                    // the other sections are untouched and stay as they are.
+                    _searchUiState.value = SearchUiState.Searching(
+                        candidateSources = candidates,
+                        resultsBySource = resultsBySource,
+                        sourceErrors = sourceErrors,
+                    )
                 }
+                // All sources finished — terminal state with the totals.
+                _searchUiState.value = SearchUiState.Success(
+                    resultsBySource = resultsBySource,
+                    totalCount = resultsBySource.values.sumOf { it.size },
+                    sourceErrors = sourceErrors,
+                )
             } catch (e: Exception) {
                 _searchUiState.value = SearchUiState.Error(
                     e.localizedMessage ?: appContext.getString(R.string.error_search),
