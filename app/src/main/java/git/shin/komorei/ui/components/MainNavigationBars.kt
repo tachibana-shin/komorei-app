@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,11 +45,10 @@ import git.shin.komorei.ui.theme.TextMuted
 /**
  * Phone bottom navigation.
  *
- * The app now has more than the 5 destinations a Material [androidx.compose.material3.NavigationBar]
- * comfortably fits, so this is a horizontally scrollable strip of compact items.
- * It auto-scrolls the selected tab into view (a tab selected from elsewhere —
- * deep link, back stack — is always visible) and keeps the same tinting/testTags
- * the old fixed bar used.
+ * A FIXED, evenly-spaced row: every top-level destination is always on screen —
+ * no horizontal scrolling and no auto-scroll shifting the bar when a tab is
+ * selected. Data-driven off [tabs] (one [MainTab] entry per destination), and
+ * each item takes an equal share of the width.
  */
 @Composable
 fun MainBottomNavigation(
@@ -58,30 +57,23 @@ fun MainBottomNavigation(
     onSelect: (MainTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val listState = rememberLazyListState()
-    val selectedIndex = remember(tabs, currentRoute) {
-        tabs.indexOfFirst { it.route == currentRoute }.coerceAtLeast(0)
-    }
-    LaunchedEffect(selectedIndex) { listState.animateScrollToItem(selectedIndex) }
-
-    LazyRow(
-        state = listState,
+    Row(
         modifier = modifier
             .fillMaxWidth()
             .background(SurfaceDark)
             .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(horizontal = 4.dp, vertical = 4.dp)
             .testTag("main_bottom_navigation"),
         verticalAlignment = Alignment.CenterVertically,
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        items(items = tabs, key = { it.key }) { tab ->
+        tabs.forEach { tab ->
             BottomNavItem(
                 tab = tab,
                 selected = tab.route == currentRoute,
                 onClick = { onSelect(tab) },
                 modifier = Modifier
-                    .width(74.dp)
+                    .weight(1f)
                     .testTag("tab_${tab.key}"),
             )
         }
