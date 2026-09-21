@@ -1,6 +1,7 @@
 package git.shin.komorei.ui.screens.search
 
 import git.shin.komorei.ui.components.search.CompactInput
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,10 +28,9 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,24 +46,21 @@ import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Source
 import git.shin.komorei.ui.components.AnimeCard
-import git.shin.komorei.ui.components.GenreGridCard
 import git.shin.komorei.ui.components.ListingGridSkeleton
 import git.shin.komorei.ui.components.search.DiscoverFilterHeaderRow
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeRedContainer
 import git.shin.komorei.ui.theme.BackgroundDark
-import git.shin.komorei.ui.theme.CardBorderDark
-import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.NeonViolet
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
 
 /**
- * Khám Phá tab — an Aidoku-style global search: a search bar, the three global
- * filter pills (Xếp hạng nội dung / Ngôn ngữ / Nguồn) and a per-source
- * results grid where each source shows its own section. The idle state keeps
- * the genre discovery grid; tapping a genre starts a genre-filtered search.
+ * Tìm Kiếm tab — an Aidoku-style global search: a search bar, the three
+ * global filter pills (Xếp hạng nội dung / Ngôn ngữ / Nguồn) and a per-source
+ * results grid. When idle with no query, recent search history is displayed
+ * instead of the old genre grid (sources no longer provide genre data).
  */
 @Composable
 fun SearchDiscoveryScreen(
@@ -77,7 +74,7 @@ fun SearchDiscoveryScreen(
     val language by viewModel.language.collectAsState()
     val sourceFilter by viewModel.sourceFilter.collectAsState()
     val searchUiState by viewModel.searchUiState.collectAsState()
-    val genres = viewModel.genres
+    val searchHistory by viewModel.searchHistory.collectAsState()
     val sources = viewModel.sources
 
     Column(
@@ -136,7 +133,6 @@ fun SearchDiscoveryScreen(
         // Search Results / Discovery Content
         when (val state = searchUiState) {
             is SearchUiState.Idle -> {
-                // Discovery Categories & Genre Grid
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
@@ -154,7 +150,7 @@ fun SearchDiscoveryScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = stringResource(R.string.genres_category_title),
+                                text = stringResource(R.string.search_history_title),
                                 color = TextPrimary,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
@@ -163,32 +159,113 @@ fun SearchDiscoveryScreen(
                     }
 
                     item {
-                        // Visual 2-Column Genre Cards
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 120.dp)
-                        ) {
-                            val chunkedGenres = genres.chunked(2)
-                            chunkedGenres.forEach { pair ->
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    modifier = Modifier.fillMaxWidth()
+                        val history = searchHistory
+                        if (history.isEmpty()) {
+                            // No history — show prompt
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.search_history_empty),
+                                    color = TextMuted,
+                                    fontSize = 13.sp,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = stringResource(R.string.search_hint),
+                                    color = TextSecondary,
+                                    fontSize = 12.sp,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                )
+                            }
+                        } else {
+                            // History list
+                            history.forEach { query ->
+                                val isLast = query == history.first()
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            // Re-run the search with this query
+                                            viewModel.onSearchQueryChange(query)
+                                        }
+                                        .padding(vertical = 4.dp)
                                 ) {
-                                    pair.forEach { genre ->
-                                        Box(modifier = Modifier.weight(1f)) {
-                                            GenreGridCard(
-                                                genre = genre,
-                                                isSelected = selectedGenre?.id == genre.id,
-                                                onClick = { viewModel.selectGenre(genre) }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Search,
+                                            contentDescription = null,
+                                            tint = TextSecondary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = query,
+                                            color = TextPrimary,
+                                            fontSize = 14.sp,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        if (isLast) {
+                                            Text(
+                                                text = stringResource(R.string.search_history_latest),
+                                                color = AnimeRed,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(end = 4.dp)
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { viewModel.removeHistoryItem(query) },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Clear,
+                                                contentDescription = stringResource(R.string.search_history_clear_item),
+                                                tint = TextMuted,
+                                                modifier = Modifier.size(16.dp)
                                             )
                                         }
                                     }
-                                    if (pair.size == 1) {
-                                        Spacer(modifier = Modifier.weight(1f))
-                                    }
                                 }
+                            }
+
+                            // Clear all history
+                            Spacer(modifier = Modifier.height(4.dp))
+                            TextButton(
+                                onClick = { viewModel.clearSearchHistory() }
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.search_history_clear_all),
+                                    color = AnimeRed,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+
+                    // Show the clear-search hint when there's a genre selected
+                    if (selectedGenre != null) {
+                        item {
+                            // Genre badge showing current genre filter
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.filter_genre_label, selectedGenre!!.name),
+                                    color = AnimeRed,
+                                    fontSize = 12.sp,
+                                )
                             }
                         }
                     }

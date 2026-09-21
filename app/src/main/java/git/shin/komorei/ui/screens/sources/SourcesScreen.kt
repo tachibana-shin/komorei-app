@@ -151,7 +151,7 @@ fun SourcesScreen(
             }
             IconButton(
                 onClick = { showAddSheet = true },
-                modifier = Modifier.testTag("add_source_button"),
+                modifier = Modifier.testTag("sources_add_source_button"),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,

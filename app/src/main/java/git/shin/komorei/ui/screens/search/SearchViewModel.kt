@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import git.shin.komorei.R
+import git.shin.komorei.data.SearchHistoryStore
 import git.shin.komorei.data.SourceSearchEvent
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.model.Anime
@@ -28,21 +29,26 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Multi-source search & discovery VM (Khám Phá tab, Aidoku-style global
- * search). One debounced pipeline combines the query, the genre shortcut and
- * the three global filters — content rating / language / sources — into a
- * single `AnimeRepository.searchMultiSource` call (results flattened into a
- * grid by [SearchDiscoveryScreen]).
+ * Multi-source search & discovery VM (Tìm Kiếm tab, Aidoku-style global
+ * search). One debounced pipeline combines the query and the three global
+ * filters — content rating / language / sources — into a single
+ * `AnimeRepository.searchMultiSource` call (results flattened into a grid
+ * by [SearchDiscoveryScreen]).
  *
- * Every search parameter is mirrored into the [SavedStateHandle], so the search
- * survives tab switches and process death: the tab navigation pops the entry
- * with `saveState = true` and the restored VM re-reads these keys in `init`.
+ * Search history is persisted via [SearchHistoryStore] and displayed on
+ * the idle screen when there is no active query.
+ *
+ * Every search parameter is mirrored into the [SavedStateHandle], so the
+ * search survives tab switches and process death: the tab navigation pops
+ * the entry with `saveState = true` and the restored VM re-reads these
+ * keys in `init`.
  */
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val repository: AnimeRepository,
+    private val searchHistoryStore: SearchHistoryStore,
     savedStateHandle: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
 
@@ -58,6 +64,9 @@ class SearchViewModel @Inject constructor(
 
     /** Non-aggregator sources (the "Sources" filter options). */
     val sources: List<Source> = repository.sources.filter { !it.isAggregator }
+
+    /** Recent search queries (most recent first), persisted across sessions. */
+    val searchHistory: StateFlow<List<String>> = searchHistoryStore.history
 
     /**
      * Test seam — JVM tests set 0 because the test Main scheduler's virtual
@@ -187,6 +196,22 @@ class SearchViewModel @Inject constructor(
         executeSearch(currentParams())
     }
 
+    /** Adds the current query to search history (if non-blank). */
+    fun addToSearchHistory() {
+        val query = _searchQuery.value.trim()
+        if (query.isNotBlank()) {
+            searchHistoryStore.addQuery(query)
+        }
+    }
+
+    fun clearSearchHistory() {
+        searchHistoryStore.clearHistory()
+    }
+
+    fun removeHistoryItem(query: String) {
+        searchHistoryStore.removeQuery(query)
+    }
+
     fun getSourceName(sourceId: String): String = repository.getSourceName(sourceId)
 
     private fun currentParams() = Params(
@@ -203,6 +228,9 @@ class SearchViewModel @Inject constructor(
             _searchUiState.value = SearchUiState.Idle
             return
         }
+
+        // Add query to history when executing a search
+        addToSearchHistory()
 
         searchJob?.cancel()
         searchJob = viewModelScope.launch {

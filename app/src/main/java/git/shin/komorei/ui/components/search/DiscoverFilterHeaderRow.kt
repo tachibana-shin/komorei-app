@@ -38,20 +38,9 @@ private const val FILTER_LANGUAGE = "language"
 private const val FILTER_SOURCES = "sources"
 
 /**
- * The Aidoku-style global search filter row of the Khám Phá tab: an aggregate
- * filter-sheet button (like the per-source search header's) followed by three
- * pills — **Xếp hạng nội dung** (content rating), **Ngôn ngữ** (language) and
- * **Nguồn** (sources). Each pill opens its own [FilterBottomSheet] (single-select
- * tag chips for rating/language, multi-select chips for sources) and commits
- * immediately.
- *
- * The leading [FilterSheetButton] opens a [FilterListSheet] that lists ALL
- * three global filters together — changes commit instantly with no draft/apply
- * buttons, matching the per-source filter header behavior.
- *
- * Reuses the per-source filter chrome ([FilterPill], [FilterBottomSheet],
- * [SelectFilterGroup], [MultiSelectFilterGroup]) with hand-built [FilterKind]
- * instances so no source `filters()` request is needed.
+ * The Aidoku-style global search filter row of the Tìm Kiếm tab: an aggregate
+ * filter-sheet button followed by three pills — **Xếp hạng nội dung** (content rating),
+ * **Ngôn ngữ** (language) and **Nguồn** (sources).
  */
 @Composable
 fun DiscoverFilterHeaderRow(

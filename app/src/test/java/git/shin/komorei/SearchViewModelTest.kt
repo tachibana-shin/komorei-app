@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import git.shin.komorei.data.AnimeRepository
+import git.shin.komorei.data.SearchHistoryStore
 import git.shin.komorei.model.ContentRatingFilter
 import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
@@ -29,7 +30,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 /**
- * Discover (Khám Phá) global search — the Aidoku-style filters (content rating
+ * Tìm Kiếm global search — the Aidoku-style filters (content rating
  * / language / sources) plus the genre shortcut and query, on the REAL runner +
  * [KrxHostImpl] + the committed `fake-vi-source.krx` fixture.
  *
@@ -37,7 +38,7 @@ import java.io.File
  * clock never advances — a real 300ms debounce would never fire (same pattern
  * as [SourceSearchViewModelTest]).
  *
- * **Idle rule:** a blank query with no genre selected → idle genre grid.
+ * **Idle rule:** a blank query with no genre selected → idle with search history prompt.
  * Filters alone (rating/language/sources) do NOT trigger a search — they
  * only refine an active query+genre search, matching Aidoku's behaviour.
  */
@@ -47,6 +48,7 @@ import java.io.File
 class SearchViewModelTest {
 
     private lateinit var repository: AnimeRepository
+    private lateinit var searchHistoryStore: SearchHistoryStore
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     companion object {
@@ -65,6 +67,7 @@ class SearchViewModelTest {
         val runner = registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
         assertNotNull("fake source should load", runner)
         repository = AnimeRepository(registry)
+        searchHistoryStore = SearchHistoryStore(context)
         Dispatchers.setMain(mainDispatcher)
     }
 
@@ -77,6 +80,7 @@ class SearchViewModelTest {
         SearchViewModel(
             appContext = ApplicationProvider.getApplicationContext(),
             repository = repository,
+            searchHistoryStore = searchHistoryStore,
             savedStateHandle = handle,
         ).also { it.searchDebounceMillis = 0 }
 

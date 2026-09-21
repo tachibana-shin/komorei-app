@@ -1,12 +1,14 @@
 package git.shin.komorei
 
 import android.content.Context
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import git.shin.komorei.data.AnimeRepository
+import git.shin.komorei.data.SearchHistoryStore
 import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
 import git.shin.komorei.ui.screens.search.SearchViewModel
@@ -17,6 +19,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -29,12 +32,12 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import java.io.File
 
 /**
- * Compose UI tests for the Discover (Khám Phá) screen.
+ * Compose UI tests for the Tìm Kiếm (Search) tab.
  *
  * Verify the post-refactor contract:
- *  - Blank query + no genre → idle genre grid (no search results).
+ *  - Blank query + no history → idle with search history prompt.
  *  - Changing a filter alone → still idle (no search triggered).
- *  - Typing a query → search results appear.
+ *  - Typing a query → search results appear, query added to history.
  *
  * Uses a real SearchViewModel with the committed fake source,
  * passed directly to SearchDiscoveryScreen to bypass hiltViewModel().
@@ -50,6 +53,7 @@ class DiscoverScreenTest {
     @get:Rule val composeTestRule = createComposeRule()
 
     private lateinit var repository: AnimeRepository
+    private lateinit var searchHistoryStore: SearchHistoryStore
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     companion object {
@@ -64,6 +68,7 @@ class DiscoverScreenTest {
         val runner = registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
         checkNotNull(runner) { "fake source should load" }
         repository = AnimeRepository(registry)
+        searchHistoryStore = SearchHistoryStore(context)
         Dispatchers.setMain(mainDispatcher)
     }
 
@@ -76,11 +81,12 @@ class DiscoverScreenTest {
         SearchViewModel(
             ApplicationProvider.getApplicationContext(),
             repository,
+            searchHistoryStore,
             SavedStateHandle(),
-        )
+        ).also { it.searchDebounceMillis = 0 }
 
     @Test
-    fun idleShowsGenreGridNotResults() {
+    fun idleShowsSearchHistoryNotGenreGrid() {
         val vm = newViewModel()
         composeTestRule.setContent {
             git.shin.komorei.ui.screens.search.SearchDiscoveryScreen(
@@ -89,10 +95,8 @@ class DiscoverScreenTest {
             )
         }
 
-        // Genre grid must be present (idle state — no query, no genre)
-        composeTestRule.onNodeWithTag("genre_action")
-            .performClick()
-        composeTestRule.onNodeWithTag("genre_isekai")
+        // Idle state — search history prompt (no genre grid)
+        composeTestRule.onNodeWithText("Chưa có lịch sử tìm kiếm")
             .performClick()
     }
 
@@ -106,10 +110,6 @@ class DiscoverScreenTest {
             )
         }
 
-        // Genre grid present
-        composeTestRule.onNodeWithTag("genre_action")
-            .performClick()
-
         // Open the aggregate filter sheet via FilterSheetButton
         composeTestRule.onNodeWithTag("filter_sheet_button")
             .performClick()
@@ -118,8 +118,26 @@ class DiscoverScreenTest {
         composeTestRule.onNodeWithTag("filter_sheet_close")
             .performClick()
 
-        // Still idle — genre grid present (no search triggered by filter change alone)
-        composeTestRule.onNodeWithTag("genre_action")
+        // Still idle — search history prompt (no search triggered by filter change alone)
+        composeTestRule.onNodeWithText("Chưa có lịch sử tìm kiếm")
             .performClick()
+    }
+
+    @Test
+    fun searchAddsToHistory() {
+        val vm = newViewModel()
+        composeTestRule.setContent {
+            git.shin.komorei.ui.screens.search.SearchDiscoveryScreen(
+                onAnimeClick = {},
+                viewModel = vm,
+            )
+        }
+
+        // Type a query and add directly to history
+        vm.onSearchQueryChange("Frieren")
+        vm.addToSearchHistory()
+
+        // Search history should contain the query
+        assertTrue("Frieren" in vm.searchHistory.value)
     }
 }

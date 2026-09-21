@@ -129,7 +129,7 @@ class SourcesScreenTest {
                 viewModel = sourcesViewModel,
             )
         }
-        composeTestRule.onNodeWithTag("add_source_button")
+        composeTestRule.onNodeWithTag("sources_add_source_button")
             .performClick()
     }
 

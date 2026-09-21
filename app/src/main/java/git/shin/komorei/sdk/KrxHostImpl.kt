@@ -7,6 +7,7 @@ import android.util.Log
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.WebSettings
 import git.shin.komorei.data.local.KrxDefaultsStore
 import git.shin.komorei.data.local.krxDefaultsKey
 import git.shin.komorei.data.local.platformKrxDefaultsStore
@@ -212,6 +213,40 @@ class KrxHostImpl(
         body: ByteArray,
         timeout: Double?,
     ): HostNetResponse {
+        val result = tryExecuteRequest(
+            url = url,
+            method = method,
+            headers = headers,
+            body = body,
+            timeout = timeout
+        )
+
+        // If 403, load the URL in a WebView so JavaScript can execute
+        // and set cookies (Cloudflare/Turnstile/etc.). The WebViewCookieJar
+        // automatically picks up cookies from CookieManager for the retry.
+        if (result.status == 403) {
+            handleJsChallenge(url)
+            // Retry with cookies now stored in CookieManager via WebViewCookieJar
+            return tryExecuteRequest(
+                url = url,
+                method = method,
+                headers = headers,
+                body = body,
+                timeout = timeout
+            )
+        }
+
+        return result
+    }
+
+    /** Executes an HTTP request via OkHttp, returning the raw [HostNetResponse]. */
+    private fun tryExecuteRequest(
+        url: String,
+        method: HostHttpMethod,
+        headers: Map<String, String>,
+        body: ByteArray,
+        timeout: Double?,
+    ): HostNetResponse {
         return try {
             val requestBuilder = Request.Builder().url(url)
             headers.forEach { (name, value) -> requestBuilder.header(name, value) }
@@ -224,7 +259,7 @@ class KrxHostImpl(
                 client
             }
             effectiveClient.newCall(requestBuilder.build()).execute().use { response ->
-                val bodyBytes = response.body?.bytes() ?: byteArrayOf()
+                val bodyBytes = response.body.let { it.bytes() } ?: byteArrayOf()
                 val responseHeaders = LinkedHashMap<String, String>()
                 response.headers.forEach { (name, value) ->
                     responseHeaders.merge(name, value) { existing, new -> "$existing, $new" }
@@ -240,6 +275,47 @@ class KrxHostImpl(
         } catch (e: Exception) {
             Log.w(TAG, "net_request failed: ${method.name} $url -> $e")
             HostNetResponse(ok = false, status = 0, url = url, headers = emptyMap(), data = byteArrayOf())
+        }
+    }
+
+    /**
+     * Handles a 403 challenge by loading [url] in a headless WebView so that
+     * JavaScript can execute and set cookies via [android.webkit.CookieManager].
+     * The existing [WebViewCookieJar] automatically picks up these cookies
+     * on the subsequent OkHttp retry.
+     *
+     * If the challenge requires human interaction (e.g. captcha), the WebView
+     * loads but may not complete — in that case, the source code should detect
+     * the insufficient cookies and prompt the user to open [SourceBrowserScreen].
+     */
+    private fun handleJsChallenge(url: String) {
+        try {
+            onMainThread {
+                // Reuse the existing WebView infrastructure (same as jsWebviewCreate).
+                val state = createWebViewState()
+                state.webView.settings.mixedContentMode =
+                    WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                val handle = nextHandle.getAndIncrement()
+                webviews[handle] = state
+
+                val latch = CountDownLatch(1)
+                val originalClient = state.webView.webViewClient
+                state.webView.webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView?, loadedUrl: String?) {
+                        if (originalClient != null) originalClient.onPageFinished(view, loadedUrl)
+                        latch.countDown()
+                    }
+                }
+
+                state.beginLoad()
+                state.webView.loadUrl(url)
+                latch.await(WEBVIEW_LOAD_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                state.finishLoad(url)
+
+                webviews.remove(handle)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "JS challenge failed for $url: $e")
         }
     }
 
@@ -1001,6 +1077,7 @@ class KrxHostImpl(
 
     private companion object {
         const val TAG = "KrxHost"
+        const val MAX_403_RETRIES = 2
 
         const val KIND_UNKNOWN = 0
         const val KIND_NODE = 1
