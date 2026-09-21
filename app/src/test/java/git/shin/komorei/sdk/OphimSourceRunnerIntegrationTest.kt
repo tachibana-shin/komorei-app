@@ -351,8 +351,8 @@ class OphimSourceRunnerIntegrationTest {
         assertEquals("base_url_changed", baseUrl.notification)
         assertEquals(listOf("content", "listings"), baseUrl.refreshes)
         val text = baseUrl.value as SettingValue.Text
-        assertEquals("https://ophim1.com", text.default)
-        assertEquals("https://ophim1.com", text.placeholder)
+        assertEquals("https://phimapi.com", text.default)
+        assertEquals("https://phimapi.com", text.placeholder)
 
         assertEquals("Xoá bộ nhớ nguồn", byKey.getValue("clear_cache").title)
         assertTrue(byKey.getValue("clear_cache").value is SettingValue.Button)

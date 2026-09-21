@@ -156,6 +156,22 @@ class KrxHostImplTest {
     }
 
     @Test
+    fun `script element data yields embedded json`() {
+        // `Element.data()` must return the raw `<script id="srcData">` body —
+        // kkphim-style sources read their episode/stream JSON straight from it.
+        val json = """[{"server_name":"Youtube","server_data":[{"slug":"tap-1","link_m3u8":"https://a.kvp726.com/x/index.m3u8"}]}]"""
+        val doc = host.htmlParse(
+            """<html><body><script type="application/json" id="srcData">$json</script></body></html>""",
+            "",
+        )
+        val script = host.htmlSelectFirst(doc, "script#srcData")!!
+        assertEquals(json, host.htmlData(script))
+        // never the `data` HTML attribute
+        val el = host.htmlSelectFirst(doc, "script#srcData[data-x]")
+        assertNull(el?.let { host.htmlData(it) }?.takeIf { it == "nope" })
+    }
+
+    @Test
     fun `destroy invalidates the handle`() {
         val doc = host.htmlParse("<p>x</p>", "")
         host.htmlDestroy(doc)

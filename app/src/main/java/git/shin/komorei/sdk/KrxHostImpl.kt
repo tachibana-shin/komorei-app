@@ -704,8 +704,25 @@ class KrxHostImpl(
             is DataNode -> node.wholeData
             is Comment -> node.data
             is TextNode -> node.getWholeText()
-            is Element -> node.attr("data").takeIf { it.isNotBlank() }
+            // SwiftSoup semantics: an Element's "data" is the accumulation of
+            // its descendant DataNode/Comment contents — e.g. the raw JSON
+            // inside a `<script id="srcData">` tag. (`attr("data")` would be
+            // the HTML attribute, which scripts used for embedded JSON never
+            // carry.)
+            is Element -> buildString {
+                accumulateData(node, this)
+            }.takeIf { it.isNotBlank() }
             else -> null
+        }
+    }
+
+    private fun accumulateData(node: org.jsoup.nodes.Node, out: StringBuilder) {
+        for (child in node.childNodes()) {
+            when (child) {
+                is DataNode -> out.append(child.wholeData)
+                is Comment -> out.append(child.data)
+                else -> accumulateData(child, out)
+            }
         }
     }
 
