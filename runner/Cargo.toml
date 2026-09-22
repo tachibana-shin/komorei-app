@@ -17,8 +17,14 @@ crate-type = ["cdylib", "lib"]
 # komorei-sdk is its own separate repository (kept at ../komorei-sdk); this
 # crate is owned by the application repo and reaches the sdk by relative path.
 komorei = { path = "../komorei-sdk/crates/lib", default-features = false }
+base64 = "0.22"
+digest = "0.10"
+hmac = "0.12"
+md-5 = "0.10"
 postcard = { version = "1.1", features = ["alloc"] }
 serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
+sha1 = "0.10"
+sha2 = "0.10"
 thiserror = "2.0"
 uniffi = { version = "0.32.1", features = ["build"] }
 wasmi = "2.0.0"
