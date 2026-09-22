@@ -52,6 +52,47 @@ import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 
 /**
+ * The listings chips header (Aidoku "get_dynamic_listings"): skeleton while
+ * loading, then the chip rail. Both states OVERLAY in a Box so the cross-fade
+ * never stacks them vertically (a Column would momentarily double the header
+ * height and look blank in the fade window). It is a standalone composable so
+ * the `AnimatedVisibility` calls resolve to the top-level overload — inside the
+ * header `Row` scope they'd pick `RowScope.AnimatedVisibility` and hit
+ * DSL_SCOPE_VIOLATION once a `modifier` is passed.
+ */
+@Composable
+private fun ListingChipsHeader(
+    listingsLoading: Boolean,
+    listings: List<Listing>,
+    selectedIndex: Int,
+    onSelectListing: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        AnimatedVisibility(
+            visible = listingsLoading && listings.isEmpty(),
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            ListingChipsSkeleton()
+        }
+        AnimatedVisibility(
+            visible = listings.isNotEmpty(),
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            ListingChipsRow(
+                listings = listings,
+                selectedIndex = selectedIndex,
+                onSelect = onSelectListing,
+            )
+        }
+    }
+}
+
+/**
  * The per-source browse content shared by the Home tab's pager page and the
  * per-source home screen (`SourceHomeScreen`): the listings chip row (Aidoku
  * "get_dynamic_listings") + the source's full home layout (or the selected
@@ -91,26 +132,21 @@ fun SourceHomeContent(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
-            Column(modifier = Modifier.weight(1f)) {
-                AnimatedVisibility(
-                    visible = listingState.listingsLoading && listingState.listings.isEmpty(),
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                ) {
-                    ListingChipsSkeleton()
-                }
-                AnimatedVisibility(
-                    visible = listingState.listings.isNotEmpty(),
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                ) {
-                    ListingChipsRow(
-                        listings = listingState.listings,
-                        selectedIndex = listingState.selectedIndex,
-                        onSelect = onSelectListing,
-                    )
-                }
-            }
+            // Overlay (Box), NOT a stacked Column: during the skeleton→chips swap
+            // BOTH AnimatedVisibility children are composed at once, and in a
+            // Column they stack row-on-row → the header momentarily doubles in
+            // height and looks blank in the fade window. Overlaying them keeps
+            // the bar at a constant height while they cross-fade in place.
+            // (Hoisted into a private composable below: called straight from the
+            // Row scope, AnimatedVisibility resolves to the RowScope overload
+            // and DSL_SCOPE_VIOLATION fires once a `modifier` is passed.)
+            ListingChipsHeader(
+                listingsLoading = listingState.listingsLoading,
+                listings = listingState.listings,
+                selectedIndex = listingState.selectedIndex,
+                onSelectListing = onSelectListing,
+                modifier = Modifier.weight(1f),
+            )
         }
 
         // Aidoku listings header content: animate the home↔listing swap.
