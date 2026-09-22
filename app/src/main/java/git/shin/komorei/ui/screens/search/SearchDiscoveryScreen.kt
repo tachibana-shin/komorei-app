@@ -443,6 +443,9 @@ private fun SearchSourceSections(
             item {
                 when {
                     animes.isNotEmpty() -> {
+                        // Compact cards matching the home ScrollerRow standard
+                        // (110dp) so ~3 fit on a phone row — 160dp cards
+                        // squeezed to ~2 per screen and looked oversized.
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             contentPadding = PaddingValues(horizontal = 2.dp),
@@ -453,7 +456,7 @@ private fun SearchSourceSections(
                                     anime = anime,
                                     onClick = { onAnimeClick(anime) },
                                     getSourceName = { _ -> source.name },
-                                    cardWidth = 160.dp,
+                                    cardWidth = 110.dp,
                                 )
                             }
                         }
@@ -464,12 +467,18 @@ private fun SearchSourceSections(
                     }
                     else -> {
                         // Source still resolving — its own loading shimmer row.
-                        Row(
+                        // A scrollable LazyRow, not a plain Row: three 135dp
+                        // skeletons in a fixed Row overflow past the screen and
+                        // clip (stuck at ~2 cards, no way to swipe) — unlike
+                        // the results row it precedes. Match the results 1:1
+                        // with the same compact 110dp cards as ScrollerRow.
+                        LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding = PaddingValues(horizontal = 2.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            repeat(3) {
-                                AnimeCardSkeleton()
+                            items(6) {
+                                AnimeCardSkeleton(modifier = Modifier.width(110.dp))
                             }
                         }
                     }
