@@ -91,6 +91,13 @@ android {
         "komorei.test.nguoncKrx",
         rootProject.file("sources/sources/vi.nguonc/package.krx").absolutePath,
       )
+      // The real Nguồn Phim source (sources/sources/vi.nguonphim) — the same
+      // nguonc-style engine pointed at api.nguonphim.net; exercised against the
+      // same fixture shape in NguonphimSourceRunnerIntegrationTest.
+      test.systemProperty(
+        "komorei.test.nguonphimKrx",
+        rootProject.file("sources/sources/vi.nguonphim/package.krx").absolutePath,
+      )
     }
   } }
   dependenciesInfo {
