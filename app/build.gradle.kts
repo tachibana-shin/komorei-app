@@ -98,6 +98,14 @@ android {
         "komorei.test.nguonphimKrx",
         rootProject.file("sources/sources/vi.nguonphim/package.krx").absolutePath,
       )
+      // The real Nguồn Phim site source (sources/sources/vi.nguonphime) — an
+      // HTML scrape (nguonphime.site) with the NP Checker bounce + base64 grab
+      // playlists + the streamc grant; exercised end-to-end against a local
+      // fixture server in NguonphimeSourceRunnerIntegrationTest.
+      test.systemProperty(
+        "komorei.test.nguonphimeKrx",
+        rootProject.file("sources/sources/vi.nguonphime/package.krx").absolutePath,
+      )
     }
   } }
   dependenciesInfo {
