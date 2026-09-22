@@ -43,9 +43,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Source
-import git.shin.komorei.ui.components.AppIcons
 import git.shin.komorei.ui.components.AnimeCard
 import git.shin.komorei.ui.components.AnimeCardSkeleton
+import git.shin.komorei.ui.components.SourceIcon
 import git.shin.komorei.ui.components.search.DiscoverFilterHeaderRow
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeRedContainer
@@ -414,11 +414,12 @@ private fun SearchSourceSections(
                         .fillMaxWidth()
                         .padding(top = 4.dp, bottom = 4.dp, end = 4.dp, start = 2.dp)
                 ) {
-                    Icon(
-                        imageVector = AppIcons.getSourceIcon(source.id),
+                    SourceIcon(
+                        source = source,
                         contentDescription = null,
-                        tint = if (error != null) AnimeRed else TextPrimary,
-                        modifier = Modifier.size(22.dp),
+                        fallbackTint = if (error != null) AnimeRed else TextPrimary,
+                        iconSize = 22.dp,
+                        fallbackIconSize = 22.dp,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(

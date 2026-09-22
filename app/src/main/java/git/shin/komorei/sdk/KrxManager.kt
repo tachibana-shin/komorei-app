@@ -33,6 +33,9 @@ object KrxManager {
     /** The wasm payload path inside a `.krx` archive. */
     const val MAIN_WASM_ENTRY = "Payload/main.wasm"
 
+    /** Icon entry names inside a `.krx` archive (aidoku root + payload-scoped). */
+    private val ICON_ENTRIES = setOf("icon.png", "Payload/icon.png")
+
     /**
      * Extracts `Payload/main.wasm` from a `.krx` archive. Returns null when the
      * entry is missing or the archive is invalid.
@@ -42,6 +45,23 @@ object KrxManager {
             var entry = zip.nextEntry
             while (entry != null) {
                 if (entry.name == MAIN_WASM_ENTRY) {
+                    return zip.readBytes()
+                }
+                entry = zip.nextEntry
+            }
+        }
+        return null
+    }
+
+    /**
+     * Extracts the source brand icon (`icon.png` / `Payload/icon.png`) from a
+     * `.krx` archive. Returns null when the package ships no icon.
+     */
+    fun extractIcon(krx: ByteArray): ByteArray? {
+        ZipInputStream(krx.inputStream()).use { zip ->
+            var entry = zip.nextEntry
+            while (entry != null) {
+                if (entry.name in ICON_ENTRIES) {
                     return zip.readBytes()
                 }
                 entry = zip.nextEntry

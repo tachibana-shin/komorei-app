@@ -50,7 +50,9 @@ class AnimeRepository @Inject constructor(
     private companion object {
         const val AGGREGATOR_ID = "all"
         const val AGGREGATOR_NAME = "Tổng hợp"
-        const val AGGREGATOR_ICON = "🌐"
+        // The aggregator is a virtual source with no krx artwork; SourceIcon
+        // falls back to a vector glyph when the icon path is blank.
+        const val AGGREGATOR_ICON = ""
         const val AGGREGATOR_VERSION = "2.4.0"
         const val AGGREGATOR_BADGE = 0xFFFF2A55L
     }

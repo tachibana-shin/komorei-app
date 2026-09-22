@@ -47,6 +47,7 @@ class KrxSourceRegistry @Inject constructor(
     companion object {
         private const val TAG = "KrxSourceRegistry"
         private const val SOURCES_DIR = "sources"
+        private const val ICONS_DIR = "source-icons"
 
         /** Source keys follow the Aidoku convention: letters, digits, dot, dash. */
         private val KEY_PATTERN = Regex("^[A-Za-z0-9.\\-]+$")
@@ -100,7 +101,7 @@ class KrxSourceRegistry @Inject constructor(
                         val bytes = context.assets.open("$SOURCES_DIR/$name").readBytes()
                         KrxManager.readInfo(bytes)?.let { meta ->
                             add(meta)
-                            metaMap[meta.id] = meta.toAppSource()
+                            metaMap[meta.id] = meta.toAppSource(persistIcon(meta.id, bytes))
                             krxFileNames[meta.id] = name
                         }
                     } catch (e: Exception) {
@@ -113,9 +114,10 @@ class KrxSourceRegistry @Inject constructor(
                     .sortedBy { it.name }
                     .forEach { file ->
                         try {
-                            KrxManager.readInfo(file.readBytes())?.let { meta ->
+                            val bytes = file.readBytes()
+                            KrxManager.readInfo(bytes)?.let { meta ->
                                 add(meta)
-                                metaMap[meta.id] = meta.toAppSource()
+                                metaMap[meta.id] = meta.toAppSource(persistIcon(meta.id, bytes))
                                 krxFileNames[meta.id] = file.name
                                 userInstalled += meta.id
                             }
@@ -131,9 +133,10 @@ class KrxSourceRegistry @Inject constructor(
         }
     }
 
-    private fun KrxSourceMeta.toAppSource() = Source(
+    private fun KrxSourceMeta.toAppSource(iconPath: String?) = Source(
         id = id,
         name = name,
+        icon = iconPath.orEmpty(),
         version = version.toString(),
         baseUrl = url,
         isEnabled = true,
@@ -148,6 +151,22 @@ class KrxSourceRegistry @Inject constructor(
 
     private fun installedDir(): File =
         File(context.filesDir, SOURCES_DIR).apply { mkdirs() }
+
+    /**
+     * Extracts the source's brand icon PNG from its `.krx` package and caches it
+     * under `filesDir/source-icons/<id>.png`, returning the file path (or null
+     * when the package ships no icon). The path feeds [Source.icon] so the UI can
+     * render the real artwork instead of a generic vector.
+     */
+    private fun persistIcon(sourceId: String, krxBytes: ByteArray): String? {
+        val icon = KrxManager.extractIcon(krxBytes) ?: return null
+        val dir = File(context.filesDir, ICONS_DIR).apply { mkdirs() }
+        val file = File(dir, "$sourceId.png")
+        if (!file.exists()) {
+            file.writeBytes(icon)
+        }
+        return file.absolutePath
+    }
 
     /**
      * App-model [Source] list for all known bundled sources (non-aggregator).
@@ -213,7 +232,7 @@ class KrxSourceRegistry @Inject constructor(
         // Register metadata if unknown
         if (!metaMap.containsKey(sourceId)) {
             KrxManager.readInfo(krxBytes)?.let { meta ->
-                metaMap[meta.id] = meta.toAppSource()
+                metaMap[meta.id] = meta.toAppSource(persistIcon(meta.id, krxBytes))
                 // Keep a stable file name so re-installs can overwrite the same file.
                 krxFileNames[meta.id] = "${meta.id}.krx"
             }
@@ -263,7 +282,7 @@ class KrxSourceRegistry @Inject constructor(
         val file = File(installedDir(), "${meta.id}.krx")
         file.writeBytes(krxBytes)
 
-        metaMap[meta.id] = meta.toAppSource()
+        metaMap[meta.id] = meta.toAppSource(persistIcon(meta.id, krxBytes))
         krxFileNames[meta.id] = file.name
         userInstalled += meta.id
         emitSources()
@@ -275,6 +294,7 @@ class KrxSourceRegistry @Inject constructor(
             krxFileNames.remove(meta.id)
             userInstalled.remove(meta.id)
             file.delete()
+            File(File(context.filesDir, ICONS_DIR), "${meta.id}.png").delete()
             emitSources()
             return null
         }
@@ -291,6 +311,7 @@ class KrxSourceRegistry @Inject constructor(
         if (sourceId !in userInstalled) return false
         val fileName = krxFileNames.remove(sourceId) ?: return false
         File(installedDir(), fileName).delete()
+        File(File(context.filesDir, ICONS_DIR), "$sourceId.png").delete()
 
         metaMap.remove(sourceId)
         userInstalled.remove(sourceId)

@@ -48,7 +48,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Listing
-import git.shin.komorei.ui.components.AppIcons
+import git.shin.komorei.ui.components.SourceIcon
 import git.shin.komorei.ui.components.SourceTabBar
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
@@ -149,11 +149,12 @@ fun HomeScreen(
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Icon(
-                        imageVector = AppIcons.getSourceIcon(activeSource.id),
+                    SourceIcon(
+                        source = activeSource,
                         contentDescription = activeSource.name,
-                        tint = AnimeRed,
-                        modifier = Modifier.size(13.dp)
+                        fallbackTint = AnimeRed,
+                        iconSize = 13.dp,
+                        fallbackIconSize = 13.dp,
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(

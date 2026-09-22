@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
 import git.shin.komorei.data.ExternalSourceInfo
-import git.shin.komorei.ui.components.AppIcons
+import git.shin.komorei.ui.components.ExternalSourceIcon
 import git.shin.komorei.ui.components.ShimmerLoadingRow
 import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
 import git.shin.komorei.ui.theme.AnimeRed
@@ -436,11 +436,13 @@ private fun ExternalSourceRow(
                 .background(CardDark),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = AppIcons.getSourceIcon(info.id),
+            ExternalSourceIcon(
+                sourceId = info.id,
+                iconUrl = info.iconUrl,
                 contentDescription = stringResource(R.string.sources_row_icon_cd),
-                tint = TextSecondary,
-                modifier = Modifier.size(20.dp),
+                fallbackTint = TextSecondary,
+                iconSize = 20.dp,
+                fallbackIconSize = 20.dp,
             )
         }
         Spacer(modifier = Modifier.width(10.dp))

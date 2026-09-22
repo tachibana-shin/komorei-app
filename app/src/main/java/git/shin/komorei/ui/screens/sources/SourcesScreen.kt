@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Source
-import git.shin.komorei.ui.components.AppIcons
+import git.shin.komorei.ui.components.SourceIcon
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.CardBorderDark
@@ -386,11 +386,13 @@ private fun SourceRow(
                     .background(badgeColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = AppIcons.getSourceIcon(item.source.id),
+                SourceIcon(
+                    source = item.source,
                     contentDescription = stringResource(R.string.sources_row_icon_cd),
-                    tint = badgeColor,
-                    modifier = Modifier.size(24.dp),
+                    fallbackTint = badgeColor,
+                    iconSize = 24.dp,
+                    fallbackIconSize = 24.dp,
+                    modifier = Modifier.clip(RoundedCornerShape(12.dp)),
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))

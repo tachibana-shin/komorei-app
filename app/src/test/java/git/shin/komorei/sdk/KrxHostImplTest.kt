@@ -285,4 +285,48 @@ class KrxHostImplTest {
     fun `extract returns null for junk`() {
         assertNull(KrxManager.extractMainWasm(byteArrayOf(1, 2, 3)))
     }
+
+    @Test
+    fun `extract icon from a krx zip`() {
+        val iconBytes = byteArrayOf(0x89.toByte(), 'P'.code.toByte(), 'N'.code.toByte(), 'G'.code.toByte())
+        val bytes = ByteArrayOutputStream().also { out ->
+            ZipOutputStream(out).use { zip ->
+                zip.putNextEntry(ZipEntry("Payload/icon.png"))
+                zip.write(iconBytes)
+                zip.closeEntry()
+                zip.putNextEntry(ZipEntry("Payload/main.wasm"))
+                zip.write(byteArrayOf(0, 97, 115, 109))
+                zip.closeEntry()
+            }
+        }.toByteArray()
+
+        assertArrayEquals(iconBytes, KrxManager.extractIcon(bytes))
+    }
+
+    @Test
+    fun `extract icon from root entry for non-payload packages`() {
+        val iconBytes = byteArrayOf(1, 2, 3, 4)
+        val bytes = ByteArrayOutputStream().also { out ->
+            ZipOutputStream(out).use { zip ->
+                zip.putNextEntry(ZipEntry("icon.png"))
+                zip.write(iconBytes)
+                zip.closeEntry()
+            }
+        }.toByteArray()
+
+        assertArrayEquals(iconBytes, KrxManager.extractIcon(bytes))
+    }
+
+    @Test
+    fun `extract icon returns null when package ships no icon`() {
+        val bytes = ByteArrayOutputStream().also { out ->
+            ZipOutputStream(out).use { zip ->
+                zip.putNextEntry(ZipEntry("Payload/main.wasm"))
+                zip.write(byteArrayOf(0, 97, 115, 109))
+                zip.closeEntry()
+            }
+        }.toByteArray()
+
+        assertNull(KrxManager.extractIcon(bytes))
+    }
 }

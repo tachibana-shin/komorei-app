@@ -7,13 +7,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -70,11 +67,13 @@ fun SourceTabBar(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
                     ) {
-                        Icon(
-                            imageVector = AppIcons.getSourceIcon(source.id),
+                        SourceIcon(
+                            source = source,
                             contentDescription = source.name,
-                            tint = if (isSelected) AnimeRed else TextMuted,
-                            modifier = Modifier.size(16.dp)
+                            fallbackTint = if (isSelected) AnimeRed else TextMuted,
+                            iconSize = 16.dp,
+                            fallbackIconSize = 16.dp,
+                            modifier = Modifier.clip(RoundedCornerShape(8.dp)),
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
