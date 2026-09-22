@@ -390,7 +390,8 @@ private fun SourceRow(
                     source = item.source,
                     contentDescription = stringResource(R.string.sources_row_icon_cd),
                     fallbackTint = badgeColor,
-                    iconSize = 24.dp,
+                    // Full-bleed artwork: the icon fills the whole 48.dp box (no padding).
+                    iconSize = 48.dp,
                     fallbackIconSize = 24.dp,
                     modifier = Modifier.clip(RoundedCornerShape(12.dp)),
                 )
