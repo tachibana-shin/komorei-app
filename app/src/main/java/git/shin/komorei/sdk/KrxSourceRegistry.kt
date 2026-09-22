@@ -162,7 +162,11 @@ class KrxSourceRegistry @Inject constructor(
         val icon = KrxManager.extractIcon(krxBytes) ?: return null
         val dir = File(context.filesDir, ICONS_DIR).apply { mkdirs() }
         val file = File(dir, "$sourceId.png")
-        if (!file.exists()) {
+        // Rewrite the cache whenever the package's icon differs from what's on
+        // disk, so a re-installed krx with new artwork updates the UI instead of
+        // being masked by the first-ever extract (`if (!file.exists())`).
+        val cached = if (file.exists()) file.readBytes() else null
+        if (cached == null || !cached.contentEquals(icon)) {
             file.writeBytes(icon)
         }
         return file.absolutePath
