@@ -165,10 +165,10 @@ class NguoncSourceRunnerIntegrationTest {
         assertEquals("phim-bo", bo.listing!!.id)
         assertEquals("Tập 2", bo.entries[0].subtitle)
 
-        // 4. AnimeList — Phim Lẻ, not ranked
+        // 4. AnimeList — Phim Lẻ, not ranked, paged at 4 per page (compact)
         val le = home.components[3].value as git.shin.komorei.sdk.runner.HomeComponentValue.AnimeList
         assertFalse(le.ranking)
-        assertNull(le.pageSize)
+        assertEquals(4, le.pageSize)
         assertEquals("phim-le", le.listing!!.id)
         assertEquals(1, le.entries.size)
         assertEquals("Kim Loại", le.entries[0].title)
