@@ -91,7 +91,9 @@ class PlayerViewModel @Inject constructor(
 
     val player: ExoPlayer get() = exoPlayer
 
-    private var positionPoller: Job? = null
+    // internal seam: unit tests cancel it so the test scheduler is not flooded by
+    // its 250ms periodic task (advanceUntilIdle would never idle).
+    internal var positionPoller: Job? = null
 
     // Position polls every 250ms. Autosave policy (user-requested): the first periodic
     // save fires only once playback has advanced >= 3s into the episode (avoids
@@ -505,7 +507,7 @@ class PlayerViewModel @Inject constructor(
      * Resolve the streaming servers for [episode].
      *
      * The list-API [anime] is a Lite card with almost no data, so per source contract we
-     * upgrade it via getAnimeUpdate(needsDetails = true, needsChapters = false) before
+     * upgrade it via getAnimeUpdate(needsDetails = true, needsChapters = true) before
      * asking the source for servers. The first server is auto-resolved via getStream(...).
      */
     private suspend fun loadStreams(anime: Anime, episode: Episode, restorePosition: Boolean = true) {
@@ -517,8 +519,15 @@ class PlayerViewModel @Inject constructor(
             // The passed episode may be a Lite stub (deep link / first-episode
             // fallback) — swap in the full record by key so the source gets the
             // real episode (title/number) for stream resolution and the UI shows
-            // its proper name. Falls back to the stub if the key isn't found.
-            val fullEpisode = full.episodes.find { it.id == episode.id } ?: episode
+            // its proper name. When the key isn't in the upgraded list — e.g. an
+            // anime opened directly has no episode records yet, so openAnime built
+            // a placeholder (<animeId>_ep_1) the source can never match — resolve
+            // the first REAL episode instead of sending the phantom key (KKPhim
+            // bails with "Nguồn phát … không có tập 1 (<animeId>_ep_1)" and no
+            // episode stays highlighted).
+            val fullEpisode = full.episodes.find { it.id == episode.id }
+                ?: full.episodes.firstOrNull()
+                ?: episode
             _playbackState.update { it.copy(currentEpisode = fullEpisode) }
             finishLoadStreams(full, fullEpisode, restorePosition)
         }.onFailure { e ->
@@ -598,6 +607,18 @@ class PlayerViewModel @Inject constructor(
             val contentFile = withContext(Dispatchers.IO) { writeContentToCache(streamData) }
             mediaItemBuilder.setUri(android.net.Uri.fromFile(contentFile))
         } else {
+            // streamc-style grants (nguonc/nguonphim/nguonphime + others) return
+            // EXTENSIONLESS playlist URLs advertised as application/vnd.apple.mpegurl,
+            // so DefaultMediaSourceFactory cannot infer HLS from the .m3u8 suffix and
+            // falls back to extractor sniffing — which fails with
+            // UnrecognizedInputFormatException before any segment loads. Hint the
+            // container so the right media source is picked for the URL path; the
+            // isContent path writes a typed file whose extension already carries this.
+            when (streamData.type) {
+                StreamType.HLS -> mediaItemBuilder.setMimeType(MimeTypes.APPLICATION_M3U8)
+                StreamType.DASH -> mediaItemBuilder.setMimeType(MimeTypes.APPLICATION_MPD)
+                StreamType.MP4, StreamType.OTHER -> Unit
+            }
             mediaItemBuilder.setUri(streamData.url)
         }
 

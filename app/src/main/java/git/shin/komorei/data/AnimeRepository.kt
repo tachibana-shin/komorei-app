@@ -111,18 +111,28 @@ class AnimeRepository @Inject constructor(
      * `interceptSegmentUrl` / `interceptSegmentData` exports. Created once per
      * stream resolution and invoked on OkHttp media threads (never main).
      * Returns null when the source hasn't been loaded yet.
+     *
+     * Both exports are OPTIONAL in the SDK (a source only gets them by
+     * implementing the `SegmentUrlInterceptor` / `SegmentDataInterceptor`
+     * trait), so calling them on every other crate throws `ExportMissing`.
+     * That exception kills the media request ("Playback failed due to an
+     * unspecified network or file error.") before a real stream can load —
+     * fall back to the untouched URL / bytes (identity) instead, which is the
+     * exact semantic of a source that chose not to intercept.
      */
     fun segmentUrlInterceptorFor(sourceId: String): SegmentUrlInterceptor? {
         val runner = registry.runnerOrNull(sourceId) ?: return null
         return SegmentUrlInterceptor { streamData, requestUrl ->
-            runner.interceptSegmentUrl(streamData?.toRunner(), requestUrl)
+            runCatching { runner.interceptSegmentUrl(streamData?.toRunner(), requestUrl) }
+                .getOrNull() ?: requestUrl
         }
     }
 
     fun segmentDataInterceptorFor(sourceId: String): SegmentDataInterceptor? {
         val runner = registry.runnerOrNull(sourceId) ?: return null
         return SegmentDataInterceptor { streamData, segmentUrl, data ->
-            runner.interceptSegmentData(streamData?.toRunner(), segmentUrl, data)
+            runCatching { runner.interceptSegmentData(streamData?.toRunner(), segmentUrl, data) }
+                .getOrNull() ?: data
         }
     }
 

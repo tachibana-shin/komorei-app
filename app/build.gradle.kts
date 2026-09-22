@@ -106,6 +106,14 @@ android {
         "komorei.test.nguonphimeKrx",
         rootProject.file("sources/sources/vi.nguonphime/package.krx").absolutePath,
       )
+      // The real KKPhim source (sources/sources/vi.kkphim) — a kkphim-style
+      // table-like homepage; unlike the fake source it does NOT implement the
+      // optional Segment interceptor traits, which is exactly what
+      // SegmentInterceptorOptionalTest pins down.
+      test.systemProperty(
+        "komorei.test.kkphimKrx",
+        rootProject.file("sources/sources/vi.kkphim/package.krx").absolutePath,
+      )
     }
   } }
   dependenciesInfo {
