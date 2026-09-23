@@ -22,6 +22,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -132,6 +134,44 @@ class SourceSearchScreenTest {
         // Screen renders
         composeTestRule.onNodeWithTag("source_search_input")
             .performClick()
+    }
+
+    @Test
+    fun autofocusesWhenOpenedBlank() {
+        val vm = newViewModel() // no query arg -> blank
+        composeTestRule.setContent {
+            SourceSearchScreen(
+                sourceId = "vi.fake-source",
+                onAnimeClick = {},
+                onBack = {},
+                viewModel = vm,
+            )
+        }
+        // Opened fresh (source-home search button): the input grabs focus so
+        // the IME is up and ready for typing.
+        composeTestRule.onNodeWithTag("source_search_input")
+            .assertIsFocused()
+    }
+
+    @Test
+    fun skipsAutofocusWhenKeywordCarried() {
+        // Carried in from the Discover tab header: route args seed the query,
+        // results start loading — the keyboard must NOT pop over them.
+        val vm = SourceSearchViewModel(
+            ApplicationProvider.getApplicationContext(),
+            repository,
+            SavedStateHandle(mapOf("sourceId" to "vi.fake-source", "query" to "phim")),
+        )
+        composeTestRule.setContent {
+            SourceSearchScreen(
+                sourceId = "vi.fake-source",
+                onAnimeClick = {},
+                onBack = {},
+                viewModel = vm,
+            )
+        }
+        composeTestRule.onNodeWithTag("source_search_input")
+            .assertIsNotFocused()
     }
 
     @Test

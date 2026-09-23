@@ -85,7 +85,13 @@ fun SourceSearchScreen(
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
+        // Auto-focus only when opened fresh (blank query — source-home search
+        // button): the keyboard pops up ready for typing. A keyword carried
+        // in from the Discover tab (route args) must show its results right
+        // away without the IME covering them.
+        if (query.isBlank()) {
+            focusRequester.requestFocus()
+        }
     }
 
     Column(
