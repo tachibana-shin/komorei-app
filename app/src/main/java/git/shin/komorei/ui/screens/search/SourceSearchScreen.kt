@@ -15,15 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -48,12 +42,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.ui.components.home.ListingChipsSkeleton
+import git.shin.komorei.ui.components.search.CompactInput
 import git.shin.komorei.ui.components.search.SearchResultsGrid
 import git.shin.komorei.ui.components.search.filters.FilterHeaderRow
 import git.shin.komorei.ui.components.search.filters.FilterListSheet
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
-import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
@@ -103,58 +97,23 @@ fun SourceSearchScreen(
             .imePadding(),
     ) {
         // ── Search header (YouTube-style): field + Hủy ────────────────────
+        // The field is the app's standard [CompactInput] pill (40dp, same as
+        // the global search bar) — an M3 OutlinedTextField hard-pins a 56dp
+        // min height and dwarfed the page's other inputs.
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 2.dp),
         ) {
-            OutlinedTextField(
+            CompactInput(
                 value = query,
                 onValueChange = viewModel::onQueryChange,
-                placeholder = {
-                    Text(
-                        text = stringResource(R.string.source_search_hint),
-                        color = TextMuted,
-                        fontSize = 14.sp,
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = stringResource(R.string.search_icon_cd),
-                        tint = if (query.isNotBlank()) AnimeRed else TextMuted,
-                        modifier = Modifier.size(20.dp),
-                    )
-                },
-                trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        IconButton(
-                            onClick = viewModel::clearQuery,
-                            modifier = Modifier.testTag("source_search_clear"),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Clear,
-                                contentDescription = stringResource(R.string.search_clear_cd),
-                                tint = TextSecondary,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
+                hint = stringResource(R.string.source_search_hint),
+                leadingIcon = Icons.Default.Search,
+                showClear = query.isNotEmpty(),
                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = CardDark,
-                    unfocusedContainerColor = CardDark,
-                    focusedBorderColor = AnimeRed,
-                    unfocusedBorderColor = CardBorderDark,
-                    cursorColor = AnimeRed,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
-                ),
+                focusRequester = focusRequester,
                 modifier = Modifier
                     .weight(1f)
-                    .focusRequester(focusRequester)
                     .testTag("source_search_input"),
             )
             TextButton(

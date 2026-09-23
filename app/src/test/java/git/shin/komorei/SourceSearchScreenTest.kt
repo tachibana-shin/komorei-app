@@ -22,8 +22,10 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
-import androidx.compose.ui.test.assertIsFocused
-import androidx.compose.ui.test.assertIsNotFocused
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -87,7 +89,7 @@ class SourceSearchScreenTest {
         }
         // Search input field should be present
         composeTestRule.onNodeWithTag("source_search_input")
-            .performClick()
+            .assertExists()
     }
 
     @Test
@@ -102,7 +104,7 @@ class SourceSearchScreenTest {
             )
         }
         composeTestRule.onNodeWithTag("source_search_input")
-            .performClick()
+            .assertExists()
     }
 
     @Test
@@ -117,7 +119,7 @@ class SourceSearchScreenTest {
             )
         }
         composeTestRule.onNodeWithTag("source_search_input")
-            .performClick()
+            .assertExists()
     }
 
     @Test
@@ -133,7 +135,7 @@ class SourceSearchScreenTest {
         }
         // Screen renders
         composeTestRule.onNodeWithTag("source_search_input")
-            .performClick()
+            .assertExists()
     }
 
     @Test
@@ -149,8 +151,9 @@ class SourceSearchScreenTest {
         }
         // Opened fresh (source-home search button): the input grabs focus so
         // the IME is up and ready for typing.
-        composeTestRule.onNodeWithTag("source_search_input")
-            .assertIsFocused()
+        composeTestRule.onNode(
+            hasTestTag("source_search_input") and hasAnyDescendant(isFocused())
+        ).assertExists()
     }
 
     @Test
@@ -170,8 +173,7 @@ class SourceSearchScreenTest {
                 viewModel = vm,
             )
         }
-        composeTestRule.onNodeWithTag("source_search_input")
-            .assertIsNotFocused()
+        composeTestRule.onAllNodes(isFocused()).assertCountEquals(0)
     }
 
     @Test
@@ -186,6 +188,6 @@ class SourceSearchScreenTest {
             )
         }
         composeTestRule.onNodeWithTag("source_search_input")
-            .performClick()
+            .assertExists()
     }
 }

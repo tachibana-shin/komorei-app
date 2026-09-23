@@ -27,6 +27,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -49,6 +51,9 @@ import git.shin.komorei.ui.theme.TextPrimary
  * @param interactionSource optional external interaction source (e.g. to
  *   share focus state); when null an internal one is used so the border
  *   still tints [AnimeRed] on focus.
+ * @param focusRequester optional [FocusRequester] forwarded onto the inner
+ *   [BasicTextField] so callers can autofocus the field (e.g. a search input
+ *   that grabs focus on first appearance).
  */
 @Composable
 fun CompactInput(
@@ -63,6 +68,7 @@ fun CompactInput(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     cursorColor: Color = AnimeRed,
     interactionSource: MutableInteractionSource? = null,
+    focusRequester: FocusRequester? = null,
 ) {
     val shape = RoundedCornerShape(20.dp)
     val focusSource = interactionSource ?: remember { MutableInteractionSource() }
@@ -85,9 +91,16 @@ fun CompactInput(
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 9.dp),
+            modifier = if (focusRequester != null) {
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 9.dp)
+                    .focusRequester(focusRequester)
+            } else {
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 9.dp)
+            },
             singleLine = true,
             textStyle = TextStyle(color = TextPrimary, fontSize = 14.sp),
             cursorBrush = SolidColor(cursorColor),
