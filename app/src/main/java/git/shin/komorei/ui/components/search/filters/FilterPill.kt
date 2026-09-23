@@ -91,7 +91,13 @@ fun FilterPill(
     }
 }
 
-/** A small circular count badge (Aidoku `FilterBadgeView`). */
+/**
+ * A small circular count badge (Aidoku `FilterBadgeView`).
+ *
+ * Sized like a Material badge (18dp disc) so it sits beside the pill's 16dp
+ * icon without dwarfing it — the old fixed 32dp disc stuck out of the pill
+ * row and visually overflowed into the content below.
+ */
 @Composable
 fun FilterBadge(count: Int, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(100)
@@ -102,11 +108,12 @@ fun FilterBadge(count: Int, modifier: Modifier = Modifier) {
         fontSize = 10.sp,
         lineHeight = 12.sp,
         fontWeight = FontWeight.Bold,
+        maxLines = 1,
         modifier = modifier
-            .size(if (isVisible) 32.dp else 1.dp)
+            .size(if (isVisible) 18.dp else 1.dp)
             .clip(shape)
             .background(if (isVisible) AnimeRed else Color.Transparent)
             .alpha(if (isVisible) 1f else 0f)
-            .padding(horizontal = 5.dp, vertical = 2.dp),
+            .padding(horizontal = 3.dp, vertical = 1.dp),
     )
 }
