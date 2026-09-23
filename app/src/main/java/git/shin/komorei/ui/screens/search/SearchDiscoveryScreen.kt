@@ -34,6 +34,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -50,6 +51,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -333,8 +335,10 @@ fun SearchDiscoveryScreen(
                     sources = state.candidateSources,
                     resultsBySource = state.resultsBySource,
                     sourceErrors = state.sourceErrors,
+                    emptySources = state.emptySources,
                     onAnimeClick = onAnimeClick,
                     onOpenSourceSearch = { sourceId -> onOpenSourceSearch(sourceId, searchQuery) },
+                    onRetry = { viewModel.retrySearch() },
                     modifier = Modifier
                         .fillMaxSize()
                         .testTag("search_results_list"),
@@ -342,12 +346,19 @@ fun SearchDiscoveryScreen(
             }
 
             is SearchUiState.Success -> {
-                // Terminal state: sources with results or an error only.
-                val sourcesShown = (state.resultsBySource.keys + state.sourceErrors.keys)
-                    .distinct()
-                    .filter { source ->
-                        state.resultsBySource[source].isNullOrEmpty().not() || state.sourceErrors[source] != null
-                    }
+                // Terminal state: every accounted source shows — those with
+                // results, those that errored, and those that finished empty
+                // ("không có kết quả" in their own body). Only when NO source
+                // produced anything does the whole-tab empty state take over.
+                val hasAnyOutcome =
+                    state.resultsBySource.any { (_, results) -> results.isNotEmpty() } ||
+                        state.sourceErrors.isNotEmpty()
+                val sourcesShown = if (hasAnyOutcome) {
+                    (state.resultsBySource.keys + state.sourceErrors.keys + state.emptySources)
+                        .distinct()
+                } else {
+                    emptyList()
+                }
                 if (sourcesShown.isEmpty()) {
                     Column(
                         modifier = Modifier
@@ -374,10 +385,12 @@ fun SearchDiscoveryScreen(
                         sources = sourcesShown,
                         resultsBySource = state.resultsBySource,
                         sourceErrors = state.sourceErrors,
+                        emptySources = state.emptySources,
                         showCountHeader = true,
                         totalCount = state.totalCount,
                         onAnimeClick = onAnimeClick,
                         onOpenSourceSearch = { sourceId -> onOpenSourceSearch(sourceId, searchQuery) },
+                        onRetry = { viewModel.retrySearch() },
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag("search_results_list"),
@@ -420,23 +433,25 @@ fun SearchDiscoveryScreen(
 
 /**
  * Renders one horizontal section per source: a header row with the source's
- * icon ([AppIcons.getSourceIcon]) + name (red + error message on failure) —
- * tappable to jump into that source's own search screen with the current
- * query — and below it either the result cards (horizontal swipe), a small
- * loading shimmer row while that source is still resolving, or nothing for an
- * error.
+ * icon + name (tinted red when the source failed) — tappable to jump into
+ * that source's own search screen with the current query — and below it
+ * either the result cards (horizontal swipe), a visible "không có kết quả"
+ * note when the source finished empty, an error + retry row when it failed,
+ * or a small loading shimmer row while that source is still resolving.
  *
  * Shared by the live [SearchUiState.Searching] phase (where pending sources
  * keep their shimmer) and the terminal [SearchUiState.Success] phase (which
- * only lists sources that produced results or an error).
+ * lists every source that produced results, errored, or finished empty).
  */
 @Composable
 private fun SearchSourceSections(
     sources: List<Source>,
     resultsBySource: Map<Source, List<Anime>>,
     sourceErrors: Map<Source, String>,
+    emptySources: Set<Source> = emptySet(),
     onAnimeClick: (Anime) -> Unit,
     onOpenSourceSearch: (sourceId: String) -> Unit = {},
+    onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
     showCountHeader: Boolean = false,
     totalCount: Int = 0,
@@ -491,15 +506,6 @@ private fun SearchSourceSections(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f),
                     )
-                    if (error != null) {
-                        Text(
-                            text = error,
-                            color = AnimeRed,
-                            fontSize = 11.sp,
-                            modifier = Modifier.padding(start = 8.dp),
-                            maxLines = 1,
-                        )
-                    }
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = stringResource(R.string.source_search_entry_cd),
@@ -531,8 +537,67 @@ private fun SearchSourceSections(
                         }
                     }
                     error != null -> {
-                        // Nothing to show beyond the red header.
-                        Spacer(modifier = Modifier.height(2.dp))
+                        // The section failed to load — a visible error + retry,
+                        // not the old 2dp spacer that left the section empty.
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp, vertical = 6.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.ErrorOutline,
+                                contentDescription = null,
+                                tint = AnimeRed,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.source_search_error),
+                                    color = AnimeRed,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                if (error.isNotBlank()) {
+                                    Text(
+                                        text = error,
+                                        color = TextMuted,
+                                        fontSize = 10.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        lineHeight = 14.sp,
+                                        modifier = Modifier.testTag("search_source_error_detail"),
+                                    )
+                                }
+                            }
+                            Surface(
+                                onClick = onRetry,
+                                color = AnimeRedContainer,
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.testTag("search_source_retry"),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.action_retry),
+                                    color = AnimeRed,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                )
+                            }
+                        }
+                    }
+                    source in emptySources -> {
+                        // Finished with zero matches — say so instead of
+                        // silently vanishing (or shimmering forever).
+                        Text(
+                            text = stringResource(R.string.search_source_empty),
+                            color = TextMuted,
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                .testTag("search_source_empty"),
+                        )
                     }
                     else -> {
                         // Source still resolving — its own loading shimmer row.

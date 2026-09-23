@@ -215,14 +215,14 @@ class NguonphimSourceRunnerIntegrationTest {
     // ── filters / settings / deep link / migration ──────────────────────────
 
     @Test
-    fun `settings default the base url to api nguonphim dot net`() {
+    fun `settings default the base url to phim nguonc com`() {
         val byKey = runner.settings().associateBy { it.key }
         val baseUrl = byKey.getValue("base_url")
         assertEquals("Địa chỉ API Nguồn Phim", baseUrl.title)
         assertEquals(listOf("content", "listings"), baseUrl.refreshes)
         val text = baseUrl.value as SettingValue.Text
-        assertEquals("https://api.nguonphim.net", text.default)
-        assertEquals("https://api.nguonphim.net", text.placeholder)
+        assertEquals("https://phim.nguonc.com", text.default)
+        assertEquals("https://phim.nguonc.com", text.placeholder)
 
         val genre = runner.filters().associateBy { it.id }.getValue("genre").kind as FilterKind.MultiSelect
         assertTrue(genre.isGenre)

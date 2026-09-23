@@ -243,6 +243,7 @@ class SearchViewModel @Inject constructor(
             )
             val resultsBySource = mutableMapOf<Source, List<Anime>>()
             val sourceErrors = mutableMapOf<Source, String>()
+            val emptySources = mutableSetOf<Source>()
 
             // Search started — every candidate source renders its own section
             // immediately; pending ones show their own loading shimmer.
@@ -250,6 +251,7 @@ class SearchViewModel @Inject constructor(
                 candidateSources = candidates,
                 resultsBySource = resultsBySource,
                 sourceErrors = sourceErrors,
+                emptySources = emptySources,
             )
             try {
                 repository.searchMultiSourceStream(
@@ -263,6 +265,11 @@ class SearchViewModel @Inject constructor(
                         is SourceSearchEvent.Completed -> {
                             if (event.results.isNotEmpty()) {
                                 resultsBySource[event.source] = event.results
+                            } else {
+                                // Finished with zero matches — record it so the
+                                // section shows "không có kết quả" instead of
+                                // keeping its shimmer / disappearing entirely.
+                                emptySources.add(event.source)
                             }
                         }
                         is SourceSearchEvent.Failed -> {
@@ -275,6 +282,7 @@ class SearchViewModel @Inject constructor(
                         candidateSources = candidates,
                         resultsBySource = resultsBySource,
                         sourceErrors = sourceErrors,
+                        emptySources = emptySources,
                     )
                 }
                 // All sources finished — terminal state with the totals.
@@ -282,6 +290,7 @@ class SearchViewModel @Inject constructor(
                     resultsBySource = resultsBySource,
                     totalCount = resultsBySource.values.sumOf { it.size },
                     sourceErrors = sourceErrors,
+                    emptySources = emptySources,
                 )
             } catch (e: CancellationException) {
                 // A newer search superseded this job (typing, filter change,

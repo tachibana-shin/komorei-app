@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -38,6 +39,7 @@ import coil.compose.AsyncImage
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.ui.theme.Accent
+import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.GoldRating
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
@@ -65,11 +67,14 @@ fun AnimeCard(
                 .clip(RoundedCornerShape(12.dp))
 //                .background(CardDark)
         ) {
-            // Poster Image
+            // Poster Image — placeholder + error painters so a slow/failed
+            // load shows a solid card surface instead of a silent black void.
             AsyncImage(
                 model = anime.posterUrl,
                 contentDescription = anime.title,
                 contentScale = ContentScale.Crop,
+                placeholder = ColorPainter(CardDark),
+                error = ColorPainter(CardDark),
                 modifier = Modifier.fillMaxSize()
             )
 

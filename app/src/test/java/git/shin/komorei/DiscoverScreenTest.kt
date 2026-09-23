@@ -9,11 +9,15 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.SearchHistoryStore
+import git.shin.komorei.data.SourceSearchEvent
+import git.shin.komorei.model.Source
 import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
 import git.shin.komorei.ui.screens.search.SearchViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -53,6 +57,7 @@ class DiscoverScreenTest {
     @get:Rule val composeTestRule = createComposeRule()
 
     private lateinit var repository: AnimeRepository
+    private lateinit var registry: KrxSourceRegistry
     private lateinit var searchHistoryStore: SearchHistoryStore
     private val mainDispatcher = UnconfinedTestDispatcher()
 
@@ -64,7 +69,7 @@ class DiscoverScreenTest {
     @Before
     fun setUp() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val registry = KrxSourceRegistry(context, KrxHostImpl(context))
+        registry = KrxSourceRegistry(context, KrxHostImpl(context))
         val runner = registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
         checkNotNull(runner) { "fake source should load" }
         repository = AnimeRepository(registry)
@@ -77,13 +82,53 @@ class DiscoverScreenTest {
         Dispatchers.resetMain()
     }
 
-    private fun newViewModel(): SearchViewModel =
+    private fun newViewModel(repo: AnimeRepository = repository): SearchViewModel =
         SearchViewModel(
             ApplicationProvider.getApplicationContext(),
-            repository,
+            repo,
             searchHistoryStore,
             SavedStateHandle(),
         ).also { it.searchDebounceMillis = 0 }
+
+    /**
+     * Multi-source search that finishes with one hit (the real fake source)
+     * plus a fabricated second source that completes cleanly empty — the
+     * mixed world where some sections show cards and others must render the
+     * "không có kết quả" note instead of vanishing.
+     */
+    private class MixedOutcomeRepository(registry: KrxSourceRegistry) : AnimeRepository(registry) {
+        override fun searchMultiSourceStream(
+            query: String,
+            selectedGenreId: String?,
+            contentRating: Int?,
+            languages: Set<String>,
+            sourceIds: Set<String>,
+        ): Flow<SourceSearchEvent> = flow {
+            val real = candidateSourcesForSearch(contentRating, languages, sourceIds).first()
+            val results = search(real.id, query.ifBlank { null }, 1, emptyList()).entries
+            emit(SourceSearchEvent.Completed(real, results))
+            emit(
+                SourceSearchEvent.Completed(
+                    Source(id = "vi.dummy-empty", name = "Dummy Empty"),
+                    emptyList(),
+                ),
+            )
+        }
+    }
+
+    /** Multi-source search that always fails (deterministic error section). */
+    private class ErroringRepository(registry: KrxSourceRegistry) : AnimeRepository(registry) {
+        override fun searchMultiSourceStream(
+            query: String,
+            selectedGenreId: String?,
+            contentRating: Int?,
+            languages: Set<String>,
+            sourceIds: Set<String>,
+        ): Flow<SourceSearchEvent> = flow {
+            val source = candidateSourcesForSearch(contentRating, languages, sourceIds).first()
+            emit(SourceSearchEvent.Failed(source, "HTTP 500"))
+        }
+    }
 
     @Test
     fun idleShowsSearchHistoryNotGenreGrid() {
@@ -194,5 +239,45 @@ class DiscoverScreenTest {
         composeTestRule.onNodeWithTag("search_header_title").assertExists()
         composeTestRule.onNodeWithTag("search_input_cancel").assertDoesNotExist()
         assertTrue(vm.searchQuery.value.isEmpty())
+    }
+
+    @Test
+    fun emptySourceSectionShowsNoResultsNote() {
+        val vm = newViewModel(MixedOutcomeRepository(registry))
+        composeTestRule.setContent {
+            git.shin.komorei.ui.screens.search.SearchDiscoveryScreen(
+                onAnimeClick = {},
+                viewModel = vm,
+            )
+        }
+
+        // A source that finished cleanly with zero matches must show its own
+        // "không có kết quả" note in the mixed Success — not vanish entirely —
+        // while the source with hits still renders its cards.
+        vm.onSearchQueryChange("Frieren")
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag("search_source_empty").assertExists()
+    }
+
+    @Test
+    fun failedSourceSectionShowsErrorAndRetry() {
+        val vm = newViewModel(ErroringRepository(registry))
+        composeTestRule.setContent {
+            git.shin.komorei.ui.screens.search.SearchDiscoveryScreen(
+                onAnimeClick = {},
+                viewModel = vm,
+            )
+        }
+
+        // A failed source renders a visible error message + retry in its
+        // body instead of a silent empty section.
+        vm.onSearchQueryChange("Frieren")
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag("search_source_error_detail").assertExists()
+        composeTestRule.onNodeWithTag("search_source_retry").assertExists()
     }
 }

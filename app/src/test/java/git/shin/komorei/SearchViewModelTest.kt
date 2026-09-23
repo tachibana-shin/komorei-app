@@ -328,6 +328,43 @@ class SearchViewModelTest {
         assertTrue(vm.searchUiState.value is SearchUiState.Success)
     }
 
+    /**
+     * [AnimeRepository] whose multi-source search always finishes with zero
+     * matches — proving a cleanly-empty source is reported via
+     * [SearchUiState.emptySources] instead of being silently dropped (that
+     * dropping is what left such sections shimmering forever / disappearing).
+     */
+    private class EmptyResultsRepository(registry: KrxSourceRegistry) : AnimeRepository(registry) {
+        override fun searchMultiSourceStream(
+            query: String,
+            selectedGenreId: String?,
+            contentRating: Int?,
+            languages: Set<String>,
+            sourceIds: Set<String>,
+        ): Flow<SourceSearchEvent> = flow {
+            val source = candidateSourcesForSearch(contentRating, languages, sourceIds).first()
+            emit(SourceSearchEvent.Completed(source, emptyList()))
+        }
+    }
+
+    @Test
+    fun completedEmptySourcesAreReportedInSuccess() = runBlocking {
+        val vm = SearchViewModel(
+            appContext = ApplicationProvider.getApplicationContext(),
+            repository = EmptyResultsRepository(registry),
+            searchHistoryStore = searchHistoryStore,
+            savedStateHandle = SavedStateHandle(),
+        ).also { it.searchDebounceMillis = 0 }
+
+        vm.onSearchQueryChange("Frieren")
+        awaitUntil { vm.searchUiState.value is SearchUiState.Success }
+
+        val state = vm.searchUiState.value as SearchUiState.Success
+        assertEquals(0, state.totalCount)
+        assertEquals(1, state.emptySources.size)
+        assertTrue(state.resultsBySource.isEmpty())
+    }
+
     // ── restore / persistence ────────────────────────────────────────
 
     @Test

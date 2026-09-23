@@ -54,6 +54,7 @@
     <string name="source_search_results_count">Tìm thấy %1$d kết quả</string>
     <string name="source_search_end">Hết kết quả</string>
     <string name="source_search_error">Không thể tìm kiếm trong nguồn này</string>
+    <string name="search_source_empty">Không có kết quả trong nguồn này</string>
     <string name="filter_sheet_title">Bộ lọc</string>
     <string name="filter_sheet_cd">Mở bộ lọc</string>
     <string name="filter_reset">Đặt lại</string>

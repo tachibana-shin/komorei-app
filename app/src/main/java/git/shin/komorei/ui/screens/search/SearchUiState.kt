@@ -11,7 +11,10 @@ import git.shin.komorei.model.Source
  * section transitions to results/error independently as its [SourceSearchEvent]
  * arrives — a slow source never blocks the sections that already finished.
  * [resultsBySource] maps each source to its found anime; [sourceErrors] carries
- * per-source error messages. [Success] is the terminal all-done state.
+ * per-source error messages; [emptySources] tracks sources that finished
+ * cleanly with zero matches (a section must still show "không có kết quả"
+ * instead of silently disappearing or shimmering forever). [Success] is the
+ * terminal all-done state.
  */
 sealed interface SearchUiState {
     data object Idle : SearchUiState
@@ -19,11 +22,13 @@ sealed interface SearchUiState {
         val candidateSources: List<Source>,
         val resultsBySource: Map<Source, List<Anime>> = emptyMap(),
         val sourceErrors: Map<Source, String> = emptyMap(),
+        val emptySources: Set<Source> = emptySet(),
     ) : SearchUiState
     data class Success(
         val resultsBySource: Map<Source, List<Anime>>,
         val totalCount: Int,
         val sourceErrors: Map<Source, String> = emptyMap(),
+        val emptySources: Set<Source> = emptySet(),
     ) : SearchUiState
 
     data class Error(val message: String) : SearchUiState
