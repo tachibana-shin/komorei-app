@@ -21,8 +21,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -69,13 +75,26 @@ class PlayerViewModel @Inject constructor(
     val playbackState: StateFlow<PlayerPlaybackState> = _playbackState.asStateFlow()
 
     /**
-     * Related-anime list fed to the detail view. Loaded asynchronously from the
-     * sources' home payloads (wasm calls run on per-source IO threads — never
-     * main); starts empty and fills in as home data arrives. Initialized here,
-     * recomposition updates via [VideoPlayerSheet]'s collectAsState.
+     * "Có thể bạn sẽ thích" — related suggestions for the anime CURRENTLY OPEN,
+     * fetched from the source itself via the SDK's `get_recommended_anime` API
+     * ([AnimeRepository.getRecommendedAnime] falls back to a search by the
+     * first genre tag when the source has no recommendations endpoint). The
+     * request carries the FULL anime ([PlayerPlaybackState.fullAnime] when
+     * available) so the source's genre tags — which only arrive with the detail
+     * upgrade — drive the fallback. Re-queried on every anime switch
+     * (openAnime / process-death restore) — the old wiring derived from a
+     * single global catalog loaded once in init, so switching anime never
+     * changed the section. An empty result hides the section.
      */
-    private val _allAnimes = MutableStateFlow<List<Anime>>(emptyList())
-    val allAnimes: StateFlow<List<Anime>> = _allAnimes.asStateFlow()
+    val relatedAnimeList: StateFlow<List<Anime>> = _playbackState
+        .map { it.fullAnime ?: it.currentAnime }
+        .distinctUntilChanged()
+        .flatMapLatest { anime ->
+            flow {
+                emit(if (anime == null) emptyList() else repository.getRecommendedAnime(anime).entries)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // Shared OkHttp-backed factory: injects stream headers + optional segment transformers.
     // Lives in the application graph so WebView cookies & the shared HttpClient stay consistent.
@@ -183,9 +202,6 @@ class PlayerViewModel @Inject constructor(
                 delay(250)
             }
         }
-
-        // Preload the merged home catalog for the related-anime list (off-thread).
-        viewModelScope.launch { _allAnimes.value = repository.allAnimes() }
 
         // Reopen the session that was playing when this process died (if any). The
         // engine is rebuilt from scratch; position restore happens via Room watch

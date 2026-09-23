@@ -393,7 +393,36 @@ class FakeViSourceRunnerIntegrationTest {
         assertNull(runner.deepLink("https://komorei.example/nope"))
     }
 
-    // ── interceptors / mappings ─────────────────────────────────────────────
+    @Test
+    fun `recommended anime returns same-genre catalog titles from the source`() {
+        // The fake source implements the SDK's optional RecommendationsHandler:
+        // get_recommended_anime ranks other catalog entries by shared-genre
+        // count, most overlap first.
+        val lite = runner.search("Frieren", 1, emptyList()).entries.single()
+        val full = runner.animeUpdate(lite, needsDetails = true, needsChapters = true)
+
+        val recommended = runner.recommendedAnime(full)
+        assertTrue("recommendations should be non-empty", recommended.entries.isNotEmpty())
+        assertFalse(recommended.hasNextPage)
+        assertTrue(
+            "the input anime itself is never recommended",
+            recommended.entries.none { it.key == full.key },
+        )
+
+        // Every entry shares at least one genre with the input.
+        val inputGenres = full.genres.map { it.name }.toSet()
+        assertTrue(inputGenres.isNotEmpty())
+        assertTrue(
+            "every recommendation shares a genre with the input",
+            recommended.entries.all { e -> e.genres.any { it.name in inputGenres } },
+        )
+
+        // Ranking: shared-genre count non-increasing down the list.
+        val overlaps = recommended.entries.map { e -> e.genres.count { it.name in inputGenres } }
+        assertEquals(overlaps.sortedDescending(), overlaps)
+    }
+
+    // ── segment interceptors / mappings ─────────────────────────────────────
 
     @Test
     fun `segment interceptors default to identity`() {

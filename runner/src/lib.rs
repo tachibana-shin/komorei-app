@@ -125,6 +125,23 @@ impl KomoreiRunner {
 		})
 	}
 
+	/// `get_recommended_anime(anime)` — related titles for an anime, provided by
+	/// sources that implement the SDK's optional `RecommendationsHandler` trait.
+	///
+	/// Sources WITHOUT the trait do not export this function, so the call fails
+	/// with `ExportMissing` — the app catches it and falls back to a search by
+	/// the anime's first genre tag (the exact "no recommendations endpoint"
+	/// fallback the SDK documents for this API).
+	pub fn recommended_anime(&self, anime: Anime) -> Result<AnimePageResult, RunnerError> {
+		self.with_engine(|engine| {
+			let lib_anime: komorei::Anime = anime.into();
+			let desc = engine.encode(&lib_anime)?;
+			let ptr = engine.call1("get_recommended_anime", desc)?;
+			let decoded = engine.decode::<records::AnimePageResultBuf>(ptr)?;
+			Ok(decoded.into())
+		})
+	}
+
 	/// `get_home()` — the source's home layout.
 	pub fn home(&self) -> Result<HomeLayout, RunnerError> {
 		self.with_engine(|engine| {

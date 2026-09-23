@@ -73,7 +73,9 @@ fun VideoPlayerSheet(
     // player engine, playback state and every action — so no callback plumbing.
     val playbackState by playerViewModel.playbackState.collectAsState()
     val player = playerViewModel.player
-    val relatedAnimeList by playerViewModel.allAnimes.collectAsState()
+    // Per-anime related suggestions — re-fetched by the VM on every openAnime
+    // (source's own `get_recommended_anime`, or a first-genre-tag search fallback).
+    val relatedAnimeList by playerViewModel.relatedAnimeList.collectAsState()
     val onStateChange: (PlayerSheetValue) -> Unit = { playerViewModel.setPlayerSheetValue(it) }
     val onPlayPauseToggle = { playerViewModel.togglePlayPause() }
     val onToggleFullscreen = { playerViewModel.toggleFullscreen() }
@@ -349,7 +351,7 @@ fun VideoPlayerSheet(
                                 PlayerVideoArea(
                                 player = player,
                                 title = anime.title,
-                                episodeTitle = currentEp.title,
+                                episodeTitle = episodeHeaderLabel(currentEp.episodeNumber, currentEp.title),
                                 posterUrl = anime.posterUrl,
                                 isPlaying = playbackState.isPlaying,
                                 isLoading = playbackState.isLoading,
@@ -655,6 +657,21 @@ fun UnifiedSettingsContent(
         onClearTrackType = onClearTrackType,
         onDismiss = onDismiss
     )
+}
+
+/**
+ * Player header episode line: "Tập {episodeNumber}" or "Tập {episodeNumber} - {title}".
+ * Some sources title episodes with just the bare number ("2") or a redundant
+ * "Tập N" label — those suffixes are skipped so the line reads clean.
+ */
+@Composable
+private fun episodeHeaderLabel(episodeNumber: String, title: String): String {
+    val detail = title.trim().takeIf { it.isNotEmpty() && it != episodeNumber }
+    return if (detail != null) {
+        stringResource(R.string.episode_title_format, episodeNumber, detail)
+    } else {
+        stringResource(R.string.episode_format, episodeNumber)
+    }
 }
 
 private enum class PlayerMenu { EPISODES, SERVERS, SETTINGS, SUBTITLES }

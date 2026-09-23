@@ -22,6 +22,7 @@ import git.shin.komorei.sdk.toAppModel
 import git.shin.komorei.sdk.toAppPage
 import git.shin.komorei.sdk.toRunner
 import git.shin.komorei.sdk.runner.HostDefaultValue
+import git.shin.komorei.sdk.runner.RunnerException
 import git.shin.komorei.data.SourceSearchEvent.Completed
 import git.shin.komorei.data.SourceSearchEvent.Failed
 import kotlinx.coroutines.CompletableDeferred
@@ -383,6 +384,37 @@ open class AnimeRepository @Inject constructor(
         } ?: KrxPage(emptyList(), false)
     }
 
+    /**
+     * Related anime for [anime] — the "Có thể bạn sẽ thích" section under the
+     * player's details — driven by the source's own SDK recommendation API
+     * (`get_recommended_anime`, the optional `RecommendationsHandler` trait).
+     *
+     * Sources that implement the trait return their curated selection; sources
+     * WITHOUT it throw `ExportMissing`, which falls back to a search
+     * ([runner.search], i.e. the SDK's "get anime list") by the anime's FIRST
+     * genre tag — its own `CategoryLink.filters` when the source ships them,
+     * otherwise [buildGenreFilter] (the same genre-name → source filter
+     * translation a genre chip tap on the Search screen uses). The current
+     * anime itself is always excluded; an empty result hides the section.
+     */
+    suspend fun getRecommendedAnime(anime: Anime): KrxPage<Anime> {
+        return registry.call(anime.sourceId) { runner ->
+            val page = try {
+                runner.recommendedAnime(anime.toRunner()).toAppPage()
+            } catch (e: RunnerException.ExportMissing) {
+                // No RecommendationsHandler export — fall back to a search by
+                // the first genre tag (see the SDK trait doc).
+                val firstGenre = anime.genres.firstOrNull()
+                    ?: return@call KrxPage(emptyList(), false)
+                val genreValues = firstGenre.filters
+                    .ifEmpty { buildGenreFilter(anime.sourceId, firstGenre.name) }
+                if (genreValues.isEmpty()) return@call KrxPage(emptyList(), false)
+                runner.search(null, 1, genreValues.map { it.toRunner() }).toAppPage()
+            }
+            KrxPage(page.entries.filterNot { it.id == anime.id }, page.hasNextPage)
+        } ?: KrxPage(emptyList(), false)
+    }
+
     // ── settings ────────────────────────────────────────────────────────────
 
     /**
@@ -540,19 +572,6 @@ open class AnimeRepository @Inject constructor(
             combined.getOrPut(title) { mutableListOf() }.addAll(items)
         }
         return combined.mapValues { (_, list) -> list.distinctBy { it.id } }
-    }
-
-    /** Merged home data across all sources (used for the player's related list). */
-    suspend fun allAnimes(): List<Anime> = aggregateSources { sourceId ->
-        getFeaturedAnime(sourceId) + getSectionsForSource(sourceId).values.flatten()
-    }
-
-    private suspend fun aggregateSources(block: suspend (String) -> List<Anime>): List<Anime> {
-        return coroutineScope {
-            sources.filter { !it.isAggregator }.map { s ->
-                async { block(s.id) }
-            }.awaitAll().flatten().distinctBy { it.id }
-        }
     }
 
     /**
