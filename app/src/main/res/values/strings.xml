@@ -190,7 +190,6 @@
     <string name="sources_import_invalid">Tệp không phải gói nguồn hợp lệ</string>
 
     <!-- Sources: Repos -->
-    <string name="sources_repos_section">Kho nguồn</string>
     <string name="sources_repos_empty">Chưa có kho nào. Thêm URL một kho nguồn để duyệt và cài nguồn từ bên ngoài.</string>
     <string name="sources_repos_add">Thêm kho</string>
     <string name="sources_repos_add_hint">URL kho nguồn (JSON)</string>
@@ -200,16 +199,20 @@
     <string name="sources_repos_unavailable">Không thể tải kho này</string>
     <string name="sources_repos_retry">Thử lại</string>
     <string name="sources_repos_fetch_sources">Tải danh sách nguồn</string>
-    <string name="sources_repos_hide_sources">Ẩn danh sách</string>
-    <string name="sources_repos_list_empty">Kho này chưa có nguồn nào</string>
     <string name="source_repos_title">Quản lý kho nguồn</string>
     <string name="sources_invalid_url">URL không hợp lệ</string>
     <string name="sources_feedback_hint">Báo cáo lỗi</string>
 
+    <!-- Sources: External catalog (AddSourceSheet) -->
+    <string name="sources_external_section">Nguồn ngoài</string>
+    <string name="sources_external_search_hint">Tìm nguồn ngoài…</string>
+    <string name="sources_external_no_results">Không tìm thấy nguồn phù hợp</string>
+    <string name="sources_external_all_installed">Tất cả nguồn từ kho đã được cài đặt</string>
+    <string name="sources_external_repos_partial_failed">Một số kho không tải được</string>
+
     <!-- Sources: External / Install -->
     <string name="sources_external_get">Cài</string>
     <string name="sources_external_getting">Đang cài…</string>
-    <string name="sources_external_installed">Đã cài</string>
     <string name="sources_external_has_update">Cập nhật mới</string>
     <string name="sources_external_no_package">Kho không cung cấp tệp cài đặt</string>
     <string name="sources_external_get_failed">Không thể tải nguồn từ kho</string>
