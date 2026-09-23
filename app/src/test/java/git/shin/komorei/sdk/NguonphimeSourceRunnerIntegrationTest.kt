@@ -528,8 +528,14 @@ class NguonphimeSourceRunnerIntegrationTest {
             </body></html>
         """.trimIndent()
 
+        /**
+         * The live-search XHR reply — mirrors the LIVE site's shape: country/
+         * year `<a>` links are nested INSIDE the film `<a>` (invalid HTML).
+         * jsoup splits that outer anchor into fragments, only one of which
+         * carries the `<img>`; the parser must read the cover per `li`.
+         */
         private val searchJson: String by lazy {
-            """{"code":200,"html":"<div class=\"result-group\">Phim</div><div class=\"result border-bottom\"><ul><li class=\"result-item\"><a href=\"/lan-huong-nhu-co-against-the-current-f83892.html\" title=\"Lan Hương Như Cố\"><div class=\"result-item-box clearfix\"><div class=\"result-item-image\"><img src=\"$baseUrl/nps3/lan-huong.jpg\" alt=\"Lan Hương Như Cố\"/></div><div class=\"result-item-content\"><p class=\"result-item-title\">Lan Hương Như Cố</p><p class=\"result-item-title result-item-title-en\">Against The Current</p></div></div></a></li></ul></div>","msgdefault":""}"""
+            """{"code":200,"html":"<div class=\"result-group\">Phim</div>\r\n<div class=\"result border-bottom\">\r\n<ul>\r\n<li class=\"result-item\">\r\n<a href=\"/lan-huong-nhu-co-against-the-current-f83892.html\" title=\"Lan Hương Như Cố\">\r\n<div class=\"result-item-box clearfix\">\r\n<div class=\"result-item-image\"><img src=\"$baseUrl/nps3/lan-huong.jpg\" alt=\"Lan Hương Như Cố\"/></div>\r\n<div class=\"result-item-content\">\r\n<p class=\"result-item-title\">Lan Hương Như Cố</p>\r\n<p class=\"result-item-title result-item-title-en\">Against The Current</p>\r\n<div class=\"result-item-price\"><p><span><i class=\"fa fa-globe\"></i><a href=\"/tuy-chon/trung-quoc.html?ft=co&co=CN\" title=\"Trung Quốc\">CN</a></span><span><i class=\"fa fa-clock-o\"></i><a href=\"/tuy-chon/2026.html?ft=ye&ye=2026\" title=\"2026\">2026</a></span></p></div>\r\n</div>\r\n</div>\r\n</a>\r\n</li>\r\n</ul>\r\n</div>","msgdefault":""}"""
         }
 
         // The watch XHR reply: signed grab iframe (PAI: indexL=0).
