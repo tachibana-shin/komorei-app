@@ -25,10 +25,10 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Cloud
@@ -197,6 +197,18 @@ fun AddSourceSheet(
                         lineHeight = 15.sp,
                     )
                 }
+                // Import .krx — a header icon (no big button), Aidoku's
+                // IMPORT_SOURCE folded into the top bar.
+                IconButton(
+                    onClick = { importLauncher.launch(arrayOf("*/*")) },
+                    modifier = Modifier.testTag("import_source_button"),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CreateNewFolder,
+                        contentDescription = stringResource(R.string.sources_import_cd),
+                        tint = TextSecondary,
+                    )
+                }
                 if (catalog.sources.isNotEmpty()) {
                     Box {
                         IconButton(
@@ -279,35 +291,6 @@ fun AddSourceSheet(
                         tint = TextSecondary,
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Import file action (Aidoku's IMPORT_SOURCE button)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(CardDark)
-                    .clickable { importLauncher.launch(arrayOf("*/*")) }
-                    .padding(16.dp)
-                    .testTag("import_source_button"),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.AddCircle,
-                    contentDescription = stringResource(R.string.sources_import_cd),
-                    tint = AnimeRed,
-                    modifier = Modifier.size(24.dp),
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = stringResource(R.string.sources_import_button),
-                    color = TextPrimary,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))

@@ -182,7 +182,6 @@
     <!-- Sources: Add & Import -->
     <string name="sources_import_title">Thêm nguồn</string>
     <string name="sources_import_subtitle">Nhập tệp hoặc duyệt kho nguồn</string>
-    <string name="sources_import_button">Nhập tệp (.aix / .krx)</string>
     <string name="sources_import_cd">Nhập tệp</string>
     <string name="sources_import_success">Cài đặt nguồn thành công</string>
     <string name="sources_import_fail">Không thể cài đặt tệp này</string>
