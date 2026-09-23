@@ -15,8 +15,7 @@ import git.shin.komorei.model.FilterValue
 /**
  * The Aidoku `FilterHeaderView` port for the per-source search screen — a
  * sticky, horizontally scrollable row of the aggregate filter sheet button
- * followed by one pill per header-eligible filter, in Aidoku's order
- * (enabled filters first, then the rest).
+ * followed by one pill per header-eligible filter.
  *
  * Header eligibility (Aidoku `FilterHeaderView`):
  *  - `hideFromHeader` filters are never shown;
@@ -25,6 +24,11 @@ import git.shin.komorei.model.FilterValue
  *    with a default is pointless in the header).
  *
  * Every pill commits through [onFilterValueChange] immediately.
+ *
+ * Pill order: applied (red) pills sort to the front, the most-selected
+ * furthest front (Aidoku moves applied filters ahead of the rest); inactive
+ * pills keep the source's original filter order. The reordering is animated
+ * via `Modifier.animateItem()` on each pill.
  */
 @Composable
 fun FilterHeaderRow(
@@ -34,10 +38,21 @@ fun FilterHeaderRow(
     onOpenFilterSheet: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val enabledIds = enabledFilters.mapTo(mutableSetOf()) { it.id }
+    // Applied (red) pills come first, the most-selected furthest front;
+    // inactive pills keep the source's original filter order (stable sort).
     val headerFilters = filters
         .filter { it.isHeaderEligible() }
-        .sortedBy { if (it.id in enabledIds) 0 else 1 }
+        .sortedWith { a, b ->
+            val aCount = filterValueSelectCount(a.id, enabledFilters)
+            val bCount = filterValueSelectCount(b.id, enabledFilters)
+            val aApplied = aCount > 0
+            val bApplied = bCount > 0
+            when {
+                aApplied != bApplied -> if (aApplied) -1 else 1
+                aCount != bCount -> bCount.compareTo(aCount)
+                else -> 0
+            }
+        }
 
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
@@ -51,26 +66,33 @@ fun FilterHeaderRow(
             )
         }
         items(headerFilters, key = { "filter_${it.id}" }) { filter ->
+            // animateItem() springs the pill between LazyRow slots so the
+            // active-first reordering is smooth instead of a hard jump.
+            val itemModifier = Modifier.animateItem()
             when (val kind = filter.kind) {
                 is FilterKind.Sort -> SortFilterPill(
                     filter = filter,
                     enabled = enabledFilters,
                     onChange = onFilterValueChange,
+                    modifier = itemModifier,
                 )
                 is FilterKind.Select -> SelectFilterPill(
                     filter = filter,
                     enabled = enabledFilters,
                     onChange = onFilterValueChange,
+                    modifier = itemModifier,
                 )
                 is FilterKind.MultiSelect -> MultiSelectFilterPill(
                     filter = filter,
                     enabled = enabledFilters,
                     onChange = onFilterValueChange,
+                    modifier = itemModifier,
                 )
                 is FilterKind.Check -> CheckFilterPill(
                     filter = filter,
                     enabled = enabledFilters,
                     onChange = onFilterValueChange,
+                    modifier = itemModifier,
                 )
                 else -> Unit
             }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -113,6 +114,23 @@ fun DiscoverFilterHeaderRow(
         ),
     )
 
+    // Applied (red) pills sort to the front — the sources multi-select jumps
+    // ahead of rating/language the more sources are chosen, while inactive
+    // pills keep the curated rating → language → sources order.
+    val pillsInOrder = listOf(
+        "rating" to if (contentRating != ContentRatingFilter.ALL) 1 else 0,
+        "language" to if (language != null) 1 else 0,
+        "sources" to includedSourceIds.size,
+    ).sortedWith { a, b ->
+        val aApplied = a.second > 0
+        val bApplied = b.second > 0
+        when {
+            aApplied != bApplied -> if (aApplied) -1 else 1
+            a.second != b.second -> b.second.compareTo(a.second)
+            else -> 0
+        }
+    }
+
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -129,47 +147,50 @@ fun DiscoverFilterHeaderRow(
                 modifier = Modifier.testTag("filter_sheet_button"),
             )
         }
-        item(key = "rating") {
-            FilterPill(
-                name = when (contentRating) {
-                    ContentRatingFilter.ALL -> ratingTitle
-                    ContentRatingFilter.SAFE -> stringResource(
+        items(pillsInOrder, key = { it.first }) { (key, _) ->
+            when (key) {
+                "rating" -> FilterPill(
+                    name = when (contentRating) {
+                        ContentRatingFilter.ALL -> ratingTitle
+                        ContentRatingFilter.SAFE -> stringResource(
+                            R.string.discover_filter_value_format,
+                            ratingTitle,
+                            stringResource(R.string.discover_rating_safe),
+                        )
+                        ContentRatingFilter.NSFW -> stringResource(
+                            R.string.discover_filter_value_format,
+                            ratingTitle,
+                            stringResource(R.string.discover_rating_nsfw),
+                        )
+                    },
+                    active = contentRating != ContentRatingFilter.ALL,
+                    onClick = { showRating = true },
+                    testTag = "filter_rating_pill",
+                    // Springs the pill between LazyRow slots on reorder.
+                    modifier = Modifier.animateItem(),
+                )
+                "language" -> FilterPill(
+                    name = if (language == null) languageTitle
+                    else stringResource(
                         R.string.discover_filter_value_format,
-                        ratingTitle,
-                        stringResource(R.string.discover_rating_safe),
-                    )
-                    ContentRatingFilter.NSFW -> stringResource(
-                        R.string.discover_filter_value_format,
-                        ratingTitle,
-                        stringResource(R.string.discover_rating_nsfw),
-                    )
-                },
-                active = contentRating != ContentRatingFilter.ALL,
-                onClick = { showRating = true },
-                testTag = "filter_rating_pill",
-            )
-        }
-        item(key = "language") {
-            FilterPill(
-                name = if (language == null) languageTitle
-                else stringResource(
-                    R.string.discover_filter_value_format,
-                    languageTitle,
-                    language.uppercase(),
-                ),
-                active = language != null,
-                onClick = { showLanguage = true },
-                testTag = "filter_language_pill",
-            )
-        }
-        item(key = "sources") {
-            FilterPill(
-                name = sourceTitle,
-                active = includedSourceIds.isNotEmpty(),
-                badgeCount = includedSourceIds.size,
-                onClick = { showSources = true },
-                testTag = "filter_sources_pill",
-            )
+                        languageTitle,
+                        language.uppercase(),
+                    ),
+                    active = language != null,
+                    onClick = { showLanguage = true },
+                    testTag = "filter_language_pill",
+                    modifier = Modifier.animateItem(),
+                )
+                "sources" -> FilterPill(
+                    name = sourceTitle,
+                    active = includedSourceIds.isNotEmpty(),
+                    badgeCount = includedSourceIds.size,
+                    onClick = { showSources = true },
+                    testTag = "filter_sources_pill",
+                    modifier = Modifier.animateItem(),
+                )
+                else -> Unit
+            }
         }
     }
 

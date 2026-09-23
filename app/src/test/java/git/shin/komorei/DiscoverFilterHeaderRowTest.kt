@@ -5,6 +5,7 @@ import androidx.compose.ui.test.performClick
 import git.shin.komorei.ui.components.search.DiscoverFilterHeaderRow
 import git.shin.komorei.model.ContentRatingFilter
 import git.shin.komorei.model.Source
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -106,5 +107,26 @@ class DiscoverFilterHeaderRowTest {
         }
         composeTestRule.onNodeWithTag("filter_sheet_button")
             .performClick()
+    }
+
+    @Test
+    fun appliedPillsSortToFrontWithMostSelectedFirst() {
+        composeTestRule.setContent {
+            DiscoverFilterHeaderRow(
+                contentRating = ContentRatingFilter.SAFE,
+                language = null,
+                includedSourceIds = setOf("source.a", "source.b"),
+                sources = sources,
+                onContentRatingChange = {},
+                onLanguageChange = {},
+                onSourcesChange = {},
+            )
+        }
+        // sources (2 selected) sorts ahead of rating (1); language stays last
+        val sourcesLeft = composeTestRule.onNodeWithTag("filter_sources_pill").fetchSemanticsNode().boundsInRoot.left
+        val ratingLeft = composeTestRule.onNodeWithTag("filter_rating_pill").fetchSemanticsNode().boundsInRoot.left
+        val languageLeft = composeTestRule.onNodeWithTag("filter_language_pill").fetchSemanticsNode().boundsInRoot.left
+        assertTrue("sources pill should sort before rating", sourcesLeft < ratingLeft)
+        assertTrue("rating pill should sort before language", ratingLeft < languageLeft)
     }
 }

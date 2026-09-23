@@ -55,6 +55,21 @@ fun activeFilterCount(enabled: List<FilterValue>): Int = enabled.sumOf {
 }
 
 /**
+ * The count of option values a single filter id currently selects (Aidoku's
+ * per-filter `filterCount`): a multi-select counts its included + excluded
+ * options, every other kind counts 1; an absent value counts 0. This drives
+ * the applied-first ordering of header pills — the more selected values a
+ * pill has, the further towards the front it sorts.
+ */
+fun filterValueSelectCount(id: String, enabled: List<FilterValue>): Int =
+    enabled.firstOrNull { it.id == id }?.let { value ->
+        when (value) {
+            is FilterValue.MultiSelect -> value.included.size + value.excluded.size
+            else -> 1
+        }
+    } ?: 0
+
+/**
  * Upserts [value] into a filter value list by id — `null` removes the id
  * (Aidoku `update*Filter` remove/replace/apppend behavior).
  */
