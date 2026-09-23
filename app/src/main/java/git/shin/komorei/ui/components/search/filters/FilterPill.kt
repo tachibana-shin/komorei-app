@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -102,18 +104,26 @@ fun FilterPill(
 fun FilterBadge(count: Int, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(100)
     val isVisible = count > 0
-    Text(
-        text = count.toString(),
-        color = Color.White,
-        fontSize = 10.sp,
-        lineHeight = 12.sp,
-        fontWeight = FontWeight.Bold,
-        maxLines = 1,
+    // The count text must be CENTERED in the disc — a bare Text in a fixed
+    // size() box draws its glyph at the top-left corner of the constraints.
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
             .size(if (isVisible) 18.dp else 1.dp)
             .clip(shape)
             .background(if (isVisible) AnimeRed else Color.Transparent)
-            .alpha(if (isVisible) 1f else 0f)
-            .padding(horizontal = 3.dp, vertical = 1.dp),
-    )
+            .alpha(if (isVisible) 1f else 0f),
+    ) {
+        if (isVisible) {
+            Text(
+                text = count.toString(),
+                color = Color.White,
+                fontSize = 10.sp,
+                lineHeight = 12.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
 }
