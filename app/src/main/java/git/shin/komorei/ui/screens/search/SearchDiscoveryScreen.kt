@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
@@ -34,6 +35,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +66,7 @@ import git.shin.komorei.ui.theme.TextSecondary
 @Composable
 fun SearchDiscoveryScreen(
     onAnimeClick: (Anime) -> Unit,
+    onOpenSourceSearch: (sourceId: String, query: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
@@ -280,6 +283,7 @@ fun SearchDiscoveryScreen(
                     resultsBySource = state.resultsBySource,
                     sourceErrors = state.sourceErrors,
                     onAnimeClick = onAnimeClick,
+                    onOpenSourceSearch = { sourceId -> onOpenSourceSearch(sourceId, searchQuery) },
                     modifier = Modifier
                         .fillMaxSize()
                         .testTag("search_results_list"),
@@ -322,6 +326,7 @@ fun SearchDiscoveryScreen(
                         showCountHeader = true,
                         totalCount = state.totalCount,
                         onAnimeClick = onAnimeClick,
+                        onOpenSourceSearch = { sourceId -> onOpenSourceSearch(sourceId, searchQuery) },
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag("search_results_list"),
@@ -364,9 +369,11 @@ fun SearchDiscoveryScreen(
 
 /**
  * Renders one horizontal section per source: a header row with the source's
- * icon ([AppIcons.getSourceIcon]) + name (red + error message on failure),
- * and below it either the result cards (horizontal swipe), a small loading
- * shimmer row while that source is still resolving, or nothing for an error.
+ * icon ([AppIcons.getSourceIcon]) + name (red + error message on failure) —
+ * tappable to jump into that source's own search screen with the current
+ * query — and below it either the result cards (horizontal swipe), a small
+ * loading shimmer row while that source is still resolving, or nothing for an
+ * error.
  *
  * Shared by the live [SearchUiState.Searching] phase (where pending sources
  * keep their shimmer) and the terminal [SearchUiState.Success] phase (which
@@ -378,6 +385,7 @@ private fun SearchSourceSections(
     resultsBySource: Map<Source, List<Anime>>,
     sourceErrors: Map<Source, String>,
     onAnimeClick: (Anime) -> Unit,
+    onOpenSourceSearch: (sourceId: String) -> Unit = {},
     modifier: Modifier = Modifier,
     showCountHeader: Boolean = false,
     totalCount: Int = 0,
@@ -406,12 +414,15 @@ private fun SearchSourceSections(
             val animes = resultsBySource[source] ?: emptyList()
             val error = sourceErrors[source]
 
-            // Section header with source icon.
+            // Section header with source icon. The whole row is tappable and
+            // jumps to this source's own search screen with the current query.
             item {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { onOpenSourceSearch(source.id) }
                         .padding(top = 4.dp, bottom = 4.dp, end = 4.dp, start = 2.dp)
                 ) {
                     SourceIcon(
@@ -435,8 +446,15 @@ private fun SearchSourceSections(
                             color = AnimeRed,
                             fontSize = 11.sp,
                             modifier = Modifier.padding(start = 8.dp),
+                            maxLines = 1,
                         )
                     }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = stringResource(R.string.source_search_entry_cd),
+                        tint = TextMuted,
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
             }
             // Source body: results (horizontal swipe), pending shimmer, or error.

@@ -139,6 +139,11 @@ fun MainScreen(
                             onOpenSearch = { sourceId ->
                                 navController.navigate(Screen.SourceSearch.createRoute(sourceId))
                             },
+                            onOpenSourceSearch = { sourceId, query ->
+                                navController.navigate(
+                                    Screen.SourceSearch.createRoute(sourceId, query, emptyList())
+                                )
+                            },
                         )
                     }
                 }
@@ -189,6 +194,11 @@ fun MainScreen(
                                 onOpenSearch = { sourceId ->
                                     navController.navigate(Screen.SourceSearch.createRoute(sourceId))
                                 },
+                                onOpenSourceSearch = { sourceId, query ->
+                                    navController.navigate(
+                                        Screen.SourceSearch.createRoute(sourceId, query, emptyList())
+                                    )
+                                },
                             )
                         }
                     }
@@ -231,6 +241,7 @@ fun MainNavigationHost(
     onAnimeSelect: (Anime) -> Unit,
     onOpenListing: (sourceId: String, listing: git.shin.komorei.model.Listing) -> Unit = { _, _ -> },
     onOpenSearch: (sourceId: String) -> Unit = {},
+    onOpenSourceSearch: (sourceId: String, query: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     NavHost(
@@ -247,7 +258,10 @@ fun MainNavigationHost(
             )
         }
         composable(Screen.Search.route) {
-            SearchDiscoveryScreen(onAnimeClick = onAnimeSelect)
+            SearchDiscoveryScreen(
+                onAnimeClick = onAnimeSelect,
+                onOpenSourceSearch = onOpenSourceSearch,
+            )
         }
         composable(Screen.Sources.route) {
             SourcesScreen(
