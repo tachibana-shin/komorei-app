@@ -84,7 +84,7 @@ class SourcesScreenTest {
     fun sourcesScreenRendersScreenTag() {
         composeTestRule.setContent {
             SourcesScreen(
-                onOpenAddSource = {},
+                onOpenRepos = {},
                 onOpenSource = {},
                 viewModel = sourcesViewModel,
             )
@@ -97,7 +97,7 @@ class SourcesScreenTest {
     fun sourcesScreenRendersSourceRow() {
         composeTestRule.setContent {
             SourcesScreen(
-                onOpenAddSource = {},
+                onOpenRepos = {},
                 onOpenSource = {},
                 viewModel = sourcesViewModel,
             )
@@ -111,7 +111,7 @@ class SourcesScreenTest {
     fun sourcesScreenRendersRefreshButton() {
         composeTestRule.setContent {
             SourcesScreen(
-                onOpenAddSource = {},
+                onOpenRepos = {},
                 onOpenSource = {},
                 viewModel = sourcesViewModel,
             )
@@ -124,7 +124,7 @@ class SourcesScreenTest {
     fun sourcesScreenRendersAddSourceButton() {
         composeTestRule.setContent {
             SourcesScreen(
-                onOpenAddSource = {},
+                onOpenRepos = {},
                 onOpenSource = {},
                 viewModel = sourcesViewModel,
             )
@@ -137,7 +137,7 @@ class SourcesScreenTest {
     fun sourcesScreenSwitchingTabsDoesNotCrash() {
         composeTestRule.setContent {
             SourcesScreen(
-                onOpenAddSource = {},
+                onOpenRepos = {},
                 onOpenSource = {},
                 viewModel = sourcesViewModel,
             )

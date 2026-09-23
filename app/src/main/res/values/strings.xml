@@ -194,6 +194,7 @@
     <string name="sources_repos_add">Thêm kho</string>
     <string name="sources_repos_add_hint">URL kho nguồn (JSON)</string>
     <string name="sources_repos_remove_cd">Xóa kho</string>
+    <string name="sources_repos_manage">Quản lý kho</string>
     <string name="sources_repos_loading">Đang tải…</string>
     <string name="sources_repos_unavailable">Không thể tải kho này</string>
     <string name="sources_repos_retry">Thử lại</string>
@@ -202,19 +203,12 @@
     <string name="sources_invalid_url">URL không hợp lệ</string>
     <string name="sources_feedback_hint">Báo cáo lỗi</string>
 
-    <!-- Sources: External catalog (AddSourceScreen) -->
+    <!-- Sources: External catalog (AddSourceSheet) -->
     <string name="sources_external_section">Nguồn ngoài</string>
     <string name="sources_external_search_hint">Tìm nguồn ngoài…</string>
     <string name="sources_external_no_results">Không tìm thấy nguồn phù hợp</string>
     <string name="sources_external_all_installed">Tất cả nguồn từ kho đã được cài đặt</string>
     <string name="sources_external_repos_partial_failed">Một số kho không tải được</string>
-    <string name="sources_external_info_no_repos_title">Chưa có nguồn ngoài</string>
-    <string name="sources_external_info_no_repos_sub">Thêm một kho nguồn để tải danh sách nguồn ngoài và cài đặt.</string>
-    <string name="sources_external_info_no_available_title">Không có nguồn khả dụng</string>
-    <string name="sources_external_info_no_available_sub">Các kho nguồn hiện chưa cung cấp nguồn nào.</string>
-    <string name="sources_external_info_all_installed_title">Đã cài đặt tất cả nguồn</string>
-    <string name="sources_external_info_failed_title">Không tải được kho nguồn</string>
-    <string name="sources_external_info_failed_sub">Kiểm tra kết nối mạng rồi thử lại.</string>
 
     <!-- Sources: External / Install -->
     <string name="sources_external_get">Cài</string>
