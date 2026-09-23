@@ -51,3 +51,20 @@ fun buildExternalCatalog(
         failed = failed,
     )
 }
+
+/**
+ * Applies the sheet's language filter to a catalog (Aidoku semantics: a source
+ * is kept when it carries ANY of the selected tags). An empty [selected] set
+ * means "no filter" — everything is shown, so the default state never hides
+ * rows. A source with no language metadata is treated as multi-language
+ * ("multi"), mirroring how empty tags surface as "Đa ngôn ngữ" in the UI.
+ */
+fun filterByLanguages(
+    sources: List<ExternalSourceInfo>,
+    selected: Set<String>,
+): List<ExternalSourceInfo> {
+    if (selected.isEmpty()) return sources
+    return sources.filter { info ->
+        info.languages.any { it in selected } || (info.languages.isEmpty() && "multi" in selected)
+    }
+}

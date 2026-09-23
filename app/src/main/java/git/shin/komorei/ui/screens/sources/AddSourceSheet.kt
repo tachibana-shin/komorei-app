@@ -26,13 +26,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
@@ -73,16 +77,19 @@ import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import java.util.Locale
 
 /**
  * The "Thêm nguồn" bottom sheet — a port of Aidoku's `AddSourceView` UX:
  *  - a big **import .aix/.krx** action (SAF file picker), Aidoku's IMPORT_SOURCE;
  *  - a searchable **flat list of every external source merged across all repos**
  *    (Aidoku's `allExternalSources` — duplicate ids are deduped to the newest
- *    advertised version by [buildExternalCatalog]), with one-tap Get buttons;
- *  - **installed sources stripped out** of the list, mirroring
- *    `AddSourceView.filterExternalSources`;
- *  - explicit empty states (no repos / repo down / no matches / all installed);
+ *    advertised version by [buildExternalCatalog]) with one-tap Get buttons;
+ *  - **installed sources stay visible** in the list (marked "Đã cài") — unlike
+ *    `AddSourceView.filterExternalSources` they are never hidden once on-device;
+ *  - a **language filter** button in the header (Aidoku's `AddSourceFilterMenu`)
+ *    that narrows the list to sources carrying any selected language tag;
+ *  - explicit empty states (no repos / repo down / no matches);
  *  - "Thêm kho" URL dialog and a link to the repo manager screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,6 +108,8 @@ fun AddSourceSheet(
 
     var query by remember { mutableStateOf("") }
     var showAddRepoDialog by remember { mutableStateOf(false) }
+    var selectedLanguages by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var showLanguageFilter by remember { mutableStateOf(false) }
 
     // Fetch every configured repo when the sheet opens (or repos change) so the
     // catalog already shows sources instead of a stale "Đang tải…".
@@ -122,22 +131,29 @@ fun AddSourceSheet(
     // Merged, deduped catalog across every loaded repo (Aidoku's allExternalSources).
     val catalog = remember(repos, repoStates) { buildExternalCatalog(repos, repoStates) }
 
-    // Search narrows the catalog; installed sources are stripped, so the sheet
-    // only ever offers what is actually installable.
+    // Distinct language tags offered by the current catalog for the filter menu
+    // (multi-language first, then alphabetical — Aidoku brings local/multi up).
+    val availableLanguages = remember(catalog.sources) {
+        catalog.sources.flatMap { it.languages }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sortedWith(compareBy({ it != "multi" }, { it }))
+    }
+
+    // Installed sources are NOT stripped from the list (they stay visible,
+    // marked "Đã cài"); only the search text and the language filter narrow it.
     val queryTrimmed = query.trim()
     val queryLower = queryTrimmed.lowercase()
-    val visibleSources = remember(catalog.sources, installedIds, queryLower) {
+    val visibleSources = remember(catalog.sources, selectedLanguages, queryLower) {
+        val byLanguage = filterByLanguages(catalog.sources, selectedLanguages)
         if (queryLower.isEmpty()) {
-            catalog.sources.filter { it.id !in installedIds }
+            byLanguage
         } else {
-            catalog.sources.filter { info ->
-                info.id !in installedIds &&
-                    (info.name.lowercase().contains(queryLower) || info.id.lowercase().contains(queryLower))
+            byLanguage.filter { info ->
+                info.name.lowercase().contains(queryLower) || info.id.lowercase().contains(queryLower)
             }
         }
     }
-    val allInstalled = catalog.hasRepos && !catalog.loading && catalog.sources.isNotEmpty() &&
-        queryTrimmed.isEmpty() && visibleSources.isEmpty()
 
     // The sheet grows with its content up to ~92% of the screen height (an
     // Aidoku-style pageSheet); the list column scrolls once it outgrows that.
@@ -180,6 +196,81 @@ fun AddSourceSheet(
                         fontSize = 12.sp,
                         lineHeight = 15.sp,
                     )
+                }
+                if (catalog.sources.isNotEmpty()) {
+                    Box {
+                        IconButton(
+                            onClick = { showLanguageFilter = true },
+                            modifier = Modifier.testTag("add_source_filter_button"),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.FilterList,
+                                contentDescription = stringResource(R.string.sources_filter_cd),
+                                tint = if (selectedLanguages.isEmpty()) TextSecondary else AnimeRed,
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showLanguageFilter,
+                            onDismissRequest = { showLanguageFilter = false },
+                            containerColor = SurfaceDark,
+                        ) {
+                            // "Tất cả ngôn ngữ" — clears the filter (show everything).
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = stringResource(R.string.sources_filter_all_languages),
+                                        color = TextPrimary,
+                                        fontSize = 14.sp,
+                                    )
+                                },
+                                leadingIcon = {
+                                    if (selectedLanguages.isEmpty()) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Check,
+                                            contentDescription = null,
+                                            tint = AnimeRed,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    selectedLanguages = emptySet()
+                                    showLanguageFilter = false
+                                },
+                                modifier = Modifier.testTag("add_source_filter_all"),
+                            )
+                            HorizontalDivider(color = CardBorderDark)
+                            availableLanguages.forEach { code ->
+                                val selected = code in selectedLanguages
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = languageFilterLabel(code),
+                                            color = TextPrimary,
+                                            fontSize = 14.sp,
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        if (selected) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Check,
+                                                contentDescription = null,
+                                                tint = AnimeRed,
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                        }
+                                    },
+                                    // Multi-select: keep the menu open (Aidoku uses
+                                    // `menuActionDismissDisabled` on the submenu).
+                                    onClick = {
+                                        selectedLanguages =
+                                            if (selected) selectedLanguages - code else selectedLanguages + code
+                                    },
+                                    modifier = Modifier.testTag("add_source_filter_lang_$code"),
+                                )
+                            }
+                        }
+                    }
                 }
                 IconButton(onClick = onDismiss) {
                     Icon(
@@ -313,37 +404,15 @@ fun AddSourceSheet(
 
                     else -> {
                         if (visibleSources.isEmpty()) {
-                            item(key = if (allInstalled) "all_installed" else "no_results") {
-                                if (allInstalled) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                imageVector = Icons.Filled.CheckCircle,
-                                                contentDescription = null,
-                                                tint = SuccessGreen,
-                                                modifier = Modifier.size(18.dp),
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = stringResource(R.string.sources_external_all_installed),
-                                                color = TextSecondary,
-                                                fontSize = 13.sp,
-                                            )
-                                        }
-                                    }
-                                } else {
-                                    EmptyMessage(text = stringResource(R.string.sources_external_no_results))
-                                }
+                            item(key = "no_results") {
+                                EmptyMessage(text = stringResource(R.string.sources_external_no_results))
                             }
                         } else {
                             items(visibleSources, key = { it.id }) { info ->
                                 ExternalSourceRow(
                                     info = info,
                                     installing = info.id in installingIds,
+                                    installed = info.id in installedIds,
                                     onGet = { viewModel.installExternal(info) },
                                 )
                             }
@@ -505,6 +574,13 @@ private fun AddSourceSearchBar(
     }
 }
 
+/** Display name of a language tag in the filter menu ("Đa ngôn ngữ" for multi). */
+@Composable
+private fun languageFilterLabel(code: String): String {
+    if (code == "multi" || code.isBlank()) return stringResource(R.string.sources_language_multi)
+    return remember(code) { Locale.forLanguageTag(code).displayLanguage }.ifBlank { code }
+}
+
 /** Muted inline message row used for search/no-results empty states. */
 @Composable
 private fun EmptyMessage(text: String) {
@@ -557,6 +633,7 @@ private fun FailedNotice(onRetry: () -> Unit) {
 private fun ExternalSourceRow(
     info: ExternalSourceInfo,
     installing: Boolean,
+    installed: Boolean,
     onGet: () -> Unit,
 ) {
     Row(
@@ -622,27 +699,56 @@ private fun ExternalSourceRow(
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
-        if (installing) {
-            Text(
-                text = stringResource(R.string.sources_external_getting),
-                color = TextMuted,
-                fontSize = 12.sp,
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(100))
-                    .background(AnimeRed)
-                    .clickable(onClick = onGet)
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-            ) {
+        when {
+            installing -> {
                 Text(
-                    text = stringResource(R.string.sources_external_get),
-                    color = Color.White,
+                    text = stringResource(R.string.sources_external_getting),
+                    color = TextMuted,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    lineHeight = 14.sp,
                 )
+            }
+            installed -> {
+                // Already on-device row — kept visible, marked instead of hidden.
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(100))
+                        .background(CardDark)
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                        .testTag("source_row_installed_${info.id}"),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = SuccessGreen,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = stringResource(R.string.sources_external_installed),
+                        color = SuccessGreen,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 14.sp,
+                    )
+                }
+            }
+            else -> {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(100))
+                        .background(AnimeRed)
+                        .clickable(onClick = onGet)
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.sources_external_get),
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 14.sp,
+                    )
+                }
             }
         }
     }

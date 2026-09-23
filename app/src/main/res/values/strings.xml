@@ -207,8 +207,12 @@
     <string name="sources_external_section">Nguồn ngoài</string>
     <string name="sources_external_search_hint">Tìm nguồn ngoài…</string>
     <string name="sources_external_no_results">Không tìm thấy nguồn phù hợp</string>
-    <string name="sources_external_all_installed">Tất cả nguồn từ kho đã được cài đặt</string>
     <string name="sources_external_repos_partial_failed">Một số kho không tải được</string>
+    <string name="sources_external_installed">Đã cài</string>
+
+    <!-- Sources: External / Language filter (Aidoku AddSourceFilterMenu) -->
+    <string name="sources_filter_cd">Lọc ngôn ngữ</string>
+    <string name="sources_filter_all_languages">Tất cả ngôn ngữ</string>
 
     <!-- Sources: External / Install -->
     <string name="sources_external_get">Cài</string>

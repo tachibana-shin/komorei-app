@@ -3,6 +3,7 @@ package git.shin.komorei
 import git.shin.komorei.data.ExternalSourceInfo
 import git.shin.komorei.ui.screens.sources.RepoSectionState
 import git.shin.komorei.ui.screens.sources.buildExternalCatalog
+import git.shin.komorei.ui.screens.sources.filterByLanguages
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -107,5 +108,35 @@ class ExternalCatalogTest {
         assertTrue(catalog.failed)
         assertTrue(catalog.loading)
         assertEquals(1, catalog.sources.size)
+    }
+
+    @Test
+    fun `empty language selection means no filter`() {
+        val catalog = listOf(
+            ExternalSourceInfo(id = "a", name = "A", version = "1", languages = listOf("vi")),
+            ExternalSourceInfo(id = "b", name = "B", version = "1", languages = listOf("multi")),
+        )
+        assertEquals(2, filterByLanguages(catalog, emptySet()).size)
+    }
+
+    @Test
+    fun `language filter keeps sources carrying any selected tag`() {
+        val catalog = listOf(
+            ExternalSourceInfo(id = "a", name = "A", version = "1", languages = listOf("vi")),
+            ExternalSourceInfo(id = "b", name = "B", version = "1", languages = listOf("multi")),
+            ExternalSourceInfo(id = "c", name = "C", version = "1", languages = listOf("vi", "en")),
+        )
+        assertEquals(listOf("a", "c"), filterByLanguages(catalog, setOf("vi")).map { it.id })
+        assertEquals(listOf("a", "b", "c"), filterByLanguages(catalog, setOf("vi", "multi")).map { it.id })
+    }
+
+    @Test
+    fun `source without language metadata matches multi`() {
+        val catalog = listOf(
+            ExternalSourceInfo(id = "a", name = "A", version = "1"),
+            ExternalSourceInfo(id = "b", name = "B", version = "1", languages = listOf("vi")),
+        )
+        assertEquals(listOf("a"), filterByLanguages(catalog, setOf("multi")).map { it.id })
+        assertEquals(listOf("b"), filterByLanguages(catalog, setOf("vi")).map { it.id })
     }
 }
