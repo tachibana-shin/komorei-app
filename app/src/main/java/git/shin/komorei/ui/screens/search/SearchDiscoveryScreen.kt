@@ -1,8 +1,15 @@
 package git.shin.komorei.ui.screens.search
 
 import git.shin.komorei.ui.components.search.CompactInput
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +40,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -86,34 +94,42 @@ fun SearchDiscoveryScreen(
             .statusBarsPadding()
             .testTag("search_discovery_screen")
     ) {
-        // Search Header Bar
+        // Search Header Bar: the "Tìm Kiếm" branding collapses with an
+        // animation as soon as the search field grabs focus — search mode
+        // hands the whole area to the results. The old "Đa Nguồn" subtitle
+        // is gone entirely.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            Text(
-                text = stringResource(R.string.search_header_title),
-                color = TextPrimary,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Black
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.search_header_subtitle),
-                color = TextSecondary,
-                fontSize = 12.sp
-            )
+            val inputFocusSource = remember { MutableInteractionSource() }
+            val inputFocused by inputFocusSource.collectIsFocusedAsState()
+            AnimatedVisibility(
+                visible = !inputFocused,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Column {
+                    Text(
+                        text = stringResource(R.string.search_header_title),
+                        color = TextPrimary,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier.testTag("search_header_title"),
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Multi-source Search Bar with OutlinedTextField
+            // Multi-source Search Bar
             CompactInput(
                 value = searchQuery,
                 onValueChange = { viewModel.onSearchQueryChange(it) },
                 hint = stringResource(R.string.search_hint),
                 leadingIcon = Icons.Default.Search,
                 showClear = searchQuery.isNotEmpty() || selectedGenre != null,
+                interactionSource = inputFocusSource,
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("search_input_field"),

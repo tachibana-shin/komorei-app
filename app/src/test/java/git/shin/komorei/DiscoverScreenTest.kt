@@ -140,4 +140,25 @@ class DiscoverScreenTest {
         // Search history should contain the query
         assertTrue("Frieren" in vm.searchHistory.value)
     }
+
+    @Test
+    fun focusingSearchInputAnimatesHeaderAway() {
+        val vm = newViewModel()
+        composeTestRule.setContent {
+            git.shin.komorei.ui.screens.search.SearchDiscoveryScreen(
+                onAnimeClick = {},
+                viewModel = vm,
+            )
+        }
+
+        // Branding header visible before focus
+        composeTestRule.onNodeWithTag("search_header_title").assertExists()
+
+        // Focus the search field → header collapses via AnimatedVisibility
+        composeTestRule.onNodeWithTag("search_input_field").performClick()
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag("search_header_title").assertDoesNotExist()
+    }
 }
