@@ -114,6 +114,15 @@ android {
         "komorei.test.kkphimKrx",
         rootProject.file("sources/sources/vi.kkphim/package.krx").absolutePath,
       )
+      // The real VSMov source (sources/sources/vi.vsmov) — an OPhim-style
+      // flat-fork GET API (vsmov.com) whose detail exposes only link_embed;
+      // exercised end-to-end against a local fixture server (including the
+      // embed-page playerOptions.subtitles scan) in
+      // VsmovSourceRunnerIntegrationTest.
+      test.systemProperty(
+        "komorei.test.vsmovKrx",
+        rootProject.file("sources/sources/vi.vsmov/package.krx").absolutePath,
+      )
     }
   } }
   dependenciesInfo {
