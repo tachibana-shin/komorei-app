@@ -4,6 +4,7 @@ Android anime streaming app, ~~Vietnamese UI~~ (multi location). Single `:app` m
 Stack: Compose + Hilt + Room + Media3 (ExoPlayer) + OkHttp/Moshi. No CI, no lint gate.
 
 ## Commands
+Note: if komorei-sdk folder not exists clone from https://github.com/tachibana-shin/komorei-sdk
 - Fast compile: `./gradlew :app:compileDebugKotlin` (runs KSP — Hilt/Room/Moshi codegen errors surface here)
 - Unit tests (JVM, Robolectric + Roborazzi): `./gradlew :app:testDebugUnitTest`
 - Single test: `./gradlew :app:testDebugUnitTest --tests "git.shin.komorei.AnimeRepositoryTest"`
