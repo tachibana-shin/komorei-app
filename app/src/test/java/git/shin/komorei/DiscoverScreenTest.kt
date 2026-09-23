@@ -161,4 +161,38 @@ class DiscoverScreenTest {
 
         composeTestRule.onNodeWithTag("search_header_title").assertDoesNotExist()
     }
+
+    @Test
+    fun cancelButtonSlidesInOnFocusAndRestoresHeader() {
+        val vm = newViewModel()
+        composeTestRule.setContent {
+            git.shin.komorei.ui.screens.search.SearchDiscoveryScreen(
+                onAnimeClick = {},
+                viewModel = vm,
+            )
+        }
+
+        // No Hủy while idle
+        composeTestRule.onNodeWithTag("search_input_cancel").assertDoesNotExist()
+
+        // Focus the field → header collapses, Hủy slides in
+        composeTestRule.onNodeWithTag("search_input_field").performClick()
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("search_header_title").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("search_input_cancel").assertExists()
+
+        // Type a query first so cancel has something to clear
+        vm.onSearchQueryChange("Naruto")
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.waitForIdle()
+
+        // Hủy → clears the query + focus → header animates back
+        composeTestRule.onNodeWithTag("search_input_cancel").performClick()
+        composeTestRule.mainClock.advanceTimeBy(1_000)
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("search_header_title").assertExists()
+        composeTestRule.onNodeWithTag("search_input_cancel").assertDoesNotExist()
+        assertTrue(vm.searchQuery.value.isEmpty())
+    }
 }

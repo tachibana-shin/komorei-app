@@ -2,9 +2,11 @@ package git.shin.komorei.ui.screens.search
 
 import git.shin.komorei.ui.components.search.CompactInput
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -44,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -96,13 +99,15 @@ fun SearchDiscoveryScreen(
     ) {
         // Search Header Bar: the "Tìm Kiếm" branding collapses with an
         // animation as soon as the search field grabs focus — search mode
-        // hands the whole area to the results. The old "Đa Nguồn" subtitle
-        // is gone entirely.
+        // hands the whole area to the results — and a Hủy button slides in
+        // next to the field (iOS-style) to exit search mode again. The old
+        // "Đa Nguồn" subtitle is gone entirely.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
+            val focusManager = LocalFocusManager.current
             val inputFocusSource = remember { MutableInteractionSource() }
             val inputFocused by inputFocusSource.collectIsFocusedAsState()
             AnimatedVisibility(
@@ -122,18 +127,48 @@ fun SearchDiscoveryScreen(
                 }
             }
 
-            // Multi-source Search Bar
-            CompactInput(
-                value = searchQuery,
-                onValueChange = { viewModel.onSearchQueryChange(it) },
-                hint = stringResource(R.string.search_hint),
-                leadingIcon = Icons.Default.Search,
-                showClear = searchQuery.isNotEmpty() || selectedGenre != null,
-                interactionSource = inputFocusSource,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("search_input_field"),
-            )
+            // Multi-source Search Bar + an animated Hủy that slides in from
+            // the right while the field is focused (the input Row recomposes
+            // each animation frame so the field grows back smoothly on exit).
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                CompactInput(
+                    value = searchQuery,
+                    onValueChange = { viewModel.onSearchQueryChange(it) },
+                    hint = stringResource(R.string.search_hint),
+                    leadingIcon = Icons.Default.Search,
+                    showClear = searchQuery.isNotEmpty() || selectedGenre != null,
+                    interactionSource = inputFocusSource,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("search_input_field"),
+                )
+                AnimatedVisibility(
+                    visible = inputFocused,
+                    enter = expandHorizontally(expandFrom = Alignment.End) + fadeIn(),
+                    exit = shrinkHorizontally(shrinkTowards = Alignment.End) + fadeOut(),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(
+                            onClick = {
+                                focusManager.clearFocus()
+                                viewModel.onSearchQueryChange("")
+                            },
+                            modifier = Modifier.testTag("search_input_cancel"),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.search_cancel),
+                                color = AnimeRed,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         // Aidoku-style global filters (content rating / language / sources)

@@ -28,6 +28,7 @@
 
     <!-- Search & Discovery Screen -->
     <string name="search_header_title">Tìm Kiếm</string>
+    <string name="search_cancel">Hủy</string>
     <string name="search_hint">Tìm anime, nhân vật, tác giả…</string>
     <string name="search_clear_cd">Xóa tìm kiếm</string>
     <string name="search_icon_cd">Tìm kiếm</string>
