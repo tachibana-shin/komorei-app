@@ -239,8 +239,8 @@
     <string name="description_title">Giới thiệu nội dung</string>
     <string name="episodes_header">Danh sách tập (%1$d tập)</string>
     <string name="related_anime_header">Có thể bạn sẽ thích</string>
-    <string name="episode_format">Tập %1$d</string>
-    <string name="episode_title_format">Tập %1$d - %2$s</string>
+    <string name="episode_format">Tập %1$s</string>
+    <string name="episode_title_format">Tập %1$s - %2$s</string>
     <string name="episode_playing_indicator">ĐANG PHÁT</string>
     <string name="current_playing">Đang phát</string>
     <string name="badge_sub">Vietsub</string>

@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -817,19 +818,28 @@ fun AnimeDetailView(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 ) {
-                    rows.forEachIndexed { index, rowAnimes ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = if (index < rows.lastIndex) 14.dp else 0.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            rowAnimes.forEach { anime ->
-                                AnimeCard(
-                                    anime = anime,
-                                    onClick = { onAnimeSelected(anime) },
-                                    modifier = Modifier.weight(1f)
-                                )
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        // Fixed cell width (not weight) so an incomplete last row keeps
+                        // the same 1/3 sizing as full rows instead of stretching to 50%.
+                        val cellWidth = (maxWidth - 24.dp) / 3 // 3 slots, 2×12dp gaps
+                        rows.forEachIndexed { index, rowAnimes ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = if (index < rows.lastIndex) 14.dp else 0.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                rowAnimes.forEach { anime ->
+                                    AnimeCard(
+                                        anime = anime,
+                                        onClick = { onAnimeSelected(anime) },
+                                        cardWidth = cellWidth
+                                    )
+                                }
+                                // Keep an incomplete last row left-aligned.
+                                repeat(3 - rowAnimes.size) {
+                                    Spacer(modifier = Modifier.width(cellWidth))
+                                }
                             }
                         }
                     }
