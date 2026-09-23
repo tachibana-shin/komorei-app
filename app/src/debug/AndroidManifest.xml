@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Debug-only: allow cleartext HTTP to local source-repo servers (emulator host loopback / LAN).
+         The main manifest sets no network security policy; release builds stay HTTPS-only. -->
+    <application android:networkSecurityConfig="@xml/network_security_config" />
+</manifest>

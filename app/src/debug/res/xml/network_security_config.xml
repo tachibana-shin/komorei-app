@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-only network security config: accept cleartext HTTP everywhere so any
+     local source-repo dev server (emulator host loopback, LAN dev machine, ...)
+     can be tested. Release builds stay HTTPS-only (main manifest sets no
+     network security policy). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
