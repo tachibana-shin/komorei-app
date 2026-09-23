@@ -76,12 +76,12 @@ import git.shin.komorei.ui.theme.TextSecondary
  *  - searchable source list with **Updates / Pinned / Installed** sections;
  *  - long-press (or ⋮) context menu: enable/disable, pin/unpin, uninstall;
  *  - "Update" pill rows in the Updates section;
- *  - Add-source sheet (import .aix/.krx + browse repos) via the "+" button.
+ *  - push the full-screen Add-source page (Aidoku AddSourceView) via "+".
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SourcesScreen(
-    onOpenRepos: () -> Unit,
+    onOpenAddSource: () -> Unit,
     onOpenSource: (sourceId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SourcesViewModel = hiltViewModel(),
@@ -90,7 +90,6 @@ fun SourcesScreen(
     val sources by viewModel.sources.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
 
-    var showAddSheet by remember { mutableStateOf(false) }
     var uninstallCandidate by remember { mutableStateOf<SourceUiState?>(null) }
 
     LaunchedEffect(viewModel) {
@@ -150,7 +149,7 @@ fun SourcesScreen(
                 )
             }
             IconButton(
-                onClick = { showAddSheet = true },
+                onClick = { onOpenAddSource() },
                 modifier = Modifier.testTag("sources_add_source_button"),
             ) {
                 Icon(
@@ -239,7 +238,7 @@ fun SourcesScreen(
         ) {
             if (sources.isEmpty()) {
                 item(key = "empty") {
-                    EmptyState(onAdd = { showAddSheet = true })
+                    EmptyState(onAdd = { onOpenAddSource() })
                 }
             } else {
                 if (updates.isNotEmpty()) {
@@ -315,17 +314,6 @@ fun SourcesScreen(
                     Text(stringResource(R.string.sources_cancel))
                 }
             },
-        )
-    }
-
-    if (showAddSheet) {
-        AddSourceSheet(
-            onDismiss = { showAddSheet = false },
-            onOpenRepos = {
-                showAddSheet = false
-                onOpenRepos()
-            },
-            viewModel = viewModel,
         )
     }
 }

@@ -41,6 +41,13 @@ sealed class Screen(val route: String) {
 
     data object SourceRepos : Screen("sources/repos")
 
+    /**
+     * Full-screen "Thêm nguồn" page (Aidoku AddSourceView): import a package
+     * or browse the flat external-source catalog. Pushed from the Sources tab
+     * "+" button.
+     */
+    data object AddSource : Screen("sources/add")
+
     /** In-app notifications (new episodes for followed anime, source messages). */
     data object Notifications : Screen("notifications")
 
