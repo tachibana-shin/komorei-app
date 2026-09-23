@@ -14,6 +14,7 @@ import git.shin.komorei.model.Anime
 import git.shin.komorei.model.ContentRatingFilter
 import git.shin.komorei.model.Genre
 import git.shin.komorei.model.Source
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -282,6 +283,13 @@ class SearchViewModel @Inject constructor(
                     totalCount = resultsBySource.values.sumOf { it.size },
                     sourceErrors = sourceErrors,
                 )
+            } catch (e: CancellationException) {
+                // A newer search superseded this job (typing, filter change,
+                // Hủy / clearSearch) or the VM scope died — cancellation is
+                // NOT an error and must never surface as the Error state
+                // (it previously leaked "StandaloneCoroutine was cancelled"
+                // into the UI with a bogus Thử lại button).
+                throw e
             } catch (e: Exception) {
                 _searchUiState.value = SearchUiState.Error(
                     e.localizedMessage ?: appContext.getString(R.string.error_search),

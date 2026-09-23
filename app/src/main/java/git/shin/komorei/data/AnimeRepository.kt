@@ -43,7 +43,7 @@ import javax.inject.Singleton
  * source, no shared lock).
  */
 @Singleton
-class AnimeRepository @Inject constructor(
+open class AnimeRepository @Inject constructor(
     private val registry: KrxSourceRegistry,
 ) {
 
@@ -285,7 +285,7 @@ class AnimeRepository @Inject constructor(
       * Each source is queried on its own thread; a broken source only
       * surfaces as its own [Failed] event and never blocks the others.
       */
-    fun searchMultiSourceStream(
+    open fun searchMultiSourceStream(
         query: String,
         selectedGenreId: String? = null,
         contentRating: Int? = null,

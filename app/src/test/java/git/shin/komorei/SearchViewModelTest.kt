@@ -5,14 +5,19 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.SearchHistoryStore
+import git.shin.komorei.data.SourceSearchEvent
 import git.shin.komorei.model.ContentRatingFilter
 import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
 import git.shin.komorei.ui.screens.search.SearchUiState
 import git.shin.komorei.ui.screens.search.SearchViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -48,6 +53,7 @@ import java.io.File
 class SearchViewModelTest {
 
     private lateinit var repository: AnimeRepository
+    private lateinit var registry: KrxSourceRegistry
     private lateinit var searchHistoryStore: SearchHistoryStore
     private val mainDispatcher = UnconfinedTestDispatcher()
 
@@ -63,7 +69,7 @@ class SearchViewModelTest {
             System.getProperty("uniffi.component.komorei_runner.libraryOverride"),
         )
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val registry = KrxSourceRegistry(context, KrxHostImpl(context))
+        registry = KrxSourceRegistry(context, KrxHostImpl(context))
         val runner = registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
         assertNotNull("fake source should load", runner)
         repository = AnimeRepository(registry)
@@ -262,6 +268,64 @@ class SearchViewModelTest {
         vm.setSourceFilter(emptySet())
         vm.setLanguage(null)
         awaitUntil { vm.searchUiState.value is SearchUiState.Idle }
+    }
+
+    /**
+     * [AnimeRepository] whose FIRST multi-source search throws a
+     * [CancellationException] out of the stream — the same signal a
+     * superseded in-flight search job produces when `searchJob.cancel()`
+     * lands on its suspended `collect()` (a cancel lands on the suspend
+     * point inside the stream → propagates out of `collect` → into the VM's
+     * catch). This is the signal the fixed catch must rethrow instead of
+     * turning into `SearchUiState.Error` ("StandaloneCoroutine was
+     * cancelled"). Later calls delegate to the real implementation.
+     */
+    private class CancellationThrowingRepository(registry: KrxSourceRegistry) : AnimeRepository(registry) {
+        private var thrown = false
+        override fun searchMultiSourceStream(
+            query: String,
+            selectedGenreId: String?,
+            contentRating: Int?,
+            languages: Set<String>,
+            sourceIds: Set<String>,
+        ): Flow<SourceSearchEvent> = if (!thrown) {
+            thrown = true
+            flow { throw CancellationException("search superseded — in-flight job cancelled") }
+        } else {
+            super.searchMultiSourceStream(query, selectedGenreId, contentRating, languages, sourceIds)
+        }
+    }
+
+    @Test
+    fun cancelledSearchNeverSurfacesAsError() = runBlocking {
+        val vm = SearchViewModel(
+            appContext = ApplicationProvider.getApplicationContext(),
+            repository = CancellationThrowingRepository(registry),
+            searchHistoryStore = searchHistoryStore,
+            savedStateHandle = SavedStateHandle(),
+        ).also { it.searchDebounceMillis = 0 }
+
+        // Record every UI state the VM emits so the transient cancellation
+        // error is caught (the collector runs on the VM's own unconfined
+        // dispatcher — StateFlow conflates for a slow one).
+        val states = mutableListOf<SearchUiState>()
+        val collector = launch(UnconfinedTestDispatcher(mainDispatcher.scheduler)) {
+            vm.searchUiState.collect { states += it }
+        }
+
+        // First search stream throws CancellationException → the job is
+        // superseded, exactly like typing a new query over a running search.
+        vm.onSearchQueryChange("Frieren")
+        vm.onSearchQueryChange("Frieren 2")
+        awaitUntil { vm.searchUiState.value is SearchUiState.Success }
+
+        collector.cancel()
+
+        assertTrue(
+            "a cancelled search job must never surface as Error; observed: $states",
+            states.none { it is SearchUiState.Error },
+        )
+        assertTrue(vm.searchUiState.value is SearchUiState.Success)
     }
 
     // ── restore / persistence ────────────────────────────────────────
