@@ -128,6 +128,65 @@ android {
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
+  }}
+
+// ─── JNA-dependent runner tests get their own test JVM ────────────────────
+//
+// The `git.shin.komorei.sdk.*` tests drive the REAL runner: the uniffi
+// bindings load the runner cdylib through JNA, and every `KomoreiHost` call
+// re-enters the JVM through a JNA callback. JNA initialises its native side
+// once per classloader, and Robolectric gives every test class a fresh
+// sandbox classloader — so running these tests in the same JVM as the
+// ~35 Compose/Robolectric classes leaves JNA's shared native callback state
+// pointing at objects from discarded sandboxes. The symptom is an
+// intermittent, load-dependent `host callback failed: not enough bytes
+// remaining in buffer (0 < 1)`: the `RustBuffer` out-param comes back empty
+// and the host method never runs (no OkHttp, no SharedPreferences read).
+//
+// Robolectric sandboxes never touch JNA, so a dedicated task keeps every
+// runner test green. It carries BOTH the `git.shin.komorei.sdk.*` classes and
+// the root-package suites that actually invoke a wasm export (the rest only
+// read registry metadata and never cross the FFI boundary).
+val RUNNER_WASM_TESTS = listOf(
+  "git/shin/komorei/AnimeRepositoryTest.kt",
+  "git/shin/komorei/PlayerViewModelTest.kt",
+  "git/shin/komorei/RecommendedAnimeFallbackTest.kt",
+  "git/shin/komorei/SourceHomeScopedTest.kt",
+)
+val sdkRunnerUnitTest = tasks.register<Test>("testSdkRunnerUnitTest") {
+  group = "verification"
+  description = "Tests that invoke the wasm runner, in their own JVM (JNA vs Robolectric sandboxes)"
+  outputs.upToDateWhen { false }
+  filter {
+    includeTestsMatching("git.shin.komorei.sdk.*")
+    RUNNER_WASM_TESTS.forEach {
+      includeTestsMatching(it.removeSuffix(".kt").replace('/', '.'))
+    }
+  }
+}
+
+// Same classpath + the uniffi cdylib override / `-Dkomorei.test.*Krx` fixture
+// paths that `testOptions.unitTests.all` sets on the AGP unit-test task (that
+// hook only configures tasks AGP itself creates). Resolved at configuration
+// time — a `doFirst` would capture the Gradle script object and break the
+// configuration cache.
+sdkRunnerUnitTest.configure {
+  val main = tasks.named<Test>("testDebugUnitTest").get()
+  testClassesDirs = main.testClassesDirs
+  classpath = main.classpath
+  main.systemProperties.forEach { (k, v) -> systemProperty(k, v) }
+}
+tasks.withType<Test>().configureEach {
+  if (name == "testDebugUnitTest") {
+    filter {
+      // `exclude` (a path pattern) is unreliable here; filter the test classes
+      // directly instead — the sdk task picks up exactly what is removed.
+      excludeTestsMatching("git.shin.komorei.sdk.*")
+      RUNNER_WASM_TESTS.forEach {
+        excludeTestsMatching(it.removeSuffix(".kt").replace('/', '.'))
+      }
+    }
+    finalizedBy(sdkRunnerUnitTest)
   }
 }
 
