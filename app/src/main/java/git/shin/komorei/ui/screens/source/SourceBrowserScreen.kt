@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -52,6 +54,7 @@ import git.shin.komorei.ui.components.search.CompactInput
 import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.tv.tvFocus
 import kotlinx.coroutines.launch
 
 /**
@@ -106,6 +109,9 @@ fun SourceBrowserScreen(
             IconButton(
                 enabled = canGoBack,
                 onClick = { webView?.goBack() },
+                modifier = Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = CircleShape, scale = 1.15f),
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
@@ -117,6 +123,9 @@ fun SourceBrowserScreen(
             IconButton(
                 enabled = canGoForward,
                 onClick = { webView?.goForward() },
+                modifier = Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = CircleShape, scale = 1.15f),
             ) {
                 Icon(
                     Icons.Filled.ArrowForward,
@@ -127,6 +136,9 @@ fun SourceBrowserScreen(
             }
             IconButton(
                 onClick = { webView?.reload() },
+                modifier = Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = CircleShape, scale = 1.15f),
             ) {
                 Icon(
                     Icons.Filled.Refresh,
@@ -145,7 +157,12 @@ fun SourceBrowserScreen(
                 keyboardActions = KeyboardActions(onGo = { load() }),
             )
 
-            TextButton(onClick = { load() }) {
+            TextButton(
+                onClick = { load() },
+                modifier = Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
+            ) {
                 Text(
                     text = stringResource(R.string.source_browser_cd_go),
                     color = TextPrimary,
@@ -161,14 +178,17 @@ fun SourceBrowserScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TextButton(onClick = {
-                val url = webView?.url ?: return@TextButton
-                val send = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, url)
-                }
-                context.startActivity(Intent.createChooser(send, null))
-            }) {
+            TextButton(
+                onClick = {
+                    val url = webView?.url ?: return@TextButton
+                    val send = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, url)
+                    }
+                    context.startActivity(Intent.createChooser(send, null))
+                },
+                modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
+            ) {
                 Icon(
                     Icons.Filled.Share,
                     contentDescription = stringResource(R.string.source_browser_cd_share),
@@ -179,10 +199,13 @@ fun SourceBrowserScreen(
                     modifier = Modifier.padding(start = 6.dp),
                 )
             }
-            TextButton(onClick = {
-                val url = webView?.url ?: return@TextButton
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-            }) {
+            TextButton(
+                onClick = {
+                    val url = webView?.url ?: return@TextButton
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                },
+                modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
+            ) {
                 Icon(
                     Icons.Filled.OpenInNew,
                     contentDescription = stringResource(R.string.source_browser_cd_open_external),

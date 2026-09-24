@@ -122,7 +122,12 @@ fun PlayerControlHeader(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBackClick) {
+            IconButton(
+                onClick = onBackClick,
+                // TV focus highlight (no-op on phones) — sibling overlay of the
+                // player surface, so the graphicsLayer is safe.
+                modifier = Modifier.tvFocus(shape = CircleShape, scale = 1.12f, borderColor = Color.White),
+            ) {
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
                     contentDescription = stringResource(R.string.cd_minimize_player),
@@ -518,7 +523,11 @@ fun PlayerControlFooter(
                                 )
                             ),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            modifier = Modifier.height(36.dp)
+                            modifier = Modifier
+                                // TV focus highlight (no-op on phones) — sibling overlay
+                                // of the player surface, so the graphicsLayer is safe.
+                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f, borderColor = Color.White)
+                                .height(36.dp)
                         ) {
                             Icon(
                                 Icons.Default.SkipNext,
@@ -535,7 +544,10 @@ fun PlayerControlFooter(
                         }
                         Spacer(Modifier.width(12.dp))
                     }
-                    IconButton(onClick = onOpenEpisodes) {
+                    IconButton(
+                        onClick = onOpenEpisodes,
+                        modifier = Modifier.tvFocus(shape = CircleShape, scale = 1.12f, borderColor = Color.White),
+                    ) {
                         Icon(
                             Icons.Default.PlaylistPlay,
                             null,
@@ -546,7 +558,10 @@ fun PlayerControlFooter(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onOpenServers) {
+                    TextButton(
+                        onClick = onOpenServers,
+                        modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f, borderColor = Color.White),
+                    ) {
                         Icon(
                             Icons.Default.Dns,
                             null,
@@ -560,7 +575,10 @@ fun PlayerControlFooter(
                             fontSize = 13.sp
                         )
                     }
-                    TextButton(onClick = onOpenSettings) {
+                    TextButton(
+                        onClick = onOpenSettings,
+                        modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f, borderColor = Color.White),
+                    ) {
                         Icon(
                             Icons.Default.HighQuality,
                             null,
@@ -574,7 +592,10 @@ fun PlayerControlFooter(
                             fontSize = 13.sp
                         )
                     }
-                    TextButton(onClick = onOpenSettings) {
+                    TextButton(
+                        onClick = onOpenSettings,
+                        modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f, borderColor = Color.White),
+                    ) {
                         Text(
                             "${
                                 if (currentSpeed == currentSpeed.toInt()
@@ -729,7 +750,12 @@ fun PlayerSideSheet(
                                 style = MaterialTheme.typography.titleMedium,
                                 color = TextPrimary
                             )
-                            IconButton(onClick = onDismiss) {
+                            IconButton(
+                                onClick = onDismiss,
+                                // TV focus highlight (no-op on phones) — the side panel is
+                                // a sibling overlay of the player surface.
+                                modifier = Modifier.tvFocus(shape = CircleShape, scale = 1.12f),
+                            ) {
                                 Icon(Icons.Default.Close, null, tint = TextSecondary)
                             }
                         }

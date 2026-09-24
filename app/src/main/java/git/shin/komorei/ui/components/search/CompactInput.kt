@@ -40,6 +40,7 @@ import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * A thin "pill" text input (40dp tall, 20dp radius) for compact filter and
@@ -139,6 +140,10 @@ fun CompactInput(
                             contentDescription = null,
                             tint = TextMuted,
                             modifier = Modifier
+                                // TV focus highlight (no-op on phones). The pill itself
+                                // already signals focus via its red border; this only
+                                // covers the clear button as a separate D-pad target.
+                                .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.15f)
                                 .size(18.dp)
                                 .clip(RoundedCornerShape(10.dp))
                                 .clickable { onValueChange("") },

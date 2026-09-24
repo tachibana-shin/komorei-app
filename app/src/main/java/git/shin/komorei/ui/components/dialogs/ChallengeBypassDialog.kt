@@ -54,12 +54,15 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import git.shin.komorei.R
 import git.shin.komorei.data.remote.WEBVIEW_ANTI_FINGERPRINT_HEADERS
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import git.shin.komorei.data.remote.stripFingerprintHeaders
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -123,7 +126,13 @@ fun ChallengeBypassDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    IconButton(onClick = onDismiss, modifier = Modifier.testTag("challenge_close")) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = CircleShape, scale = 1.15f)
+                            .testTag("challenge_close"),
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = stringResource(R.string.challenge_dialog_cd_close),
@@ -148,7 +157,11 @@ fun ChallengeBypassDialog(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    IconButton(onClick = { if (progress < 100) webView?.stopLoading() else webView?.reload() }) {
+                    IconButton(
+                        onClick = { if (progress < 100) webView?.stopLoading() else webView?.reload() },
+                        // TV focus highlight (no-op on phones).
+                        modifier = Modifier.tvFocus(shape = CircleShape, scale = 1.15f),
+                    ) {
                         Icon(
                             imageVector = if (progress < 100) Icons.Filled.Close else Icons.Filled.Refresh,
                             contentDescription = stringResource(R.string.source_browser_cd_reload),
@@ -226,7 +239,13 @@ fun ChallengeBypassDialog(
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconButton(onClick = onDismiss, modifier = Modifier.testTag("challenge_dismiss")) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = CircleShape, scale = 1.15f)
+                            .testTag("challenge_dismiss"),
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = stringResource(R.string.challenge_dialog_cd_close),
@@ -234,7 +253,14 @@ fun ChallengeBypassDialog(
                             modifier = Modifier.size(20.dp),
                         )
                     }
-                    IconButton(onClick = { webView?.goBack() }, enabled = canGoBack, modifier = Modifier.testTag("challenge_back")) {
+                    IconButton(
+                        onClick = { webView?.goBack() },
+                        enabled = canGoBack,
+                        modifier = Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = CircleShape, scale = 1.15f)
+                            .testTag("challenge_back"),
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.source_browser_cd_back),
@@ -242,7 +268,12 @@ fun ChallengeBypassDialog(
                             modifier = Modifier.size(20.dp),
                         )
                     }
-                    IconButton(onClick = { webView?.goForward() }, enabled = canGoForward) {
+                    IconButton(
+                        onClick = { webView?.goForward() },
+                        enabled = canGoForward,
+                        // TV focus highlight (no-op on phones).
+                        modifier = Modifier.tvFocus(shape = CircleShape, scale = 1.15f),
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = stringResource(R.string.source_browser_cd_forward),
@@ -251,7 +282,13 @@ fun ChallengeBypassDialog(
                         )
                     }
                     Spacer(modifier = Modifier.weight(1f))
-                    TextButton(onClick = onNext, modifier = Modifier.testTag("challenge_continue")) {
+                    TextButton(
+                        onClick = onNext,
+                        modifier = Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
+                            .testTag("challenge_continue"),
+                    ) {
                         Text(
                             text = stringResource(R.string.challenge_dialog_continue),
                             color = AnimeRed,

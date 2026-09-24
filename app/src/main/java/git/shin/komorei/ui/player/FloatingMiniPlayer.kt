@@ -42,6 +42,7 @@ import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
 import androidx.media3.ui.compose.material3.Player as ComposePlayer
 import coil.compose.AsyncImage
 import git.shin.komorei.R
+import git.shin.komorei.ui.tv.tvFocus
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -159,6 +160,10 @@ fun FloatingMiniPlayer(
             Box(
                 modifier = Modifier
                     .matchParentSize()
+                    // TV focus highlight (no-op on phones) — the whole bubble is
+                    // one D-pad target; ring-only (scale 1.0) so the bubble never
+                    // grows past its clipped corners.
+                    .tvFocus(shape = cornerRadius, scale = 1.0f, borderColor = Color.White)
                     .clickable(onClick = onExpand)
             )
 
@@ -168,6 +173,10 @@ fun FloatingMiniPlayer(
                 onClick = onPlayPauseToggle,
                 modifier = Modifier
                     .align(Alignment.TopStart)
+                    // TV focus highlight (no-op on phones) — the button overlays
+                    // the video but is NOT an ancestor of its TextureView, so a
+                    // graphicsLayer here cannot black out playback.
+                    .tvFocus(shape = CircleShape, scale = 1.15f, borderColor = Color.White)
                     .padding(8.dp)
                     .size(32.dp)
                     .background(Color.Black.copy(alpha = 0.55f), CircleShape)
@@ -186,6 +195,7 @@ fun FloatingMiniPlayer(
                 onClick = onClose,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
+                    .tvFocus(shape = CircleShape, scale = 1.15f, borderColor = Color.White)
                     .padding(8.dp)
                     .size(32.dp)
                     .background(Color.Black.copy(alpha = 0.55f), CircleShape)

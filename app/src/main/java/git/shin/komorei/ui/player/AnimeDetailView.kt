@@ -278,9 +278,12 @@ fun AnimeDetailView(
                             text = stringResource(R.string.author_label) + " " + displayAnime.authors.first().name,
                             color = if (displayAnime.authors.first().filters.isNotEmpty()) AnimeGreen else TextSecondary,
                             fontSize = 14.sp,
-                            modifier = Modifier.clickable(enabled = displayAnime.authors.first().filters.isNotEmpty()) {
-                                onNavigateToCategory(displayAnime.authors.first().filters)
-                            }
+                            modifier = Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                .clickable(enabled = displayAnime.authors.first().filters.isNotEmpty()) {
+                                    onNavigateToCategory(displayAnime.authors.first().filters)
+                                }
                         )
                         Text(text = " | ", color = TextGrey, fontSize = 14.sp)
                     }
@@ -292,9 +295,12 @@ fun AnimeDetailView(
                         ),
                         color = if (displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) AnimeGreen else TextSecondary,
                         fontSize = 14.sp,
-                        modifier = Modifier.clickable(enabled = displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) {
-                            displayAnime.studio?.let { onNavigateToCategory(it.filters) }
-                        }
+                        modifier = Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                            .clickable(enabled = displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) {
+                                displayAnime.studio?.let { onNavigateToCategory(it.filters) }
+                            }
                     )
                 }
 
@@ -324,7 +330,10 @@ fun AnimeDetailView(
                         Badge(
                             text = it.name,
                             textStyle = NoPaddingTextStyle,
-                            modifier = Modifier.clickable { onNavigateToCategory(it.filters) })
+                            modifier = Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                .clickable { onNavigateToCategory(it.filters) })
                     }
                     if (!displayAnime.currentEpisode.isNullOrEmpty()) {
                         Badge(
@@ -341,9 +350,12 @@ fun AnimeDetailView(
                             color = if (country.filters.isNotEmpty()) AnimeGreen else TextSecondary,
                             fontSize = 14.sp,
                             style = NoPaddingTextStyle,
-                            modifier = Modifier.clickable(enabled = country.filters.isNotEmpty()) {
-                                onNavigateToCategory(country.filters)
-                            }
+                            modifier = Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                .clickable(enabled = country.filters.isNotEmpty()) {
+                                    onNavigateToCategory(country.filters)
+                                }
                         )
                     }
                 }
@@ -392,9 +404,12 @@ fun AnimeDetailView(
                             color = if (it.filters.isNotEmpty()) AnimeGreen else TextPrimary,
                             fontSize = 14.sp,
                             style = NoPaddingTextStyle,
-                            modifier = Modifier.clickable(enabled = it.filters.isNotEmpty()) {
-                                onNavigateToCategory(it.filters)
-                            }
+                            modifier = Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                .clickable(enabled = it.filters.isNotEmpty()) {
+                                    onNavigateToCategory(it.filters)
+                                }
                         )
                     }
                 }
@@ -408,9 +423,12 @@ fun AnimeDetailView(
                             color = if (genre.filters.isNotEmpty()) AnimeGreen else TextSecondary,
                             fontSize = 14.sp,
                             style = SmallTextStyle,
-                            modifier = Modifier.clickable(enabled = genre.filters.isNotEmpty()) {
-                                onNavigateToCategory(genre.filters)
-                            }
+                            modifier = Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                .clickable(enabled = genre.filters.isNotEmpty()) {
+                                    onNavigateToCategory(genre.filters)
+                                }
                         )
                     }
                 }
@@ -917,7 +935,10 @@ fun AnimeDetailView(
                         )
                         IconButton(
                             onClick = { showDescriptionSheet = false },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = CircleShape, scale = 1.15f)
+                                .size(32.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,

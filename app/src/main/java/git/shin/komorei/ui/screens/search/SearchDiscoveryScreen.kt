@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -73,6 +74,7 @@ import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
 import git.shin.komorei.ui.tv.TvInitialFocus
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * Tìm Kiếm tab — an Aidoku-style global search: a search bar, the three
@@ -169,7 +171,10 @@ fun SearchDiscoveryScreen(
                                 focusManager.clearFocus()
                                 viewModel.onSearchQueryChange("")
                             },
-                            modifier = Modifier.testTag("search_input_cancel"),
+                            modifier = Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
+                                .testTag("search_input_cancel"),
                         ) {
                             Text(
                                 text = stringResource(R.string.search_cancel),
@@ -288,7 +293,10 @@ fun SearchDiscoveryScreen(
                                         }
                                         IconButton(
                                             onClick = { viewModel.removeHistoryItem(query) },
-                                            modifier = Modifier.size(28.dp)
+                                            modifier = Modifier
+                                                // TV focus highlight (no-op on phones).
+                                                .tvFocus(shape = CircleShape, scale = 1.15f)
+                                                .size(28.dp)
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Clear,
@@ -304,7 +312,8 @@ fun SearchDiscoveryScreen(
                             // Clear all history
                             Spacer(modifier = Modifier.height(4.dp))
                             TextButton(
-                                onClick = { viewModel.clearSearchHistory() }
+                                onClick = { viewModel.clearSearchHistory() },
+                                modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
                             ) {
                                 Text(
                                     text = stringResource(R.string.search_history_clear_all),

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -56,6 +57,7 @@ import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.tv.TvInitialFocus
+import git.shin.komorei.ui.tv.tvFocus
 import kotlinx.coroutines.launch
 
 @Composable
@@ -179,6 +181,8 @@ fun HomeScreen(
                 IconButton(
                     onClick = onOpenNotifications,
                     modifier = Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
                         .size(32.dp)
                         .testTag("home_notifications_button"),
                 ) {

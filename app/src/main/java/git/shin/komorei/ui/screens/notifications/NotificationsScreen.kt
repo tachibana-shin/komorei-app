@@ -54,6 +54,7 @@ import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 @Composable
 fun NotificationsScreen(
@@ -79,7 +80,10 @@ fun NotificationsScreen(
         ) {
             IconButton(
                 onClick = onBack,
-                modifier = Modifier.testTag("notifications_back"),
+                modifier = Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = CircleShape, scale = 1.15f)
+                    .testTag("notifications_back"),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -120,7 +124,10 @@ fun NotificationsScreen(
             ) {
                 TextButton(
                     onClick = { viewModel.markAllRead() },
-                    modifier = Modifier.testTag("notifications_mark_all_read"),
+                    modifier = Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
+                        .testTag("notifications_mark_all_read"),
                 ) {
                     Text(
                         text = stringResource(R.string.notifications_mark_all_read),
@@ -131,7 +138,9 @@ fun NotificationsScreen(
                 }
                 TextButton(
                     onClick = { viewModel.clearAll() },
-                    modifier = Modifier.testTag("notifications_clear_all"),
+                    modifier = Modifier
+                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
+                        .testTag("notifications_clear_all"),
                 ) {
                     Text(
                         text = stringResource(R.string.notifications_clear_all),
@@ -174,6 +183,8 @@ private fun NotificationRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            // TV focus highlight (no-op on phones) — full-width row, ring only.
+            .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.0f)
             .clip(RoundedCornerShape(12.dp))
             .background(if (notification.isRead) CardDark else accent.copy(alpha = 0.14f))
             .clickable(onClick = onClick)

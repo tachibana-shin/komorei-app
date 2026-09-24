@@ -47,6 +47,7 @@ import git.shin.komorei.ui.player.components.*
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.tv.tvFocus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
@@ -755,6 +756,10 @@ fun PlayerVideoArea(
                     onClick = onToggleLock,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
+                        // TV focus highlight (no-op on phones). Sibling overlay of the
+                        // player surface — not an ancestor of its TextureView, so the
+                        // graphicsLayer is safe (same rule as the skip pill).
+                        .tvFocus(shape = CircleShape, scale = 1.1f)
                         .padding(24.dp)
                         .size(56.dp)
                         .clip(CircleShape)

@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * Slide-in panel from the right edge for the player's in-video menus (episode/season
@@ -106,7 +109,15 @@ fun PlayerSideMenu(
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            IconButton(onClick = onDismiss, modifier = Modifier.size(36.dp)) {
+                            IconButton(
+                                onClick = onDismiss,
+                                modifier = Modifier
+                                    // TV focus highlight (no-op on phones). The panel is a
+                                    // sibling overlay of the sheet — never an ancestor of the
+                                    // TextureView, so the graphicsLayer is safe here.
+                                    .tvFocus(shape = CircleShape, scale = 1.15f)
+                                    .size(36.dp),
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = stringResource(R.string.cd_close),

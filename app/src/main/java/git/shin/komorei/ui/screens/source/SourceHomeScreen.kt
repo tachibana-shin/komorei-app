@@ -39,6 +39,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Listing
@@ -52,6 +54,7 @@ import git.shin.komorei.ui.screens.sources.sourceVersionSubtitle
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * A source's "home screen" — Aidoku's NewSourceViewController: the same
@@ -104,7 +107,12 @@ fun SourceHomeScreen(
                 .padding(horizontal = 4.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = CircleShape, scale = 1.15f)
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.cd_back),
@@ -135,7 +143,10 @@ fun SourceHomeScreen(
             Box {
                 IconButton(
                     onClick = { menuExpanded = true },
-                    modifier = Modifier.testTag("source_home_menu"),
+                    modifier = Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .testTag("source_home_menu"),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.MoreVert,
@@ -155,6 +166,10 @@ fun SourceHomeScreen(
                                 menuExpanded = false
                                 openSourceWebsite(context, source!!.baseUrl)
                             },
+                            // TV focus highlight (no-op on phones) — material3 applies
+                            // the item modifier OUTSIDE its internal clickable, so the
+                            // ring tracks the menu item's focus.
+                            modifier = Modifier.tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f),
                         )
                     }
                     DropdownMenuItem(
@@ -163,6 +178,7 @@ fun SourceHomeScreen(
                             menuExpanded = false
                             onOpenSettings(sourceId)
                         },
+                        modifier = Modifier.tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f),
                     )
                 }
             }

@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 @Composable
 fun SectionHeader(
@@ -42,7 +43,11 @@ fun SectionHeader(
             .fillMaxWidth()
             .let { m ->
                 if (onSeeAll != null) {
-                    m.clip(RoundedCornerShape(6.dp)).clickable(onClick = onSeeAll)
+                    m
+                        // TV focus highlight (no-op on phones) — full-width strip.
+                        .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable(onClick = onSeeAll)
                 } else {
                     m
                 }

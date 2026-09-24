@@ -33,6 +33,7 @@ import git.shin.komorei.ui.components.SectionHeader
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.AnimeRed
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * The `AnimeList` home component (mirrors the runner + the Aidoku reference).
@@ -133,6 +134,8 @@ private fun AnimeListRowCell(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
+            // TV focus highlight (no-op on phones) — full-width row, ring only.
+            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
             .clickable(enabled = anime != null) {
                 if (anime != null) onAnimeClick(anime)
             }
@@ -191,6 +194,8 @@ private fun AnimeListGridCell(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
+            // TV focus highlight (no-op on phones) — grid cell.
+            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
             .clickable(enabled = anime != null) {
                 if (anime != null) onAnimeClick(anime)
             }

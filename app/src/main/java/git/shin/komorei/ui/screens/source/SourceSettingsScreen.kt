@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -70,6 +71,7 @@ import git.shin.komorei.ui.theme.SurfaceVariantDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.tv.tvFocus
 
 @Composable
 fun SourceSettingsScreen(
@@ -104,7 +106,12 @@ fun SourceSettingsScreen(
                 .padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = CircleShape, scale = 1.15f),
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.cd_back),
@@ -342,7 +349,7 @@ fun SourceSettingsScreen(
                             TextButton(onClick = {
                                 viewModel.resetSettings()
                                 resetConfirm = false
-                            }) {
+                            }, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) {
                                 Text(
                                     stringResource(R.string.source_settings_reset_confirm_action),
                                     color = AnimeRed,
@@ -350,7 +357,7 @@ fun SourceSettingsScreen(
                             }
                         },
                         dismissButton = {
-                            TextButton(onClick = { resetConfirm = false }) {
+                            TextButton(onClick = { resetConfirm = false }, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) {
                                 Text(
                                     stringResource(R.string.source_settings_cancel),
                                     color = TextSecondary,
@@ -385,7 +392,7 @@ fun SourceSettingsScreen(
                             TextButton(onClick = {
                                 viewModel.migrateData()
                                 migrateConfirm = false
-                            }) {
+                            }, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) {
                                 Text(
                                     stringResource(R.string.source_settings_migrate_confirm_action),
                                     color = AnimeRed,
@@ -393,7 +400,7 @@ fun SourceSettingsScreen(
                             }
                         },
                         dismissButton = {
-                            TextButton(onClick = { migrateConfirm = false }) {
+                            TextButton(onClick = { migrateConfirm = false }, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) {
                                 Text(
                                     stringResource(R.string.source_settings_cancel),
                                     color = TextSecondary,
@@ -489,6 +496,8 @@ private fun ActionRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            // TV focus highlight (no-op on phones) — full-width row, ring only.
+            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
             .clip(RoundedCornerShape(10.dp))
             .background(if (isAccent) AnimeRed else CardDark)
             .clickable(onClick = onClick)
@@ -508,6 +517,8 @@ private fun ClickableRow(title: String, subtitle: String?, onClick: () -> Unit) 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            // TV focus highlight (no-op on phones) — full-width row, ring only.
+            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
             .clip(RoundedCornerShape(10.dp))
             .background(CardDark)
             .clickable(onClick = onClick)
@@ -542,13 +553,16 @@ private fun SelectDialog(title: String, options: List<String>, titles: List<Stri
                         text = "${if (sel) "● " else "  "}$display",
                         color = if (sel) AnimeRed else TextPrimary,
                         fontSize = 14.sp,
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
+                        modifier = Modifier
+                            // TV focus highlight (no-op on phones) — dialog option row.
+                            .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
+                            .fillMaxWidth().clip(RoundedCornerShape(6.dp))
                             .clickable { onSelect(option) }.padding(vertical = 8.dp, horizontal = 4.dp),
                     )
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.source_settings_cancel), color = TextSecondary) } },
+        confirmButton = { TextButton(onClick = onDismiss, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) { Text(stringResource(R.string.source_settings_cancel), color = TextSecondary) } },
     )
 }
 
@@ -565,13 +579,16 @@ private fun SegmentDialog(title: String, options: List<String>, currentIndex: In
                         text = "${if (sel) "● " else "  "}$option",
                         color = if (sel) AnimeRed else TextPrimary,
                         fontSize = 14.sp,
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
+                        modifier = Modifier
+                            // TV focus highlight (no-op on phones) — dialog option row.
+                            .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
+                            .fillMaxWidth().clip(RoundedCornerShape(6.dp))
                             .clickable { onSelect(idx) }.padding(vertical = 8.dp, horizontal = 4.dp),
                     )
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.source_settings_cancel), color = TextSecondary) } },
+        confirmButton = { TextButton(onClick = onDismiss, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) { Text(stringResource(R.string.source_settings_cancel), color = TextSecondary) } },
     )
 }
 
@@ -587,7 +604,10 @@ private fun MultiSelectDialog(title: String, options: List<String>, titles: List
                     val display = titles?.getOrNull(idx) ?: option
                     val checked = option in selected.value
                     Row(
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
+                        modifier = Modifier
+                            // TV focus highlight (no-op on phones) — dialog option row.
+                            .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
+                            .fillMaxWidth().clip(RoundedCornerShape(6.dp))
                             .clickable { if (checked) selected.value.remove(option) else selected.value.add(option) }
                             .padding(vertical = 8.dp, horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -599,8 +619,8 @@ private fun MultiSelectDialog(title: String, options: List<String>, titles: List
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onToggle(selected.value.firstOrNull() ?: ""); onDismiss() }) { Text(stringResource(R.string.source_settings_done), color = AnimeRed) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.source_settings_cancel), color = TextSecondary) } },
+        confirmButton = { TextButton(onClick = { onToggle(selected.value.firstOrNull() ?: ""); onDismiss() }, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) { Text(stringResource(R.string.source_settings_done), color = AnimeRed) } },
+        dismissButton = { TextButton(onClick = onDismiss, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) { Text(stringResource(R.string.source_settings_cancel), color = TextSecondary) } },
     )
 }
 
@@ -623,7 +643,10 @@ private fun LanguageDialog(title: String, options: List<String>, current: List<S
                         selected.value = if (newChecked) (selected.value + option).toMutableSet() else (selected.value - option).toMutableSet()
                     }
                     Row(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            // TV focus highlight (no-op on phones) — dialog option row.
+                            .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
+                            .fillMaxWidth()
                             .clip(RoundedCornerShape(6.dp))
                             .clickable { toggle(!checked) }
                             .padding(vertical = 8.dp, horizontal = 4.dp),
@@ -646,8 +669,8 @@ private fun LanguageDialog(title: String, options: List<String>, current: List<S
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onConfirm(selected.value.toList()) }) { Text(stringResource(R.string.source_settings_done), color = AnimeRed) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.source_settings_cancel), color = TextSecondary) } },
+        confirmButton = { TextButton(onClick = { onConfirm(selected.value.toList()) }, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) { Text(stringResource(R.string.source_settings_done), color = AnimeRed) } },
+        dismissButton = { TextButton(onClick = onDismiss, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) { Text(stringResource(R.string.source_settings_cancel), color = TextSecondary) } },
     )
 }
 
@@ -673,8 +696,8 @@ private fun StepperDialog(title: String, value: Double, min: Double, max: Double
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onConfirm(currentValue) }) { Text(stringResource(R.string.source_settings_done), color = AnimeRed) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.source_settings_cancel), color = TextSecondary) } },
+        confirmButton = { TextButton(onClick = { onConfirm(currentValue) }, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) { Text(stringResource(R.string.source_settings_done), color = AnimeRed) } },
+        dismissButton = { TextButton(onClick = onDismiss, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) { Text(stringResource(R.string.source_settings_cancel), color = TextSecondary) } },
     )
 }
 
@@ -691,8 +714,8 @@ private fun TextDialog(title: String, placeholder: String?, value: String, onVal
                 modifier = Modifier.fillMaxWidth(),
             )
         },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.source_settings_done), color = AnimeRed) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.source_settings_cancel), color = TextSecondary) } },
+        confirmButton = { TextButton(onClick = onConfirm, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) { Text(stringResource(R.string.source_settings_done), color = AnimeRed) } },
+        dismissButton = { TextButton(onClick = onDismiss, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) { Text(stringResource(R.string.source_settings_cancel), color = TextSecondary) } },
     )
 }
 
@@ -766,7 +789,7 @@ private fun ErrorSettings(onRetry: () -> Unit) {
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(stringResource(R.string.source_settings_error), color = TextMuted, fontSize = 13.sp)
         Spacer(Modifier.height(6.dp))
-        Button(onClick = onRetry, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)) {
+        Button(onClick = onRetry, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp), modifier = Modifier.tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)) {
             Text(stringResource(R.string.source_settings_reload), fontSize = 13.sp)
         }
     }

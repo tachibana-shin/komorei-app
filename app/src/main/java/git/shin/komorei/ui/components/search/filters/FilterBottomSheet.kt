@@ -2,6 +2,8 @@ package git.shin.komorei.ui.components.search.filters
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,6 +29,7 @@ import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * Shared chrome for the filter bottom sheets: a [ModalBottomSheet] with a
@@ -68,11 +71,23 @@ fun FilterBottomSheet(
                     modifier = Modifier.weight(1f).testTag("filter_sheet_title"),
                 )
                 if (onReset != null) {
-                    TextButton(onClick = onReset, modifier = Modifier.testTag("filter_reset_button")) {
+                    TextButton(
+                        onClick = onReset,
+                        modifier = Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
+                            .testTag("filter_reset_button"),
+                    ) {
                         Text(stringResource(R.string.filter_reset), color = TextMuted)
                     }
                 }
-                IconButton(onClick = onDismiss, modifier = Modifier.testTag("filter_sheet_close")) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .testTag("filter_sheet_close"),
+                ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = stringResource(R.string.filter_cancel),

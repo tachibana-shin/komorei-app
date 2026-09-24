@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -214,7 +215,10 @@ fun AddSourceSheet(
                 // IMPORT_SOURCE folded into the top bar.
                 IconButton(
                     onClick = { importLauncher.launch(arrayOf("*/*")) },
-                    modifier = Modifier.testTag("import_source_button"),
+                    modifier = Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .testTag("import_source_button"),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.CreateNewFolder,
@@ -226,7 +230,10 @@ fun AddSourceSheet(
                     Box {
                         IconButton(
                             onClick = { showLanguageFilter = true },
-                            modifier = Modifier.testTag("add_source_filter_button"),
+                            modifier = Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = CircleShape, scale = 1.15f)
+                                .testTag("add_source_filter_button"),
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.FilterList,
@@ -262,7 +269,10 @@ fun AddSourceSheet(
                                     selectedLanguages = emptySet()
                                     showLanguageFilter = false
                                 },
-                                modifier = Modifier.testTag("add_source_filter_all"),
+                                modifier = Modifier
+                                    // TV focus highlight (no-op on phones).
+                                    .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                                    .testTag("add_source_filter_all"),
                             )
                             HorizontalDivider(color = CardBorderDark)
                             availableLanguages.forEach { code ->
@@ -291,13 +301,18 @@ fun AddSourceSheet(
                                         selectedLanguages =
                                             if (selected) selectedLanguages - code else selectedLanguages + code
                                     },
-                                    modifier = Modifier.testTag("add_source_filter_lang_$code"),
+                                    modifier = Modifier
+                                        .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                                        .testTag("add_source_filter_lang_$code"),
                                 )
                             }
                         }
                     }
                 }
-                IconButton(onClick = onDismiss) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.tvFocus(shape = CircleShape, scale = 1.15f),
+                ) {
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = stringResource(R.string.cd_close),
@@ -350,6 +365,8 @@ fun AddSourceSheet(
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Box(
                                     modifier = Modifier
+                                        // TV focus highlight (no-op on phones).
+                                        .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
                                         .clip(RoundedCornerShape(100))
                                         .background(AnimeRed)
                                         .clickable { showAddRepoDialog = true }
@@ -459,6 +476,8 @@ fun AddSourceSheet(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            // TV focus highlight (no-op on phones) — full-width row.
+                            .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.0f)
                             .clickable { showAddRepoDialog = true }
                             .padding(horizontal = 16.dp, vertical = 10.dp)
                             .testTag("add_repo_button"),
@@ -578,6 +597,8 @@ private fun AddSourceSearchBar(
                 onClick = { onQueryChange("") },
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = CircleShape, scale = 1.15f)
                     .padding(end = 4.dp)
                     .size(32.dp)
                     .testTag("add_source_search_clear"),
@@ -652,6 +673,8 @@ private fun FailedNotice(onRetry: () -> Unit) {
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier
+                // TV focus highlight (no-op on phones).
+                .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
                 .clip(RoundedCornerShape(100))
                 .clickable(onClick = onRetry)
                 .padding(horizontal = 10.dp, vertical = 4.dp)
@@ -857,12 +880,16 @@ fun AddRepoDialog(
             TextButton(
                 onClick = { onConfirm(url.trim()) },
                 enabled = url.isNotBlank(),
+                modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
             ) {
                 Text(stringResource(R.string.sources_repos_add), color = AnimeRed)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
+            ) {
                 Text(stringResource(R.string.sources_cancel))
             }
         },

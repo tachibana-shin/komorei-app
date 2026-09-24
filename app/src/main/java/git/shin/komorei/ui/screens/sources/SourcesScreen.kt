@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -144,7 +145,10 @@ fun SourcesScreen(
             }
             IconButton(
                 onClick = { viewModel.checkForUpdates() },
-                modifier = Modifier.testTag("sources_refresh_button"),
+                modifier = Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = CircleShape, scale = 1.15f)
+                    .testTag("sources_refresh_button"),
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Refresh,
@@ -155,7 +159,10 @@ fun SourcesScreen(
             }
             IconButton(
                 onClick = { showAddSheet = true },
-                modifier = Modifier.testTag("sources_add_source_button"),
+                modifier = Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = CircleShape, scale = 1.15f)
+                    .testTag("sources_add_source_button"),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
@@ -220,6 +227,8 @@ fun SourcesScreen(
                     onClick = { viewModel.setSearchQuery("") },
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
                         .padding(end = 4.dp)
                         .size(32.dp)
                         .testTag("sources_search_clear"),
@@ -317,12 +326,16 @@ fun SourcesScreen(
                         viewModel.uninstall(candidate.source)
                         uninstallCandidate = null
                     },
+                    modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
                 ) {
                     Text(stringResource(R.string.sources_uninstall), color = AnimeRed)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { uninstallCandidate = null }) {
+                TextButton(
+                    onClick = { uninstallCandidate = null },
+                    modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
+                ) {
                     Text(stringResource(R.string.sources_cancel))
                 }
             },
@@ -474,6 +487,9 @@ private fun SourceRow(
                             menuExpanded = false
                             onToggleEnabled()
                         },
+                        // TV focus highlight (no-op on phones) — material3 applies
+                        // the item modifier OUTSIDE its internal clickable.
+                        modifier = Modifier.tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f),
                     )
                     DropdownMenuItem(
                         text = { Text(pinnedLabel) },
@@ -481,6 +497,7 @@ private fun SourceRow(
                             menuExpanded = false
                             onTogglePinned()
                         },
+                        modifier = Modifier.tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f),
                     )
                     if (item.isUserInstalled) {
                         HorizontalDivider(color = CardBorderDark)
@@ -490,6 +507,7 @@ private fun SourceRow(
                                 menuExpanded = false
                                 onRequestUninstall()
                             },
+                            modifier = Modifier.tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f),
                         )
                     }
                 }

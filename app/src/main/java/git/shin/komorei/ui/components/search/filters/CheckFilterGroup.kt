@@ -32,6 +32,7 @@ import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * The tristate checkbox picker (Aidoku `CheckFilterGroupView`): a checkbox
@@ -55,6 +56,8 @@ fun CheckFilterGroup(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
+            // TV focus highlight (no-op on phones) — full-width row, ring only.
+            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
             .clip(RoundedCornerShape(10.dp))
             .clickable { onStateChange(nextCheckState(state, kind.canExclude)) }
             .padding(horizontal = 12.dp, vertical = 10.dp),

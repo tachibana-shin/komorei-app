@@ -35,6 +35,7 @@ import git.shin.komorei.ui.theme.AnimeGreen
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * The multi-select picker (Aidoku `MultiSelectFilterGroupView`): tapping an
@@ -78,6 +79,8 @@ fun MultiSelectFilterGroup(
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     modifier = Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = shape, scale = 1.06f)
                         .clip(shape)
                         .background(
                             when {
@@ -114,6 +117,8 @@ fun MultiSelectFilterGroup(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
+                        // TV focus highlight (no-op on phones) — full-width row, ring only.
+                        .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
                         .clip(RoundedCornerShape(10.dp))
                         .clickable { toggle(value) }
                         .padding(horizontal = 12.dp, vertical = 10.dp),

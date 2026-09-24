@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -53,6 +54,7 @@ import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * Full-screen repo manager ("Quản lý kho nguồn"): add / remove repo URLs,
@@ -97,7 +99,12 @@ fun SourceReposScreen(
                 .padding(horizontal = 4.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = CircleShape, scale = 1.15f)
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.cd_back),
@@ -113,7 +120,10 @@ fun SourceReposScreen(
             )
             IconButton(
                 onClick = { showAddRepoDialog = true },
-                modifier = Modifier.testTag("add_repo_button"),
+                modifier = Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = CircleShape, scale = 1.15f)
+                    .testTag("add_repo_button"),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
@@ -231,6 +241,8 @@ private fun RepoManageRow(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
                         .clip(RoundedCornerShape(100))
                         .clickable(onClick = onRetry)
                         .padding(horizontal = 10.dp, vertical = 4.dp),
@@ -246,7 +258,10 @@ private fun RepoManageRow(
         }
         IconButton(
             onClick = onRemove,
-            modifier = Modifier.testTag("remove_repo_$url"),
+            modifier = Modifier
+                // TV focus highlight (no-op on phones).
+                .tvFocus(shape = CircleShape, scale = 1.15f)
+                .testTag("remove_repo_$url"),
         ) {
             Icon(
                 imageVector = Icons.Filled.Delete,
@@ -283,6 +298,8 @@ private fun EmptyRepos(onAdd: () -> Unit) {
         Spacer(modifier = Modifier.height(20.dp))
         Box(
             modifier = Modifier
+                // TV focus highlight (no-op on phones).
+                .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
                 .clip(RoundedCornerShape(100))
                 .background(AnimeRed)
                 .clickable(onClick = onAdd)

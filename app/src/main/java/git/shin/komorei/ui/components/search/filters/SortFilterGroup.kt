@@ -29,6 +29,7 @@ import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * The sort picker (Aidoku `SortFilterGroupView`): a wrapping row of option
@@ -59,6 +60,8 @@ fun SortFilterGroup(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
                 modifier = Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = shape, scale = 1.06f)
                     .clip(shape)
                     .background(if (selected) AnimeRed else SurfaceDark)
                     .border(

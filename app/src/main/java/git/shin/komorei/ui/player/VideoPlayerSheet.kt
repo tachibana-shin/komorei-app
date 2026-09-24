@@ -20,6 +20,7 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -53,6 +54,7 @@ import git.shin.komorei.model.FilterValue
 import git.shin.komorei.model.StreamInfo
 import git.shin.komorei.ui.player.components.*
 import git.shin.komorei.ui.theme.*
+import git.shin.komorei.ui.tv.tvFocus
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -414,7 +416,12 @@ fun VideoPlayerSheet(
                                         )
                                         Button(
                                             onClick = onRetryStreams,
-                                            colors = ButtonDefaults.buttonColors(containerColor = AnimeRed)
+                                            colors = ButtonDefaults.buttonColors(containerColor = AnimeRed),
+                                            // TV focus highlight (no-op on phones). The retry
+                                            // floats over the player surface as a sibling Box —
+                                            // never an ancestor of the TextureView, so the
+                                            // graphicsLayer is safe.
+                                            modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
                                         ) {
                                             Text(stringResource(R.string.action_retry))
                                         }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
@@ -52,6 +53,7 @@ import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * The per-source search screen (Aidoku `SearchViewController` + the
@@ -118,7 +120,10 @@ fun SourceSearchScreen(
             )
             TextButton(
                 onClick = onBack,
-                modifier = Modifier.testTag("source_search_cancel"),
+                modifier = Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
+                    .testTag("source_search_cancel"),
             ) {
                 Text(
                     text = stringResource(R.string.source_search_cancel),

@@ -24,6 +24,7 @@ import coil.compose.AsyncImage
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Link
 import git.shin.komorei.ui.components.SectionHeader
+import git.shin.komorei.ui.tv.tvFocus
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -74,6 +75,9 @@ fun ImageScrollerRow(
                         .padding(end = 12.dp)
                         .width(itemWidth)
                         .height(itemHeight)
+                        // TV focus highlight (no-op on phones) — same card recipe
+                        // as AnimeCard.
+                        .tvFocus(shape = RoundedCornerShape(14.dp), scale = 1.02f)
                         .clip(RoundedCornerShape(14.dp))
                         .clickable(enabled = anime != null) { if (anime != null) onAnimeClick(anime) }
                 ) {
