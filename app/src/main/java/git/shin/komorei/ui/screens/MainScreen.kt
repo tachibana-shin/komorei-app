@@ -53,6 +53,8 @@ import git.shin.komorei.ui.screens.search.SearchDiscoveryScreen
 import git.shin.komorei.ui.screens.search.SourceSearchScreen
 import git.shin.komorei.ui.screens.settings.SettingsScreen
 import git.shin.komorei.ui.screens.source.SourceHomeScreen
+import git.shin.komorei.ui.screens.advanced.AdvancedScreen
+import git.shin.komorei.ui.screens.logs.LogsScreen
 import git.shin.komorei.ui.screens.source.SourceBrowserScreen
 import git.shin.komorei.ui.screens.source.SourceSettingsScreen
 import git.shin.komorei.ui.screens.sources.SourceReposScreen
@@ -367,7 +369,17 @@ fun MainNavigationHost(
         composable(Screen.Settings.route) {
             SettingsScreen(
                 onOpenSourceRepos = { navController.navigate(Screen.SourceRepos.route) },
+                onOpenAdvanced = { navController.navigate(Screen.Advanced.route) },
             )
+        }
+        composable(Screen.Advanced.route) {
+            AdvancedScreen(
+                onBack = { navController.popBackStack() },
+                onOpenLogs = { navController.navigate(Screen.Logs.route) },
+            )
+        }
+        composable(Screen.Logs.route) {
+            LogsScreen(onBack = { navController.popBackStack() })
         }
         composable(
             route = Screen.Listing.route,

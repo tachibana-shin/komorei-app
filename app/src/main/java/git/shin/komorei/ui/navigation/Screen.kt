@@ -47,6 +47,12 @@ sealed class Screen(val route: String) {
     /** App-wide settings (source repos, caches, about) — distinct from per-source settings. */
     data object Settings : Screen("settings")
 
+    /** The "Nâng cao" hub (server log, network cache, reset) — off Settings. */
+    data object Advanced : Screen("advanced")
+
+    /** Aidoku-style "Ghi nhật ký máy chủ" viewer — off Advanced. */
+    data object Logs : Screen("logs")
+
     /**
      * A single source's "home screen" (Aidoku's NewSourceViewController): the
      * source's listings + full home layout in its own full-screen page, with a

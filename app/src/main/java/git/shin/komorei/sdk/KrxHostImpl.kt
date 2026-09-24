@@ -10,6 +10,8 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import git.shin.komorei.data.LogLevel
+import git.shin.komorei.data.LogStore
 import git.shin.komorei.data.local.KrxDefaultsStore
 import git.shin.komorei.data.remote.WEBVIEW_ANTI_FINGERPRINT_HEADERS
 import git.shin.komorei.data.remote.stripFingerprintHeaders
@@ -158,10 +160,15 @@ class KrxHostImpl(
     // ---- env --------------------------------------------------------------
 
     override fun logPrint(message: String) {
+        // A source's own println!/env::print — the "server log" shown on the
+        // Logs screen. Scoped like every other host call so lines from several
+        // sources stay distinguishable.
+        LogStore.add(LogLevel.DEFAULT, message, defaultNamespace)
         Log.d(TAG, message)
     }
 
     override fun logAbort() {
+        LogStore.error("source aborted (panic)", defaultNamespace)
         Log.e(TAG, "source aborted (panic)")
     }
 
@@ -307,6 +314,9 @@ class KrxHostImpl(
                 )
             }
         } catch (e: Exception) {
+            // Mirrors Aidoku's requestHandler, which logs the failed request
+            // against the source id before rethrowing.
+            LogStore.error("net_request failed: ${method.name} $url -> $e", defaultNamespace)
             Log.w(TAG, "net_request failed: ${method.name} $url -> $e")
             HostNetResponse(ok = false, status = 0, url = url, headers = emptyMap(), data = byteArrayOf())
         }

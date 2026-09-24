@@ -50,6 +50,7 @@ import git.shin.komorei.ui.tv.tvFocus
 @Composable
 fun SettingsScreen(
     onOpenSourceRepos: () -> Unit,
+    onOpenAdvanced: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -121,6 +122,16 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_clear_search_history_subtitle),
                     onClick = viewModel::clearSearchHistory,
                     testTag = "settings_clear_search_history",
+                )
+            }
+
+            SettingsSection(title = stringResource(R.string.settings_section_advanced)) {
+                SettingsRow(
+                    icon = Icons.Default.Tune,
+                    title = stringResource(R.string.settings_advanced),
+                    subtitle = stringResource(R.string.settings_advanced_subtitle),
+                    onClick = onOpenAdvanced,
+                    testTag = "settings_advanced",
                 )
             }
 

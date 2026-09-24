@@ -424,4 +424,32 @@
     <string name="settings_version">Phiên bản</string>
     <string name="settings_about_app">Komorē</string>
     <string name="settings_about_app_subtitle">Trình xem anime đa nguồn</string>
+
+    <!-- Logs Screen (Aidoku-style server log) -->
+    <string name="logs_title">Nhật ký máy chủ</string>
+    <string name="logs_subtitle">%1$d dòng · nhật ký từ ứng dụng và các nguồn</string>
+    <string name="logs_share_cd">Chia sẻ nhật ký</string>
+    <string name="logs_share">Chia sẻ nhật ký</string>
+    <string name="logs_clear">Xoá nhật ký</string>
+    <string name="logs_share_failed">Không thể chia sẻ nhật ký lúc này</string>
+    <string name="logs_level_all">Tất cả</string>
+    <string name="logs_empty">Chưa có nhật ký nào</string>
+    <string name="logs_empty_filtered">Không có dòng nào ở mức này</string>
+    <string name="logs_visible_count">%1$d dòng</string>
+    <string name="logs_following">Đang theo</string>
+    <string name="logs_follow">Theo dõi</string>
+
+    <!-- Advanced section in Settings -->
+    <string name="settings_section_advanced">Nâng cao</string>
+    <string name="settings_advanced">Tuỳ chọn nâng cao</string>
+    <string name="settings_advanced_subtitle">Nhật ký máy chủ, bộ nhớ đệm mạng và đặt lại</string>
+    <string name="settings_advanced_logs">Nhật ký máy chủ</string>
+    <string name="settings_advanced_logs_subtitle">Xem nhật ký từ các nguồn và ứng dụng</string>
+    <string name="advanced_title">Nâng cao</string>
+    <string name="advanced_clear_source_cache">Xoá bộ nhớ đệm nguồn</string>
+    <string name="advanced_clear_source_cache_subtitle">Buộc các nguồn tải lại trang chủ và danh sách</string>
+    <string name="advanced_source_cache_cleared">Đã xoá bộ nhớ đệm nguồn</string>
+    <string name="advanced_clear_cookies">Xoá cookie và phiên đăng nhập</string>
+    <string name="advanced_clear_cookies_subtitle">Buộc đăng nhập lại vào các nguồn yêu cầu cookie</string>
+    <string name="advanced_open_logs">Mở nhật ký máy chủ</string>
 </resources>

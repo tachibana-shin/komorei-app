@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lets the Logs screen share an exported log file through the system share
+  sheet: LogStore writes `logs/log_<timestamp>.txt` into the app's cache dir,
+  and FileProvider hands that one subdirectory to the receiving app.
+-->
+<paths>
+    <cache-path
+        name="logs"
+        path="logs/" />
+</paths>
