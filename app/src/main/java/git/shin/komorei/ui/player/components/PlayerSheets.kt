@@ -55,6 +55,7 @@ import git.shin.komorei.ui.player.PlayerPlaybackState
 import git.shin.komorei.ui.components.EpisodeProgressBar
 import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
 import git.shin.komorei.ui.theme.*
+import git.shin.komorei.ui.tv.tvFocus
 import git.shin.komorei.ui.utils.animateScrollToItemCentered
 import kotlinx.coroutines.flow.first
 
@@ -204,7 +205,10 @@ fun EpisodesContent(
                                     1.dp,
                                     if (isSelected) AnimeRed else CardBorderDark
                                 ),
-                                modifier = Modifier.testTag("sheet_season_tab_${season.id}")
+                                modifier = Modifier
+                                    // TV focus highlight (no-op on phones).
+                                    .tvFocus(shape = RoundedCornerShape(20.dp), scale = 1.04f)
+                                    .testTag("sheet_season_tab_${season.id}")
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -235,7 +239,11 @@ fun EpisodesContent(
                         color = SurfaceDark,
                         shape = RoundedCornerShape(8.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderDark),
-                        modifier = Modifier.size(36.dp)
+                        // TV focus highlight (no-op on phones); small square buttons
+                        // scale more so the focused one is obvious.
+                        modifier = Modifier
+                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.1f)
+                            .size(36.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
@@ -310,7 +318,9 @@ fun EpisodesContent(
                     color = SurfaceDark,
                     shape = RoundedCornerShape(8.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderDark),
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier
+                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.1f)
+                        .size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
@@ -330,7 +340,9 @@ fun EpisodesContent(
                         1.dp,
                         if (isGridView) AnimeRed else CardBorderDark
                     ),
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier
+                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.1f)
+                        .size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
@@ -446,7 +458,10 @@ fun EpisodesContent(
                                 1.dp,
                                 if (isPlaying) AnimeRed else CardBorderDark
                             ),
-                            modifier = Modifier.height(42.dp)
+                            modifier = Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.06f)
+                                .height(42.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
@@ -577,7 +592,11 @@ private fun SeasonPickerPane(
                     color = if (isSelected) AnimeRedContainer else SurfaceDark,
                     shape = RoundedCornerShape(10.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) AnimeRed else CardBorderDark),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        // TV focus highlight (no-op on phones); full-width rows keep
+                        // scale at 1.0 so the ring alone marks the focused row.
+                        .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                        .fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier.padding(14.dp),
@@ -712,7 +731,11 @@ fun EpisodeListItemCard(
             1.dp,
             if (isPlaying) AnimeRed else CardBorderDark
         ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            // TV focus highlight (no-op on phones); the ring marks the focused
+            // episode row (scale stays 1.0 — full width, must not overflow).
+            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+            .fillMaxWidth()
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(8.dp),
@@ -1026,7 +1049,10 @@ fun SettingsItem(
     Surface(
         onClick = onClick,
         color = Color.Transparent,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            // TV focus highlight (no-op on phones).
+            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+            .fillMaxWidth()
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -1082,7 +1108,10 @@ fun SelectableItem(label: String, isSelected: Boolean, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         color = if (isSelected) AnimeRedContainer else Color.Transparent,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            // TV focus highlight (no-op on phones).
+            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+            .fillMaxWidth()
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -1253,7 +1282,10 @@ fun ServerMenuContent(
                         color = if (isSelected) AnimeRedContainer else SurfaceDark,
                         shape = RoundedCornerShape(10.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) AnimeRed else CardBorderDark),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                            .fillMaxWidth()
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),

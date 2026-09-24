@@ -16,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,13 +27,16 @@ import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 @Composable
 fun SourceTabBar(
     sources: List<Source>,
     selectedIndex: Int,
     onTabSelected: (Int, Source) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // TV: request focus on the FIRST tab once the bar appears (see TvInitialFocus).
+    firstTabFocusRequester: FocusRequester? = null,
 ) {
     SecondaryScrollableTabRow(
         selectedTabIndex = selectedIndex.coerceIn(0, (sources.size - 1).coerceAtLeast(0)),
@@ -61,6 +66,16 @@ fun SourceTabBar(
                 onClick = { onTabSelected(index, source) },
                 modifier = Modifier
                     .padding(vertical = 4.dp)
+                    .then(
+                        if (index == 0 && firstTabFocusRequester != null) {
+                            Modifier.focusRequester(firstTabFocusRequester)
+                        } else {
+                            Modifier
+                        }
+                    )
+                    // TV focus highlight (no-op on phones); graphicsLayer scale
+                    // does not disturb the underline indicator's layout math.
+                    .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.04f)
                     .testTag("source_tab_${source.id}"),
                 text = {
                     Row(

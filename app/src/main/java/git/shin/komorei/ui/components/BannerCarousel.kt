@@ -49,6 +49,7 @@ import git.shin.komorei.ui.theme.GoldRating
 import git.shin.komorei.ui.theme.NoPaddingTextStyle
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.tv.tvFocus
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -90,6 +91,10 @@ fun BannerCarousel(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        // TV focus highlight (no-op on phones) around the whole
+                        // banner so a D-pad focus is visible; tiny scale so the
+                        // clipped pager edges stay put.
+                        .tvFocus(shape = RoundedCornerShape(18.dp), scale = 1.02f)
                         .clickable { onAnimeClick(anime) }
                 ) {
                     // Banner Image

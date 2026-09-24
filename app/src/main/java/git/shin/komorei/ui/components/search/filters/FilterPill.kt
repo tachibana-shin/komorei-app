@@ -30,6 +30,7 @@ import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * The shared pill chrome of Aidoku's `FilterLabelView`: an optional count
@@ -55,6 +56,9 @@ fun FilterPill(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier
+            // TV focus highlight (no-op on phones) — pill-shaped ring; covers
+            // every filter-pill variant that builds on FilterPill.
+            .tvFocus(shape = shape, scale = 1.06f)
             .testTag(if (testTag.isNotEmpty()) testTag else "filter_pill_$name")
             .clip(shape)
             .background(if (active) AnimeRed.copy(alpha = 0.16f) else SurfaceDark)

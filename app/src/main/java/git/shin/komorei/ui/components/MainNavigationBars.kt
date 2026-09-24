@@ -41,6 +41,7 @@ import git.shin.komorei.ui.navigation.MainTab
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextMuted
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * Phone bottom navigation.
@@ -90,6 +91,9 @@ private fun BottomNavItem(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
+            // TV focus highlight (no-op on phones) — distinct from the AnimeRed
+            // "selected" pill so D-pad focus is also visible before OK is pressed.
+            .tvFocus(shape = RoundedCornerShape(16.dp), scale = 1.05f)
             .clickable(onClick = onClick)
             .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -173,6 +177,8 @@ private fun RailNavItem(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
+            // TV focus highlight (no-op on phones).
+            .tvFocus(shape = RoundedCornerShape(16.dp), scale = 1.05f)
             .clickable(onClick = onClick)
             .padding(horizontal = 4.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

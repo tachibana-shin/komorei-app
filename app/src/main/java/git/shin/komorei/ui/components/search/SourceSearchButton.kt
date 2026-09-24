@@ -19,6 +19,7 @@ import git.shin.komorei.R
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * The search entry button on a source's home content — a circular magnifier
@@ -35,6 +36,9 @@ fun SourceSearchButton(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .size(32.dp)
+            // TV focus highlight (no-op on phones); the small circle magnifier
+            // scales noticeably so the ring reads at viewing distance.
+            .tvFocus(shape = CircleShape, scale = 1.2f, borderWidth = 2.dp)
             .clip(shape)
             .background(SurfaceDark)
             .border(width = 1.dp, color = CardBorderDark, shape = shape)

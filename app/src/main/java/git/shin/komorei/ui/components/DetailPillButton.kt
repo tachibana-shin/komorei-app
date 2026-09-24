@@ -26,6 +26,7 @@ import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.NoPaddingTextStyle
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 @Composable
 fun DetailPillButton(
@@ -46,6 +47,8 @@ fun DetailPillButton(
         ),
         modifier = modifier
 //            .height(36.dp)
+            // TV focus highlight (no-op on phones).
+            .tvFocus(shape = RoundedCornerShape(18.dp), scale = 1.05f)
             .testTag(tag)
     ) {
         Row(

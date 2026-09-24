@@ -18,6 +18,7 @@ import git.shin.komorei.ui.theme.AnimeRedContainer
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.tv.tvFocus
 
 @Composable
 fun ServerOptionChip(
@@ -27,6 +28,8 @@ fun ServerOptionChip(
 ) {
     Box(
         modifier = Modifier
+            // TV focus highlight (no-op on phones).
+            .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.05f)
             .clip(RoundedCornerShape(6.dp))
             .background(if (isSelected) AnimeRedContainer else CardDark)
             .border(

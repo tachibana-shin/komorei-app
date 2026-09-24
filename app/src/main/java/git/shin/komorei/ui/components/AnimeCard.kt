@@ -43,6 +43,7 @@ import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.GoldRating
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 @SuppressLint("DefaultLocale")
 @Composable
@@ -55,6 +56,9 @@ fun AnimeCard(
 ) {
     Column(
         modifier = modifier
+            // TV focus highlight (no-op on phones). Scaled via graphicsLayer so
+            // grid/row neighbors never re-flow when an item gains focus.
+            .tvFocus()
             .then(if (cardWidth != null) Modifier.width(cardWidth) else Modifier)
             .testTag("anime_card_${anime.id}")
             .clickable(onClick = onClick)

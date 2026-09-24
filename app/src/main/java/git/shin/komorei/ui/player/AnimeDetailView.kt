@@ -101,6 +101,7 @@ import git.shin.komorei.ui.theme.TextGrey
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.tv.tvFocus
 import git.shin.komorei.ui.utils.animateScrollToItemCentered
 import git.shin.komorei.ui.utils.formatNumber
 import kotlinx.coroutines.flow.first
@@ -541,6 +542,9 @@ fun AnimeDetailView(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        // TV focus highlight (no-op on phones) — the "episodes
+                        // header" acts as a see-all target on the detail page.
+                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.02f)
                         .clickable { showEpisodesSheet = true }
                         .padding(horizontal = 16.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -641,6 +645,8 @@ fun AnimeDetailView(
                             Box(
                                 modifier = Modifier
                                     .size(width = 46.dp, height = 34.dp)
+                                    // TV focus highlight (no-op on phones).
+                                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f, borderWidth = 2.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(if (isSelected) AnimeRedContainer else CardDark)
                                     .border(

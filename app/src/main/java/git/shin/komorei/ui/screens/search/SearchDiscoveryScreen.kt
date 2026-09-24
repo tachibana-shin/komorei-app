@@ -49,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -71,6 +72,7 @@ import git.shin.komorei.ui.theme.NeonViolet
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.tv.TvInitialFocus
 
 /**
  * Tìm Kiếm tab — an Aidoku-style global search: a search bar, the three
@@ -115,6 +117,10 @@ fun SearchDiscoveryScreen(
             val focusManager = LocalFocusManager.current
             val inputFocusSource = remember { MutableInteractionSource() }
             val inputFocused by inputFocusSource.collectIsFocusedAsState()
+            // TV: land initial focus on the search field so D-pad/OK starts
+            // typing immediately (YouTube-style). No-op on phones/tablets.
+            val searchFocusRequester = remember { FocusRequester() }
+            TvInitialFocus(searchFocusRequester)
             AnimatedVisibility(
                 visible = !inputFocused,
                 enter = expandVertically() + fadeIn(),
@@ -146,6 +152,7 @@ fun SearchDiscoveryScreen(
                     leadingIcon = Icons.Default.Search,
                     showClear = searchQuery.isNotEmpty() || selectedGenre != null,
                     interactionSource = inputFocusSource,
+                    focusRequester = searchFocusRequester,
                     modifier = Modifier
                         .weight(1f)
                         .testTag("search_input_field"),

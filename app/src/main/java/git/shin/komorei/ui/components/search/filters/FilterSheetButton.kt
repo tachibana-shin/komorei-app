@@ -26,6 +26,7 @@ import git.shin.komorei.R
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.SurfaceDark
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * The aggregate-filter entry of the filter header (Aidoku `FilterHeaderView`'s
@@ -43,6 +44,8 @@ fun FilterSheetButton(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier
+            // TV focus highlight (no-op on phones).
+            .tvFocus(shape = shape, scale = 1.06f)
             .testTag("filter_sheet_button")
             .clip(shape)
             .background(SurfaceDark)

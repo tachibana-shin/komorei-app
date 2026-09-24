@@ -28,6 +28,7 @@ import git.shin.komorei.ui.components.shimmerEffect
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * The Aidoku "listings header" — a horizontal rail of pill chips above a
@@ -91,6 +92,8 @@ private fun ListingChip(
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier
+            // TV focus highlight (no-op on phones); ring drawn around the pill.
+            .tvFocus(shape = RoundedCornerShape(100), scale = 1.08f)
             .clip(shape)
             .background(if (active) AnimeRed else SurfaceDark)
             .clickable(onClick = onClick)

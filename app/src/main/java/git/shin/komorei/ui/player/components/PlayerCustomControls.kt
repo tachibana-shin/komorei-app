@@ -90,6 +90,7 @@ import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.tv.tvFocus
 import git.shin.komorei.ui.utils.formatDuration
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -154,6 +155,9 @@ fun PlayerControlHeader(
             Box(
                 modifier = Modifier
                     .size(iconSize + 16.dp)
+                    // TV focus highlight (no-op on phones); white ring + scale
+                    // so the icon reads on the video surface.
+                    .tvFocus(shape = CircleShape, scale = 1.12f, borderColor = Color.White)
                     .clip(CircleShape)
                     .combinedClickable(
                         onClick = onSubtitleToggle,
@@ -173,6 +177,7 @@ fun PlayerControlHeader(
             Box(
                 modifier = Modifier
                     .size(iconSize + 16.dp)
+                    .tvFocus(shape = CircleShape, scale = 1.12f, borderColor = Color.White)
                     .clip(CircleShape)
                     .clickable(
                         onClick = onSettingsClick,
@@ -364,6 +369,8 @@ fun SkipSegmentPill(
 ) {
     Row(
         modifier = modifier
+            // TV focus highlight (no-op on phones).
+            .tvFocus(shape = RoundedCornerShape(50), scale = 1.05f)
             .clip(RoundedCornerShape(50))
             .background(SurfaceDark.copy(alpha = 0.92f))
             .border(BorderStroke(1.dp, CardBorderDark), RoundedCornerShape(50))
@@ -445,6 +452,7 @@ fun PlayerControlFooter(
             Box(
                 modifier = Modifier
                     .padding(0.dp, 0.dp, (if (isFullscreen) 32.dp else 28.dp) - 4.dp, 0.dp)
+                    .tvFocus(shape = CircleShape, scale = 1.15f, borderColor = Color.White)
                     .clip(CircleShape)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -599,6 +607,7 @@ fun CenterPlayerControl(
         Box(
             modifier = Modifier
                 .size(40.dp + pSize)
+                .tvFocus(shape = CircleShape, scale = 1.12f, borderColor = Color.White)
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.35f))
                 .clickable(
@@ -621,6 +630,7 @@ fun CenterPlayerControl(
                 Box(
                     modifier = Modifier
                         .size(48.dp + pSize)
+                        .tvFocus(shape = CircleShape, scale = 1.12f, borderColor = Color.White)
                         .clip(CircleShape)
                         .background(Color.Black.copy(alpha = 0.45f))
                         .clickable(
@@ -645,6 +655,7 @@ fun CenterPlayerControl(
         Box(
             modifier = Modifier
                 .size(40.dp + pSize)
+                .tvFocus(shape = CircleShape, scale = 1.12f, borderColor = Color.White)
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.35f))
                 .clickable(

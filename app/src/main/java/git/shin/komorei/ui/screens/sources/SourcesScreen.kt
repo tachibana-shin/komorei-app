@@ -72,6 +72,7 @@ import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * The "Nguồn" tab — a port of Aidoku's Browse tab:
@@ -380,6 +381,8 @@ private fun SourceRow(
         modifier = Modifier
             .fillMaxWidth()
             .alpha(if (item.enabled) 1f else 0.45f)
+            // TV focus highlight (no-op on phones) — ring around the whole row.
+            .tvFocus(shape = RoundedCornerShape(14.dp), scale = 1.02f)
             .combinedClickable(
                 // Tap opens the source's home screen (Aidoku NewSourceViewController).
                 onClick = onOpen,
@@ -499,6 +502,8 @@ private fun SourceRow(
 private fun UpdatePill(onClick: () -> Unit) {
     Box(
         modifier = Modifier
+            // TV focus highlight (no-op on phones).
+            .tvFocus(shape = RoundedCornerShape(100), scale = 1.08f, borderWidth = 2.dp)
             .clip(RoundedCornerShape(100))
             .background(AnimeRed)
             .clickable(onClick = onClick)
@@ -547,6 +552,8 @@ private fun EmptyState(onAdd: () -> Unit) {
         Spacer(modifier = Modifier.height(20.dp))
         Box(
             modifier = Modifier
+                // TV focus highlight (no-op on phones).
+                .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
                 .clip(RoundedCornerShape(100))
                 .background(AnimeRed)
                 .clickable(onClick = onAdd)

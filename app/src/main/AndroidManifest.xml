@@ -5,6 +5,17 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Android TV: the app is touch-first, but every surface is also navigable
+         with a TV remote (D-pad/OK — see ui/tv/TvUi.kt). Mark both features
+         optional so it installs on phones AND TVs; the leanback launcher
+         category below makes it appear on TV home screens. -->
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+
     <application
         android:name=".KomoreiApplication"
         android:allowBackup="true"
@@ -25,6 +36,7 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

@@ -34,6 +34,7 @@ import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.tvFocus
 
 @Composable
 fun GenreGridCard(
@@ -57,6 +58,9 @@ fun GenreGridCard(
         modifier = modifier
             .fillMaxWidth()
             .height(72.dp)
+            // TV focus highlight (no-op on phones); small scale keeps the
+            // chunked genre grid from visually overlapping neighbors.
+            .tvFocus(shape = RoundedCornerShape(14.dp), scale = 1.03f)
             .clip(RoundedCornerShape(14.dp))
             .background(backgroundBrush)
             .border(
@@ -111,6 +115,8 @@ fun GenreChipCompact(
 
     Row(
         modifier = modifier
+            // TV focus highlight (no-op on phones) — pill ring.
+            .tvFocus(shape = RoundedCornerShape(20.dp), scale = 1.08f)
             .clip(RoundedCornerShape(20.dp))
             .background(chipBackground)
             .border(1.dp, borderColor, RoundedCornerShape(20.dp))

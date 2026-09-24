@@ -45,6 +45,7 @@ import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.tv.tvFocus
 
 @Composable
 fun SettingsScreen(
@@ -176,6 +177,9 @@ private fun SettingsRow(
             .padding(horizontal = 16.dp, vertical = 3.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(CardDark)
+            // TV focus highlight (no-op on phones); disabled rows (onClick == null)
+            // simply never get focus because there is no clickable/focusable node.
+            .then(if (onClick != null) Modifier.tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.02f) else Modifier)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 14.dp, vertical = 12.dp)
             .testTag(testTag),

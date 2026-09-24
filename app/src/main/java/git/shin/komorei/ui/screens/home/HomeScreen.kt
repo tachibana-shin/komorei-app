@@ -35,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -54,6 +55,7 @@ import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
+import git.shin.komorei.ui.tv.TvInitialFocus
 import kotlinx.coroutines.launch
 
 @Composable
@@ -70,6 +72,11 @@ fun HomeScreen(
     val sourceDataMap by viewModel.sourceDataMap.collectAsState()
     val listingStateMap by viewModel.listingStateMap.collectAsState()
     val refreshingIds by viewModel.refreshingIds.collectAsState()
+
+    // TV: land initial focus on the FIRST source tab (left/right switches
+    // source, down drops into that source's content). No-op on touch devices.
+    val sourceTabFocusRequester = remember { FocusRequester() }
+    TvInitialFocus(sourceTabFocusRequester)
 
     val sourcePagerState = rememberPagerState(
         initialPage = 0,
@@ -189,6 +196,7 @@ fun HomeScreen(
         SourceTabBar(
             sources = sources,
             selectedIndex = currentSourceIndex,
+            firstTabFocusRequester = sourceTabFocusRequester,
             onTabSelected = { index, _ ->
                 coroutineScope.launch {
                     sourcePagerState.animateScrollToPage(index)

@@ -78,6 +78,7 @@ import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
+import git.shin.komorei.ui.tv.tvFocus
 import java.util.Locale
 
 /**
@@ -758,6 +759,8 @@ private fun ExternalSourceRow(
                 // Sources tab's Updates section).
                 Box(
                     modifier = Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
                         .clip(RoundedCornerShape(100))
                         .background(AnimeRed)
                         .clickable(onClick = onUpdate)
@@ -802,6 +805,8 @@ private fun ExternalSourceRow(
             else -> {
                 Box(
                     modifier = Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
                         .clip(RoundedCornerShape(100))
                         .background(AnimeRed)
                         .clickable(onClick = onGet)
