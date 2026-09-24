@@ -99,6 +99,10 @@ class HomeViewModel @Inject constructor(
     private val _listingStateMap = MutableStateFlow<Map<String, SourceListingState>>(emptyMap())
     val listingStateMap: StateFlow<Map<String, SourceListingState>> = _listingStateMap.asStateFlow()
 
+    /** Sources currently being refreshed by a pull-to-refresh gesture. */
+    private val _refreshingIds = MutableStateFlow<Set<String>>(emptySet())
+    val refreshingIds: StateFlow<Set<String>> = _refreshingIds.asStateFlow()
+
     init {
         // Load home data lazily for newly-added/enabled sources and drop data
         // for removed/disabled ones, so the pager never references stale sources.
@@ -151,6 +155,87 @@ class HomeViewModel @Inject constructor(
     }
 
     // ── listings (Aidoku "get_dynamic_listings" chips) ──────────────────────
+
+    /**
+     * Pull-to-refresh for one source: reloads the home layout, the dynamic
+     * listings AND the currently selected listing page in one sequential pass
+     * (the refresh indicator stays up until all three land). Old content stays
+     * on screen while reloading — no skeleton flash — and a failure only
+     * surfaces as the per-section error states like any other load.
+     */
+    fun refreshSource(sourceId: String) {
+        if (sourceId in _refreshingIds.value) return
+        viewModelScope.launch {
+            _refreshingIds.update { it + sourceId }
+
+            // 1. Home layout (keeps the existing rows visible while reloading).
+            runCatching { repository.getHome(sourceId) }
+                .onSuccess { home ->
+                    _sourceDataMap.update { it + (sourceId to SourceHomeData(home = home)) }
+                }
+                .onFailure { e ->
+                    _sourceDataMap.update { map ->
+                        val existing = map[sourceId] ?: SourceHomeData()
+                        map + (sourceId to existing.copy(
+                            error = e.message ?: appContext.getString(R.string.error_load_data),
+                        ))
+                    }
+                }
+
+            // 2. Dynamic listings — force-reload (unlike `loadListings`, which
+            //    early-returns once the chips are cached).
+            runCatching { repository.getListings(sourceId) }
+                .onSuccess { lists ->
+                    _listingStateMap.update { map ->
+                        val existing = map[sourceId] ?: SourceListingState()
+                        map + (sourceId to existing.copy(
+                            listings = lists,
+                            listingsLoading = false,
+                            selectedIndex = existing.selectedIndex.coerceAtMost(lists.size),
+                        ))
+                    }
+                }
+                .onFailure {
+                    // Chips simply stay as they are on failure (next load retries).
+                }
+
+            // 3. Re-pull the listing page that is currently on screen (if any).
+            val state = _listingStateMap.value[sourceId]
+            val selected = state?.selectedIndex
+            if (selected != null && selected > 0) {
+                val listing = state.listings.getOrNull(selected - 1)
+                if (listing != null) {
+                    runCatching { repository.getListing(sourceId, listing, 1) }
+                        .onSuccess { result ->
+                            _listingStateMap.update { map ->
+                                val existing = map[sourceId] ?: return@update map
+                                if (existing.selectedIndex != selected) return@update map
+                                map + (sourceId to existing.copy(
+                                    page = ListingPageState(
+                                        items = result.entries,
+                                        hasNextPage = result.hasNextPage,
+                                        loadedPage = 1,
+                                    ),
+                                ))
+                            }
+                        }
+                        .onFailure {
+                            _listingStateMap.update { map ->
+                                val existing = map[sourceId] ?: return@update map
+                                if (existing.selectedIndex != selected) return@update map
+                                map + (sourceId to existing.copy(
+                                    page = existing.page.copy(
+                                        error = appContext.getString(R.string.error_load_data),
+                                    ),
+                                ))
+                            }
+                        }
+                }
+            }
+
+            _refreshingIds.update { it - sourceId }
+        }
+    }
 
     /**
      * Loads the source's dynamic listings (runner `listings()`). Called when

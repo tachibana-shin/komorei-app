@@ -38,6 +38,7 @@ data class SourceSearchUiState(
     val hasNextPage: Boolean = false,
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
+    val isRefreshing: Boolean = false,
     val error: String? = null,
     val loadedPage: Int = 0,
 ) {
@@ -193,6 +194,46 @@ class SourceSearchViewModel @Inject constructor(
         runSearch(query = _query.value.ifBlank { null }, filters = _enabledFilters.value, reset = true)
     }
 
+    /**
+     * Pull-to-refresh: re-fetches page 1 with the current query + filters
+     * without flipping the loading skeleton — the existing results stay on
+     * screen under the refresh indicator until the reload lands.
+     */
+    fun refresh() {
+        val state = _uiState.value
+        if (sourceId.isBlank() || state.isRefreshing || state.items.isEmpty()) return
+        val query = _query.value.ifBlank { null }
+        val filters = _enabledFilters.value
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true) }
+            runCatching { repository.search(sourceId, query, 1, filters) }
+                .onSuccess { result ->
+                    _uiState.update {
+                        it.copy(
+                            items = result.entries,
+                            hasNextPage = result.hasNextPage,
+                            loadedPage = 1,
+                            isLoading = false,
+                            isLoadingMore = false,
+                            error = null,
+                            isRefreshing = false,
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update { s ->
+                        s.copy(
+                            isLoading = false,
+                            isLoadingMore = false,
+                            error = e.message ?: appContext.getString(R.string.source_search_error),
+                            isRefreshing = false,
+                        )
+                    }
+                }
+        }
+    }
+
     private fun runSearch(query: String?, filters: List<FilterValue>, reset: Boolean, nextPage: Int = 1) {
         if (sourceId.isBlank()) return
         searchJob?.cancel()
@@ -212,6 +253,7 @@ class SourceSearchViewModel @Inject constructor(
                                 isLoading = false,
                                 isLoadingMore = false,
                                 error = null,
+                                isRefreshing = false,
                             )
                         } else {
                             s.copy(
@@ -221,6 +263,7 @@ class SourceSearchViewModel @Inject constructor(
                                 isLoading = false,
                                 isLoadingMore = false,
                                 error = null,
+                                isRefreshing = s.isRefreshing,
                             )
                         }
                     }
@@ -231,6 +274,7 @@ class SourceSearchViewModel @Inject constructor(
                             isLoading = false,
                             isLoadingMore = false,
                             error = e.message ?: appContext.getString(R.string.source_search_error),
+                            isRefreshing = false,
                         )
                     }
                 }

@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -102,6 +104,7 @@ private fun ListingChipsHeader(
  * rendering through the same `HomeViewModel` per-source methods, so the Home
  * tab and the source screen can never diverge.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SourceHomeContent(
     source: Source,
@@ -115,6 +118,8 @@ fun SourceHomeContent(
     onAnimeClick: (Anime) -> Unit,
     getSourceName: (String) -> String,
     onOpenSearch: (sourceId: String) -> Unit = {},
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -150,11 +155,18 @@ fun SourceHomeContent(
         }
 
         // Aidoku listings header content: animate the home↔listing swap.
-        Crossfade(
-            targetState = listingState.selectedIndex,
-            label = "home_content_swap",
+        // Wrapped in PullToRefreshBox so a pull-down anywhere on the page
+        // (home layout, listing grid, …) re-fetches the source.
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
             modifier = Modifier.fillMaxSize(),
-        ) { selection ->
+        ) {
+            Crossfade(
+                targetState = listingState.selectedIndex,
+                label = "home_content_swap",
+                modifier = Modifier.fillMaxSize(),
+            ) { selection ->
             when {
                 // Load failed — show error + retry instead of an infinite skeleton / blank page.
                 sourceData.error != null -> {
@@ -217,6 +229,8 @@ fun SourceHomeContent(
                         onAnimeClick = onAnimeClick,
                         onLoadMore = onLoadListingMore,
                         onRetry = onLoadListingReset,
+                        isRefreshing = isRefreshing,
+                        onRefresh = onRefresh,
                     )
                 }
 
@@ -328,6 +342,7 @@ fun SourceHomeContent(
                     }
                 }
             }
+        }
         }
     }
 }

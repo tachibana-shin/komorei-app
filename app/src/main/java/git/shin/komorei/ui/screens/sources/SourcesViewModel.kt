@@ -66,6 +66,10 @@ class SourcesViewModel @Inject constructor(
     private val _installingIds = MutableStateFlow<Set<String>>(emptySet())
     private val _repoStates = MutableStateFlow<Map<String, RepoSectionState>>(emptyMap())
 
+    /** True while a pull-to-refresh gesture on the sources/repos list is in flight. */
+    private val _refreshing = MutableStateFlow(false)
+    val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()
+
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 16)
     val messages = _messages.asSharedFlow()
 
@@ -138,29 +142,47 @@ class SourcesViewModel @Inject constructor(
      * newer advertised version (Aidoku's "Updates" section).
      */
     fun checkForUpdates() {
+        viewModelScope.launch { performUpdateCheck() }
+    }
+
+    /**
+     * Pull-to-refresh on the sources list: re-runs the update check with the
+     * refresh indicator up until it completes.
+     */
+    fun refreshSources() {
+        if (_refreshing.value) return
+        _refreshing.value = true
         viewModelScope.launch {
-            val repoUrls = stateStore.repos.value
-            if (repoUrls.isEmpty()) {
-                sendMessage(R.string.sources_updated_none)
-                return@launch
+            try {
+                performUpdateCheck()
+            } finally {
+                _refreshing.value = false
             }
-            var found = 0
-            repoUrls.forEach { url ->
-                when (val result = reposRepository.fetchSourceList(url)) {
-                    is RepoLoadResult.Success -> {
-                        result.repo.sources.forEach { ext ->
-                            val installed = repository.sources.firstOrNull { it.id == ext.id } ?: return@forEach
-                            if (compareVersions(ext.version, installed.version) > 0) {
-                                _updateMap.update { it + (ext.id to ext.version) }
-                                found++
-                            }
+        }
+    }
+
+    private suspend fun performUpdateCheck() {
+        val repoUrls = stateStore.repos.value
+        if (repoUrls.isEmpty()) {
+            sendMessage(R.string.sources_updated_none)
+            return
+        }
+        var found = 0
+        repoUrls.forEach { url ->
+            when (val result = reposRepository.fetchSourceList(url)) {
+                is RepoLoadResult.Success -> {
+                    result.repo.sources.forEach { ext ->
+                        val installed = repository.sources.firstOrNull { it.id == ext.id } ?: return@forEach
+                        if (compareVersions(ext.version, installed.version) > 0) {
+                            _updateMap.update { it + (ext.id to ext.version) }
+                            found++
                         }
                     }
-                    RepoLoadResult.Unavailable -> Unit
                 }
+                RepoLoadResult.Unavailable -> Unit
             }
-            if (found == 0) sendMessage(R.string.sources_updated_all)
         }
+        if (found == 0) sendMessage(R.string.sources_updated_all)
     }
 
     fun dismissUpdate(source: Source) {
@@ -254,6 +276,31 @@ class SourcesViewModel @Inject constructor(
 
     fun refreshAllRepos() {
         stateStore.repos.value.forEach { loadRepo(it) }
+    }
+
+    /**
+     * Pull-to-refresh on the repo manager: re-fetches every repo **in place**
+     * (awaiting each fetch, unlike [refreshAllRepos]'s fire-and-forget) with
+     * the refresh indicator up until the last repo lands.
+     */
+    fun refreshRepos() {
+        if (_refreshing.value) return
+        _refreshing.value = true
+        viewModelScope.launch {
+            try {
+                stateStore.repos.value.forEach { url ->
+                    _repoStates.update { it + (url to RepoSectionState.Loading) }
+                    when (val result = reposRepository.fetchSourceList(url)) {
+                        is RepoLoadResult.Success ->
+                            _repoStates.update { it + (url to RepoSectionState.Loaded(result.repo.name, result.repo.sources)) }
+                        RepoLoadResult.Unavailable ->
+                            _repoStates.update { it + (url to RepoSectionState.Unavailable) }
+                    }
+                }
+            } finally {
+                _refreshing.value = false
+            }
+        }
     }
 
     fun addRepo(rawUrl: String): Boolean {

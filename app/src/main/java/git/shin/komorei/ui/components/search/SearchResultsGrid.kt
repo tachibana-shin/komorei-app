@@ -2,6 +2,7 @@ package git.shin.komorei.ui.components.search
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -9,13 +10,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
@@ -32,6 +34,7 @@ import git.shin.komorei.model.Anime
 import git.shin.komorei.ui.components.AnimeCard
 import git.shin.komorei.ui.components.ListingGridSkeleton
 import git.shin.komorei.ui.components.ShimmerLoadingRow
+import git.shin.komorei.ui.components.animeGridColumns
 import git.shin.komorei.ui.screens.search.SourceSearchUiState
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeRedContainer
@@ -44,12 +47,15 @@ import kotlinx.coroutines.flow.distinctUntilChanged
  * [AnimeCard]s with infinite scroll ([onLoadMore]) plus loading / error-retry /
  * empty / end-of-results states.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchResultsGrid(
     state: SourceSearchUiState,
     onAnimeClick: (Anime) -> Unit,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -106,39 +112,48 @@ fun SearchResultsGrid(
                         if (total > 0 && lastIndex >= total - 6) onLoadMore()
                     }
             }
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                state = gridState,
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 8.dp,
-                    bottom = 24.dp,
-                ),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = modifier.fillMaxSize().testTag("source_search_grid"),
-            ) {
-                items(state.items, key = { it.id }) { anime ->
-                    AnimeCard(
-                        anime = anime,
-                        onClick = { onAnimeClick(anime) },
-                    )
-                }
-                if (state.isLoadingMore) {
-                    item(key = "_load_more") {
-                        ShimmerLoadingRow()
-                    }
-                }
-                if (!state.isLoadingMore && !state.hasNextPage) {
-                    item(key = "_end") {
-                        Text(
-                            text = stringResource(R.string.source_search_end),
-                            color = TextMuted,
-                            fontSize = 12.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                        )
+            BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+                val columns = animeGridColumns()
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = onRefresh,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    LazyVerticalGrid(
+                        columns = columns,
+                        state = gridState,
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 8.dp,
+                            bottom = 24.dp,
+                        ),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxSize().testTag("source_search_grid"),
+                    ) {
+                        items(state.items, key = { it.id }) { anime ->
+                            AnimeCard(
+                                anime = anime,
+                                onClick = { onAnimeClick(anime) },
+                            )
+                        }
+                        if (state.isLoadingMore) {
+                            item(key = "_load_more") {
+                                ShimmerLoadingRow()
+                            }
+                        }
+                        if (!state.isLoadingMore && !state.hasNextPage) {
+                            item(key = "_end") {
+                                Text(
+                                    text = stringResource(R.string.source_search_end),
+                                    color = TextMuted,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                )
+                            }
+                        }
                     }
                 }
             }

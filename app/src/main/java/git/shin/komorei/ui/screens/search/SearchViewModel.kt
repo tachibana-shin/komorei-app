@@ -70,6 +70,10 @@ class SearchViewModel @Inject constructor(
     /** Recent search queries (most recent first), persisted across sessions. */
     val searchHistory: StateFlow<List<String>> = searchHistoryStore.history
 
+    /** True while a pull-to-refresh reload of the results is in flight. */
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     /**
      * Test seam — JVM tests set 0 because the test Main scheduler's virtual
      * clock never advances, so a real 300ms debounce would never fire.
@@ -196,6 +200,21 @@ class SearchViewModel @Inject constructor(
 
     fun retrySearch() {
         executeSearch(currentParams())
+    }
+
+    /** Pull-to-refresh on the results list: re-runs the current search. */
+    fun refreshSearch() {
+        val state = _searchUiState.value
+        if (state !is SearchUiState.Success && state !is SearchUiState.Searching) return
+        if (_isRefreshing.value) return
+        _isRefreshing.value = true
+        viewModelScope.launch {
+            try {
+                executeSearch(currentParams())
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
     }
 
     /** Adds the current query to search history (if non-blank). */

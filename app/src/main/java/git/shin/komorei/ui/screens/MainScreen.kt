@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -31,6 +33,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import git.shin.komorei.model.Anime
 import git.shin.komorei.sdk.JsChallengeCoordinator
+import git.shin.komorei.ui.components.MAX_CONTENT_WIDTH
 import git.shin.komorei.ui.components.MainBottomNavigation
 import git.shin.komorei.ui.components.MainNavigationRail
 import git.shin.komorei.ui.components.dialogs.ChallengeBypassDialog
@@ -131,20 +134,27 @@ fun MainScreen(
                         },
                     )
 
-                    // Main Content
-                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                        MainNavigationHost(
-                            navController = navController,
-                            onAnimeSelect = onAnimeSelected,
-                            onOpenSearch = { sourceId ->
-                                navController.navigate(Screen.SourceSearch.createRoute(sourceId))
-                            },
-                            onOpenSourceSearch = { sourceId, query ->
-                                navController.navigate(
-                                    Screen.SourceSearch.createRoute(sourceId, query, emptyList())
-                                )
-                            },
-                        )
+                    // Main Content — capped + centered on very large screens
+                    // (landscape tablets / TVs) so lists never stretch
+                    // edge-to-edge; phones and portrait tablets are below the cap.
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        contentAlignment = Alignment.TopCenter,
+                    ) {
+                        Box(modifier = Modifier.fillMaxHeight().widthIn(max = MAX_CONTENT_WIDTH)) {
+                            MainNavigationHost(
+                                navController = navController,
+                                onAnimeSelect = onAnimeSelected,
+                                onOpenSearch = { sourceId ->
+                                    navController.navigate(Screen.SourceSearch.createRoute(sourceId))
+                                },
+                                onOpenSourceSearch = { sourceId, query ->
+                                    navController.navigate(
+                                        Screen.SourceSearch.createRoute(sourceId, query, emptyList())
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
             } else {

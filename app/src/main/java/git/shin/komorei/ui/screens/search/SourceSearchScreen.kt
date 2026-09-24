@@ -158,6 +158,8 @@ fun SourceSearchScreen(
                         onAnimeClick = onAnimeClick,
                         onLoadMore = viewModel::loadMore,
                         onRetry = viewModel::retry,
+                        isRefreshing = uiState.isRefreshing,
+                        onRefresh = viewModel::refresh,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -166,6 +168,8 @@ fun SourceSearchScreen(
                     onAnimeClick = onAnimeClick,
                     onLoadMore = viewModel::loadMore,
                     onRetry = viewModel::retry,
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = viewModel::refresh,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

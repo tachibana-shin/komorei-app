@@ -82,6 +82,7 @@ import git.shin.komorei.ui.components.EpisodeProgressBar
 import git.shin.komorei.ui.components.MetadataDetailRow
 import git.shin.komorei.ui.components.ServerOptionChip
 import git.shin.komorei.ui.components.SectionHeader
+import git.shin.komorei.ui.components.animeGridColumnCount
 import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
 import git.shin.komorei.ui.player.components.EpisodesBottomSheet
 import git.shin.komorei.ui.theme.Accent
@@ -808,20 +809,22 @@ fun AnimeDetailView(
 
         item {
             if (relatedAnimeList.isNotEmpty()) {
-                // 3-column grid, rendered NON-lazily: a LazyVerticalGrid nested inside
-                // this LazyColumn item would be measured with an infinite max-height
+                // Responsive column count (3 phone / 4 tablet / 5-6 TV),
+                // rendered NON-lazily: a LazyVerticalGrid nested inside this
+                // LazyColumn item would be measured with an infinite max-height
                 // (items of LazyColumn get unbounded height), which crashes Compose.
-                val rows = relatedAnimeList.chunked(3)
-                SectionHeader(title = stringResource(R.string.related_anime_header))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                        // Fixed cell width (not weight) so an incomplete last row keeps
-                        // the same 1/3 sizing as full rows instead of stretching to 50%.
-                        val cellWidth = (maxWidth - 24.dp) / 3 // 3 slots, 2×12dp gaps
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val columns = animeGridColumnCount()
+                    val rows = relatedAnimeList.chunked(columns)
+                    // Fixed cell width (not weight) so an incomplete last row keeps
+                    // the same sizing as full rows instead of stretching to 50%.
+                    val cellWidth = (maxWidth - 12.dp * (columns - 1)) / columns
+                    SectionHeader(title = stringResource(R.string.related_anime_header))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
                         rows.forEachIndexed { index, rowAnimes ->
                             Row(
                                 modifier = Modifier
@@ -837,7 +840,7 @@ fun AnimeDetailView(
                                     )
                                 }
                                 // Keep an incomplete last row left-aligned.
-                                repeat(3 - rowAnimes.size) {
+                                repeat(columns - rowAnimes.size) {
                                     Spacer(modifier = Modifier.width(cellWidth))
                                 }
                             }

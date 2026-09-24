@@ -42,11 +42,13 @@ import git.shin.komorei.ui.theme.AnimeRed
  *   title (2 lines) + subtitle on the right, and a **rank number** on the far
  *   left when [ranking] is true.
  * - `pageSize != null` → the paged style (like Aidoku's `mangaListLayout`):
- *   a horizontally-paged layout where each page = a **2-column grid** of
- *   compact cells holding up to `pageSize` items (rows of two), each cell a
- *   FIXED width — computed once from the measured container (`cellWidth`),
- *   capped at [PAGED_CELL_WIDTH_MAX], never a percentage/weight — so the two
- *   columns stay **packed** with no leftover black gap at any screen size.
+ *   a horizontally-paged layout where each page = a **multi-column grid**
+ *   (2 columns on phones, 3 on tablets, 4 on very large screens — see
+ *   [pagedGridColumns]) of compact cells holding up to `pageSize` items,
+ *   each cell a FIXED width — computed once from the measured container
+ *   (`cellWidth`), capped at [PAGED_CELL_WIDTH_MAX] on phones, never a
+ *   percentage/weight — so the columns stay **packed** with no leftover
+ *   black gap at any screen size.
  *   Rank numbers keep counting across pages, row-major.
  *
  * Bounded Column / pager — never a LazyColumn (would nest a vertical
@@ -71,21 +73,22 @@ fun AnimeListRow(
         if (page != null) {
             val pages = entries.chunked(page)
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val cellWidth = pagedCellWidth()
+                val columns = pagedGridColumns()
+                val cellWidth = pagedCellWidth(columns)
                 HorizontalPager(
                     state = rememberPagerState(pageCount = { pages.size }),
                     pageSpacing = 8.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) { pageIndex ->
                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        pages[pageIndex].chunked(2).forEachIndexed { rowIndex, rowItems ->
+                        pages[pageIndex].chunked(columns).forEachIndexed { rowIndex, rowItems ->
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 rowItems.forEachIndexed { columnIndex, entry ->
                                     AnimeListGridCell(
-                                        index = pageIndex * page + rowIndex * 2 + columnIndex,
+                                        index = pageIndex * page + rowIndex * columns + columnIndex,
                                         entry = entry,
                                         ranking = ranking,
                                         onAnimeClick = onAnimeClick,
@@ -93,7 +96,9 @@ fun AnimeListRow(
                                     )
                                 }
                                 // Keep an incomplete last row left-aligned.
-                                if (rowItems.size == 1) Spacer(modifier = Modifier.width(cellWidth))
+                                repeat(columns - rowItems.size) {
+                                    Spacer(modifier = Modifier.width(cellWidth))
+                                }
                             }
                         }
                     }
@@ -173,7 +178,7 @@ private fun AnimeListRowCell(
     }
 }
 
-/** Half-width compact cell used by the paged 2-column grid. */
+/** Compact cell used by the paged grid (2 columns phone / 3 tablet / 4 TV). */
 @Composable
 private fun AnimeListGridCell(
     index: Int,

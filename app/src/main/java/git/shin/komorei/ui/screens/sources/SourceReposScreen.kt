@@ -23,9 +23,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -58,6 +60,7 @@ import git.shin.komorei.ui.theme.TextSecondary
  * Shares the same [SourceStateStore]/[SourceReposRepository] as the Sources
  * tab, so repo edits made here show up in the Add-source sheet immediately.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SourceReposScreen(
     onBack: () -> Unit,
@@ -67,6 +70,7 @@ fun SourceReposScreen(
     val context = LocalContext.current
     val repos by viewModel.repos.collectAsState()
     val repoStates by viewModel.repoStates.collectAsState()
+    val refreshing by viewModel.refreshing.collectAsState()
 
     var showAddRepoDialog by remember { mutableStateOf(false) }
 
@@ -122,17 +126,24 @@ fun SourceReposScreen(
         if (repos.isEmpty()) {
             EmptyRepos(onAdd = { showAddRepoDialog = true })
         } else {
-            LazyColumn(
+            // Pull-to-refresh re-fetches every repo in place.
+            PullToRefreshBox(
+                isRefreshing = refreshing,
+                onRefresh = viewModel::refreshRepos,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 32.dp),
             ) {
-                items(repos, key = { it }) { url ->
-                    RepoManageRow(
-                        url = url,
-                        state = repoStates[url],
-                        onRemove = { viewModel.removeRepo(url) },
-                        onRetry = { viewModel.loadRepo(url) },
-                    )
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 32.dp),
+                ) {
+                    items(repos, key = { it }) { url ->
+                        RepoManageRow(
+                            url = url,
+                            state = repoStates[url],
+                            onRemove = { viewModel.removeRepo(url) },
+                            onRetry = { viewModel.loadRepo(url) },
+                        )
+                    }
                 }
             }
         }

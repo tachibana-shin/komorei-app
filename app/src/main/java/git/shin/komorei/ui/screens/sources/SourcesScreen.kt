@@ -32,12 +32,14 @@ import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -78,7 +80,7 @@ import git.shin.komorei.ui.theme.TextSecondary
  *  - "Update" pill rows in the Updates section;
  *  - Add-source sheet (import .aix/.krx + browse repos) via the "+" button.
  */
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun SourcesScreen(
     onOpenRepos: () -> Unit,
@@ -89,6 +91,7 @@ fun SourcesScreen(
     val context = LocalContext.current
     val sources by viewModel.sources.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val refreshing by viewModel.refreshing.collectAsState()
 
     var showAddSheet by remember { mutableStateOf(false) }
     var uninstallCandidate by remember { mutableStateOf<SourceUiState?>(null) }
@@ -232,21 +235,56 @@ fun SourcesScreen(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // List
-        LazyColumn(
+        // List — pull-to-refresh re-runs the repo update check (Aidoku's
+        // Browse tab pull gesture).
+        PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = viewModel::refreshSources,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 32.dp),
         ) {
-            if (sources.isEmpty()) {
-                item(key = "empty") {
-                    EmptyState(onAdd = { showAddSheet = true })
-                }
-            } else {
-                if (updates.isNotEmpty()) {
-                    item(key = "header_updates") {
-                        SectionLabel(stringResource(R.string.sources_section_updates))
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 32.dp),
+            ) {
+                if (sources.isEmpty()) {
+                    item(key = "empty") {
+                        EmptyState(onAdd = { showAddSheet = true })
                     }
-                    items(updates, key = { it.source.id }) { item ->
+                } else {
+                    if (updates.isNotEmpty()) {
+                        item(key = "header_updates") {
+                            SectionLabel(stringResource(R.string.sources_section_updates))
+                        }
+                        items(updates, key = { it.source.id }) { item ->
+                            SourceRow(
+                                item = item,
+                                onOpen = { onOpenSource(item.source.id) },
+                                onUpdate = { viewModel.updateSource(item.source) },
+                                onToggleEnabled = { viewModel.setEnabled(item.source, !item.enabled) },
+                                onTogglePinned = { viewModel.togglePinned(item.source) },
+                                onRequestUninstall = { uninstallCandidate = item },
+                            )
+                        }
+                    }
+                    if (pinned.isNotEmpty()) {
+                        item(key = "header_pinned") {
+                            SectionLabel(stringResource(R.string.sources_section_pinned))
+                        }
+                        items(pinned, key = { it.source.id }) { item ->
+                            SourceRow(
+                                item = item,
+                                onOpen = { onOpenSource(item.source.id) },
+                                onUpdate = { viewModel.updateSource(item.source) },
+                                onToggleEnabled = { viewModel.setEnabled(item.source, !item.enabled) },
+                                onTogglePinned = { viewModel.togglePinned(item.source) },
+                                onRequestUninstall = { uninstallCandidate = item },
+                            )
+                        }
+                    }
+                    item(key = "header_installed") {
+                        SectionLabel(stringResource(R.string.sources_section_installed))
+                    }
+                    items(installed, key = { it.source.id }) { item ->
                         SourceRow(
                             item = item,
                             onOpen = { onOpenSource(item.source.id) },
@@ -256,34 +294,6 @@ fun SourcesScreen(
                             onRequestUninstall = { uninstallCandidate = item },
                         )
                     }
-                }
-                if (pinned.isNotEmpty()) {
-                    item(key = "header_pinned") {
-                        SectionLabel(stringResource(R.string.sources_section_pinned))
-                    }
-                    items(pinned, key = { it.source.id }) { item ->
-                        SourceRow(
-                            item = item,
-                            onOpen = { onOpenSource(item.source.id) },
-                            onUpdate = { viewModel.updateSource(item.source) },
-                            onToggleEnabled = { viewModel.setEnabled(item.source, !item.enabled) },
-                            onTogglePinned = { viewModel.togglePinned(item.source) },
-                            onRequestUninstall = { uninstallCandidate = item },
-                        )
-                    }
-                }
-                item(key = "header_installed") {
-                    SectionLabel(stringResource(R.string.sources_section_installed))
-                }
-                items(installed, key = { it.source.id }) { item ->
-                    SourceRow(
-                        item = item,
-                        onOpen = { onOpenSource(item.source.id) },
-                        onUpdate = { viewModel.updateSource(item.source) },
-                        onToggleEnabled = { viewModel.setEnabled(item.source, !item.enabled) },
-                        onTogglePinned = { viewModel.togglePinned(item.source) },
-                        onRequestUninstall = { uninstallCandidate = item },
-                    )
                 }
             }
         }

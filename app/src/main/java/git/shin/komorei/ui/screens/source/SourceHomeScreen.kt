@@ -80,6 +80,7 @@ fun SourceHomeScreen(
     val source by viewModel.source.collectAsState()
     val sourceDataMap by viewModel.sourceDataMap.collectAsState()
     val listingStateMap by viewModel.listingStateMap.collectAsState()
+    val refreshingIds by viewModel.refreshingIds.collectAsState()
 
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -191,6 +192,8 @@ fun SourceHomeScreen(
                 onAnimeClick = onAnimeClick,
                 getSourceName = { viewModel.getSourceName(it) },
                 onOpenSearch = onOpenSearch,
+                isRefreshing = refreshingIds.contains(sourceId),
+                onRefresh = { viewModel.refreshSource(sourceId) },
                 modifier = Modifier.weight(1f),
             )
         }

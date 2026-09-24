@@ -69,6 +69,7 @@ fun HomeScreen(
     val sources by viewModel.sources.collectAsState()
     val sourceDataMap by viewModel.sourceDataMap.collectAsState()
     val listingStateMap by viewModel.listingStateMap.collectAsState()
+    val refreshingIds by viewModel.refreshingIds.collectAsState()
 
     val sourcePagerState = rememberPagerState(
         initialPage = 0,
@@ -225,6 +226,8 @@ fun HomeScreen(
                 onAnimeClick = onAnimeClick,
                 getSourceName = { viewModel.getSourceName(it) },
                 onOpenSearch = onOpenSearch,
+                isRefreshing = refreshingIds.contains(source.id),
+                onRefresh = { viewModel.refreshSource(source.id) },
             )
         }
     }

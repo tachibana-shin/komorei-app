@@ -3,6 +3,7 @@ package git.shin.komorei.ui.screens.listing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,17 +16,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -44,6 +46,7 @@ import git.shin.komorei.R
 import git.shin.komorei.model.Anime
 import git.shin.komorei.ui.components.AnimeCard
 import git.shin.komorei.ui.components.ShimmerLoadingRow
+import git.shin.komorei.ui.components.animeGridColumns
 import git.shin.komorei.ui.components.shimmerEffect
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeRedContainer
@@ -58,6 +61,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
  * Back press pops the stack — does NOT exit the app (the tab's stack
  * entry stays alive behind it).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListingScreen(
     onAnimeClick: (Anime) -> Unit,
@@ -66,6 +70,7 @@ fun ListingScreen(
     viewModel: ListingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val gridState = rememberLazyGridState()
 
     // Infinite scroll: trigger a load when the user approaches the last page.
@@ -123,29 +128,38 @@ fun ListingScreen(
                 }
             }
 
-            else -> LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                state = gridState,
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    bottom = 120.dp,          // clear the mini player + bottom nav
-                ),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxSize().testTag("listing_grid"),
-            ) {
-                items(uiState.items, key = { it.id }) { anime ->
-                    AnimeCard(
-                        anime = anime,
-                        onClick = { onAnimeClick(anime) },
-                    )
-                }
-                if (uiState.isLoadingMore) {
-                    item(key = "_load_more") { ListingLoadingRow() }
-                }
-                if (!uiState.isLoadingMore && !uiState.hasNextPage && uiState.items.isNotEmpty()) {
-                    item(key = "_end") { ListingEndRow() }
+            else -> BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val columns = animeGridColumns()
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = viewModel::refresh,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    LazyVerticalGrid(
+                        columns = columns,
+                        state = gridState,
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            bottom = 120.dp,          // clear the mini player + bottom nav
+                        ),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxSize().testTag("listing_grid"),
+                    ) {
+                        items(uiState.items, key = { it.id }) { anime ->
+                            AnimeCard(
+                                anime = anime,
+                                onClick = { onAnimeClick(anime) },
+                            )
+                        }
+                        if (uiState.isLoadingMore) {
+                            item(key = "_load_more") { ListingLoadingRow() }
+                        }
+                        if (!uiState.isLoadingMore && !uiState.hasNextPage && uiState.items.isNotEmpty()) {
+                            item(key = "_end") { ListingEndRow() }
+                        }
+                    }
                 }
             }
         }

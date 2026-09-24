@@ -68,6 +68,9 @@ class ListingViewModel @Inject constructor(
     /** The last page we successfully appended (1-based). */
     private var loadedPage = 0
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     init {
         loadMore(reset = true)
     }
@@ -105,6 +108,38 @@ class ListingViewModel @Inject constructor(
                         error = appContext.getString(R.string.error_load_data),
                     )
                 }
+            }
+        }
+    }
+
+    /**
+     * Pull-to-refresh: re-pulls page 1 without flipping the loading skeleton.
+     * Old items stay on screen while reloading; a failure keeps the current
+     * list and only surfaces the error if the grid has nothing left to show.
+     */
+    fun refresh() {
+        if (sourceId.isEmpty() || _isRefreshing.value) return
+        _isRefreshing.value = true
+        viewModelScope.launch {
+            try {
+                val page = repository.getListing(sourceId, listing, 1)
+                _uiState.update {
+                    ListingUiState(
+                        items = page.entries,
+                        hasNextPage = page.hasNextPage,
+                    )
+                }
+                loadedPage = 1
+            } catch (e: Exception) {
+                _uiState.update { current ->
+                    current.copy(
+                        isLoading = false,
+                        isLoadingMore = false,
+                        error = appContext.getString(R.string.error_load_data),
+                    )
+                }
+            } finally {
+                _isRefreshing.value = false
             }
         }
     }

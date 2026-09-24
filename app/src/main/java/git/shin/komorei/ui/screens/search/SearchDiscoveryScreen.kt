@@ -35,11 +35,13 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -90,6 +92,7 @@ fun SearchDiscoveryScreen(
     val sourceFilter by viewModel.sourceFilter.collectAsState()
     val searchUiState by viewModel.searchUiState.collectAsState()
     val searchHistory by viewModel.searchHistory.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val sources = viewModel.sources
 
     Column(
@@ -339,9 +342,9 @@ fun SearchDiscoveryScreen(
                     onAnimeClick = onAnimeClick,
                     onOpenSourceSearch = { sourceId -> onOpenSourceSearch(sourceId, searchQuery) },
                     onRetry = { viewModel.retrySearch() },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("search_results_list"),
+                    isRefreshing = isRefreshing,
+                    onRefresh = { viewModel.refreshSearch() },
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
 
@@ -391,9 +394,9 @@ fun SearchDiscoveryScreen(
                         onAnimeClick = onAnimeClick,
                         onOpenSourceSearch = { sourceId -> onOpenSourceSearch(sourceId, searchQuery) },
                         onRetry = { viewModel.retrySearch() },
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .testTag("search_results_list"),
+                        isRefreshing = isRefreshing,
+                        onRefresh = { viewModel.refreshSearch() },
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
             }
@@ -444,6 +447,7 @@ fun SearchDiscoveryScreen(
  * lists every source that produced results, errored, or finished empty).
  */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun SearchSourceSections(
     sources: List<Source>,
     resultsBySource: Map<Source, List<Anime>>,
@@ -455,9 +459,18 @@ private fun SearchSourceSections(
     modifier: Modifier = Modifier,
     showCountHeader: Boolean = false,
     totalCount: Int = 0,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
 ) {
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier,
+    ) {
     LazyColumn(
-        modifier = modifier.testTag("search_results_list"),
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("search_results_list"),
         contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,
@@ -619,5 +632,6 @@ private fun SearchSourceSections(
                 }
             }
         }
+    }
     }
 }

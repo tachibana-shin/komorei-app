@@ -45,8 +45,9 @@ import java.time.Instant
  *
  * Two rendering modes, chosen by [pageSize]:
  * - `pageSize == null` → one continuous VERTICAL list.
- * - `pageSize != null` → the paged grid style (`scroll_x(column_2(row2, row2))`):
- *   each page = a 2-column grid of compact rows, up to `pageSize` items.
+ * - `pageSize != null` → the paged grid style: each page = a multi-column
+ *   grid of compact rows (2 columns on phones, 3 on tablets, 4 on very large
+ *   screens — [pagedGridColumns]), up to `pageSize` items.
  *
  * Bounded Column / pager — never a LazyColumn (would nest a vertical
  * scrollable inside the Home tab's LazyColumn → FATAL).
@@ -70,15 +71,17 @@ fun AnimeEpisodeListRow(
             val pages = entries.chunked(page)
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                 // Same fixed (not weight/percentage) cell width as AnimeList's
-                // paged grid — two packed columns, capped at PAGED_CELL_WIDTH_MAX.
-                val cellWidth = pagedCellWidth()
+                // paged grid — columns chunks rows + packed cells, capped at
+                // PAGED_CELL_WIDTH_MAX on the phone's 2-column layout.
+                val columns = pagedGridColumns()
+                val cellWidth = pagedCellWidth(columns)
                 HorizontalPager(
                     state = rememberPagerState(pageCount = { pages.size }),
                     pageSpacing = 8.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) { pageIndex ->
                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        pages[pageIndex].chunked(2).forEachIndexed { rowIndex, rowItems ->
+                        pages[pageIndex].chunked(columns).forEachIndexed { rowIndex, rowItems ->
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 modifier = Modifier.fillMaxWidth()
@@ -91,7 +94,9 @@ fun AnimeEpisodeListRow(
                                     )
                                 }
                                 // Keep an incomplete last row left-aligned.
-                                if (rowItems.size == 1) Spacer(modifier = Modifier.width(cellWidth))
+                                repeat(columns - rowItems.size) {
+                                    Spacer(modifier = Modifier.width(cellWidth))
+                                }
                             }
                         }
                     }
@@ -163,7 +168,7 @@ private fun AnimeEpisodeListRowCell(
     }
 }
 
-/** Half-width "row2" cell used by the paged 2-column grid. */
+/** Compact "row2" cell used by the paged grid (2 phone / 3 tablet / 4 TV). */
 @Composable
 private fun AnimeEpisodeListGridCell(
     entry: AnimeWithEpisode,
