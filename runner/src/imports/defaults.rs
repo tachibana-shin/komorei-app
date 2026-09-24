@@ -3,9 +3,9 @@
 
 use wasmi::{Caller, Linker};
 
+use crate::abi;
 use crate::host::HostDefaultValue;
 use crate::state::RunnerData;
-use crate::abi;
 
 const INVALID_KEY: i32 = -1;
 const INVALID_VALUE: i32 = -2;
@@ -29,8 +29,15 @@ fn get(mut caller: Caller<'_, RunnerData>, key_ptr: u32, key_len: u32) -> i32 {
 	let Some(key) = abi::read_string(&caller, key_ptr, key_len) else {
 		return INVALID_KEY;
 	};
-	let Some(value) = caller.data().host.defaults_get(key) else {
-		return INVALID_KEY;
+	// A host callback that broke the FFI contract yields no value at all. That
+	// is NOT the same as a missing key, so it gets its own code: the source
+	// sees "could not decode" rather than being told the key is invalid.
+	// (This branch used to PANIC inside uniffi, which aborted the whole host
+	// process — see the `KomoreiHost` note in host.rs.)
+	let value = match caller.data().host.defaults_get(key) {
+		Ok(Some(value)) => value,
+		Ok(None) => return INVALID_KEY,
+		Err(_) => return FAILED_DECODING,
 	};
 	if matches!(value, HostDefaultValue::Null) {
 		return INVALID_VALUE;
@@ -47,7 +54,13 @@ fn get(mut caller: Caller<'_, RunnerData>, key_ptr: u32, key_len: u32) -> i32 {
 	caller.data_mut().store.store_raw(encoded)
 }
 
-fn set(caller: Caller<'_, RunnerData>, key_ptr: u32, key_len: u32, kind: i32, value_ptr: i32) -> i32 {
+fn set(
+	caller: Caller<'_, RunnerData>,
+	key_ptr: u32,
+	key_len: u32,
+	kind: i32,
+	value_ptr: i32,
+) -> i32 {
 	let Some(key) = abi::read_string(&caller, key_ptr, key_len) else {
 		return INVALID_KEY;
 	};
@@ -85,6 +98,9 @@ fn set(caller: Caller<'_, RunnerData>, key_ptr: u32, key_len: u32, kind: i32, va
 			_ => return INVALID_VALUE,
 		}
 	};
-	caller.data().host.defaults_set(key, value);
+	// Storing is best-effort from the caller's perspective: a failed host
+	// callback leaves the store unchanged, and the source treats this import as
+	// fire-and-forget anyway.
+	let _ = caller.data().host.defaults_set(key, value);
 	0
 }

@@ -18,8 +18,9 @@ use std::collections::HashMap;
 
 use wasmi::{Caller, Linker};
 
-use crate::state::{GlobalStore, RunnerData, StoreItem};
 use crate::abi;
+use crate::error::RunnerError;
+use crate::state::{GlobalStore, RunnerData, StoreItem};
 
 const INVALID_DESCRIPTOR: i32 = -1;
 const INVALID_STRING: i32 = -2;
@@ -28,30 +29,82 @@ const INVALID_REQUEST: i32 = -4;
 const INVALID_URL: i32 = -5;
 const NO_RESULT: i32 = -6;
 
+/// Folds a failed host call into the same "nothing to report" branch the
+/// `None` arm already handles.
+///
+/// A `KomoreiHost` that breaks the FFI contract surfaces here as
+/// `Err(RunnerError::HostCallback)` instead of panicking inside uniffi and
+/// aborting the process (see the note on `KomoreiHost` in host.rs). The wasm
+/// ABI has no code for "the host itself is broken", so the call degrades to
+/// whatever the source already handles as "no value".
+fn host_opt<T>(result: Result<Option<T>, RunnerError>) -> Option<T> {
+	result.unwrap_or(None)
+}
+
 pub fn register(linker: &mut Linker<RunnerData>) {
-	linker.func_wrap("js", "context_create", context_create).unwrap();
-	linker.func_wrap("js", "context_eval", context_eval).unwrap();
-	linker.func_wrap("js", "context_eval_async", context_eval_async).unwrap();
+	linker
+		.func_wrap("js", "context_create", context_create)
+		.unwrap();
+	linker
+		.func_wrap("js", "context_eval", context_eval)
+		.unwrap();
+	linker
+		.func_wrap("js", "context_eval_async", context_eval_async)
+		.unwrap();
 	linker.func_wrap("js", "context_get", context_get).unwrap();
 	// JsValue reads (needed by every source that uses `js!` results)
 	linker.func_wrap("js", "value_clone", value_clone).unwrap();
-	linker.func_wrap("js", "value_release", value_release).unwrap();
-	linker.func_wrap("js", "value_to_string", value_to_string).unwrap();
-	linker.func_wrap("js", "value_to_bool", value_to_bool).unwrap();
-	linker.func_wrap("js", "value_to_int", value_to_int).unwrap();
-	linker.func_wrap("js", "value_to_f64", value_to_f64).unwrap();
-	linker.func_wrap("js", "value_is_defined", value_is_defined).unwrap();
-	linker.func_wrap("js", "value_is_null", value_is_null).unwrap();
-	linker.func_wrap("js", "webview_create", webview_create).unwrap();
-	linker.func_wrap("js", "webview_set_rule_list", webview_set_rule_list).unwrap();
-	linker.func_wrap("js", "webview_load", webview_load).unwrap();
-	linker.func_wrap("js", "webview_load_html", webview_load_html).unwrap();
-	linker.func_wrap("js", "webview_wait_for_load", webview_wait_for_load).unwrap();
-	linker.func_wrap("js", "webview_eval", webview_eval).unwrap();
-	linker.func_wrap("js", "webview_eval_async", webview_eval_async).unwrap();
-	linker.func_wrap("js", "webview_add_user_script", webview_add_user_script).unwrap();
-	linker.func_wrap("js", "webview_get_cookies", webview_get_cookies).unwrap();
-	linker.func_wrap("js", "webview_delete_cookie", webview_delete_cookie).unwrap();
+	linker
+		.func_wrap("js", "value_release", value_release)
+		.unwrap();
+	linker
+		.func_wrap("js", "value_to_string", value_to_string)
+		.unwrap();
+	linker
+		.func_wrap("js", "value_to_bool", value_to_bool)
+		.unwrap();
+	linker
+		.func_wrap("js", "value_to_int", value_to_int)
+		.unwrap();
+	linker
+		.func_wrap("js", "value_to_f64", value_to_f64)
+		.unwrap();
+	linker
+		.func_wrap("js", "value_is_defined", value_is_defined)
+		.unwrap();
+	linker
+		.func_wrap("js", "value_is_null", value_is_null)
+		.unwrap();
+	linker
+		.func_wrap("js", "webview_create", webview_create)
+		.unwrap();
+	linker
+		.func_wrap("js", "webview_set_rule_list", webview_set_rule_list)
+		.unwrap();
+	linker
+		.func_wrap("js", "webview_load", webview_load)
+		.unwrap();
+	linker
+		.func_wrap("js", "webview_load_html", webview_load_html)
+		.unwrap();
+	linker
+		.func_wrap("js", "webview_wait_for_load", webview_wait_for_load)
+		.unwrap();
+	linker
+		.func_wrap("js", "webview_eval", webview_eval)
+		.unwrap();
+	linker
+		.func_wrap("js", "webview_eval_async", webview_eval_async)
+		.unwrap();
+	linker
+		.func_wrap("js", "webview_add_user_script", webview_add_user_script)
+		.unwrap();
+	linker
+		.func_wrap("js", "webview_get_cookies", webview_get_cookies)
+		.unwrap();
+	linker
+		.func_wrap("js", "webview_delete_cookie", webview_delete_cookie)
+		.unwrap();
 }
 
 // -- helpers ---------------------------------------------------------------
@@ -96,21 +149,30 @@ fn read_string_or(caller: &Caller<'_, RunnerData>, ptr: u32, len: u32) -> Result
 // -- contexts --------------------------------------------------------------
 
 fn context_create(mut caller: Caller<'_, RunnerData>) -> i32 {
-	let handle = caller.data().host.js_context_create();
+	let handle = caller.data().host.js_context_create().unwrap_or(-1);
 	if handle <= 0 {
 		return JS_ERROR;
 	}
 	caller.data_mut().store.store(StoreItem::JsContext(handle))
 }
 
-fn context_eval(mut caller: Caller<'_, RunnerData>, context: i32, code_ptr: u32, code_len: u32) -> i32 {
+fn context_eval(
+	mut caller: Caller<'_, RunnerData>,
+	context: i32,
+	code_ptr: u32,
+	code_len: u32,
+) -> i32 {
 	let Some(handle) = context_handle(&caller.data().store, context) else {
 		return INVALID_DESCRIPTOR;
 	};
 	let Ok(code) = read_string_or(&caller, code_ptr, code_len) else {
 		return INVALID_STRING;
 	};
-	let value = caller.data().host.js_context_eval(handle, code);
+	let value = caller
+		.data()
+		.host
+		.js_context_eval(handle, code)
+		.unwrap_or(-1);
 	if value <= 0 {
 		return JS_ERROR;
 	}
@@ -119,7 +181,12 @@ fn context_eval(mut caller: Caller<'_, RunnerData>, context: i32, code_ptr: u32,
 
 /// Fire-and-forget evaluation: the code runs on a worker thread, the result
 /// is discarded (the wasm caller cannot receive an async value handle).
-fn context_eval_async(caller: Caller<'_, RunnerData>, context: i32, code_ptr: u32, code_len: u32) -> i32 {
+fn context_eval_async(
+	caller: Caller<'_, RunnerData>,
+	context: i32,
+	code_ptr: u32,
+	code_len: u32,
+) -> i32 {
 	let Some(handle) = context_handle(&caller.data().store, context) else {
 		return INVALID_DESCRIPTOR;
 	};
@@ -128,22 +195,28 @@ fn context_eval_async(caller: Caller<'_, RunnerData>, context: i32, code_ptr: u3
 	};
 	let host = caller.data().host.clone();
 	std::thread::spawn(move || {
-		let value = host.js_context_eval(handle, code);
-		if value > 0 {
-			host.js_value_release(value);
+		if let Ok(value) = host.js_context_eval(handle, code) {
+			if value > 0 {
+				let _ = host.js_value_release(value);
+			}
 		}
 	});
 	0
 }
 
-fn context_get(mut caller: Caller<'_, RunnerData>, context: i32, key_ptr: u32, key_len: u32) -> i32 {
+fn context_get(
+	mut caller: Caller<'_, RunnerData>,
+	context: i32,
+	key_ptr: u32,
+	key_len: u32,
+) -> i32 {
 	let Some(handle) = context_handle(&caller.data().store, context) else {
 		return INVALID_DESCRIPTOR;
 	};
 	let Ok(key) = read_string_or(&caller, key_ptr, key_len) else {
 		return INVALID_STRING;
 	};
-	let value = caller.data().host.js_context_get(handle, key);
+	let value = caller.data().host.js_context_get(handle, key).unwrap_or(-1);
 	if value <= 0 {
 		return JS_ERROR;
 	}
@@ -156,7 +229,7 @@ fn value_to_string(mut caller: Caller<'_, RunnerData>, value: i32) -> i32 {
 	let Some(handle) = value_handle(&caller.data().store, value) else {
 		return INVALID_DESCRIPTOR;
 	};
-	match caller.data().host.js_value_to_string(handle) {
+	match host_opt(caller.data().host.js_value_to_string(handle)) {
 		Some(string) => store_string(&mut caller.data_mut().store, string),
 		None => NO_RESULT,
 	}
@@ -166,42 +239,48 @@ fn value_to_bool(caller: Caller<'_, RunnerData>, value: i32) -> i32 {
 	let Some(handle) = value_handle(&caller.data().store, value) else {
 		return 0;
 	};
-	i32::from(caller.data().host.js_value_to_bool(handle))
+	i32::from(caller.data().host.js_value_to_bool(handle).unwrap_or(false))
 }
 
 fn value_to_int(caller: Caller<'_, RunnerData>, value: i32) -> i32 {
 	let Some(handle) = value_handle(&caller.data().store, value) else {
 		return 0;
 	};
-	caller.data().host.js_value_to_int(handle)
+	caller.data().host.js_value_to_int(handle).unwrap_or(0)
 }
 
 fn value_to_f64(caller: Caller<'_, RunnerData>, value: i32) -> f64 {
 	let Some(handle) = value_handle(&caller.data().store, value) else {
 		return 0.0;
 	};
-	caller.data().host.js_value_to_f64(handle)
+	caller.data().host.js_value_to_f64(handle).unwrap_or(0.0)
 }
 
 fn value_is_defined(caller: Caller<'_, RunnerData>, value: i32) -> i32 {
 	let Some(handle) = value_handle(&caller.data().store, value) else {
 		return 0;
 	};
-	i32::from(caller.data().host.js_value_is_defined(handle))
+	i32::from(
+		caller
+			.data()
+			.host
+			.js_value_is_defined(handle)
+			.unwrap_or(false),
+	)
 }
 
 fn value_is_null(caller: Caller<'_, RunnerData>, value: i32) -> i32 {
 	let Some(handle) = value_handle(&caller.data().store, value) else {
 		return 0;
 	};
-	i32::from(caller.data().host.js_value_is_null(handle))
+	i32::from(caller.data().host.js_value_is_null(handle).unwrap_or(false))
 }
 
 fn value_clone(mut caller: Caller<'_, RunnerData>, value: i32) -> i32 {
 	let Some(handle) = value_handle(&caller.data().store, value) else {
 		return INVALID_DESCRIPTOR;
 	};
-	let clone = caller.data().host.js_value_clone(handle);
+	let clone = caller.data().host.js_value_clone(handle).unwrap_or(-1);
 	if clone <= 0 {
 		return JS_ERROR;
 	}
@@ -213,28 +292,33 @@ fn value_release(mut caller: Caller<'_, RunnerData>, value: i32) -> i32 {
 		return INVALID_DESCRIPTOR;
 	};
 	caller.data_mut().store.remove(value);
-	caller.data().host.js_value_release(handle);
+	let _ = caller.data().host.js_value_release(handle);
 	0
 }
 
 // -- webviews --------------------------------------------------------------
 
 fn webview_create(mut caller: Caller<'_, RunnerData>) -> i32 {
-	let handle = caller.data().host.js_webview_create();
+	let handle = caller.data().host.js_webview_create().unwrap_or(-1);
 	if handle <= 0 {
 		return JS_ERROR;
 	}
 	caller.data_mut().store.store(StoreItem::JsWebView(handle))
 }
 
-fn webview_set_rule_list(caller: Caller<'_, RunnerData>, webview: i32, rules_ptr: u32, rules_len: u32) -> i32 {
+fn webview_set_rule_list(
+	caller: Caller<'_, RunnerData>,
+	webview: i32,
+	rules_ptr: u32,
+	rules_len: u32,
+) -> i32 {
 	let Some(handle) = webview_handle(&caller.data().store, webview) else {
 		return INVALID_DESCRIPTOR;
 	};
 	let Ok(rules) = read_string_or(&caller, rules_ptr, rules_len) else {
 		return INVALID_STRING;
 	};
-	caller.data().host.js_webview_set_rule_list(handle, rules);
+	let _ = caller.data().host.js_webview_set_rule_list(handle, rules);
 	0
 }
 
@@ -249,11 +333,18 @@ fn webview_load(caller: Caller<'_, RunnerData>, webview: i32, request: i32) -> i
 	let Some(url) = url else {
 		return INVALID_URL;
 	};
-	caller.data().host.js_webview_load_url(handle, url, headers);
+	let _ = caller.data().host.js_webview_load_url(handle, url, headers);
 	0
 }
 
-fn webview_load_html(caller: Caller<'_, RunnerData>, webview: i32, html_ptr: u32, html_len: u32, url_ptr: u32, url_len: u32) -> i32 {
+fn webview_load_html(
+	caller: Caller<'_, RunnerData>,
+	webview: i32,
+	html_ptr: u32,
+	html_len: u32,
+	url_ptr: u32,
+	url_len: u32,
+) -> i32 {
 	let Some(handle) = webview_handle(&caller.data().store, webview) else {
 		return INVALID_DESCRIPTOR;
 	};
@@ -263,7 +354,10 @@ fn webview_load_html(caller: Caller<'_, RunnerData>, webview: i32, html_ptr: u32
 	) else {
 		return INVALID_STRING;
 	};
-	caller.data().host.js_webview_load_html(handle, html, base_url);
+	let _ = caller
+		.data()
+		.host
+		.js_webview_load_html(handle, html, base_url);
 	0
 }
 
@@ -271,18 +365,27 @@ fn webview_wait_for_load(caller: Caller<'_, RunnerData>, webview: i32) -> i32 {
 	let Some(handle) = webview_handle(&caller.data().store, webview) else {
 		return INVALID_DESCRIPTOR;
 	};
-	caller.data().host.js_webview_wait_for_load(handle);
+	let _ = caller.data().host.js_webview_wait_for_load(handle);
 	0
 }
 
-fn webview_eval(mut caller: Caller<'_, RunnerData>, webview: i32, code_ptr: u32, code_len: u32) -> i32 {
+fn webview_eval(
+	mut caller: Caller<'_, RunnerData>,
+	webview: i32,
+	code_ptr: u32,
+	code_len: u32,
+) -> i32 {
 	let Some(handle) = webview_handle(&caller.data().store, webview) else {
 		return INVALID_DESCRIPTOR;
 	};
 	let Ok(code) = read_string_or(&caller, code_ptr, code_len) else {
 		return INVALID_STRING;
 	};
-	let value = caller.data().host.js_webview_eval(handle, code);
+	let value = caller
+		.data()
+		.host
+		.js_webview_eval(handle, code)
+		.unwrap_or(-1);
 	if value <= 0 {
 		return JS_ERROR;
 	}
@@ -290,7 +393,12 @@ fn webview_eval(mut caller: Caller<'_, RunnerData>, webview: i32, code_ptr: u32,
 }
 
 /// Fire-and-forget evaluation on a worker thread; result discarded.
-fn webview_eval_async(caller: Caller<'_, RunnerData>, webview: i32, code_ptr: u32, code_len: u32) -> i32 {
+fn webview_eval_async(
+	caller: Caller<'_, RunnerData>,
+	webview: i32,
+	code_ptr: u32,
+	code_len: u32,
+) -> i32 {
 	let Some(handle) = webview_handle(&caller.data().store, webview) else {
 		return INVALID_DESCRIPTOR;
 	};
@@ -299,9 +407,10 @@ fn webview_eval_async(caller: Caller<'_, RunnerData>, webview: i32, code_ptr: u3
 	};
 	let host = caller.data().host.clone();
 	std::thread::spawn(move || {
-		let value = host.js_webview_eval(handle, code);
-		if value > 0 {
-			host.js_value_release(value);
+		if let Ok(value) = host.js_webview_eval(handle, code) {
+			if value > 0 {
+				let _ = host.js_value_release(value);
+			}
 		}
 	});
 	0
@@ -321,7 +430,12 @@ fn webview_add_user_script(
 	let Ok(code) = read_string_or(&caller, code_ptr, code_len) else {
 		return INVALID_STRING;
 	};
-	caller.data().host.js_webview_add_user_script(handle, code, at_document_end != 0, for_main_frame_only != 0);
+	let _ = caller.data().host.js_webview_add_user_script(
+		handle,
+		code,
+		at_document_end != 0,
+		for_main_frame_only != 0,
+	);
 	0
 }
 
@@ -329,7 +443,11 @@ fn webview_get_cookies(mut caller: Caller<'_, RunnerData>, webview: i32) -> i32 
 	let Some(handle) = webview_handle(&caller.data().store, webview) else {
 		return INVALID_DESCRIPTOR;
 	};
-	let cookies: HashMap<String, String> = caller.data().host.js_webview_get_cookies(handle);
+	let cookies: HashMap<String, String> = caller
+		.data()
+		.host
+		.js_webview_get_cookies(handle)
+		.unwrap_or_default();
 	let header = cookies
 		.iter()
 		.map(|(name, value)| format!("{name}={value}"))
@@ -359,6 +477,9 @@ fn webview_delete_cookie(
 	) else {
 		return INVALID_STRING;
 	};
-	caller.data().host.js_webview_delete_cookie(handle, name, value, domain);
+	let _ = caller
+		.data()
+		.host
+		.js_webview_delete_cookie(handle, name, value, domain);
 	0
 }

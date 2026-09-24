@@ -35,14 +35,22 @@ uniffi = { version = "0.32.1", features = ["build"] }
 [dev-dependencies]
 zip = { version = "4", default-features = false, features = ["deflate"] }
 
-# Mirror the komorei-sdk workspace profiles so cdylib artifacts are identical:
-# panic=abort (no unwind tables in the wasm-runner host), size-optimized,
-# stripped release builds for the Android jniLibs.
+# Size-optimized, stripped builds for the Android jniLibs.
+#
+# `panic = "unwind"` (was "abort") is REQUIRED for correctness, not a default.
+# A `KomoreiHost` callback that violates the FFI contract makes uniffi panic
+# under an `extern "C"` frame, which can never be caught — so the primary fix
+# is that every trait method returns `Result` (see src/host.rs), and this
+# profile is what lets `with_engine`'s `catch_unwind` contain the panics that
+# do NOT cross a callback. Under "abort" a single runner bug kills the whole
+# host process: an app crash on Android, or a SIGABRT that silently drops
+# every later test in the Gradle JVM. The cost is unwinding tables in the
+# cdylib plus landing pads; `opt-level`/`lto`/`strip` keep the size hit small.
 [profile.dev]
-panic = "abort"
+panic = "unwind"
 
 [profile.release]
-panic = "abort"
+panic = "unwind"
 opt-level = "s"
 strip = true
 lto = true

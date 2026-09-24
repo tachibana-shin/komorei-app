@@ -274,6 +274,19 @@ impl KomoreiRunner {
 	// before wasmi can trap cleanly — seen as "stack pointer close to top of
 	// stack" in tombstones. Run every call on a short-lived big-stack worker;
 	// the mutex still serializes calls exactly as before.
+	//
+	// The worker ALSO contains panics. Most FFI-contract failures never get
+	// here — declaring `Result` on every `KomoreiHost` method makes uniffi
+	// turn them into `RunnerError::HostCallback` (see host.rs). This catch is
+	// the backstop for panics that do NOT cross a callback (a bad result
+	// buffer, a decoder bug, a wasmi internal): they unwind cleanly and become
+	// a normal error for the caller instead of killing the host process.
+	// Catching them further out is impossible — an FFI-contract panic starts
+	// under an `extern "C"` frame that Rust marks `nounwind`.
+	//
+	// The catch sits INSIDE the lock's scope on purpose: a panic while holding
+	// the guard would poison the mutex and turn every later call into
+	// "runner mutex poisoned".
 	fn with_engine<T: Send>(
 		&self,
 		f: impl FnOnce(&mut engine::EngineState) -> Result<T, RunnerError> + Send,
@@ -289,7 +302,10 @@ impl KomoreiRunner {
 						.lock()
 						.map_err(|_| RunnerError::Wasm("runner mutex poisoned".into()))?;
 					match guard.as_mut() {
-						Some(engine) => f(engine),
+						Some(engine) => match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(engine))) {
+							Ok(result) => result,
+							Err(payload) => Err(RunnerError::HostCallback(panic_message(payload))),
+						},
 						None => Err(RunnerError::NotLoaded),
 					}
 				})
@@ -298,5 +314,16 @@ impl KomoreiRunner {
 				.join()
 				.map_err(|_| RunnerError::Wasm("big-stack worker panicked".into()))?
 		})
+	}
+}
+
+/// Best-effort text for a caught panic payload (`&str` or `String`).
+fn panic_message(payload: Box<dyn core::any::Any + Send>) -> String {
+	if let Some(s) = payload.downcast_ref::<&str>() {
+		(*s).to_owned()
+	} else if let Some(s) = payload.downcast_ref::<String>() {
+		s.clone()
+	} else {
+		"non-string panic payload".to_owned()
 	}
 }

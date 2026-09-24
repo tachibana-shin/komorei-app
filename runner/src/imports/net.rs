@@ -5,9 +5,9 @@ use std::collections::HashMap;
 
 use wasmi::{Caller, Linker};
 
+use crate::abi;
 use crate::host::HostHttpMethod;
 use crate::state::{RunnerData, StoreItem};
-use crate::abi;
 
 const INVALID_DESCRIPTOR: i32 = -1;
 const INVALID_METHOD: i32 = -3;
@@ -49,13 +49,20 @@ pub fn register(linker: &mut Linker<RunnerData>) {
 	linker.func_wrap("net", "read_data", read_data).unwrap();
 	linker.func_wrap("net", "get_image", get_image).unwrap();
 	linker.func_wrap("net", "get_header", get_header).unwrap();
-	linker.func_wrap("net", "get_status_code", get_status_code).unwrap();
+	linker
+		.func_wrap("net", "get_status_code", get_status_code)
+		.unwrap();
 	linker.func_wrap("net", "get_url", get_url).unwrap();
 	linker.func_wrap("net", "html", html).unwrap();
-	linker.func_wrap("net", "set_rate_limit", set_rate_limit).unwrap();
+	linker
+		.func_wrap("net", "set_rate_limit", set_rate_limit)
+		.unwrap();
 }
 
-fn request_mut<'a>(caller: &'a mut Caller<'_, RunnerData>, rid: i32) -> Option<&'a mut RequestState> {
+fn request_mut<'a>(
+	caller: &'a mut Caller<'_, RunnerData>,
+	rid: i32,
+) -> Option<&'a mut RequestState> {
 	match caller.data_mut().store.get_mut(rid) {
 		Some(StoreItem::Request(r)) => Some(r),
 		_ => None,
@@ -88,9 +95,23 @@ fn common_send(caller: &mut Caller<'_, RunnerData>, rid: i32) -> i32 {
 		let Some(url) = request.url.clone() else {
 			return INVALID_URL;
 		};
-		(method_from_index(request.method), url, request.headers.clone(), request.body.clone().unwrap_or_default(), request.timeout)
+		(
+			method_from_index(request.method),
+			url,
+			request.headers.clone(),
+			request.body.clone().unwrap_or_default(),
+			request.timeout,
+		)
 	};
-	let response = caller.data().host.net_request(method, url, headers, body, timeout);
+	// A host that broke the FFI contract has no response to report; the
+	// module's own "the request failed" code is the honest report.
+	let Ok(response) = caller
+		.data()
+		.host
+		.net_request(method, url, headers, body, timeout)
+	else {
+		return REQUEST_ERROR;
+	};
 	if !response.ok {
 		return REQUEST_ERROR;
 	}
@@ -263,9 +284,7 @@ fn get_header(mut caller: Caller<'_, RunnerData>, rid: i32, key_ptr: u32, key_le
 		response.headers.get(&key).cloned()
 	};
 	match value {
-		Some(value) if !value.is_empty() => {
-			caller.data_mut().store.store_raw(value.into_bytes())
-		}
+		Some(value) if !value.is_empty() => caller.data_mut().store.store_raw(value.into_bytes()),
 		_ => MISSING_DATA,
 	}
 }
@@ -285,7 +304,9 @@ fn html(mut caller: Caller<'_, RunnerData>, rid: i32) -> i32 {
 		let base_url = response.url.clone();
 		(text, base_url)
 	};
-	let handle = caller.data().host.html_parse(text, base_url);
+	let Ok(handle) = caller.data().host.html_parse(text, base_url) else {
+		return INVALID_HTML;
+	};
 	if handle <= 0 {
 		return INVALID_HTML;
 	}

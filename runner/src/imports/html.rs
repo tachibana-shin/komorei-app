@@ -8,6 +8,7 @@
 
 use wasmi::{Caller, Linker};
 
+use crate::error::RunnerError;
 use crate::state::{GlobalStore, RunnerData, StoreItem};
 use crate::{abi, host::KomoreiHost};
 
@@ -19,14 +20,20 @@ const NO_RESULT: i32 = -5;
 
 pub fn register(linker: &mut Linker<RunnerData>) {
 	linker.func_wrap("html", "parse", parse).unwrap();
-	linker.func_wrap("html", "parse_fragment", parse_fragment).unwrap();
+	linker
+		.func_wrap("html", "parse_fragment", parse_fragment)
+		.unwrap();
 	linker.func_wrap("html", "escape", escape).unwrap();
 	linker.func_wrap("html", "unescape", unescape).unwrap();
 	linker.func_wrap("html", "kind", kind).unwrap();
-	linker.func_wrap("html", "child_nodes", child_nodes).unwrap();
+	linker
+		.func_wrap("html", "child_nodes", child_nodes)
+		.unwrap();
 	linker.func_wrap("html", "has_attr", has_attr).unwrap();
 	linker.func_wrap("html", "set_attr", set_attr).unwrap();
-	linker.func_wrap("html", "remove_attr", remove_attr).unwrap();
+	linker
+		.func_wrap("html", "remove_attr", remove_attr)
+		.unwrap();
 	linker.func_wrap("html", "set_text", set_text).unwrap();
 	linker.func_wrap("html", "set_html", set_html).unwrap();
 	linker.func_wrap("html", "prepend", prepend).unwrap();
@@ -40,7 +47,9 @@ pub fn register(linker: &mut Linker<RunnerData>) {
 	linker.func_wrap("html", "class_name", class_name).unwrap();
 	linker.func_wrap("html", "has_class", has_class).unwrap();
 	linker.func_wrap("html", "add_class", add_class).unwrap();
-	linker.func_wrap("html", "remove_class", remove_class).unwrap();
+	linker
+		.func_wrap("html", "remove_class", remove_class)
+		.unwrap();
 	linker.func_wrap("html", "first", first).unwrap();
 	linker.func_wrap("html", "last", last).unwrap();
 	linker.func_wrap("html", "get", html_get).unwrap();
@@ -53,13 +62,29 @@ pub fn register(linker: &mut Linker<RunnerData>) {
 	linker.func_wrap("html", "outer_html", outer_html).unwrap();
 	linker.func_wrap("html", "remove", remove).unwrap();
 	linker.func_wrap("html", "select", select).unwrap();
-	linker.func_wrap("html", "select_first", select_first).unwrap();
+	linker
+		.func_wrap("html", "select_first", select_first)
+		.unwrap();
 	linker.func_wrap("html", "text", text).unwrap();
-	linker.func_wrap("html", "untrimmed_text", untrimmed_text).unwrap();
+	linker
+		.func_wrap("html", "untrimmed_text", untrimmed_text)
+		.unwrap();
 	linker.func_wrap("html", "html", html).unwrap();
 }
 
 // -- helpers ---------------------------------------------------------------
+
+/// Folds a failed host call into the same "nothing to report" branch the
+/// `None` arm already handles.
+///
+/// A `KomoreiHost` that breaks the FFI contract surfaces here as
+/// `Err(RunnerError::HostCallback)` instead of panicking inside uniffi and
+/// aborting the process (see the note on `KomoreiHost` in host.rs). The wasm
+/// ABI has no code for "the host itself is broken", so the call degrades to
+/// whatever the source already handles as "no value".
+fn host_opt<T>(result: Result<Option<T>, RunnerError>) -> Option<T> {
+	result.unwrap_or(None)
+}
 
 fn handle(store: &GlobalStore, rid: i32) -> Option<i64> {
 	match store.get(rid) {
@@ -80,26 +105,50 @@ fn store_handle(store: &mut GlobalStore, value: i64) -> i32 {
 
 // -- parse / text transforms -----------------------------------------------
 
-fn parse(mut caller: Caller<'_, RunnerData>, html_ptr: u32, html_len: u32, base_ptr: u32, base_len: u32) -> i32 {
+fn parse(
+	mut caller: Caller<'_, RunnerData>,
+	html_ptr: u32,
+	html_len: u32,
+	base_ptr: u32,
+	base_len: u32,
+) -> i32 {
 	let html = abi::read_string(&caller, html_ptr, html_len);
-	let base_url = if base_len > 0 { abi::read_string(&caller, base_ptr, base_len) } else { Some(String::new()) };
+	let base_url = if base_len > 0 {
+		abi::read_string(&caller, base_ptr, base_len)
+	} else {
+		Some(String::new())
+	};
 	let (Some(html), Some(base_url)) = (html, base_url) else {
 		return INVALID_STRING;
 	};
-	let handle = caller.data().host.html_parse(html, base_url);
+	let Ok(handle) = caller.data().host.html_parse(html, base_url) else {
+		return INVALID_HTML;
+	};
 	if handle <= 0 {
 		return INVALID_HTML;
 	}
 	caller.data_mut().store.store(StoreItem::Html(handle))
 }
 
-fn parse_fragment(mut caller: Caller<'_, RunnerData>, html_ptr: u32, html_len: u32, base_ptr: u32, base_len: u32) -> i32 {
+fn parse_fragment(
+	mut caller: Caller<'_, RunnerData>,
+	html_ptr: u32,
+	html_len: u32,
+	base_ptr: u32,
+	base_len: u32,
+) -> i32 {
 	let html = abi::read_string(&caller, html_ptr, html_len);
-	let base_url = if base_len > 0 { abi::read_string(&caller, base_ptr, base_len) } else { Some(String::new()) };
+	let base_url = if base_len > 0 {
+		abi::read_string(&caller, base_ptr, base_len)
+	} else {
+		Some(String::new())
+	};
 	let (Some(html), Some(base_url)) = (html, base_url) else {
 		return INVALID_STRING;
 	};
-	let handle = caller.data().host.html_parse_fragment(html, base_url);
+	let Ok(handle) = caller.data().host.html_parse_fragment(html, base_url) else {
+		return INVALID_HTML;
+	};
 	if handle <= 0 {
 		return INVALID_HTML;
 	}
@@ -110,7 +159,7 @@ fn escape(mut caller: Caller<'_, RunnerData>, text_ptr: u32, text_len: u32) -> i
 	let Some(text) = abi::read_string(&caller, text_ptr, text_len) else {
 		return INVALID_STRING;
 	};
-	match caller.data().host.html_escape(text) {
+	match host_opt(caller.data().host.html_escape(text)) {
 		Some(escaped) => store_string(&mut caller.data_mut().store, escaped),
 		None => INVALID_STRING,
 	}
@@ -120,7 +169,7 @@ fn unescape(mut caller: Caller<'_, RunnerData>, text_ptr: u32, text_len: u32) ->
 	let Some(text) = abi::read_string(&caller, text_ptr, text_len) else {
 		return INVALID_STRING;
 	};
-	match caller.data().host.html_unescape(text) {
+	match host_opt(caller.data().host.html_unescape(text)) {
 		Some(unescaped) => store_string(&mut caller.data_mut().store, unescaped),
 		None => INVALID_STRING,
 	}
@@ -132,14 +181,18 @@ fn kind(caller: Caller<'_, RunnerData>, rid: i32) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
-	caller.data().host.html_kind(handle)
+	caller
+		.data()
+		.host
+		.html_kind(handle)
+		.unwrap_or(INVALID_DESCRIPTOR)
 }
 
 fn child_nodes(mut caller: Caller<'_, RunnerData>, rid: i32) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
-	match caller.data().host.html_child_nodes(handle) {
+	match host_opt(caller.data().host.html_child_nodes(handle)) {
 		Some(child) => store_handle(&mut caller.data_mut().store, child),
 		None => NO_RESULT,
 	}
@@ -154,10 +207,23 @@ fn has_attr(caller: Caller<'_, RunnerData>, rid: i32, attr_ptr: u32, attr_len: u
 	let Some(key) = abi::read_string(&caller, attr_ptr, attr_len) else {
 		return 0;
 	};
-	i32::from(caller.data().host.html_has_attr(handle, key))
+	i32::from(
+		caller
+			.data()
+			.host
+			.html_has_attr(handle, key)
+			.unwrap_or(false),
+	)
 }
 
-fn set_attr(caller: Caller<'_, RunnerData>, rid: i32, key_ptr: u32, key_len: u32, value_ptr: u32, value_len: u32) -> i32 {
+fn set_attr(
+	caller: Caller<'_, RunnerData>,
+	rid: i32,
+	key_ptr: u32,
+	key_len: u32,
+	value_ptr: u32,
+	value_len: u32,
+) -> i32 {
 	let (Some(handle), Some(key), Some(value)) = (
 		handle(&caller.data().store, rid),
 		abi::read_string(&caller, key_ptr, key_len),
@@ -165,7 +231,12 @@ fn set_attr(caller: Caller<'_, RunnerData>, rid: i32, key_ptr: u32, key_len: u32
 	) else {
 		return INVALID_DESCRIPTOR;
 	};
-	if caller.data().host.html_set_attr(handle, key, value) {
+	if caller
+		.data()
+		.host
+		.html_set_attr(handle, key, value)
+		.unwrap_or(false)
+	{
 		0
 	} else {
 		INVALID_DESCRIPTOR
@@ -179,7 +250,12 @@ fn remove_attr(caller: Caller<'_, RunnerData>, rid: i32, attr_ptr: u32, attr_len
 	) else {
 		return INVALID_DESCRIPTOR;
 	};
-	if caller.data().host.html_remove_attr(handle, key) {
+	if caller
+		.data()
+		.host
+		.html_remove_attr(handle, key)
+		.unwrap_or(false)
+	{
 		0
 	} else {
 		INVALID_DESCRIPTOR
@@ -193,7 +269,12 @@ fn add_class(caller: Caller<'_, RunnerData>, rid: i32, class_ptr: u32, class_len
 	) else {
 		return INVALID_DESCRIPTOR;
 	};
-	if caller.data().host.html_add_class(handle, class) {
+	if caller
+		.data()
+		.host
+		.html_add_class(handle, class)
+		.unwrap_or(false)
+	{
 		0
 	} else {
 		INVALID_DESCRIPTOR
@@ -207,7 +288,12 @@ fn remove_class(caller: Caller<'_, RunnerData>, rid: i32, class_ptr: u32, class_
 	) else {
 		return INVALID_DESCRIPTOR;
 	};
-	if caller.data().host.html_remove_class(handle, class) {
+	if caller
+		.data()
+		.host
+		.html_remove_class(handle, class)
+		.unwrap_or(false)
+	{
 		0
 	} else {
 		INVALID_DESCRIPTOR
@@ -221,7 +307,13 @@ fn has_class(caller: Caller<'_, RunnerData>, rid: i32, class_ptr: u32, class_len
 	let Some(class) = abi::read_string(&caller, class_ptr, class_len) else {
 		return 0;
 	};
-	i32::from(caller.data().host.html_has_class(handle, class))
+	i32::from(
+		caller
+			.data()
+			.host
+			.html_has_class(handle, class)
+			.unwrap_or(false),
+	)
 }
 
 // -- text / html -----------------------------------------------------------
@@ -266,11 +358,15 @@ fn data(caller: Caller<'_, RunnerData>, rid: i32) -> i32 {
 	string_rid(caller, rid, |host, h| host.html_data(h))
 }
 
-fn string_rid(mut caller: Caller<'_, RunnerData>, rid: i32, f: impl Fn(&dyn KomoreiHost, i64) -> Option<String>) -> i32 {
+fn string_rid(
+	mut caller: Caller<'_, RunnerData>,
+	rid: i32,
+	f: impl Fn(&dyn KomoreiHost, i64) -> Result<Option<String>, RunnerError>,
+) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
-	match f(caller.data().host.as_ref(), handle) {
+	match host_opt(f(caller.data().host.as_ref(), handle)) {
 		Some(value) => store_string(&mut caller.data_mut().store, value),
 		None => NO_RESULT,
 	}
@@ -283,7 +379,12 @@ fn set_text(caller: Caller<'_, RunnerData>, rid: i32, text_ptr: u32, text_len: u
 	) else {
 		return INVALID_DESCRIPTOR;
 	};
-	if caller.data().host.html_set_text(handle, text) {
+	if caller
+		.data()
+		.host
+		.html_set_text(handle, text)
+		.unwrap_or(false)
+	{
 		0
 	} else {
 		INVALID_DESCRIPTOR
@@ -297,7 +398,12 @@ fn set_html(caller: Caller<'_, RunnerData>, rid: i32, html_ptr: u32, html_len: u
 	) else {
 		return INVALID_DESCRIPTOR;
 	};
-	if caller.data().host.html_set_html(handle, html_value) {
+	if caller
+		.data()
+		.host
+		.html_set_html(handle, html_value)
+		.unwrap_or(false)
+	{
 		0
 	} else {
 		INVALID_DESCRIPTOR
@@ -311,7 +417,12 @@ fn prepend(caller: Caller<'_, RunnerData>, rid: i32, html_ptr: u32, html_len: u3
 	) else {
 		return INVALID_DESCRIPTOR;
 	};
-	if caller.data().host.html_prepend(handle, html_value) {
+	if caller
+		.data()
+		.host
+		.html_prepend(handle, html_value)
+		.unwrap_or(false)
+	{
 		0
 	} else {
 		INVALID_DESCRIPTOR
@@ -325,7 +436,12 @@ fn append(caller: Caller<'_, RunnerData>, rid: i32, html_ptr: u32, html_len: u32
 	) else {
 		return INVALID_DESCRIPTOR;
 	};
-	if caller.data().host.html_append(handle, html_value) {
+	if caller
+		.data()
+		.host
+		.html_append(handle, html_value)
+		.unwrap_or(false)
+	{
 		0
 	} else {
 		INVALID_DESCRIPTOR
@@ -336,7 +452,7 @@ fn remove(caller: Caller<'_, RunnerData>, rid: i32) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
-	if caller.data().host.html_remove(handle) {
+	if caller.data().host.html_remove(handle).unwrap_or(false) {
 		0
 	} else {
 		INVALID_DESCRIPTOR
@@ -352,20 +468,25 @@ fn select(mut caller: Caller<'_, RunnerData>, rid: i32, query_ptr: u32, query_le
 	let Some(query) = abi::read_string(&caller, query_ptr, query_len) else {
 		return INVALID_STRING;
 	};
-	match caller.data().host.html_select(handle, query) {
+	match host_opt(caller.data().host.html_select(handle, query)) {
 		Some(list) => store_handle(&mut caller.data_mut().store, list),
 		None => INVALID_QUERY,
 	}
 }
 
-fn select_first(mut caller: Caller<'_, RunnerData>, rid: i32, query_ptr: u32, query_len: u32) -> i32 {
+fn select_first(
+	mut caller: Caller<'_, RunnerData>,
+	rid: i32,
+	query_ptr: u32,
+	query_len: u32,
+) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
 	let Some(query) = abi::read_string(&caller, query_ptr, query_len) else {
 		return INVALID_STRING;
 	};
-	match caller.data().host.html_select_first(handle, query) {
+	match host_opt(caller.data().host.html_select_first(handle, query)) {
 		Some(element) => store_handle(&mut caller.data_mut().store, element),
 		None => NO_RESULT,
 	}
@@ -375,7 +496,7 @@ fn first(mut caller: Caller<'_, RunnerData>, rid: i32) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
-	match caller.data().host.html_first(handle) {
+	match host_opt(caller.data().host.html_first(handle)) {
 		Some(element) => store_handle(&mut caller.data_mut().store, element),
 		None => INVALID_DESCRIPTOR,
 	}
@@ -385,7 +506,7 @@ fn last(mut caller: Caller<'_, RunnerData>, rid: i32) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
-	match caller.data().host.html_last(handle) {
+	match host_opt(caller.data().host.html_last(handle)) {
 		Some(element) => store_handle(&mut caller.data_mut().store, element),
 		None => INVALID_DESCRIPTOR,
 	}
@@ -395,7 +516,7 @@ fn html_get(mut caller: Caller<'_, RunnerData>, rid: i32, index: i32) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
-	match caller.data().host.html_get(handle, index as i64) {
+	match host_opt(caller.data().host.html_get(handle, index as i64)) {
 		Some(element) => store_handle(&mut caller.data_mut().store, element),
 		None => INVALID_DESCRIPTOR,
 	}
@@ -405,14 +526,18 @@ fn size(caller: Caller<'_, RunnerData>, rid: i32) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
-	caller.data().host.html_size(handle)
+	caller
+		.data()
+		.host
+		.html_size(handle)
+		.unwrap_or(INVALID_DESCRIPTOR)
 }
 
 fn parent(mut caller: Caller<'_, RunnerData>, rid: i32) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
-	match caller.data().host.html_parent(handle) {
+	match host_opt(caller.data().host.html_parent(handle)) {
 		Some(element) => store_handle(&mut caller.data_mut().store, element),
 		None => NO_RESULT,
 	}
@@ -422,7 +547,7 @@ fn siblings(mut caller: Caller<'_, RunnerData>, rid: i32) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
-	match caller.data().host.html_siblings(handle) {
+	match host_opt(caller.data().host.html_siblings(handle)) {
 		Some(list) => store_handle(&mut caller.data_mut().store, list),
 		None => NO_RESULT,
 	}
@@ -432,7 +557,7 @@ fn next(mut caller: Caller<'_, RunnerData>, rid: i32) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
-	match caller.data().host.html_next(handle) {
+	match host_opt(caller.data().host.html_next(handle)) {
 		Some(element) => store_handle(&mut caller.data_mut().store, element),
 		None => NO_RESULT,
 	}
@@ -442,7 +567,7 @@ fn previous(mut caller: Caller<'_, RunnerData>, rid: i32) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
-	match caller.data().host.html_previous(handle) {
+	match host_opt(caller.data().host.html_previous(handle)) {
 		Some(element) => store_handle(&mut caller.data_mut().store, element),
 		None => NO_RESULT,
 	}
@@ -452,7 +577,7 @@ fn children(mut caller: Caller<'_, RunnerData>, rid: i32) -> i32 {
 	let Some(handle) = handle(&caller.data().store, rid) else {
 		return INVALID_DESCRIPTOR;
 	};
-	match caller.data().host.html_children(handle) {
+	match host_opt(caller.data().host.html_children(handle)) {
 		Some(list) => store_handle(&mut caller.data_mut().store, list),
 		None => NO_RESULT,
 	}
@@ -465,7 +590,7 @@ fn attr(mut caller: Caller<'_, RunnerData>, rid: i32, key_ptr: u32, key_len: u32
 	let Some(key) = abi::read_string(&caller, key_ptr, key_len) else {
 		return INVALID_STRING;
 	};
-	match caller.data().host.html_attr(handle, key) {
+	match host_opt(caller.data().host.html_attr(handle, key)) {
 		Some(value) => store_string(&mut caller.data_mut().store, value),
 		None => NO_RESULT,
 	}

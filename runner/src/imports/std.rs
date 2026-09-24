@@ -2,14 +2,16 @@
 
 use wasmi::{Caller, Linker};
 
-use crate::state::{RunnerData, StoreItem};
 use crate::abi;
+use crate::state::{RunnerData, StoreItem};
 
 pub fn register(linker: &mut Linker<RunnerData>) {
 	linker.func_wrap("std", "destroy", destroy).unwrap();
 	linker.func_wrap("std", "buffer_len", buffer_len).unwrap();
 	linker.func_wrap("std", "read_buffer", read_buffer).unwrap();
-	linker.func_wrap("std", "current_date", current_date).unwrap();
+	linker
+		.func_wrap("std", "current_date", current_date)
+		.unwrap();
 	linker.func_wrap("std", "utc_offset", utc_offset).unwrap();
 	linker.func_wrap("std", "parse_date", parse_date).unwrap();
 }
@@ -30,8 +32,14 @@ fn destroy(mut caller: Caller<'_, RunnerData>, rid: i32) {
 	};
 	caller.data_mut().store.remove(rid);
 	match to_destroy {
-		Some(DestroyTarget::Html(handle)) => caller.data().host.html_destroy(handle),
-		Some(DestroyTarget::JsValue(handle)) => caller.data().host.js_value_release(handle),
+		// Releasing a host reference is best-effort — the descriptor is already
+		// gone from the store, so a failed callback must not propagate.
+		Some(DestroyTarget::Html(handle)) => {
+			let _ = caller.data().host.html_destroy(handle);
+		}
+		Some(DestroyTarget::JsValue(handle)) => {
+			let _ = caller.data().host.js_value_release(handle);
+		}
 		None => {}
 	}
 }
@@ -62,12 +70,14 @@ fn read_buffer(mut caller: Caller<'_, RunnerData>, rid: i32, ptr: u32, size: u32
 
 /// Current unix timestamp as seconds (f64).
 fn current_date(caller: Caller<'_, RunnerData>) -> f64 {
-	caller.data().host.current_date()
+	// The wasm ABI has a single f64 out-param and no error code here; a host
+	// that cannot answer reports 0 (the unix epoch) rather than panicking.
+	caller.data().host.current_date().unwrap_or(0.0)
 }
 
 /// UTC offset in seconds (west negative).
 fn utc_offset(caller: Caller<'_, RunnerData>) -> i64 {
-	caller.data().host.utc_offset()
+	caller.data().host.utc_offset().unwrap_or(0)
 }
 
 fn parse_date(
@@ -86,14 +96,21 @@ fn parse_date(
 	let (Some(date), Some(format)) = (date, format) else {
 		return -4.0; // InvalidString
 	};
-	let locale = if locale_len > 0 { abi::read_string(&caller, locale_ptr, locale_len) } else { None };
+	let locale = if locale_len > 0 {
+		abi::read_string(&caller, locale_ptr, locale_len)
+	} else {
+		None
+	};
 	let timezone = if timezone_len > 0 {
 		abi::read_string(&caller, timezone_ptr, timezone_len)
 	} else {
 		None
 	};
+	// -1.0 is the module's "parse failed" signal; reuse it when the host itself
+	// cannot answer (the ABI has no dedicated code for that).
 	caller
 		.data()
 		.host
 		.parse_date(date, format, locale, timezone)
+		.unwrap_or(-1.0)
 }

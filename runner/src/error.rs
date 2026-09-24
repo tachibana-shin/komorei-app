@@ -22,6 +22,14 @@ pub enum RunnerError {
 	/// (negative; -1 with a message payload carries the source message).
 	#[error("source error ({code}): {message}")]
 	Source { code: i32, message: String },
+	/// A `KomoreiHost` callback broke the FFI contract — uniffi cannot lift the
+	/// value the foreign side handed back (observed as a zero-length
+	/// out-buffer). Because the trait declares `Result` everywhere, uniffi
+	/// converts this into an error instead of panicking under the
+	/// `extern "C"` callback frame, so the import reports its normal failure
+	/// code and the host process survives.
+	#[error("host callback failed: {0}")]
+	HostCallback(String),
 }
 
 impl RunnerError {
@@ -49,5 +57,15 @@ impl From<wasmi::Error> for RunnerError {
 impl From<wasmi::errors::LinkerError> for RunnerError {
 	fn from(e: wasmi::errors::LinkerError) -> Self {
 		Self::Wasm(e.to_string())
+	}
+}
+
+/// uniffi calls this instead of panicking when a foreign (Kotlin) host method
+/// hands back a value it cannot lift — the only thing standing between a
+/// misbehaving callback and an aborted host process. See the note on
+/// `KomoreiHost` for why the trait declares `Result` everywhere.
+impl From<uniffi::UnexpectedUniFFICallbackError> for RunnerError {
+	fn from(e: uniffi::UnexpectedUniFFICallbackError) -> Self {
+		Self::HostCallback(e.reason)
 	}
 }

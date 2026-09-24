@@ -8,18 +8,22 @@ pub fn register(linker: &mut Linker<RunnerData>) {
 	linker.func_wrap("env", "abort", abort).unwrap();
 	linker.func_wrap("env", "print", print).unwrap();
 	linker.func_wrap("env", "sleep", sleep).unwrap();
-	linker.func_wrap("env", "send_partial_result", send_partial_result).unwrap();
+	linker
+		.func_wrap("env", "send_partial_result", send_partial_result)
+		.unwrap();
 }
 
 /// Called when the source panics / aborts.
 fn abort(caller: Caller<'_, RunnerData>) {
-	caller.data().host.log_abort();
+	// Logging is best-effort: a host that cannot take the message must not
+	// turn an abort into a second failure.
+	let _ = caller.data().host.log_abort();
 }
 
 /// `println!` from the source.
 fn print(caller: Caller<'_, RunnerData>, ptr: u32, len: u32) {
 	let message = abi::read_string(&caller, ptr, len).unwrap_or_default();
-	caller.data().host.log_print(message);
+	let _ = caller.data().host.log_print(message);
 }
 
 fn sleep(_caller: Caller<'_, RunnerData>, seconds: i32) {
