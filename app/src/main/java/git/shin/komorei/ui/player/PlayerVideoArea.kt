@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.*
@@ -27,6 +28,8 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -138,6 +141,11 @@ fun PlayerVideoArea(
 
         var showControls by remember { mutableStateOf(true) }
         var interactionCounter by remember { mutableStateOf(0) }
+        // Measured height of the bottom controls footer (px), so the skip pill can
+        // float just above it instead of using a fixed offset tuned for fullscreen —
+        // on the short 16:9 sheet box that offset put the pill mid-video.
+        var footerHeightPx by remember { mutableIntStateOf(0) }
+        val density = LocalDensity.current
         var pointerDown by remember { mutableStateOf(false) }
         var seekHud by remember { mutableStateOf<SeekHud?>(null) }
         var fastForwarding by remember { mutableStateOf(false) }
@@ -708,13 +716,28 @@ fun PlayerVideoArea(
                         onOpenEpisodes = onOpenEpisodes,
                         onOpenServers = onOpenServers,
                         onOpenSettings = onOpenSettings,
-                        onInteraction = { interactionCounter++ }
+                        onInteraction = { interactionCounter++ },
+                        modifier = Modifier.fillMaxWidth().onSizeChanged { footerHeightPx = it.height }
                     )
                 }
 
                 // Skip intro/outro pill (SponsorBlock-style) — shown whenever the
                 // playhead is inside a range, even when the controls are hidden.
+                // It floats just above the bottom controls when those are visible,
+                // and hugs the bottom edge when they're not: the old fixed offset
+                // (104dp) was tuned for fullscreen and landed the pill mid-video on
+                // the short 16:9 sheet box (the "50% y" bug). bottom is measured
+                // from the real footer height so it adapts to any box size.
                 if (skipHint != null) {
+                    val pillBottom by animateDpAsState(
+                        targetValue = when {
+                            showControls && footerHeightPx > 0 ->
+                                with(density) { footerHeightPx.toDp() } + 12.dp
+                            showControls -> if (isFullscreen) 132.dp else 104.dp
+                            else -> 16.dp
+                        },
+                        label = "skipPillBottom"
+                    )
                     SkipSegmentPill(
                         kind = skipHint.kind,
                         onClick = onSkip,
@@ -722,7 +745,7 @@ fun PlayerVideoArea(
                             .align(Alignment.BottomEnd)
                             .padding(
                                 end = 16.dp,
-                                bottom = if (isFullscreen) 132.dp else 104.dp
+                                bottom = pillBottom
                             )
                     )
                 }

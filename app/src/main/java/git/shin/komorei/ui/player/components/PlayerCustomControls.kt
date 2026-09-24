@@ -5,8 +5,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -361,36 +362,34 @@ fun SkipSegmentPill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        onClick = onClick,
-        color = SurfaceDark.copy(alpha = 0.92f),
-        shape = RoundedCornerShape(50),
-        border = BorderStroke(1.dp, CardBorderDark),
+    Row(
         modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(SurfaceDark.copy(alpha = 0.92f))
+            .border(BorderStroke(1.dp, CardBorderDark), RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.SkipNext,
-                contentDescription = null,
-                tint = TextPrimary,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(
-                    when (kind) {
-                        SkipKind.INTRO -> R.string.player_skip_intro
-                        SkipKind.OUTRO -> R.string.player_skip_outro
-                    }
-                ),
-                color = TextPrimary,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
+        Icon(
+            imageVector = Icons.Default.SkipNext,
+            contentDescription = null,
+            tint = TextPrimary,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = stringResource(
+                when (kind) {
+                    SkipKind.INTRO -> R.string.player_skip_intro
+                    SkipKind.OUTRO -> R.string.player_skip_outro
+                }
+            ),
+            color = TextPrimary,
+            fontSize = 12.sp,
+            lineHeight = 14.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
