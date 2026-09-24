@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
 import git.shin.komorei.data.ExternalSourceInfo
+import git.shin.komorei.data.compareVersions
 import git.shin.komorei.ui.components.ExternalSourceIcon
 import git.shin.komorei.ui.components.ShimmerLoadingRow
 import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
@@ -81,12 +82,16 @@ import java.util.Locale
 
 /**
  * The "Thêm nguồn" bottom sheet — a port of Aidoku's `AddSourceView` UX:
- *  - a big **import .aix/.krx** action (SAF file picker), Aidoku's IMPORT_SOURCE;
+ *  - an **import .krx** header icon (SAF file picker), Aidoku's IMPORT_SOURCE
+ *    folded into the top bar (no big button);
  *  - a searchable **flat list of every external source merged across all repos**
  *    (Aidoku's `allExternalSources` — duplicate ids are deduped to the newest
  *    advertised version by [buildExternalCatalog]) with one-tap Get buttons;
  *  - **installed sources stay visible** in the list (marked "Đã cài") — unlike
  *    `AddSourceView.filterExternalSources` they are never hidden once on-device;
+ *  - installed sources with a **newer advertised version are pulled up into a
+ *    separate "Cập nhật" section** with an Update pill (same semantics as the
+ *    Sources tab's Updates section);
  *  - a **language filter** button in the header (Aidoku's `AddSourceFilterMenu`)
  *    that narrows the list to sources carrying any selected language tag;
  *  - explicit empty states (no repos / repo down / no matches);
@@ -105,6 +110,8 @@ fun AddSourceSheet(
     val installingIds by viewModel.installingIds.collectAsState()
     val sources by viewModel.sources.collectAsState()
     val installedIds = remember(sources) { sources.map { it.source.id }.toSet() }
+    // Installed version per id — drives the sheet's "Cập nhật" section.
+    val installedVersions = remember(sources) { sources.associate { it.source.id to it.source.version } }
 
     var query by remember { mutableStateOf("") }
     var showAddRepoDialog by remember { mutableStateOf(false) }
@@ -153,6 +160,11 @@ fun AddSourceSheet(
                 info.name.lowercase().contains(queryLower) || info.id.lowercase().contains(queryLower)
             }
         }
+    }
+    // Installed rows whose advertised version is newer are pulled up into their
+    // own "Cập nhật" section (Update pill) above the regular catalog.
+    val (updateSources, otherSources) = remember(visibleSources, installedVersions) {
+        partitionUpdates(visibleSources, installedVersions)
     }
 
     // The sheet grows with its content up to ~92% of the screen height (an
@@ -309,15 +321,13 @@ fun AddSourceSheet(
                 modifier = Modifier.weight(1f, fill = false),
                 contentPadding = PaddingValues(bottom = navBarBottom + 24.dp),
             ) {
-                if (catalog.hasRepos) {
+                if (catalog.hasRepos && catalog.sources.isEmpty()) {
+                    // Pre-load states (loading / failed / no sources advertised)
+                    // keep the section label pinned; once sources land, the
+                    // label is emitted by the rows branch so the "Cập nhật"
+                    // section can sit above it.
                     item(key = "section_external") {
-                        Text(
-                            text = stringResource(R.string.sources_external_section),
-                            color = TextSecondary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                        )
+                        SheetSectionLabel(stringResource(R.string.sources_external_section))
                     }
                 }
 
@@ -391,13 +401,38 @@ fun AddSourceSheet(
                                 EmptyMessage(text = stringResource(R.string.sources_external_no_results))
                             }
                         } else {
-                            items(visibleSources, key = { it.id }) { info ->
-                                ExternalSourceRow(
-                                    info = info,
-                                    installing = info.id in installingIds,
-                                    installed = info.id in installedIds,
-                                    onGet = { viewModel.installExternal(info) },
-                                )
+                            // Sources with a newer advertised version — pulled
+                            // up into their own section with an Update pill.
+                            if (updateSources.isNotEmpty()) {
+                                item(key = "section_updates") {
+                                    SheetSectionLabel(stringResource(R.string.sources_section_updates))
+                                }
+                                items(updateSources, key = { it.id }) { info ->
+                                    ExternalSourceRow(
+                                        info = info,
+                                        installing = info.id in installingIds,
+                                        installed = true,
+                                        hasUpdate = true,
+                                        onGet = { viewModel.installExternal(info) },
+                                        onUpdate = { viewModel.installExternal(info) },
+                                    )
+                                }
+                            }
+                            // Everything else — the regular catalog rows.
+                            if (otherSources.isNotEmpty()) {
+                                item(key = "section_external") {
+                                    SheetSectionLabel(stringResource(R.string.sources_external_section))
+                                }
+                                items(otherSources, key = { it.id }) { info ->
+                                    ExternalSourceRow(
+                                        info = info,
+                                        installing = info.id in installingIds,
+                                        installed = info.id in installedIds,
+                                        hasUpdate = false,
+                                        onGet = { viewModel.installExternal(info) },
+                                        onUpdate = {},
+                                    )
+                                }
                             }
                         }
                         // Remaining repos still resolving → inline skeleton.
@@ -564,6 +599,18 @@ private fun languageFilterLabel(code: String): String {
     return remember(code) { Locale.forLanguageTag(code).displayLanguage }.ifBlank { code }
 }
 
+/** Section header used inside the sheet's list ("Cập nhật", "Nguồn ngoài"). */
+@Composable
+private fun SheetSectionLabel(text: String) {
+    Text(
+        text = text,
+        color = TextSecondary,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(horizontal = 16.dp),
+    )
+}
+
 /** Muted inline message row used for search/no-results empty states. */
 @Composable
 private fun EmptyMessage(text: String) {
@@ -617,7 +664,9 @@ private fun ExternalSourceRow(
     info: ExternalSourceInfo,
     installing: Boolean,
     installed: Boolean,
+    hasUpdate: Boolean,
     onGet: () -> Unit,
+    onUpdate: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -637,8 +686,12 @@ private fun ExternalSourceRow(
                 iconUrl = info.iconUrl,
                 contentDescription = stringResource(R.string.sources_row_icon_cd),
                 fallbackTint = TextSecondary,
-                iconSize = 20.dp,
+                // Full-bleed artwork, like the Sources tab — the icon covers the
+                // whole 40dp box (object-fit: cover); the vector fallback stays
+                // a small centered glyph on the CardDark backdrop.
+                iconSize = 40.dp,
                 fallbackIconSize = 20.dp,
+                modifier = Modifier.clip(RoundedCornerShape(10.dp)),
             )
         }
         Spacer(modifier = Modifier.width(10.dp))
@@ -680,6 +733,16 @@ private fun ExternalSourceRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (info.repoName != null) {
+                Text(
+                    text = stringResource(R.string.sources_external_repo_label, info.repoName!!),
+                    color = TextMuted,
+                    fontSize = 10.sp,
+                    lineHeight = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         Spacer(modifier = Modifier.width(8.dp))
         when {
@@ -689,6 +752,26 @@ private fun ExternalSourceRow(
                     color = TextMuted,
                     fontSize = 12.sp,
                 )
+            }
+            hasUpdate -> {
+                // Newer advertised version — "Cập nhật" pill (same as the
+                // Sources tab's Updates section).
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(100))
+                        .background(AnimeRed)
+                        .clickable(onClick = onUpdate)
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                        .testTag("source_row_update_${info.id}"),
+                ) {
+                    Text(
+                        text = stringResource(R.string.sources_action_update),
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 14.sp,
+                    )
+                }
             }
             installed -> {
                 // Already on-device row — kept visible, marked instead of hidden.

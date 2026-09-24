@@ -38,7 +38,13 @@ fun buildExternalCatalog(
         for (info in state.sources) {
             val prev = byId[info.id]
             if (prev == null || compareVersions(info.version, prev.version) > 0) {
-                byId[info.id] = info
+                // Attribute the winning edition to THIS repo: it's the one whose
+                // manifest advertised the newest version, which is also the repo
+                // the install/update would actually pull from
+                // ([ExternalSourceInfo.repoName]). Restoring the name here is
+                // essential once multiple repos exist — otherwise users can't
+                // tell which repo each source belongs to.
+                byId[info.id] = info.copy(repoName = state.name)
             }
         }
     }
@@ -67,4 +73,25 @@ fun filterByLanguages(
     return sources.filter { info ->
         info.languages.any { it in selected } || (info.languages.isEmpty() && "multi" in selected)
     }
+}
+
+/**
+ * Partitions a catalog into (updates, current): sources whose id is installed
+ * and whose advertised [version] is newer than the on-device one (Aidoku's
+ * "Updates" semantics), vs everything else — not-installed rows always land in
+ * the second list. Order is preserved.
+ */
+fun partitionUpdates(
+    sources: List<ExternalSourceInfo>,
+    installedVersions: Map<String, String>,
+): Pair<List<ExternalSourceInfo>, List<ExternalSourceInfo>> {
+    val updateIds = sources
+        .asSequence()
+        .filter { info ->
+            val installed = installedVersions[info.id]
+            installed != null && compareVersions(info.version, installed) > 0
+        }
+        .map { it.id }
+        .toSet()
+    return sources.filter { it.id in updateIds } to sources.filter { it.id !in updateIds }
 }

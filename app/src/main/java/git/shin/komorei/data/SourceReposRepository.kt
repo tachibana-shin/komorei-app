@@ -12,6 +12,13 @@ import javax.inject.Singleton
 /**
  * A source edition advertised by an external repo (Aidoku `ExternalSourceInfo`).
  * [downloadURL] is the `.aix`/`.krx` package that can be installed directly.
+ *
+ * [repoName] is the DISPLAY NAME of the repo whose manifest advertised this
+ * edition (threaded through by the catalog builder; see
+ * `ExternalCatalog.buildExternalCatalog`). With multiple repos configured the
+ * add-source sheet uses it to answer "nguồn này thuộc kho nào" — the repo that
+ * advertised the version that won the cross-repo dedup (the same repo whose
+ * [downloadURL] the install would actually pull from).
  */
 data class ExternalSourceInfo(
     val id: String,
@@ -21,6 +28,7 @@ data class ExternalSourceInfo(
     val downloadURL: String? = null,
     val languages: List<String> = emptyList(),
     val contentRating: Int = 0,
+    val repoName: String? = null,
 )
 
 data class RepoSourceList(

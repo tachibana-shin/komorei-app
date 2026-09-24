@@ -213,6 +213,14 @@
     <string name="sources_filter_cd">Lọc ngôn ngữ</string>
     <string name="sources_filter_all_languages">Tất cả ngôn ngữ</string>
 
+    <!-- Sources: External / repo attribution (multiple repos → which repo each
+         source belongs to; user ask "cần 1 cách nào đó biết nguồn của kho nào").
+         Shown as a muted third line under a source row, e.g. "Kho: KKPhim".
+         The value is the DISPLAY NAME of the repo whose manifest advertised the
+         version that won the cross-repo dedup (what the install/update would
+         actually pull from). -->
+    <string name="sources_external_repo_label">Kho: %1$s</string>
+
     <!-- Sources: External / Install -->
     <string name="sources_external_get">Cài</string>
     <string name="sources_external_getting">Đang cài…</string>

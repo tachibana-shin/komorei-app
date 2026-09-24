@@ -4,6 +4,7 @@ import git.shin.komorei.data.ExternalSourceInfo
 import git.shin.komorei.ui.screens.sources.RepoSectionState
 import git.shin.komorei.ui.screens.sources.buildExternalCatalog
 import git.shin.komorei.ui.screens.sources.filterByLanguages
+import git.shin.komorei.ui.screens.sources.partitionUpdates
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -20,8 +21,18 @@ class ExternalCatalogTest {
     private val repoB = "https://b.example/repos"
     private val repoC = "https://c.example/repos"
 
-    private fun loaded(url: String, sources: List<ExternalSourceInfo>): Pair<String, RepoSectionState> =
-        url to RepoSectionState.Loaded(name = url, sources = sources)
+    /**
+     * A loaded repo section. [name] is what production threads as the row's
+     * display repo name ([RepoSectionState.Loaded].name ← manifest repo name);
+     * this helper defaults it to [url] so existing tests keep compiling, but
+     * attribution tests pass a real name to mirror the sheet ("Kho: KKPhim").
+     */
+    private fun loaded(
+        url: String,
+        sources: List<ExternalSourceInfo>,
+        name: String = url,
+    ): Pair<String, RepoSectionState> =
+        url to RepoSectionState.Loaded(name = name, sources = sources)
 
     private fun source(id: String, version: String, name: String = id, rating: Int = 0) =
         ExternalSourceInfo(id = id, name = name, version = version, contentRating = rating)
@@ -64,11 +75,15 @@ class ExternalCatalogTest {
             repos = listOf(repoA, repoB),
             states = mapOf(
                 loaded(repoA, listOf(source("vi.ophim", "1.0.0", name = "OPhim"), source("vi.kkphim", "3.1.0"))),
-                loaded(repoB, listOf(source("vi.ophim", "1.2.0", name = "OPhim"))),
+                loaded(repoB, listOf(source("vi.ophim", "1.2.0", name = "OPhim")), name = "Kho B"),
             ),
         )
         val merged = catalog.sources.single { it.id == "vi.ophim" }
         assertEquals("1.2.0", merged.version)
+        // The dedication: repoB's manifest advertised the 1.2.0 edition that
+        // won the cross-repo dedup, so the row MUST answer "nguồn này thuộc
+        // kho nào" — the repo the update/install would actually pull from.
+        assertEquals("Kho B", merged.repoName)
         assertTrue(catalog.sources.any { it.id == "vi.kkphim" })
     }
 
@@ -138,5 +153,45 @@ class ExternalCatalogTest {
         )
         assertEquals(listOf("a"), filterByLanguages(catalog, setOf("multi")).map { it.id })
         assertEquals(listOf("b"), filterByLanguages(catalog, setOf("vi")).map { it.id })
+    }
+
+    // ── partitionUpdates ───────────────────────────────────────────────────
+
+    private fun part(
+        sources: List<Pair<String, String>>,
+        installed: Map<String, String>,
+    ) = partitionUpdates(
+        sources = sources.map { (id, version) -> ExternalSourceInfo(id = id, name = id, version = version) },
+        installedVersions = installed,
+    )
+
+    @Test
+    fun `partition moves newer advertised versions into updates`() {
+        val (updates, current) = part(
+            listOf("a" to "1.2.0", "b" to "1.0.0", "c" to "0.9.0", "d" to "1.0.0"),
+            installed = mapOf("a" to "1.0.0", "b" to "1.0.0", "d" to "1.5.0"),
+        )
+        assertEquals(listOf("a"), updates.map { it.id })
+        assertEquals(listOf("b", "c", "d"), current.map { it.id })
+    }
+
+    @Test
+    fun `uninstalled sources never count as updates`() {
+        val (updates, current) = part(
+            listOf("fresh" to "9.0.0"),
+            installed = emptyMap(),
+        )
+        assertTrue(updates.isEmpty())
+        assertEquals(listOf("fresh"), current.map { it.id })
+    }
+
+    @Test
+    fun `updates preserve catalog order and only the update ids`() {
+        val (updates, current) = part(
+            listOf("z" to "2.0.0", "a" to "2.0.0", "m" to "1.0.0"),
+            installed = mapOf("z" to "1.0.0", "a" to "1.0.0", "m" to "1.0.0"),
+        )
+        assertEquals(listOf("z", "a"), updates.map { it.id })
+        assertEquals(listOf("m"), current.map { it.id })
     }
 }
