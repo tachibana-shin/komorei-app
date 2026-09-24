@@ -34,6 +34,11 @@ import java.io.File
  *
  * Uses a real [HomeViewModel] backed by the committed fake source.
  *
+ * NOTE: [HomeScreen] is the Home TAB CONTENT — the app-shell navigation bars
+ * (`tab_*` / `rail_tab_*`) live one level up in [git.shin.komorei.ui.screens.MainScreen],
+ * so they are covered by MainScreenTest / MainScreenRailTest. What Home owns is
+ * the source pager: its tab row and each source's own header actions.
+ *
  * All lookups use testTags (language-independent).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -75,7 +80,7 @@ class HomeScreenTest {
         )
 
     @Test
-    fun homeScreenRendersRailTabs() {
+    fun homeScreenRendersSourceTabRow() {
         val vm = newViewModel()
         composeTestRule.setContent {
             HomeScreen(
@@ -84,14 +89,8 @@ class HomeScreenTest {
                 onOpenSearch = {},
             )
         }
-        // Navigation rail tabs should be present
-        composeTestRule.onNodeWithTag("rail_tab_home")
-            .performClick()
-        composeTestRule.onNodeWithTag("rail_tab_search")
-            .performClick()
-        composeTestRule.onNodeWithTag("rail_tab_sources")
-            .performClick()
-        composeTestRule.onNodeWithTag("rail_tab_library")
+        // The pager's source tab bar is Home's own primary navigation.
+        composeTestRule.onNodeWithTag("source_tab_row")
             .performClick()
     }
 
@@ -110,26 +109,21 @@ class HomeScreenTest {
     }
 
     @Test
-    fun homeScreenSwitchingTabsDoesNotCrash() {
+    fun homeScreenNotificationsButtonOpensTheSubPage() {
         val vm = newViewModel()
+        var opened = false
         composeTestRule.setContent {
             HomeScreen(
                 onAnimeClick = {},
                 viewModel = vm,
                 onOpenSearch = {},
+                onOpenNotifications = { opened = true },
             )
         }
-        // Switch between tabs
-        composeTestRule.onNodeWithTag("rail_tab_home")
+        // Notifications is a sub-page off the Home header bell, not a tab.
+        composeTestRule.onNodeWithTag("home_notifications_button")
             .performClick()
-        composeTestRule.onNodeWithTag("rail_tab_search")
-            .performClick()
-        composeTestRule.onNodeWithTag("rail_tab_sources")
-            .performClick()
-        composeTestRule.onNodeWithTag("rail_tab_library")
-            .performClick()
-        composeTestRule.onNodeWithTag("rail_tab_home")
-            .performClick()
+        assert(opened) { "bell click should invoke onOpenNotifications" }
     }
 
     @Test
@@ -142,8 +136,12 @@ class HomeScreenTest {
                 onOpenSearch = {},
             )
         }
-        // The source page has a filter button (SourceSearchButton in SourceHomeContent)
-        composeTestRule.onNodeWithTag("rail_tab_home")
+        // The start page is the `all` AGGREGATOR, which hides the per-source
+        // actions — switch to the real source page first, where
+        // SourceHomeContent puts its search/filter entry (SourceSearchButton).
+        composeTestRule.onNodeWithTag("source_tab_vi.fake-source")
+            .performClick()
+        composeTestRule.onNodeWithTag("source_search_button")
             .performClick()
     }
 }

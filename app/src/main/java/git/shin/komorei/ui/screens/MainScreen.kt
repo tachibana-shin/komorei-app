@@ -45,6 +45,7 @@ import git.shin.komorei.ui.player.PlayerViewModel
 import git.shin.komorei.ui.player.PlayerSheetValue
 import git.shin.komorei.ui.player.VideoPlayerSheet
 import git.shin.komorei.ui.screens.home.HomeScreen
+import git.shin.komorei.ui.screens.home.HomeViewModel
 import git.shin.komorei.ui.screens.library.LibraryScreen
 import git.shin.komorei.ui.screens.listing.ListingScreen
 import git.shin.komorei.ui.screens.notifications.NotificationsScreen
@@ -61,6 +62,19 @@ import git.shin.komorei.ui.theme.BackgroundDark
 @Composable
 fun MainScreen(
     playerViewModel: PlayerViewModel = hiltViewModel(),
+    // Incoming deep links (MainActivity → DeepLinkManager): resolve the URL
+    // against the sources and open the target — anime/episode into the player
+    // sheet (Lite stubs upgraded inside), listings onto the listing route.
+    //
+    // A PARAMETER (not a local `hiltViewModel()`) so the whole screen stays
+    // constructible in a plain `createComposeRule()` test host, which is not a
+    // Hilt component holder — MainScreenTest injects a real one instead.
+    deepLinkViewModel: DeepLinkViewModel = hiltViewModel(),
+    // Same reasoning for the Home destination's ViewModel, which
+    // [MainNavigationHost] would otherwise resolve from Hilt while composing
+    // the start destination. The remaining routes are only composed once the
+    // user navigates to them and keep their own `hiltViewModel()` defaults.
+    homeViewModel: HomeViewModel = hiltViewModel(),
     navController: NavHostController = rememberNavController()
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -68,10 +82,6 @@ fun MainScreen(
 
     val playbackState by playerViewModel.playbackState.collectAsState()
 
-    // Incoming deep links (MainActivity → DeepLinkManager): resolve the URL
-    // against the sources and open the target — anime/episode into the player
-    // sheet (Lite stubs upgraded inside), listings onto the listing route.
-    val deepLinkViewModel: DeepLinkViewModel = hiltViewModel()
     val deepLinkAction by deepLinkViewModel.action.collectAsState()
     LaunchedEffect(deepLinkAction) {
         when (val action = deepLinkAction) {
@@ -145,6 +155,7 @@ fun MainScreen(
                             MainNavigationHost(
                                 navController = navController,
                                 onAnimeSelect = onAnimeSelected,
+                                homeViewModel = homeViewModel,
                                 onOpenSearch = { sourceId ->
                                     navController.navigate(Screen.SourceSearch.createRoute(sourceId))
                                 },
@@ -198,6 +209,7 @@ fun MainScreen(
                             MainNavigationHost(
                                 navController = navController,
                                 onAnimeSelect = onAnimeSelected,
+                                homeViewModel = homeViewModel,
                                 onOpenListing = { sourceId, listing ->
                                     navController.navigate(Screen.Listing.createRoute(sourceId, listing))
                                 },
@@ -249,6 +261,10 @@ fun MainScreen(
 fun MainNavigationHost(
     navController: NavHostController,
     onAnimeSelect: (Anime) -> Unit,
+    // Injected by MainScreen (default: Hilt). Present as a parameter so the
+    // start destination composes in non-Hilt test hosts; every other route
+    // resolves its own ViewModel on first navigation.
+    homeViewModel: HomeViewModel = hiltViewModel(),
     onOpenListing: (sourceId: String, listing: git.shin.komorei.model.Listing) -> Unit = { _, _ -> },
     onOpenSearch: (sourceId: String) -> Unit = {},
     onOpenSourceSearch: (sourceId: String, query: String) -> Unit = { _, _ -> },
@@ -262,6 +278,7 @@ fun MainNavigationHost(
         composable(Screen.Home.route) {
             HomeScreen(
                 onAnimeClick = onAnimeSelect,
+                viewModel = homeViewModel,
                 onOpenListing = onOpenListing,
                 onOpenSearch = onOpenSearch,
                 onOpenNotifications = { navController.navigate(Screen.Notifications.route) },

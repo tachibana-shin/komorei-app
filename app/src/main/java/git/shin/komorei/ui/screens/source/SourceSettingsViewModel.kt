@@ -74,13 +74,19 @@ class SourceSettingsViewModel @Inject constructor(
     }
 
     /** (Re)fetches the source's dynamic settings from the runner, plus the
-     *  current per-source language selection from the defaults store. */
+     *  current per-source language selection from the defaults store.
+     *
+     *  [UiState.selectedLanguages] is ONLY the committed `{sourceId}.languages`
+     *  override — never the manifest list. A manifest fallback here used to
+     *  make "nothing committed" and "all languages selected" indistinguishable,
+     *  which made a settings reset look like it silently re-applied a
+     *  selection (and broke the cross-source isolation contract in
+     *  SourceHomeScopedTest). The manifest list is the picker's OPTIONS and is
+     *  applied as a UI-level default in SourceSettingsScreen instead. */
     fun loadSettings() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = false) }
-            val languages = currentLanguages().ifEmpty {
-                repository.getSource(sourceId)?.languages.orEmpty()
-            }
+            val languages = currentLanguages()
             runCatching { repository.getSettings(sourceId) }
                 .onSuccess { settings ->
                     _uiState.update {

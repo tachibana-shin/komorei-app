@@ -83,8 +83,9 @@ class SourceSettingsViewModelTest {
 
     @Test
     fun sourceSettingsViewModelHasMessages() = runBlocking {
-        // Verify messages flow is accessible
-        viewModel.messages
+        // Verify messages flow is accessible (assert so the lambda's last
+        // expression is Unit — JUnit rejects a test method that returns a value).
+        assertNotNull(viewModel.messages)
     }
 
     @Test

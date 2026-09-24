@@ -158,10 +158,18 @@ fun SourceSettingsScreen(
                     // shows a "Language" section for any multi-language source; the
                     // selection is written to `{sourceId}.languages` so the source can
                     // read it back via defaults_get("languages")).
+                    //
+                    // With NOTHING committed yet, the source's manifest languages are
+                    // shown as the effective selection (Aidoku pre-checks them on first
+                    // open). The ViewModel keeps that list out of its state so an
+                    // explicit reset still reads as "no override" — the default here
+                    // is presentation only, and Done is what persists it.
                     uiState.source?.takeIf { it.languages.size > 1 }?.let { source ->
+                        val effectiveLanguages =
+                            uiState.selectedLanguages.ifEmpty { source.languages }
                         ActionRow(
                             label = stringResource(R.string.source_settings_language),
-                            subtitle = uiState.selectedLanguages
+                            subtitle = effectiveLanguages
                                 .joinToString(", ") { it.uppercase() }
                                 .ifEmpty { null },
                             onClick = { languageDialog = true },
@@ -315,7 +323,8 @@ fun SourceSettingsScreen(
                         LanguageDialog(
                             title = stringResource(R.string.source_settings_language),
                             options = source.languages,
-                            current = uiState.selectedLanguages,
+                            // Same presentation-only default as the row above.
+                            current = uiState.selectedLanguages.ifEmpty { source.languages },
                             onConfirm = { selection ->
                                 viewModel.setLanguages(selection)
                                 languageDialog = false

@@ -38,27 +38,16 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 /**
- * Compose UI tests for [MainScreen] — the root navigation shell.
- *
- * Uses real [HomeViewModel] / [PlayerViewModel] / [DeepLinkViewModel] instances
- * backed by the committed fake source. They are injected EXPLICITLY because
- * `createComposeRule()`'s host is a plain `ComponentActivity`, which is not a
- * Hilt component holder — any ViewModel resolved through the `hiltViewModel()`
- * default throws. That covers the start destination (Home); the remaining
- * routes resolve their own ViewModels when the user navigates to them and are
- * exercised by their own screen tests.
- *
- * This class runs at PHONE width (`Pixel8`), so the shell renders the bottom
- * bar (`tab_*` / `main_bottom_navigation`). The rail branch
- * (`maxWidth > 600.dp`) is covered by [MainScreenRailTest] at tablet width, and
- * the bars' own tab/selection behaviour by [MainNavigationBarsTest].
- *
- * All lookups use testTags (language-independent).
+ * The tablet/landscape half of [MainScreen]'s shell: above the 600dp width
+ * breakpoint it renders [git.shin.komorei.ui.components.MainNavigationRail]
+ * instead of the bottom bar, so `main_navigation_rail` / `rail_tab_*` only
+ * exist at this width. Kept in its own class because the device qualifier is a
+ * class-level Robolectric knob; the phone bar is covered by [MainScreenTest].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-@Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
+@Config(qualifiers = RobolectricDeviceQualifiers.MediumTablet, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
-class MainScreenTest {
+class MainScreenRailTest {
 
     @get:Rule val composeTestRule = createComposeRule()
 
@@ -108,7 +97,7 @@ class MainScreenTest {
         DeepLinkViewModel(DeepLinkManager(), DeepLinkResolver(repository))
 
     @Test
-    fun mainScreenRendersBottomNavigationWithEveryTab() {
+    fun mainScreenRendersNavigationRailWithEveryTab() {
         composeTestRule.setContent {
             MainScreen(
                 playerViewModel = newPlayerViewModel(),
@@ -116,14 +105,14 @@ class MainScreenTest {
                 homeViewModel = newHomeViewModel(),
             )
         }
-        composeTestRule.onNodeWithTag("main_bottom_navigation").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("main_navigation_rail").assertIsDisplayed()
         mainTabs.forEach { tab ->
-            composeTestRule.onNodeWithTag("tab_${tab.key}").assertIsDisplayed()
+            composeTestRule.onNodeWithTag("rail_tab_${tab.key}").assertIsDisplayed()
         }
     }
 
     @Test
-    fun mainScreenRendersHomeTab() {
+    fun mainScreenRailReSelectingHomeDoesNotCrash() {
         composeTestRule.setContent {
             MainScreen(
                 playerViewModel = newPlayerViewModel(),
@@ -131,9 +120,7 @@ class MainScreenTest {
                 homeViewModel = newHomeViewModel(),
             )
         }
-        // Home is the start destination: both the shell tab and the tab content
-        // are composed, and re-selecting the active tab must not crash.
-        composeTestRule.onNodeWithTag("tab_home").performClick()
+        composeTestRule.onNodeWithTag("rail_tab_home").performClick()
         composeTestRule.onNodeWithTag("home_screen").assertIsDisplayed()
     }
 }
