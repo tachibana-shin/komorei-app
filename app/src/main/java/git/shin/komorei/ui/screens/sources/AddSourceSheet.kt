@@ -671,12 +671,12 @@ private fun ExternalSourceRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(44.dp)
                 .clip(RoundedCornerShape(10.dp))
                 .background(CardDark),
             contentAlignment = Alignment.Center,
@@ -687,9 +687,9 @@ private fun ExternalSourceRow(
                 contentDescription = stringResource(R.string.sources_row_icon_cd),
                 fallbackTint = TextSecondary,
                 // Full-bleed artwork, like the Sources tab — the icon covers the
-                // whole 40dp box (object-fit: cover); the vector fallback stays
+                // whole 44dp box (object-fit: cover); the vector fallback stays
                 // a small centered glyph on the CardDark backdrop.
-                iconSize = 40.dp,
+                iconSize = 44.dp,
                 fallbackIconSize = 20.dp,
                 modifier = Modifier.clip(RoundedCornerShape(10.dp)),
             )
@@ -700,7 +700,7 @@ private fun ExternalSourceRow(
                 Text(
                     text = info.name,
                     color = TextPrimary,
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -728,8 +728,8 @@ private fun ExternalSourceRow(
             Text(
                 text = sourceVersionSubtitle(info.version, info.languages),
                 color = TextMuted,
-                fontSize = 11.sp,
-                lineHeight = 13.sp,
+                fontSize = 12.sp,
+                lineHeight = 14.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -737,8 +737,8 @@ private fun ExternalSourceRow(
                 Text(
                     text = stringResource(R.string.sources_external_repo_label, info.repoName!!),
                     color = TextMuted,
-                    fontSize = 10.sp,
-                    lineHeight = 12.sp,
+                    fontSize = 11.sp,
+                    lineHeight = 13.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
