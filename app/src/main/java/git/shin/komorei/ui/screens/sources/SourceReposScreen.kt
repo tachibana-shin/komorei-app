@@ -81,7 +81,7 @@ fun SourceReposScreen(
             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
         }
     }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(repos) {
         viewModel.refreshAllRepos()
     }
 

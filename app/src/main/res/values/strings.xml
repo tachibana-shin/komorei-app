@@ -202,6 +202,15 @@
     <string name="sources_invalid_url">URL không hợp lệ</string>
     <string name="sources_feedback_hint">Báo cáo lỗi</string>
 
+    <!-- External deep links -->
+    <string name="deeplink_invalid">Liên kết không hợp lệ</string>
+    <string name="deeplink_repo_added">Đã thêm kho nguồn</string>
+    <string name="deeplink_repo_exists">Kho nguồn đã có trong danh sách</string>
+    <string name="deeplink_repo_failed">Không thể tải kho nguồn</string>
+    <string name="deeplink_source_installed">Đã cài nguồn %1$s</string>
+    <string name="deeplink_source_exists">Nguồn %1$s đã được cài</string>
+    <string name="deeplink_source_failed">Không thể cài nguồn này</string>
+
     <!-- Sources: External catalog (AddSourceSheet) -->
     <string name="sources_external_section">Nguồn ngoài</string>
     <string name="sources_external_search_hint">Tìm nguồn ngoài…</string>

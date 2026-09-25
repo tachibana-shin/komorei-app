@@ -30,6 +30,7 @@
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="true"
+            android:launchMode="singleTop"
             android:label="@string/app_name"
             android:theme="@style/Theme.MyApplication">
             <intent-filter>
@@ -38,18 +39,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
+            <!-- Komorei owns the only external URI scheme. Content links
+                 continue through DeepLinkResolver; repository/package commands
+                 are handled by ExternalDeepLinkHandler before source resolution. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <!-- Demo deep-link scheme: sources resolve paths like
-                     /anime/<key>, /watch/<anime>/<ep>, /list/<id> themselves
-                     via their `handle_deep_link` (Aidoku-style). -->
-                <data
-                    android:scheme="komorei"
-                    android:host="komorei.example" />
+                <data android:scheme="komorei" />
             </intent-filter>
         </activity>
 
