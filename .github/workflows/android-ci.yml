@@ -31,6 +31,11 @@ jobs:
         uses: dtolnay/rust-toolchain@1.98.1
         with:
           targets: wasm32-unknown-unknown
+          # The "Lint runner crate" step below needs both; the pinned toolchain
+          # ships without them, so `cargo fmt` / `cargo clippy` fail with
+          # "'cargo-fmt' is not installed for the toolchain" until they are
+          # requested explicitly.
+          components: rustfmt, clippy
 
       - name: Cache Cargo
         uses: actions/cache@v6

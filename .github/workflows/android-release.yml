@@ -70,6 +70,10 @@ jobs:
         uses: dtolnay/rust-toolchain@1.98.1
         with:
           targets: wasm32-unknown-unknown
+          # Not needed by this job today, but kept identical to android-ci.yml
+          # so `bun run lint:ci` behaves the same in both — the pinned
+          # toolchain does not include these components by default.
+          components: rustfmt, clippy
 
       - name: Cache Cargo
         uses: actions/cache@v6
