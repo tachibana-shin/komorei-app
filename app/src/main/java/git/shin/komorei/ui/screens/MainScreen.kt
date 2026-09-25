@@ -55,6 +55,7 @@ import git.shin.komorei.ui.screens.settings.SettingsScreen
 import git.shin.komorei.ui.screens.source.SourceHomeScreen
 import git.shin.komorei.ui.screens.advanced.AdvancedScreen
 import git.shin.komorei.ui.screens.about.AboutScreen
+import git.shin.komorei.ui.screens.backup.BackupScreen
 import git.shin.komorei.ui.screens.insights.InsightsScreen
 import git.shin.komorei.ui.screens.logs.LogsScreen
 import git.shin.komorei.ui.screens.source.SourceBrowserScreen
@@ -133,7 +134,8 @@ fun MainScreen(
         val isLogsRoute = currentRoute == Screen.Logs.route
         val isAboutRoute = currentRoute == Screen.About.route
         val isInsightsRoute = currentRoute == Screen.Insights.route
-        val isSettingsSubPageRoute = isAdvancedRoute || isLogsRoute || isAboutRoute || isInsightsRoute
+        val isBackupsRoute = currentRoute == Screen.Backups.route
+        val isSettingsSubPageRoute = isAdvancedRoute || isLogsRoute || isAboutRoute || isInsightsRoute || isBackupsRoute
 
         Box(modifier = Modifier.fillMaxSize()) {
             if (isWideScreen) {
@@ -379,7 +381,11 @@ fun MainNavigationHost(
                 onOpenAdvanced = { navController.navigate(Screen.Advanced.route) },
                 onOpenInsights = { navController.navigate(Screen.Insights.route) },
                 onOpenAbout = { navController.navigate(Screen.About.route) },
+                onOpenBackups = { navController.navigate(Screen.Backups.route) },
             )
+        }
+        composable(Screen.Backups.route) {
+            BackupScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.About.route) {
             AboutScreen(onBack = { navController.popBackStack() })

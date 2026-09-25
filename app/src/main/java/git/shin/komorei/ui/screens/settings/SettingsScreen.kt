@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Cookie
 import androidx.compose.material.icons.filled.History
@@ -56,6 +57,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
     onOpenInsights: () -> Unit = {},
     onOpenAbout: () -> Unit = {},
+    onOpenBackups: () -> Unit = {},
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) {
@@ -125,6 +127,16 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_clear_search_history_subtitle),
                     onClick = viewModel::clearSearchHistory,
                     testTag = "settings_clear_search_history",
+                )
+            }
+
+            SettingsSection(title = stringResource(R.string.settings_section_backup)) {
+                SettingsRow(
+                    icon = Icons.Default.CloudSync,
+                    title = stringResource(R.string.settings_backup),
+                    subtitle = stringResource(R.string.settings_backup_subtitle),
+                    onClick = onOpenBackups,
+                    testTag = "settings_backup",
                 )
             }
 

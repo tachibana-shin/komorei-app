@@ -67,6 +67,17 @@ class SearchHistoryStore @Inject constructor(
         persist(current)
     }
 
+    fun snapshot(): List<String> = _history.value.toList()
+
+    fun restore(history: List<String>) {
+        val restored = history
+            .filter { it.isNotBlank() }
+            .distinct()
+            .take(MAX_SIZE)
+        _history.value = restored
+        persist(restored)
+    }
+
     private fun readHistory(): List<String> {
         val raw = prefs.getString(KEY_HISTORY, null) ?: return emptyList()
         return raw.split("\n").filter { it.isNotBlank() }

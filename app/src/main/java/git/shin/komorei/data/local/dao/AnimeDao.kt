@@ -85,8 +85,17 @@ interface AnimeDao {
     // One row per watched episode, so the whole table is small enough to read in
     // one shot and derive streaks / heatmap / monthly counts in Kotlin (much
     // easier to test than a pile of date-bucketed SQL).
-    @Query("SELECT * FROM watch_history")
+    @Query("SELECT * FROM watch_history ORDER BY sourceId, animeId, episodeId")
     suspend fun getAllWatchHistory(): List<WatchHistoryEntity>
+
+    @Query("SELECT * FROM anime_library ORDER BY sourceId, id")
+    suspend fun getAllAnimeEntities(): List<AnimeEntity>
+
+    @Query("DELETE FROM anime_library")
+    suspend fun deleteAllAnimeEntities()
+
+    @Query("DELETE FROM watch_history")
+    suspend fun deleteAllWatchHistory()
 
     @Query("SELECT * FROM watch_history WHERE sourceId = :sourceId")
     suspend fun getWatchHistoryForSource(sourceId: String): List<WatchHistoryEntity>

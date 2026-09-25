@@ -9,6 +9,10 @@ local.properties
 *.jks
 *.keystore
 
+# OAuth client downloads (keep client credentials out of the repository)
+client_secret_*.json
+google-services.json
+
 # Rust runner build output (symlinked to /mnt/komorei-data/komorei-builds/)
 runner/target/
 app/src/main/jniLibs

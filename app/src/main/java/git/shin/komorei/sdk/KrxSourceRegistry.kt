@@ -3,6 +3,7 @@ package git.shin.komorei.sdk
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import git.shin.komorei.data.backup.InstalledSourcePackage
 import git.shin.komorei.model.Source
 import git.shin.komorei.sdk.runner.HostDefaultValue
 import git.shin.komorei.sdk.runner.KomoreiRunner
@@ -326,6 +327,46 @@ class KrxSourceRegistry @Inject constructor(
         emitSources()
         Log.i(TAG, "Uninstalled source $sourceId")
         return true
+    }
+
+    /**
+     * Exports only user-installed packages. Bundled sources ship in the APK and
+     * are intentionally excluded from backups.
+     */
+    suspend fun exportUserSources(): List<InstalledSourcePackage> {
+        bundledMetas()
+        return installedDir().listFiles { file -> file.isFile && file.name.endsWith(".krx") }
+            .orEmpty()
+            .sortedBy { it.name }
+            .mapNotNull { file ->
+                runCatching {
+                    val bytes = file.readBytes()
+                    val id = KrxManager.readInfo(bytes)?.id ?: return@runCatching null
+                    InstalledSourcePackage(id, bytes)
+                }.getOrNull()
+            }
+    }
+
+    /**
+     * Installs packages from a user-confirmed restore. Existing/bundled sources
+     * are reported as skipped so a backup never replaces an APK source.
+     */
+    suspend fun importUserSources(packages: List<InstalledSourcePackage>): List<String> {
+        bundledMetas()
+        val skipped = mutableListOf<String>()
+        for (sourcePackage in packages) {
+            val meta = KrxManager.readInfo(sourcePackage.bytes)
+            if (meta == null || meta.id != sourcePackage.id) {
+                skipped += sourcePackage.id
+                continue
+            }
+            if (sourcePackage.id in userInstalled || metaMap.containsKey(sourcePackage.id)) {
+                skipped += sourcePackage.id
+                continue
+            }
+            if (installKrx(sourcePackage.bytes) == null) skipped += sourcePackage.id
+        }
+        return skipped
     }
 
     private fun disposeDispatcher(sourceId: String) {

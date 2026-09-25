@@ -95,9 +95,42 @@ class SourceStateStore @Inject constructor(
         _repos.value = next
     }
 
+    /** A structured snapshot used by the backup repository. */
+    fun snapshot(): SourceStateSnapshot = SourceStateSnapshot(
+        disabledSources = disabled.value.sorted(),
+        pinnedSources = pinned.value.toList(),
+        repositoryUrls = repos.value.toList(),
+    )
+
+    /** Restores the state and publishes it to all existing collectors. */
+    fun restore(snapshot: SourceStateSnapshot) {
+        val validRepos = snapshot.repositoryUrls.mapNotNull(::normalizeRepoUrl).distinct()
+        val nextDisabled = snapshot.disabledSources.toSet()
+        val nextPinned = snapshot.pinnedSources.distinct()
+        prefs.edit()
+            .putStringSet(KEY_DISABLED, nextDisabled)
+            .putString(KEY_PINNED, nextPinned.joinToString("\n"))
+            .putString(KEY_REPOS, validRepos.joinToString("\n"))
+            .apply()
+        _disabled.value = nextDisabled
+        _pinned.value = nextPinned
+        _repos.value = validRepos
+    }
+
+    private fun normalizeRepoUrl(url: String): String? {
+        val normalized = url.trim().trimEnd('/')
+        return normalized.takeIf { it.startsWith("http://") || it.startsWith("https://") }
+    }
+
     private companion object {
         const val KEY_DISABLED = "disabled_sources"
         const val KEY_PINNED = "pinned_sources"
         const val KEY_REPOS = "source_repos"
     }
 }
+
+data class SourceStateSnapshot(
+    val disabledSources: List<String>,
+    val pinnedSources: List<String>,
+    val repositoryUrls: List<String>,
+)

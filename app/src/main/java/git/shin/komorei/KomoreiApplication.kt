@@ -6,6 +6,7 @@ import android.os.Bundle
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import dagger.hilt.android.HiltAndroidApp
+import git.shin.komorei.data.backup.BackupSyncScheduler
 import git.shin.komorei.data.remote.KomoreiDataSourceFactory
 import javax.inject.Inject
 
@@ -18,6 +19,9 @@ class KomoreiApplication : Application(), ImageLoaderFactory {
     @Inject
     lateinit var dataSourceFactory: KomoreiDataSourceFactory
 
+    @Inject
+    lateinit var backupSyncScheduler: BackupSyncScheduler
+
     /**
      * The most recently resumed [Activity], updated from the app lifecycle. Non-UI
      * layers (e.g. [git.shin.komorei.ui.player.PlayerViewModel] fullscreen rotation)
@@ -29,6 +33,9 @@ class KomoreiApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+        // Reconcile the persisted toggle/interval with WorkManager after process
+        // death or an app update; this does not contact Drive by itself.
+        backupSyncScheduler.reconcileCurrentSettings()
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
             override fun onActivityStarted(activity: Activity) {}

@@ -1,4 +1,28 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+import java.util.Properties
+
+// OAuth client IDs are public identifiers, but keep them out of the repository.
+// local.properties is ignored; environment variables are convenient in CI.
+val localProperties = Properties().apply {
+  val file = rootProject.file("local.properties")
+  if (file.exists()) {
+    file.inputStream().use { stream -> load(stream) }
+  }
+}
+fun driveConfig(localKey: String, environmentKey: String): String =
+  localProperties.getProperty(localKey)?.takeIf { it.isNotBlank() }
+    ?: System.getenv(environmentKey).orEmpty()
+fun String.asBuildConfigString(): String =
+  replace("\\", "\\\\").replace("\"", "\\\"")
+
+val googleDriveAndroidClientId = driveConfig(
+  "google.drive.android.clientId",
+  "GOOGLE_ANDROID_CLIENT_ID",
+).ifBlank { "UNCONFIGURED" }
+val googleDriveWebClientId = driveConfig(
+  "google.drive.web.clientId",
+  "GOOGLE_WEB_CLIENT_ID",
+).ifBlank { "UNCONFIGURED" }
 
 plugins {
   alias(libs.plugins.android.application)
@@ -21,6 +45,9 @@ android {
     targetSdk = 36
     versionCode = 1
     versionName = "1.0"
+
+    buildConfigField("String", "DRIVE_ANDROID_CLIENT_ID", "\"${googleDriveAndroidClientId.asBuildConfigString()}\"")
+    buildConfigField("String", "DRIVE_WEB_CLIENT_ID", "\"${googleDriveWebClientId.asBuildConfigString()}\"")
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -375,6 +402,8 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
   implementation(libs.hilt.android)
+  implementation(libs.google.play.services.auth)
+  implementation(libs.work.runtime)
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
   "ksp"(libs.hilt.compiler)

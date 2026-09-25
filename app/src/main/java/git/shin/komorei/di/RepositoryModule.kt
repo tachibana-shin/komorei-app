@@ -11,6 +11,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import git.shin.komorei.data.AnimeRepository
+import git.shin.komorei.data.backup.DriveBackupApi
+import git.shin.komorei.data.backup.GoogleDriveBackupApi
 import git.shin.komorei.data.local.KomoreiDatabase
 import git.shin.komorei.data.local.KrxDefaultsStore
 import git.shin.komorei.data.local.RoomKrxDefaultsStore
@@ -21,6 +23,7 @@ import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import javax.inject.Qualifier
 import javax.inject.Singleton
 
 @Module
@@ -56,6 +59,23 @@ object RepositoryModule {
             .followSslRedirects(true)
             .build()
     }
+
+    @Provides
+    @Singleton
+    @DriveHttpClient
+    fun provideDriveHttpClient(): OkHttpClient {
+        // Do not reuse the source client here: it logs headers and carries the
+        // WebView cookie jar, which must never see a Google bearer token.
+        return OkHttpClient.Builder()
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideDriveBackupApi(@DriveHttpClient client: OkHttpClient): DriveBackupApi =
+        GoogleDriveBackupApi(client)
 
     @Provides
     @Singleton
@@ -127,3 +147,8 @@ object RepositoryModule {
         return AnimeRepository(registry)
     }
 }
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+@Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION)
+annotation class DriveHttpClient

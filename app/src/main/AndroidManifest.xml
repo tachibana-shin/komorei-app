@@ -53,6 +53,18 @@
             </intent-filter>
         </activity>
 
+        <!-- BackupSyncScheduler initializes WorkManager lazily, so the default
+             startup initializer must not run in Robolectric/unit-test processes. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                tools:node="remove" />
+        </provider>
+
         <!-- Share an exported log file from the Logs screen (res/xml/file_paths.xml). -->
         <provider
             android:name="androidx.core.content.FileProvider"

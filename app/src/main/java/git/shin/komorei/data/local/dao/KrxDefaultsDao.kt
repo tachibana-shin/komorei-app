@@ -16,6 +16,15 @@ interface KrxDefaultsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: KrxDefaultsEntity)
 
+    @Query("SELECT * FROM krx_defaults ORDER BY `key`")
+    suspend fun getAll(): List<KrxDefaultsEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(entities: List<KrxDefaultsEntity>)
+
+    @Query("DELETE FROM krx_defaults")
+    suspend fun deleteAll()
+
     @Query("DELETE FROM krx_defaults WHERE `key` = :key")
     suspend fun delete(key: String)
 

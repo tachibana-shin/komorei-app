@@ -59,6 +59,9 @@ sealed class Screen(val route: String) {
     /** Reading activity statistics (Aidoku's Insights page). */
     data object Insights : Screen("insights")
 
+    /** Local backups and Google Drive backup/restore. */
+    data object Backups : Screen("backups")
+
     /**
      * A single source's "home screen" (Aidoku's NewSourceViewController): the
      * source's listings + full home layout in its own full-screen page, with a
