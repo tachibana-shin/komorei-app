@@ -19,20 +19,20 @@ import javax.inject.Singleton
 class DeepLinkResolver @Inject constructor(
     private val repository: AnimeRepository,
 ) {
-
     /**
      * Resolves [url] against all installed sources. Returns the claiming source
      * + its app-model target, or null when no source handles the URL.
      */
     suspend fun resolve(url: String): ResolvedDeepLink? {
         val linkHost = runCatching { Uri.parse(url).host?.lowercase() }.getOrNull()
-        val candidates = repository.sources
-            .filter { !it.isAggregator }
-            .sortedBy { source ->
-                val sourceHost =
-                    runCatching { Uri.parse(source.baseUrl).host?.lowercase() }.getOrNull()
-                if (linkHost != null && sourceHost != null && sourceHost == linkHost) 0 else 1
-            }
+        val candidates =
+            repository.sources
+                .filter { !it.isAggregator }
+                .sortedBy { source ->
+                    val sourceHost =
+                        runCatching { Uri.parse(source.baseUrl).host?.lowercase() }.getOrNull()
+                    if (linkHost != null && sourceHost != null && sourceHost == linkHost) 0 else 1
+                }
         for (source in candidates) {
             val target = repository.handleDeepLink(source.id, url) ?: continue
             return ResolvedDeepLink(source.id, target)

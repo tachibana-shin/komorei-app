@@ -51,9 +51,10 @@ fun ListingChipsRow(
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(5.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 6.dp, bottom = 8.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp, bottom = 8.dp),
     ) {
         item(key = "_home") {
             ListingChip(
@@ -91,13 +92,14 @@ private fun ListingChip(
         fontWeight = FontWeight.Medium,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier
-            // TV focus highlight (no-op on phones); ring drawn around the pill.
-            .tvFocus(shape = RoundedCornerShape(100), scale = 1.08f)
-            .clip(shape)
-            .background(if (active) AnimeRed else SurfaceDark)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier =
+            Modifier
+                // TV focus highlight (no-op on phones); ring drawn around the pill.
+                .tvFocus(shape = RoundedCornerShape(100), scale = 1.08f)
+                .clip(shape)
+                .background(if (active) AnimeRed else SurfaceDark)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
     )
 }
 
@@ -106,16 +108,18 @@ private fun ListingChip(
 fun ListingChipsSkeleton(modifier: Modifier = Modifier) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(5.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
     ) {
         repeat(3) {
             Row(
-                modifier = Modifier
-                    .width(64.dp)
-                    .height(32.dp)
-                    .shimmerEffect(RoundedCornerShape(100)),
+                modifier =
+                    Modifier
+                        .width(64.dp)
+                        .height(32.dp)
+                        .shimmerEffect(RoundedCornerShape(100)),
             ) {}
         }
     }

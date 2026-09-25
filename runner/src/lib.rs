@@ -21,10 +21,11 @@ mod state;
 pub use error::RunnerError;
 pub use host::{HostDefaultValue, HostHttpMethod, HostNetResponse, KomoreiHost};
 pub use records::{
-	Anime, AnimePageResult, AnimeSeason, AnimeStatus, AnimeWithEpisode, CategoryLink, DeepLinkResult,
-	Episode, Filter, FilterItem, FilterKind, FilterValue, HomeComponent, HomeComponentValue,
-	HomeLayout, Link, LinkValue, Listing, ListingKind, LoginMethod, PageIcon, RangeLong, Setting,
-	SettingValue, SortFilterDefault, StreamData, StreamInfo, StreamType, SubtitleInfo,
+	Anime, AnimePageResult, AnimeSeason, AnimeStatus, AnimeWithEpisode, CategoryLink,
+	DeepLinkResult, Episode, Filter, FilterItem, FilterKind, FilterValue, HomeComponent,
+	HomeComponentValue, HomeLayout, Link, LinkValue, Listing, ListingKind, LoginMethod, PageIcon,
+	RangeLong, Setting, SettingValue, SortFilterDefault, StreamData, StreamInfo, StreamType,
+	SubtitleInfo,
 };
 
 use std::sync::{Arc, Mutex};
@@ -42,13 +43,19 @@ impl KomoreiRunner {
 	/// Creates an empty runner bound to the given Kotlin host.
 	#[uniffi::constructor]
 	pub fn new(host: Arc<dyn KomoreiHost>) -> Arc<Self> {
-		Arc::new(Self { host, state: Mutex::new(None) })
+		Arc::new(Self {
+			host,
+			state: Mutex::new(None),
+		})
 	}
 
 	/// Instantiates the wasm payload (the `Payload/main.wasm` bytes extracted
 	/// from a `.krx`). Does not run the source `start()` export.
 	pub fn load(&self, wasm: Vec<u8>) -> Result<(), RunnerError> {
-		let mut guard = self.state.lock().map_err(|_| RunnerError::Wasm("runner mutex poisoned".into()))?;
+		let mut guard = self
+			.state
+			.lock()
+			.map_err(|_| RunnerError::Wasm("runner mutex poisoned".into()))?;
 		let engine = engine::EngineState::load(&wasm, self.host.clone())?;
 		*guard = Some(engine);
 		Ok(())
@@ -60,7 +67,12 @@ impl KomoreiRunner {
 	}
 
 	/// `get_search_anime_list(query, page, filters)`.
-	pub fn search(&self, query: Option<String>, page: i32, filters: Vec<FilterValue>) -> Result<AnimePageResult, RunnerError> {
+	pub fn search(
+		&self,
+		query: Option<String>,
+		page: i32,
+		filters: Vec<FilterValue>,
+	) -> Result<AnimePageResult, RunnerError> {
 		self.with_engine(|engine| {
 			let query_desc = match query {
 				Some(q) => engine.encode_raw_string(&q),
@@ -77,7 +89,12 @@ impl KomoreiRunner {
 
 	/// `get_anime_update(anime, needs_details, needs_chapters)` — upgrades a
 	/// Lite anime into a full one (details + episodes).
-	pub fn anime_update(&self, anime: Anime, needs_details: bool, needs_chapters: bool) -> Result<Anime, RunnerError> {
+	pub fn anime_update(
+		&self,
+		anime: Anime,
+		needs_details: bool,
+		needs_chapters: bool,
+	) -> Result<Anime, RunnerError> {
 		self.with_engine(|engine| {
 			let lib_anime: komorei::Anime = anime.into();
 			let desc = engine.encode(&lib_anime)?;
@@ -93,7 +110,11 @@ impl KomoreiRunner {
 	}
 
 	/// `get_stream_list(anime, episode)` — the stream servers for an episode.
-	pub fn stream_list(&self, anime: Anime, episode: Episode) -> Result<Vec<StreamInfo>, RunnerError> {
+	pub fn stream_list(
+		&self,
+		anime: Anime,
+		episode: Episode,
+	) -> Result<Vec<StreamInfo>, RunnerError> {
 		self.with_engine(|engine| {
 			let anime_desc = engine.encode(&Into::<komorei::Anime>::into(anime))?;
 			let episode_desc = engine.encode(&Into::<komorei::Episode>::into(episode))?;
@@ -104,7 +125,12 @@ impl KomoreiRunner {
 	}
 
 	/// `get_stream(anime, episode, stream)` — resolved stream data for playback.
-	pub fn stream(&self, anime: Anime, episode: Episode, stream: StreamInfo) -> Result<StreamData, RunnerError> {
+	pub fn stream(
+		&self,
+		anime: Anime,
+		episode: Episode,
+		stream: StreamInfo,
+	) -> Result<StreamData, RunnerError> {
 		self.with_engine(|engine| {
 			let anime_desc = engine.encode(&Into::<komorei::Anime>::into(anime))?;
 			let episode_desc = engine.encode(&Into::<komorei::Episode>::into(episode))?;
@@ -200,7 +226,10 @@ impl KomoreiRunner {
 			if result == 0 {
 				Ok(())
 			} else {
-				Err(RunnerError::Source { code: result, message: String::new() })
+				Err(RunnerError::Source {
+					code: result,
+					message: String::new(),
+				})
 			}
 		})
 	}
@@ -228,7 +257,11 @@ impl KomoreiRunner {
 	}
 
 	/// Same export, `key_kind = 1` (episode): `(anime_key, episode_key)`.
-	pub fn migrate_episode(&self, anime_key: String, episode_key: String) -> Result<String, RunnerError> {
+	pub fn migrate_episode(
+		&self,
+		anime_key: String,
+		episode_key: String,
+	) -> Result<String, RunnerError> {
 		self.with_engine(|engine| {
 			let anime_desc = engine.encode(&anime_key)?;
 			let ep_desc = engine.encode(&episode_key)?;
@@ -239,7 +272,11 @@ impl KomoreiRunner {
 
 	/// `intercept_segment_url(stream_data, url)` — header injection happens in
 	/// the media requests, so this resolves the *final* segment URL.
-	pub fn intercept_segment_url(&self, stream_data: Option<StreamData>, url: String) -> Result<String, RunnerError> {
+	pub fn intercept_segment_url(
+		&self,
+		stream_data: Option<StreamData>,
+		url: String,
+	) -> Result<String, RunnerError> {
 		self.with_engine(|engine| {
 			let stream_desc = match stream_data {
 				Some(data) => engine.encode(&Into::<komorei::StreamData>::into(data))?,
@@ -252,7 +289,12 @@ impl KomoreiRunner {
 	}
 
 	/// `intercept_segment_data(stream_data, url, data)`.
-	pub fn intercept_segment_data(&self, stream_data: Option<StreamData>, url: String, data: Vec<u8>) -> Result<Vec<u8>, RunnerError> {
+	pub fn intercept_segment_data(
+		&self,
+		stream_data: Option<StreamData>,
+		url: String,
+		data: Vec<u8>,
+	) -> Result<Vec<u8>, RunnerError> {
 		self.with_engine(|engine| {
 			let stream_desc = match stream_data {
 				Some(data) => engine.encode(&Into::<komorei::StreamData>::into(data))?,
@@ -302,10 +344,16 @@ impl KomoreiRunner {
 						.lock()
 						.map_err(|_| RunnerError::Wasm("runner mutex poisoned".into()))?;
 					match guard.as_mut() {
-						Some(engine) => match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(engine))) {
-							Ok(result) => result,
-							Err(payload) => Err(RunnerError::HostCallback(panic_message(payload))),
-						},
+						Some(engine) => {
+							match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+								f(engine)
+							})) {
+								Ok(result) => result,
+								Err(payload) => {
+									Err(RunnerError::HostCallback(panic_message(payload)))
+								}
+							}
+						}
 						None => Err(RunnerError::NotLoaded),
 					}
 				})

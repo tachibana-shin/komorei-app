@@ -17,18 +17,19 @@ import git.shin.komorei.ui.theme.TextGrey
 fun Badge(
     text: String,
     modifier: Modifier = Modifier,
-    textStyle: TextStyle = TextStyle.Default
+    textStyle: TextStyle = TextStyle.Default,
 ) {
     Box(
-        modifier = modifier
-            .background(CardDark, RoundedCornerShape(4.dp))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+        modifier =
+            modifier
+                .background(CardDark, RoundedCornerShape(4.dp))
+                .padding(horizontal = 6.dp, vertical = 2.dp),
     ) {
         Text(
             text = text,
             color = TextGrey,
             fontSize = 11.sp,
-            style = textStyle
+            style = textStyle,
         )
     }
 }

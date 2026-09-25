@@ -62,24 +62,27 @@ fun AboutScreen(
     val context = LocalContext.current
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .testTag("about_screen"),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .testTag("about_screen"),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
                 onClick = onBack,
-                modifier = Modifier
-                    .tvFocus(shape = CircleShape, scale = 1.15f)
-                    .testTag("about_back"),
+                modifier =
+                    Modifier
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .testTag("about_back"),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -97,9 +100,10 @@ fun AboutScreen(
         }
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             Text(
                 text = stringResource(R.string.about_description),
@@ -170,14 +174,19 @@ private fun AboutSection(
 }
 
 @Composable
-private fun AboutValueRow(title: String, value: String, testTag: String) {
+private fun AboutValueRow(
+    title: String,
+    value: String,
+    testTag: String,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(CardDark)
-            .padding(horizontal = 14.dp, vertical = 13.dp)
-            .testTag(testTag),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(CardDark)
+                .padding(horizontal = 14.dp, vertical = 13.dp)
+                .testTag(testTag),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -206,15 +215,16 @@ private fun AboutLinkRow(
     testTag: String,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(CardDark)
-            // Keep tvFocus outside clickable so it observes the focusable node.
-            .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.0f)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp)
-            .testTag(testTag),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(CardDark)
+                // Keep tvFocus outside clickable so it observes the focusable node.
+                .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.0f)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+                .testTag(testTag),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -243,7 +253,10 @@ private fun AboutLinkRow(
     }
 }
 
-private fun openUrl(context: Context, url: String) {
+private fun openUrl(
+    context: Context,
+    url: String,
+) {
     runCatching {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }

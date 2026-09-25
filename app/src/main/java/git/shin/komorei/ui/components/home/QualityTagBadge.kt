@@ -33,13 +33,15 @@ fun BoxScope.QualityTagBadge(
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
         maxLines = 1,
-        style = TextStyle(
-            platformStyle = PlatformTextStyle(includeFontPadding = false)
-        ),
-        modifier = Modifier
-            .align(Alignment.TopEnd)
-            .padding(inset)
-            .background(Color(0xFF00C853).copy(alpha = .85f), RoundedCornerShape(4.dp))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+        style =
+            TextStyle(
+                platformStyle = PlatformTextStyle(includeFontPadding = false),
+            ),
+        modifier =
+            Modifier
+                .align(Alignment.TopEnd)
+                .padding(inset)
+                .background(Color(0xFF00C853).copy(alpha = .85f), RoundedCornerShape(4.dp))
+                .padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }

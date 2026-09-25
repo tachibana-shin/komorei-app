@@ -46,17 +46,19 @@ fun SourceTabBar(
         divider = {},
         indicator = {
             Box(
-                modifier = Modifier
-                    .tabIndicatorOffset(selectedTabIndex = selectedIndex, matchContentSize = true)
-                    .height(3.dp)
-                    .padding(horizontal = 14.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(AnimeRed)
+                modifier =
+                    Modifier
+                        .tabIndicatorOffset(selectedTabIndex = selectedIndex, matchContentSize = true)
+                        .height(3.dp)
+                        .padding(horizontal = 14.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(AnimeRed),
             )
         },
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag("source_tab_row")
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .testTag("source_tab_row"),
     ) {
         sources.forEachIndexed { index, source ->
             val isSelected = selectedIndex == index
@@ -64,23 +66,24 @@ fun SourceTabBar(
             Tab(
                 selected = isSelected,
                 onClick = { onTabSelected(index, source) },
-                modifier = Modifier
-                    .padding(vertical = 4.dp)
-                    .then(
-                        if (index == 0 && firstTabFocusRequester != null) {
-                            Modifier.focusRequester(firstTabFocusRequester)
-                        } else {
-                            Modifier
-                        }
-                    )
-                    // TV focus highlight (no-op on phones); graphicsLayer scale
-                    // does not disturb the underline indicator's layout math.
-                    .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.04f)
-                    .testTag("source_tab_${source.id}"),
+                modifier =
+                    Modifier
+                        .padding(vertical = 4.dp)
+                        .then(
+                            if (index == 0 && firstTabFocusRequester != null) {
+                                Modifier.focusRequester(firstTabFocusRequester)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        // TV focus highlight (no-op on phones); graphicsLayer scale
+                        // does not disturb the underline indicator's layout math.
+                        .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.04f)
+                        .testTag("source_tab_${source.id}"),
                 text = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
                     ) {
                         SourceIcon(
                             source = source,
@@ -95,10 +98,10 @@ fun SourceTabBar(
                             text = source.name,
                             fontSize = 14.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) AnimeRed else TextMuted
+                            color = if (isSelected) AnimeRed else TextMuted,
                         )
                     }
-                }
+                },
             )
         }
     }

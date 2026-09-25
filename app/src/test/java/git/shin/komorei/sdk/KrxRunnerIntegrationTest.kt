@@ -43,7 +43,6 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class KrxRunnerIntegrationTest {
-
     private lateinit var host: KrxHostImpl
     private lateinit var runner: git.shin.komorei.sdk.runner.KomoreiRunner
 
@@ -54,8 +53,9 @@ class KrxRunnerIntegrationTest {
          * unreliable inside the Robolectric sandbox classloader, so the JVM args
          * (not file probing) are the source of truth for both paths.
          */
-        private val exampleKrx: String = System.getProperty("komorei.test.exampleKrx")
-            ?: error("missing -Dkomorei.test.exampleKrx (set by app/build.gradle.kts)")
+        private val exampleKrx: String =
+            System.getProperty("komorei.test.exampleKrx")
+                ?: error("missing -Dkomorei.test.exampleKrx (set by app/build.gradle.kts)")
     }
 
     @Before
@@ -227,8 +227,9 @@ class KrxRunnerIntegrationTest {
         assertEquals("Anime 1", page.entries[0].title)
         assertFalse(page.hasNextPage)
 
-        val err = runCatching { runner.animeList(Listing("test", "Test", ListingKind.DEFAULT), 1) }
-            .exceptionOrNull()
+        val err =
+            runCatching { runner.animeList(Listing("test", "Test", ListingKind.DEFAULT), 1) }
+                .exceptionOrNull()
         assertTrue("expected Source error, got $err", err is RunnerException.Source)
         assertEquals(-1, (err as RunnerException.Source).code)
         assertTrue("message was: ${err.message}", err.message!!.contains("Not supported"))
@@ -277,7 +278,12 @@ class KrxRunnerIntegrationTest {
 
     @Test
     fun `mappings convert sdk records to app models`() {
-        val lite = runner.search(null, 1, emptyList()).entries.first().toAppModel()
+        val lite =
+            runner
+                .search(null, 1, emptyList())
+                .entries
+                .first()
+                .toAppModel()
         assertEquals("1", lite.id)
         assertEquals("Anime 1", lite.title)
         assertEquals("https://example.com/cover.png", lite.posterUrl)
@@ -298,9 +304,10 @@ class KrxRunnerIntegrationTest {
 
         // stream mapping
         val bindingEpisode = bindingFull.episodes!!.last()
-        val stream = runner
-            .stream(bindingFull, bindingEpisode, runner.streamList(bindingFull, bindingEpisode)[0])
-            .toAppModel()
+        val stream =
+            runner
+                .stream(bindingFull, bindingEpisode, runner.streamList(bindingFull, bindingEpisode)[0])
+                .toAppModel()
         assertEquals(git.shin.komorei.model.StreamType.HLS, stream.type)
         assertEquals("https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", stream.url)
         assertTrue(stream.isContent)

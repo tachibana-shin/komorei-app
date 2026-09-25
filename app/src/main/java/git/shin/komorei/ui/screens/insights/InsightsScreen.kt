@@ -76,12 +76,13 @@ fun InsightsScreen(
     val data by viewModel.data.collectAsStateWithLifecycle()
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .testTag("insights_screen"),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .testTag("insights_screen"),
     ) {
         ScreenHeader(onBack = onBack, title = stringResource(R.string.insights_title))
 
@@ -93,18 +94,23 @@ fun InsightsScreen(
 }
 
 @Composable
-private fun ScreenHeader(onBack: () -> Unit, title: String) {
+private fun ScreenHeader(
+    onBack: () -> Unit,
+    title: String,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(
             onClick = onBack,
-            modifier = Modifier
-                .tvFocus(shape = CircleShape, scale = 1.15f)
-                .testTag("insights_back"),
+            modifier =
+                Modifier
+                    .tvFocus(shape = CircleShape, scale = 1.15f)
+                    .testTag("insights_back"),
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -125,9 +131,10 @@ private fun ScreenHeader(onBack: () -> Unit, title: String) {
 @Composable
 private fun InsightsLoading() {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         PlatterShimmer()
@@ -139,9 +146,10 @@ private fun InsightsLoading() {
 @Composable
 private fun InsightsContent(data: InsightsData) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         SectionLabel(stringResource(R.string.insights_streaks))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -163,11 +171,12 @@ private fun InsightsContent(data: InsightsData) {
 
         Spacer(Modifier.height(12.dp))
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(CardDark)
-                .padding(vertical = 12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(CardDark)
+                    .padding(vertical = 12.dp),
         ) {
             HeatmapView(data.heatmap)
         }
@@ -209,9 +218,10 @@ private fun InsightsContent(data: InsightsData) {
                 fontSize = 13.sp,
                 lineHeight = 19.sp,
                 textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("insights_empty"),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .testTag("insights_empty"),
             )
         }
 
@@ -240,12 +250,13 @@ private fun StreakPlatter(
     testTag: String,
 ) {
     Box(
-        modifier = modifier
-            .height(110.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(CardDark)
-            .padding(12.dp)
-            .testTag(testTag),
+        modifier =
+            modifier
+                .height(110.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(CardDark)
+                .padding(12.dp)
+                .testTag(testTag),
         contentAlignment = Alignment.Center,
     ) {
         if (days > 1) {
@@ -310,9 +321,10 @@ private fun HeatmapView(
     val buckets = remember(data.values) { HeatBuckets.from(data.values) }
 
     Column(
-        modifier = Modifier
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 4.dp),
+        modifier =
+            Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 4.dp),
     ) {
         Row(modifier = Modifier.width(width.dp)) {
             var previousWeek = 0
@@ -324,10 +336,11 @@ private fun HeatmapView(
         }
         Spacer(Modifier.height(4.dp))
         Canvas(
-            modifier = Modifier
-                .width(width.dp)
-                .height((7 * step).dp)
-                .testTag("insights_heatmap"),
+            modifier =
+                Modifier
+                    .width(width.dp)
+                    .height((7 * step).dp)
+                    .testTag("insights_heatmap"),
         ) {
             data.values.forEachIndexed { index, value ->
                 val week = index / 7
@@ -363,8 +376,10 @@ private data class HeatBuckets(
     fun colorFor(value: Int): Color {
         if (value <= 0 || cap <= 0) return SurfaceVariantDark
         val clipped = value.coerceAtMost(cap)
-        val bucket = thresholds.indexOfFirst { clipped <= it }
-            .let { if (it < 0) thresholds.size else it }
+        val bucket =
+            thresholds
+                .indexOfFirst { clipped <= it }
+                .let { if (it < 0) thresholds.size else it }
         val alpha = HEAT_ALPHAS.getOrElse(bucket) { HEAT_ALPHAS.last() }
         return AnimeRed.copy(alpha = alpha)
     }
@@ -378,18 +393,22 @@ private data class HeatBuckets(
             val cap = percentile(nonZero, 0.95)
             val clipped = nonZero.map { it.coerceAtMost(cap) }.sorted()
             return HeatBuckets(
-                thresholds = intArrayOf(
-                    percentile(clipped, 0.30),
-                    percentile(clipped, 0.40),
-                    percentile(clipped, 0.60),
-                    percentile(clipped, 0.80),
-                    percentile(clipped, 1.00),
-                ),
+                thresholds =
+                    intArrayOf(
+                        percentile(clipped, 0.30),
+                        percentile(clipped, 0.40),
+                        percentile(clipped, 0.60),
+                        percentile(clipped, 0.80),
+                        percentile(clipped, 1.00),
+                    ),
                 cap = cap,
             )
         }
 
-        private fun percentile(values: List<Int>, fraction: Double): Int {
+        private fun percentile(
+            values: List<Int>,
+            fraction: Double,
+        ): Int {
             val index = ((values.size - 1) * fraction).toInt()
             return values[index.coerceIn(values.indices)]
         }
@@ -397,25 +416,31 @@ private data class HeatBuckets(
 }
 
 @Composable
-private fun StatTile(stat: SmallStat, modifier: Modifier = Modifier) {
-    val title = when (stat.kind) {
-        SmallStat.Kind.EPISODES -> stringResource(R.string.insights_stat_episodes)
-        SmallStat.Kind.SERIES -> stringResource(R.string.insights_stat_series)
-        SmallStat.Kind.HOURS -> stringResource(R.string.insights_stat_hours)
-    }
-    val unit = when (stat.kind) {
-        SmallStat.Kind.EPISODES -> stringResource(R.string.insights_unit_episodes)
-        SmallStat.Kind.SERIES -> stringResource(R.string.insights_unit_series)
-        SmallStat.Kind.HOURS -> stringResource(R.string.insights_unit_hours)
-    }
+private fun StatTile(
+    stat: SmallStat,
+    modifier: Modifier = Modifier,
+) {
+    val title =
+        when (stat.kind) {
+            SmallStat.Kind.EPISODES -> stringResource(R.string.insights_stat_episodes)
+            SmallStat.Kind.SERIES -> stringResource(R.string.insights_stat_series)
+            SmallStat.Kind.HOURS -> stringResource(R.string.insights_stat_hours)
+        }
+    val unit =
+        when (stat.kind) {
+            SmallStat.Kind.EPISODES -> stringResource(R.string.insights_unit_episodes)
+            SmallStat.Kind.SERIES -> stringResource(R.string.insights_unit_series)
+            SmallStat.Kind.HOURS -> stringResource(R.string.insights_unit_hours)
+        }
 
     Column(
-        modifier = modifier
-            .height(126.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(CardDark)
-            .padding(horizontal = 8.dp, vertical = 10.dp)
-            .testTag("insights_stat_${stat.kind.name.lowercase()}"),
+        modifier =
+            modifier
+                .height(126.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(CardDark)
+                .padding(horizontal = 8.dp, vertical = 10.dp)
+                .testTag("insights_stat_${stat.kind.name.lowercase()}"),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
@@ -475,13 +500,14 @@ private fun StatTile(stat: SmallStat, modifier: Modifier = Modifier) {
 private fun YearCard(year: YearlyMonth) {
     val max = year.months.maxOrNull() ?: 0
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(CardDark)
-            .padding(14.dp)
-            .testTag("insights_year_${year.year}"),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(CardDark)
+                .padding(14.dp)
+                .testTag("insights_year_${year.year}"),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -502,27 +528,30 @@ private fun YearCard(year: YearlyMonth) {
         }
         Spacer(Modifier.height(8.dp))
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
             horizontalArrangement = Arrangement.spacedBy(3.dp),
             verticalAlignment = Alignment.Bottom,
         ) {
             year.months.forEach { value ->
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(SurfaceVariantDark),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(SurfaceVariantDark),
                     contentAlignment = Alignment.BottomCenter,
                 ) {
                     if (value > 0 && max > 0) {
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height((value.toFloat() / max * 48f).dp.coerceAtLeast(3.dp))
-                                .background(AnimeRed),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height((value.toFloat() / max * 48f).dp.coerceAtLeast(3.dp))
+                                    .background(AnimeRed),
                         )
                     }
                 }
@@ -547,11 +576,12 @@ private fun YearCard(year: YearlyMonth) {
 @Composable
 private fun PlatterShimmer(height: Dp = 110.dp) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height)
-            .clip(RoundedCornerShape(14.dp))
-            .background(CardDark)
-            .shimmerEffect(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(height)
+                .clip(RoundedCornerShape(14.dp))
+                .background(CardDark)
+                .shimmerEffect(),
     )
 }

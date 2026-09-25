@@ -12,16 +12,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.ReceiptLong
@@ -96,24 +96,27 @@ fun AdvancedScreen(
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
-            .testTag("advanced_screen")
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding()
+                .testTag("advanced_screen"),
     ) {
         // ── Top bar ─────────────────────────────────────────────────────────
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
                 onClick = onBack,
-                modifier = Modifier
-                    .tvFocus(shape = CircleShape, scale = 1.15f)
-                    .testTag("advanced_back"),
+                modifier =
+                    Modifier
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .testTag("advanced_back"),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -131,10 +134,11 @@ fun AdvancedScreen(
         }
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
         ) {
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -231,27 +235,30 @@ private fun LogServerUrlField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp)
-            .testTag("advanced_log_server_input"),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+                .testTag("advanced_log_server_input"),
         label = { Text(stringResource(R.string.advanced_log_server)) },
         placeholder = { Text(stringResource(R.string.advanced_log_server_placeholder)) },
         supportingText = { Text(stringResource(R.string.advanced_log_server_hint)) },
         singleLine = true,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Uri,
-            imeAction = ImeAction.Done,
-        ),
+        keyboardOptions =
+            KeyboardOptions(
+                keyboardType = KeyboardType.Uri,
+                imeAction = ImeAction.Done,
+            ),
         keyboardActions = KeyboardActions(onDone = { onSave() }),
         trailingIcon = {
             Row {
                 if (value.isNotBlank()) {
                     IconButton(
                         onClick = onClear,
-                        modifier = Modifier
-                            .tvFocus(shape = CircleShape, scale = 1.05f)
-                            .testTag("advanced_log_server_clear"),
+                        modifier =
+                            Modifier
+                                .tvFocus(shape = CircleShape, scale = 1.05f)
+                                .testTag("advanced_log_server_clear"),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Clear,
@@ -262,9 +269,10 @@ private fun LogServerUrlField(
                 }
                 IconButton(
                     onClick = onSave,
-                    modifier = Modifier
-                        .tvFocus(shape = CircleShape, scale = 1.05f)
-                        .testTag("advanced_log_server_save"),
+                    modifier =
+                        Modifier
+                            .tvFocus(shape = CircleShape, scale = 1.05f)
+                            .testTag("advanced_log_server_save"),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
@@ -278,7 +286,10 @@ private fun LogServerUrlField(
 }
 
 @Composable
-private fun AdvancedSection(title: String, content: @Composable () -> Unit) {
+private fun AdvancedSection(
+    title: String,
+    content: @Composable () -> Unit,
+) {
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
         Text(
             text = title,
@@ -305,16 +316,17 @@ private fun AdvancedRow(
     accent: androidx.compose.ui.graphics.Color = TextSecondary,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp)
-            // TV focus highlight (no-op on phones) — full-width row, ring only.
-            .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.0f)
-            .clip(RoundedCornerShape(12.dp))
-            .background(CardDark)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 12.dp)
-            .testTag(testTag),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 2.dp)
+                // TV focus highlight (no-op on phones) — full-width row, ring only.
+                .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.0f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(CardDark)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 12.dp)
+                .testTag(testTag),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -329,4 +341,3 @@ private fun AdvancedRow(
         }
     }
 }
-

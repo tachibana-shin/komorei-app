@@ -18,8 +18,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.CleaningServices
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Cookie
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
@@ -41,9 +41,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import git.shin.komorei.R
@@ -69,18 +69,21 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val updateState by viewModel.updateState.collectAsStateWithLifecycle()
-    val updateSubtitle = when (val state = updateState) {
-        UpdateUiState.Idle -> stringResource(R.string.settings_update_check)
-        UpdateUiState.Checking -> stringResource(R.string.settings_update_checking)
-        is UpdateUiState.Available -> stringResource(
-            R.string.settings_update_available,
-            state.info.version,
-        )
-        is UpdateUiState.Downloading -> stringResource(
-            R.string.settings_update_downloading_progress,
-            state.progress,
-        )
-    }
+    val updateSubtitle =
+        when (val state = updateState) {
+            UpdateUiState.Idle -> stringResource(R.string.settings_update_check)
+            UpdateUiState.Checking -> stringResource(R.string.settings_update_checking)
+            is UpdateUiState.Available ->
+                stringResource(
+                    R.string.settings_update_available,
+                    state.info.version,
+                )
+            is UpdateUiState.Downloading ->
+                stringResource(
+                    R.string.settings_update_downloading_progress,
+                    state.progress,
+                )
+        }
     LaunchedEffect(Unit) {
         viewModel.messages.collect { messageRes ->
             Toast.makeText(context, messageRes, Toast.LENGTH_SHORT).show()
@@ -88,11 +91,12 @@ fun SettingsScreen(
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
-            .testTag("settings_screen")
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding()
+                .testTag("settings_screen"),
     ) {
         // Fixed header — stays put while the settings list below scrolls.
         Text(
@@ -100,20 +104,21 @@ fun SettingsScreen(
             color = TextPrimary,
             fontSize = 22.sp,
             fontWeight = FontWeight.Black,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
         )
         Text(
             text = stringResource(R.string.settings_subtitle),
             color = TextMuted,
             fontSize = 12.sp,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp),
         )
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -176,11 +181,12 @@ fun SettingsScreen(
                     icon = Icons.Default.SystemUpdateAlt,
                     title = stringResource(R.string.settings_update),
                     subtitle = updateSubtitle,
-                    onClick = if (updateState is UpdateUiState.Checking || updateState is UpdateUiState.Downloading) {
-                        null
-                    } else {
-                        viewModel::checkForUpdate
-                    },
+                    onClick =
+                        if (updateState is UpdateUiState.Checking || updateState is UpdateUiState.Downloading) {
+                            null
+                        } else {
+                            viewModel::checkForUpdate
+                        },
                     testTag = "settings_update",
                 )
                 SettingsRow(
@@ -218,9 +224,10 @@ private fun UpdateDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    val notes = info.releaseNotes.ifBlank {
-        stringResource(R.string.settings_update_no_notes)
-    }
+    val notes =
+        info.releaseNotes.ifBlank {
+            stringResource(R.string.settings_update_no_notes)
+        }
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = CardDark,
@@ -290,17 +297,18 @@ private fun SettingsRow(
     testTag: String,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 3.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(CardDark)
-            // TV focus highlight (no-op on phones); disabled rows (onClick == null)
-            // simply never get focus because there is no clickable/focusable node.
-            .then(if (onClick != null) Modifier.tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.02f) else Modifier)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 14.dp, vertical = 12.dp)
-            .testTag(testTag),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 3.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(CardDark)
+                // TV focus highlight (no-op on phones); disabled rows (onClick == null)
+                // simply never get focus because there is no clickable/focusable node.
+                .then(if (onClick != null) Modifier.tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.02f) else Modifier)
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+                .testTag(testTag),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(

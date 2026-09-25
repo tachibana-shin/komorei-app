@@ -12,15 +12,17 @@ import javax.inject.Singleton
 
 @Singleton
 class LibraryRepository @Inject constructor(
-    private val animeDao: AnimeDao
+    private val animeDao: AnimeDao,
 ) {
-    val bookmarkedAnimes: Flow<List<Anime>> = animeDao.getBookmarkedAnimes().map { entities ->
-        entities.map { it.anime }
-    }
+    val bookmarkedAnimes: Flow<List<Anime>> =
+        animeDao.getBookmarkedAnimes().map { entities ->
+            entities.map { it.anime }
+        }
 
-    val historyAnimes: Flow<List<Anime>> = animeDao.getHistoryAnimes().map { entities ->
-        entities.map { it.anime }
-    }
+    val historyAnimes: Flow<List<Anime>> =
+        animeDao.getHistoryAnimes().map { entities ->
+            entities.map { it.anime }
+        }
 
     suspend fun toggleBookmark(anime: Anime) {
         animeDao.toggleBookmark(anime.id, anime.sourceId) {
@@ -29,44 +31,51 @@ class LibraryRepository @Inject constructor(
     }
 
     suspend fun saveProgress(
-        anime: Anime, 
-        episode: Episode, 
-        progressMs: Long, 
-        durationMs: Long
+        anime: Anime,
+        episode: Episode,
+        progressMs: Long,
+        durationMs: Long,
     ) {
-        val historyEntry = WatchHistoryEntity(
-            animeId = anime.id,
-            sourceId = anime.sourceId,
-            episodeId = episode.id,
-            episodeNumber = episode.episodeNumber,
-            episodeTitle = episode.title,
-            lastWatchedAt = System.currentTimeMillis(),
-            progressMs = progressMs,
-            durationMs = durationMs
-        )
+        val historyEntry =
+            WatchHistoryEntity(
+                animeId = anime.id,
+                sourceId = anime.sourceId,
+                episodeId = episode.id,
+                episodeNumber = episode.episodeNumber,
+                episodeTitle = episode.title,
+                lastWatchedAt = System.currentTimeMillis(),
+                progressMs = progressMs,
+                durationMs = durationMs,
+            )
         animeDao.saveEpisodeProgress(anime.toEntity(), historyEntry)
     }
-    
-    fun getWatchHistoryForAnime(animeId: String, sourceId: String): Flow<List<WatchHistoryEntity>> {
-        return animeDao.getWatchHistoryForAnime(animeId, sourceId)
-    }
 
-    suspend fun getEpisodeProgress(animeId: String, sourceId: String, episodeId: String): WatchHistoryEntity? {
-        return animeDao.getEpisodeHistory(animeId, sourceId, episodeId)
-    }
+    fun getWatchHistoryForAnime(
+        animeId: String,
+        sourceId: String,
+    ): Flow<List<WatchHistoryEntity>> = animeDao.getWatchHistoryForAnime(animeId, sourceId)
+
+    suspend fun getEpisodeProgress(
+        animeId: String,
+        sourceId: String,
+        episodeId: String,
+    ): WatchHistoryEntity? = animeDao.getEpisodeHistory(animeId, sourceId, episodeId)
 
     /**
      * Watch time (ms) to auto-resume for [episodeId], or null when there's no saved
      * progress. suspend on purpose so a real watch-history source (e.g. remote server)
      * can be plugged in later without changing call sites.
      */
-    suspend fun getWatchTime(animeId: String, sourceId: String, episodeId: String): Long? {
-        return animeDao.getEpisodeHistory(animeId, sourceId, episodeId)?.progressMs
-    }
+    suspend fun getWatchTime(
+        animeId: String,
+        sourceId: String,
+        episodeId: String,
+    ): Long? = animeDao.getEpisodeHistory(animeId, sourceId, episodeId)?.progressMs
 
-    suspend fun isBookmarked(id: String, sourceId: String): Boolean {
-        return animeDao.getAnime(id, sourceId)?.isBookmarked ?: false
-    }
+    suspend fun isBookmarked(
+        id: String,
+        sourceId: String,
+    ): Boolean = animeDao.getAnime(id, sourceId)?.isBookmarked ?: false
 
     /**
      * Everything the "Thống kê" screen needs, derived from the saved history
@@ -74,13 +83,10 @@ class LibraryRepository @Inject constructor(
      * (one row per watched episode), so the date aggregation happens in Kotlin
      * rather than in a pile of SQL date functions.
      */
-    suspend fun getInsights(now: Long = System.currentTimeMillis()): InsightsData {
-        return InsightsData.from(animeDao.getAllWatchHistory(), now)
-    }
+    suspend fun getInsights(now: Long = System.currentTimeMillis()): InsightsData = InsightsData.from(animeDao.getAllWatchHistory(), now)
 
-    private fun Anime.toEntity(): AnimeEntity {
-        return AnimeEntity(
-            anime = this
+    private fun Anime.toEntity(): AnimeEntity =
+        AnimeEntity(
+            anime = this,
         )
-    }
 }

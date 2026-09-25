@@ -54,37 +54,40 @@ fun CheckFilterGroup(
     val shape = RoundedCornerShape(7.dp)
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            // TV focus highlight (no-op on phones) — full-width row, ring only.
-            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
-            .clip(RoundedCornerShape(10.dp))
-            .clickable { onStateChange(nextCheckState(state, kind.canExclude)) }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                // TV focus highlight (no-op on phones) — full-width row, ring only.
+                .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                .clip(RoundedCornerShape(10.dp))
+                .clickable { onStateChange(nextCheckState(state, kind.canExclude)) }
+                .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .size(width = 26.dp, height = 26.dp)
-                .clip(shape)
-                .background(if (state != 0) AnimeRed else SurfaceDark)
-                .border(
-                    width = 1.dp,
-                    color = if (state != 0) Color.Transparent else CardBorderDark,
-                    shape = shape,
-                ),
+            modifier =
+                Modifier
+                    .size(width = 26.dp, height = 26.dp)
+                    .clip(shape)
+                    .background(if (state != 0) AnimeRed else SurfaceDark)
+                    .border(
+                        width = 1.dp,
+                        color = if (state != 0) Color.Transparent else CardBorderDark,
+                        shape = shape,
+                    ),
         ) {
             if (state != 0) {
                 Icon(
                     imageVector = if (state == 1) Icons.Default.Check else Icons.Default.Close,
-                    contentDescription = stringResource(
-                        when (state) {
-                            1 -> R.string.filter_check_on_cd
-                            2 -> R.string.filter_check_excluded_cd
-                            else -> R.string.filter_check_off_cd
-                        }
-                    ),
+                    contentDescription =
+                        stringResource(
+                            when (state) {
+                                1 -> R.string.filter_check_on_cd
+                                2 -> R.string.filter_check_excluded_cd
+                                else -> R.string.filter_check_off_cd
+                            },
+                        ),
                     tint = Color.White,
                     modifier = Modifier.size(14.dp),
                 )
@@ -102,8 +105,12 @@ fun CheckFilterGroup(
 }
 
 /** Cycles the tristate check index (Aidoku `CheckFilterView`'s button logic). */
-fun nextCheckState(state: Int, canExclude: Boolean): Int = when (state) {
-    0 -> 1
-    1 -> if (canExclude) 2 else 0
-    else -> 0
-}
+fun nextCheckState(
+    state: Int,
+    canExclude: Boolean,
+): Int =
+    when (state) {
+        0 -> 1
+        1 -> if (canExclude) 2 else 0
+        else -> 0
+    }

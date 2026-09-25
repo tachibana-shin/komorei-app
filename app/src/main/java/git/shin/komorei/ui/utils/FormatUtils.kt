@@ -32,23 +32,25 @@ fun formatScheduleUpdate(update: Triple<Int, Int, Int>): String {
 
     val time = String.format(CLOCK_FORMAT, update.second, update.third)
 
-    val dayText = if (updateDayOfWeek == currentDay) {
-        stringResource(R.string.today_text)
-    } else {
-        if (updateDayOfWeek == Calendar.SUNDAY) {
-            stringResource(R.string.sunday_text)
+    val dayText =
+        if (updateDayOfWeek == currentDay) {
+            stringResource(R.string.today_text)
         } else {
-            stringResource(R.string.day_of_week_format, updateDayOfWeek)
+            if (updateDayOfWeek == Calendar.SUNDAY) {
+                stringResource(R.string.sunday_text)
+            } else {
+                stringResource(R.string.day_of_week_format, updateDayOfWeek)
+            }
         }
-    }
 
-    val weekText = if (updateDayOfWeek == currentDay) {
-        ""
-    } else if (updateDayOfWeek > currentDay) {
-        stringResource(R.string.this_week_text)
-    } else {
-        stringResource(R.string.next_week_text)
-    }
+    val weekText =
+        if (updateDayOfWeek == currentDay) {
+            ""
+        } else if (updateDayOfWeek > currentDay) {
+            stringResource(R.string.this_week_text)
+        } else {
+            stringResource(R.string.next_week_text)
+        }
 
     return stringResource(R.string.schedule_update_format, time, dayText, weekText)
 }
@@ -100,10 +102,11 @@ fun formatDayName(timestampMillis: Long): String {
 fun formatShortDayAndDate(timestampMillis: Long): Pair<String, String> {
     val date = Date(timestampMillis)
     val calendar = Calendar.getInstance().apply { time = date }
-    val shortDay = when (val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)) {
-        Calendar.SUNDAY -> "CN"
-        else -> "T$dayOfWeek"
-    }
+    val shortDay =
+        when (val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)) {
+            Calendar.SUNDAY -> "CN"
+            else -> "T$dayOfWeek"
+        }
 
     val sdfDate = SimpleDateFormat("dd/MM", Locale.getDefault())
     return Pair(shortDay, sdfDate.format(date))
@@ -113,7 +116,7 @@ fun isToday(timestampMillis: Long): Boolean {
     val today = Calendar.getInstance()
     val date = Calendar.getInstance().apply { timeInMillis = timestampMillis }
     return today.get(Calendar.YEAR) == date.get(Calendar.YEAR) &&
-            today.get(Calendar.DAY_OF_YEAR) == date.get(Calendar.DAY_OF_YEAR)
+        today.get(Calendar.DAY_OF_YEAR) == date.get(Calendar.DAY_OF_YEAR)
 }
 
 fun parseTimeAgo(timeAgo: String?): Instant? {
@@ -125,16 +128,17 @@ fun parseTimeAgo(timeAgo: String?): Instant? {
     val value = match.groupValues[1].toLong()
     val unit = match.groupValues[2]
 
-    val millis = when (unit) {
-        "giây" -> value * 1000
-        "phút" -> value * 60 * 1000
-        "giờ" -> value * 60 * 60 * 1000
-        "ngày" -> value * 24 * 60 * 60 * 1000
-        "tuần" -> value * 7 * 24 * 60 * 60 * 1000
-        "tháng" -> value * 30 * 24 * 60 * 60 * 1000
-        "năm" -> value * 365 * 24 * 60 * 60 * 1000
-        else -> 0L
-    }
+    val millis =
+        when (unit) {
+            "giây" -> value * 1000
+            "phút" -> value * 60 * 1000
+            "giờ" -> value * 60 * 60 * 1000
+            "ngày" -> value * 24 * 60 * 60 * 1000
+            "tuần" -> value * 7 * 24 * 60 * 60 * 1000
+            "tháng" -> value * 30 * 24 * 60 * 60 * 1000
+            "năm" -> value * 365 * 24 * 60 * 60 * 1000
+            else -> 0L
+        }
 
     return Instant.ofEpochMilli(now - millis)
 }
@@ -148,25 +152,29 @@ fun formatTimeAgo(instant: Instant?): String {
 
     return when {
         diff < TimeUnit.MINUTES.toMillis(1) -> stringResource(R.string.just_now)
-        diff < TimeUnit.HOURS.toMillis(1) -> stringResource(
-            R.string.minutes_ago,
-            diff / TimeUnit.MINUTES.toMillis(1)
-        )
+        diff < TimeUnit.HOURS.toMillis(1) ->
+            stringResource(
+                R.string.minutes_ago,
+                diff / TimeUnit.MINUTES.toMillis(1),
+            )
 
-        diff < TimeUnit.DAYS.toMillis(1) -> stringResource(
-            R.string.hours_ago,
-            diff / TimeUnit.HOURS.toMillis(1)
-        )
+        diff < TimeUnit.DAYS.toMillis(1) ->
+            stringResource(
+                R.string.hours_ago,
+                diff / TimeUnit.HOURS.toMillis(1),
+            )
 
-        diff < TimeUnit.DAYS.toMillis(30) -> stringResource(
-            R.string.days_ago,
-            diff / TimeUnit.DAYS.toMillis(1)
-        )
+        diff < TimeUnit.DAYS.toMillis(30) ->
+            stringResource(
+                R.string.days_ago,
+                diff / TimeUnit.DAYS.toMillis(1),
+            )
 
-        diff < TimeUnit.DAYS.toMillis(365) -> stringResource(
-            R.string.months_ago,
-            diff / TimeUnit.DAYS.toMillis(30)
-        )
+        diff < TimeUnit.DAYS.toMillis(365) ->
+            stringResource(
+                R.string.months_ago,
+                diff / TimeUnit.DAYS.toMillis(30),
+            )
 
         else -> stringResource(R.string.years_ago, diff / TimeUnit.DAYS.toMillis(365))
     }

@@ -16,9 +16,10 @@ class ExternalDeepLinkParserTest {
     @Test
     fun parsesKomoreiRepositoryLink() {
         val encoded = Uri.encode("https://repo.example/index.min.json")
-        val parsed = ExternalDeepLinkParser.parse(
-            Uri.parse("komorei://addSourceList?url=$encoded"),
-        )
+        val parsed =
+            ExternalDeepLinkParser.parse(
+                Uri.parse("komorei://addSourceList?url=$encoded"),
+            )
 
         assertEquals(
             ExternalDeepLinkRequest.AddRepository("https://repo.example/index.min.json"),
@@ -29,9 +30,10 @@ class ExternalDeepLinkParserTest {
     @Test
     fun parsesKomoreiSourceInstallLink() {
         val encoded = Uri.encode("https://repo.example/sources/demo.krx")
-        val parsed = ExternalDeepLinkParser.parse(
-            Uri.parse("komorei://addSource?url=$encoded"),
-        )
+        val parsed =
+            ExternalDeepLinkParser.parse(
+                Uri.parse("komorei://addSource?url=$encoded"),
+            )
 
         assertEquals(
             ExternalDeepLinkRequest.InstallSource("https://repo.example/sources/demo.krx"),

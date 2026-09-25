@@ -9,5 +9,9 @@ import git.shin.komorei.model.StreamData
  * Inspired by git.shin.animevsub.data.remote.SegmentDataInterceptor.
  */
 fun interface SegmentDataInterceptor {
-    fun intercept(streamData: StreamData?, segmentUrl: String, data: ByteArray): ByteArray
+    fun intercept(
+        streamData: StreamData?,
+        segmentUrl: String,
+        data: ByteArray,
+    ): ByteArray
 }

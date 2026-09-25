@@ -55,7 +55,6 @@ import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.theme.TextSecondary
 import git.shin.komorei.ui.tv.tvFocus
-import kotlinx.coroutines.launch
 
 /**
  * A real in-app WebView browser. Its cookies land in the shared
@@ -92,26 +91,29 @@ fun SourceBrowserScreen(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(CardDark)
-            .statusBarsPadding()
-            .navigationBarsPadding(),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(CardDark)
+                .statusBarsPadding()
+                .navigationBarsPadding(),
     ) {
         // ── Toolbar: back / forward / reload + URL bar + share/open ────────
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 6.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             IconButton(
                 enabled = canGoBack,
                 onClick = { webView?.goBack() },
-                modifier = Modifier
-                    // TV focus highlight (no-op on phones).
-                    .tvFocus(shape = CircleShape, scale = 1.15f),
+                modifier =
+                    Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f),
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
@@ -123,9 +125,10 @@ fun SourceBrowserScreen(
             IconButton(
                 enabled = canGoForward,
                 onClick = { webView?.goForward() },
-                modifier = Modifier
-                    // TV focus highlight (no-op on phones).
-                    .tvFocus(shape = CircleShape, scale = 1.15f),
+                modifier =
+                    Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f),
             ) {
                 Icon(
                     Icons.Filled.ArrowForward,
@@ -136,9 +139,10 @@ fun SourceBrowserScreen(
             }
             IconButton(
                 onClick = { webView?.reload() },
-                modifier = Modifier
-                    // TV focus highlight (no-op on phones).
-                    .tvFocus(shape = CircleShape, scale = 1.15f),
+                modifier =
+                    Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f),
             ) {
                 Icon(
                     Icons.Filled.Refresh,
@@ -159,9 +163,10 @@ fun SourceBrowserScreen(
 
             TextButton(
                 onClick = { load() },
-                modifier = Modifier
-                    // TV focus highlight (no-op on phones).
-                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
+                modifier =
+                    Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
             ) {
                 Text(
                     text = stringResource(R.string.source_browser_cd_go),
@@ -172,19 +177,21 @@ fun SourceBrowserScreen(
 
         // ── Share / open-external row ─────────────────────────────────────
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 2.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TextButton(
                 onClick = {
                     val url = webView?.url ?: return@TextButton
-                    val send = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, url)
-                    }
+                    val send =
+                        Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, url)
+                        }
                     context.startActivity(Intent.createChooser(send, null))
                 },
                 modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
@@ -229,39 +236,46 @@ fun SourceBrowserScreen(
                     CookieManager.getInstance().setAcceptCookie(true)
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 
-                    webViewClient = object : WebViewClient() {
-                        override fun shouldOverrideUrlLoading(
-                            view: WebView,
-                            request: WebResourceRequest,
-                        ): Boolean = false
+                    webViewClient =
+                        object : WebViewClient() {
+                            override fun shouldOverrideUrlLoading(
+                                view: WebView,
+                                request: WebResourceRequest,
+                            ): Boolean = false
 
-                        override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
-                            url?.let { urlText = it }
+                            override fun onPageStarted(
+                                view: WebView,
+                                url: String?,
+                                favicon: android.graphics.Bitmap?,
+                            ) {
+                                url?.let { urlText = it }
+                            }
+
+                            override fun onPageFinished(
+                                view: WebView,
+                                url: String?,
+                            ) {
+                                canGoBack = view.canGoBack()
+                                canGoForward = view.canGoForward()
+                            }
+
+                            // Anti-bot systems fingerprint Android's autogenerated
+                            // `X-Requested-With` header to detect WebViews; strip it
+                            // like the challenge-bypass dialog (reference app).
+                            override fun shouldInterceptRequest(
+                                view: WebView,
+                                request: WebResourceRequest,
+                            ): WebResourceResponse? = super.shouldInterceptRequest(view, stripFingerprintHeaders(request))
+
+                            override fun onReceivedError(
+                                view: WebView,
+                                request: WebResourceRequest,
+                                error: WebResourceError,
+                            ) {
+                                // Swallow — an error page is not useful inside the
+                                // app browser; the user can just reload.
+                            }
                         }
-
-                        override fun onPageFinished(view: WebView, url: String?) {
-                            canGoBack = view.canGoBack()
-                            canGoForward = view.canGoForward()
-                        }
-
-                        // Anti-bot systems fingerprint Android's autogenerated
-                        // `X-Requested-With` header to detect WebViews; strip it
-                        // like the challenge-bypass dialog (reference app).
-                        override fun shouldInterceptRequest(
-                            view: WebView,
-                            request: WebResourceRequest,
-                        ): WebResourceResponse? =
-                            super.shouldInterceptRequest(view, stripFingerprintHeaders(request))
-
-                        override fun onReceivedError(
-                            view: WebView,
-                            request: WebResourceRequest,
-                            error: WebResourceError,
-                        ) {
-                            // Swallow — an error page is not useful inside the
-                            // app browser; the user can just reload.
-                        }
-                    }
                     webChromeClient = WebChromeClient()
 
                     webView = this
@@ -270,9 +284,10 @@ fun SourceBrowserScreen(
                     }
                 }
             },
-            modifier = Modifier
-                .fillMaxSize()
-                .background(CardDark),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(CardDark),
             update = { view ->
                 webView = view
             },

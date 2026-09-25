@@ -11,5 +11,5 @@ data class Genre(
     val name: String,
     val emoji: String,
     val accentColorHex: Long,
-    val count: Int
+    val count: Int,
 )

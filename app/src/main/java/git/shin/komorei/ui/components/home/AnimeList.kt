@@ -30,9 +30,9 @@ import coil.compose.AsyncImage
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.Link
 import git.shin.komorei.ui.components.SectionHeader
+import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
-import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.tv.tvFocus
 
 /**
@@ -79,13 +79,13 @@ fun AnimeListRow(
                 HorizontalPager(
                     state = rememberPagerState(pageCount = { pages.size }),
                     pageSpacing = 8.dp,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) { pageIndex ->
                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                         pages[pageIndex].chunked(columns).forEachIndexed { rowIndex, rowItems ->
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
                                 rowItems.forEachIndexed { columnIndex, entry ->
                                     AnimeListGridCell(
@@ -93,7 +93,7 @@ fun AnimeListRow(
                                         entry = entry,
                                         ranking = ranking,
                                         onAnimeClick = onAnimeClick,
-                                        modifier = Modifier.width(cellWidth)
+                                        modifier = Modifier.width(cellWidth),
                                     )
                                 }
                                 // Keep an incomplete last row left-aligned.
@@ -113,7 +113,7 @@ fun AnimeListRow(
                         entry = entry,
                         ranking = ranking,
                         onAnimeClick = onAnimeClick,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
@@ -133,13 +133,13 @@ private fun AnimeListRowCell(
     val anime = entry.anime
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            // TV focus highlight (no-op on phones) — full-width row, ring only.
-            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
-            .clickable(enabled = anime != null) {
-                if (anime != null) onAnimeClick(anime)
-            }
-            .padding(vertical = 6.dp)
+        modifier =
+            modifier
+                // TV focus highlight (no-op on phones) — full-width row, ring only.
+                .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                .clickable(enabled = anime != null) {
+                    if (anime != null) onAnimeClick(anime)
+                }.padding(vertical = 6.dp),
     ) {
         if (ranking) {
             Text(
@@ -147,16 +147,18 @@ private fun AnimeListRowCell(
                 color = if (index < 3) AnimeRed else TextMuted,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .width(22.dp)
-                    .padding(end = 6.dp)
+                modifier =
+                    Modifier
+                        .width(22.dp)
+                        .padding(end = 6.dp),
             )
         }
         AnimeThumb(entry = entry, modifier = Modifier.size(width = 66.dp, height = 92.dp))
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 12.dp)
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp),
         ) {
             Text(
                 text = entry.title,
@@ -165,7 +167,7 @@ private fun AnimeListRowCell(
                 fontWeight = FontWeight.Medium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                lineHeight = 18.sp
+                lineHeight = 18.sp,
             )
             entry.subtitle?.let { subtitle ->
                 Spacer(modifier = Modifier.height(2.dp))
@@ -174,7 +176,7 @@ private fun AnimeListRowCell(
                     color = TextMuted,
                     fontSize = 13.sp,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -193,13 +195,13 @@ private fun AnimeListGridCell(
     val anime = entry.anime
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            // TV focus highlight (no-op on phones) — grid cell.
-            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
-            .clickable(enabled = anime != null) {
-                if (anime != null) onAnimeClick(anime)
-            }
-            .padding(vertical = 6.dp)
+        modifier =
+            modifier
+                // TV focus highlight (no-op on phones) — grid cell.
+                .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
+                .clickable(enabled = anime != null) {
+                    if (anime != null) onAnimeClick(anime)
+                }.padding(vertical = 6.dp),
     ) {
         if (ranking) {
             Text(
@@ -207,15 +209,17 @@ private fun AnimeListGridCell(
                 color = if (index < 3) AnimeRed else TextMuted,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .padding(end = 4.dp)
+                modifier =
+                    Modifier
+                        .padding(end = 4.dp),
             )
         }
         AnimeThumb(entry = entry, modifier = Modifier.size(width = 52.dp, height = 74.dp))
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 8.dp)
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp),
         ) {
             Text(
                 text = entry.title,
@@ -224,7 +228,7 @@ private fun AnimeListGridCell(
                 fontWeight = FontWeight.Medium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                lineHeight = 16.sp
+                lineHeight = 16.sp,
             )
             entry.subtitle?.let { subtitle ->
                 Spacer(modifier = Modifier.height(2.dp))
@@ -233,7 +237,7 @@ private fun AnimeListGridCell(
                     color = TextMuted,
                     fontSize = 11.sp,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -242,13 +246,16 @@ private fun AnimeListGridCell(
 
 /** The link's poster / cover thumbnail, or the linked anime's poster. */
 @Composable
-private fun AnimeThumb(entry: Link, modifier: Modifier = Modifier) {
+private fun AnimeThumb(
+    entry: Link,
+    modifier: Modifier = Modifier,
+) {
     Box(modifier = modifier.clip(RoundedCornerShape(10.dp))) {
         AsyncImage(
             model = entry.imageUrl ?: entry.anime?.posterUrl,
             contentDescription = entry.title,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
         )
         QualityTagBadge(qualityTag = entry.anime?.qualityTag, inset = 4.dp)
     }

@@ -66,24 +66,27 @@ fun NotificationsScreen(
     val unreadCount = notifications.count { !it.isRead }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
-            .testTag("notifications_screen")
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding()
+                .testTag("notifications_screen"),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
                 onClick = onBack,
-                modifier = Modifier
-                    // TV focus highlight (no-op on phones).
-                    .tvFocus(shape = CircleShape, scale = 1.15f)
-                    .testTag("notifications_back"),
+                modifier =
+                    Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .testTag("notifications_back"),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -92,9 +95,10 @@ fun NotificationsScreen(
                 )
             }
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 16.dp),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .padding(end = 16.dp),
             ) {
                 Text(
                     text = stringResource(R.string.notifications_title),
@@ -103,11 +107,12 @@ fun NotificationsScreen(
                     fontWeight = FontWeight.Black,
                 )
                 Text(
-                    text = if (unreadCount > 0) {
-                        stringResource(R.string.notifications_unread_count, unreadCount)
-                    } else {
-                        stringResource(R.string.notifications_subtitle)
-                    },
+                    text =
+                        if (unreadCount > 0) {
+                            stringResource(R.string.notifications_unread_count, unreadCount)
+                        } else {
+                            stringResource(R.string.notifications_subtitle)
+                        },
                     color = TextMuted,
                     fontSize = 12.sp,
                 )
@@ -116,18 +121,20 @@ fun NotificationsScreen(
 
         if (notifications.isNotEmpty()) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TextButton(
                     onClick = { viewModel.markAllRead() },
-                    modifier = Modifier
-                        // TV focus highlight (no-op on phones).
-                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
-                        .testTag("notifications_mark_all_read"),
+                    modifier =
+                        Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
+                            .testTag("notifications_mark_all_read"),
                 ) {
                     Text(
                         text = stringResource(R.string.notifications_mark_all_read),
@@ -138,9 +145,10 @@ fun NotificationsScreen(
                 }
                 TextButton(
                     onClick = { viewModel.clearAll() },
-                    modifier = Modifier
-                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
-                        .testTag("notifications_clear_all"),
+                    modifier =
+                        Modifier
+                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
+                            .testTag("notifications_clear_all"),
                 ) {
                     Text(
                         text = stringResource(R.string.notifications_clear_all),
@@ -181,22 +189,24 @@ private fun NotificationRow(
 ) {
     val accent = notification.type.accentColor()
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            // TV focus highlight (no-op on phones) — full-width row, ring only.
-            .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.0f)
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (notification.isRead) CardDark else accent.copy(alpha = 0.14f))
-            .clickable(onClick = onClick)
-            .padding(12.dp)
-            .testTag("notification_${notification.id}"),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                // TV focus highlight (no-op on phones) — full-width row, ring only.
+                .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.0f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(if (notification.isRead) CardDark else accent.copy(alpha = 0.14f))
+                .clickable(onClick = onClick)
+                .padding(12.dp)
+                .testTag("notification_${notification.id}"),
         verticalAlignment = Alignment.Top,
     ) {
         Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(accent.copy(alpha = 0.18f)),
+            modifier =
+                Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(accent.copy(alpha = 0.18f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -221,10 +231,11 @@ private fun NotificationRow(
                 if (!notification.isRead) {
                     Spacer(modifier = Modifier.width(6.dp))
                     Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(AnimeRed)
+                        modifier =
+                            Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(AnimeRed),
                     )
                 }
             }
@@ -250,9 +261,10 @@ private fun NotificationRow(
 @Composable
 private fun NotificationsEmptyState() {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(32.dp),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -281,21 +293,24 @@ private fun NotificationsEmptyState() {
 }
 
 @Composable
-private fun timeAgoLabel(minutesAgo: Int): String = when {
-    minutesAgo < 1 -> stringResource(R.string.time_just_now)
-    minutesAgo < 60 -> stringResource(R.string.time_minutes_ago, minutesAgo)
-    minutesAgo < 1_440 -> stringResource(R.string.time_hours_ago, minutesAgo / 60)
-    else -> stringResource(R.string.time_days_ago, minutesAgo / 1_440)
-}
+private fun timeAgoLabel(minutesAgo: Int): String =
+    when {
+        minutesAgo < 1 -> stringResource(R.string.time_just_now)
+        minutesAgo < 60 -> stringResource(R.string.time_minutes_ago, minutesAgo)
+        minutesAgo < 1_440 -> stringResource(R.string.time_hours_ago, minutesAgo / 60)
+        else -> stringResource(R.string.time_days_ago, minutesAgo / 1_440)
+    }
 
-private fun NotificationType.icon(): ImageVector = when (this) {
-    NotificationType.NEW_EPISODE -> Icons.Default.PlayCircleOutline
-    NotificationType.SOURCE_UPDATE -> Icons.Default.SystemUpdateAlt
-    NotificationType.SYSTEM -> Icons.Default.Info
-}
+private fun NotificationType.icon(): ImageVector =
+    when (this) {
+        NotificationType.NEW_EPISODE -> Icons.Default.PlayCircleOutline
+        NotificationType.SOURCE_UPDATE -> Icons.Default.SystemUpdateAlt
+        NotificationType.SYSTEM -> Icons.Default.Info
+    }
 
-private fun NotificationType.accentColor(): Color = when (this) {
-    NotificationType.NEW_EPISODE -> AnimeRed
-    NotificationType.SOURCE_UPDATE -> AnimeBlue
-    NotificationType.SYSTEM -> Color(0xFF8B85FF)
-}
+private fun NotificationType.accentColor(): Color =
+    when (this) {
+        NotificationType.NEW_EPISODE -> AnimeRed
+        NotificationType.SOURCE_UPDATE -> AnimeBlue
+        NotificationType.SYSTEM -> Color(0xFF8B85FF)
+    }

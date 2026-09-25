@@ -28,7 +28,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class KrxHostJsTest {
-
     private lateinit var host: KrxHostImpl
 
     @Before
@@ -139,9 +138,10 @@ class KrxHostJsTest {
         assertEquals("https://example.com", shadowOf(view).lastLoadedUrl)
 
         // drive onPageFinished from a worker thread while the host waits
-        val finisher = Thread {
-            shadowOf(view).webViewClient?.onPageFinished(view, "https://example.com")
-        }
+        val finisher =
+            Thread {
+                shadowOf(view).webViewClient?.onPageFinished(view, "https://example.com")
+            }
         finisher.start()
         host.jsWebviewWaitForLoad(webview) // unblocks when the page finishes
         finisher.join()

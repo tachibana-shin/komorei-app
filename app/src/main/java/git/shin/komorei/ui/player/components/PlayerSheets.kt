@@ -18,11 +18,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -51,9 +49,9 @@ import androidx.media3.common.VideoSize
 import coil.compose.AsyncImage
 import git.shin.komorei.R
 import git.shin.komorei.model.*
-import git.shin.komorei.ui.player.PlayerPlaybackState
 import git.shin.komorei.ui.components.EpisodeProgressBar
 import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
+import git.shin.komorei.ui.player.PlayerPlaybackState
 import git.shin.komorei.ui.theme.*
 import git.shin.komorei.ui.tv.tvFocus
 import git.shin.komorei.ui.utils.animateScrollToItemCentered
@@ -73,7 +71,7 @@ fun EpisodesBottomSheet(
     onRetryEpisodes: () -> Unit,
     onSeasonChange: (String) -> Unit,
     onEpisodeSelected: (Episode) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     // Pad by the HOST window's nav-bar height: the sheet's Dialog window insets are
@@ -87,13 +85,14 @@ fun EpisodesBottomSheet(
         contentColor = TextPrimary,
         dragHandle = {
             Box(
-                modifier = Modifier
-                    .padding(top = 10.dp, bottom = 6.dp)
-                    .size(width = 38.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(CardBorderDark)
+                modifier =
+                    Modifier
+                        .padding(top = 10.dp, bottom = 6.dp)
+                        .size(width = 38.dp, height = 4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(CardBorderDark),
             )
-        }
+        },
     ) {
         EpisodesContent(
             anime = anime,
@@ -107,11 +106,12 @@ fun EpisodesBottomSheet(
             isLoading = isLoading,
             onRetryEpisodes = onRetryEpisodes,
             onEpisodeSelected = onEpisodeSelected,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = navBarBottom + 8.dp)
-                .testTag("episodes_full_bottom_sheet")
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = navBarBottom + 8.dp)
+                    .testTag("episodes_full_bottom_sheet"),
         )
     }
 }
@@ -129,24 +129,26 @@ fun EpisodesContent(
     onRetryEpisodes: () -> Unit,
     onSeasonChange: (String) -> Unit,
     onEpisodeSelected: (Episode) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var isGridView by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var isAscending by remember { mutableStateOf(true) }
     var showSeasonList by remember { mutableStateOf(false) }
 
-    val filteredEpisodes = remember(episodes, searchQuery, isAscending) {
-        val list = if (searchQuery.isBlank()) {
-            episodes
-        } else {
-            episodes.filter { ep ->
-                ep.episodeNumber.contains(searchQuery.trim()) ||
-                        ep.title.contains(searchQuery.trim(), ignoreCase = true)
-            }
+    val filteredEpisodes =
+        remember(episodes, searchQuery, isAscending) {
+            val list =
+                if (searchQuery.isBlank()) {
+                    episodes
+                } else {
+                    episodes.filter { ep ->
+                        ep.episodeNumber.contains(searchQuery.trim()) ||
+                            ep.title.contains(searchQuery.trim(), ignoreCase = true)
+                    }
+                }
+            if (isAscending) list else list.reversed()
         }
-        if (isAscending) list else list.reversed()
-    }
 
     // Per-view scroll states. Each distinct content (season × view mode × sort × search)
     // keeps its own scroll offset, like separate tabs — otherwise the single remembered
@@ -158,11 +160,14 @@ fun EpisodesContent(
     // episode. Prevents re-scrolling when revisiting a season (saved position is restored)
     // and avoids the race where the flag was consumed during the loading/empty state.
     val autoScrolledKeys = remember { mutableSetOf<String>() }
-    val viewContentKey = buildString {
-        append(selectedSeasonId); append('|')
-        append(if (isAscending) "asc" else "desc"); append('|')
-        append(searchQuery.trim())
-    }
+    val viewContentKey =
+        buildString {
+            append(selectedSeasonId)
+            append('|')
+            append(if (isAscending) "asc" else "desc")
+            append('|')
+            append(searchQuery.trim())
+        }
 
     // Season-picker list keeps its scroll while toggling open/closed (AnimatedVisibility
     // disposes the content, so the state must live up here).
@@ -176,7 +181,7 @@ fun EpisodesContent(
             selectedSeasonId = selectedSeasonId,
             seasonPickerState = seasonPickerState,
             onSeasonChange = onSeasonChange,
-            onCloseSeasonList = { showSeasonList = false }
+            onCloseSeasonList = { showSeasonList = false },
         ) {
             if (seasons.isNotEmpty()) {
                 val seasonsRowState = rememberLazyListState()
@@ -188,12 +193,12 @@ fun EpisodesContent(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     LazyRow(
                         state = seasonsRowState,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         items(seasons) { season ->
                             val isSelected = season.id == selectedSeasonId
@@ -201,24 +206,27 @@ fun EpisodesContent(
                                 onClick = { onSeasonChange(season.id) },
                                 color = if (isSelected) AnimeRedContainer else SurfaceDark,
                                 shape = RoundedCornerShape(20.dp),
-                                border = androidx.compose.foundation.BorderStroke(
-                                    1.dp,
-                                    if (isSelected) AnimeRed else CardBorderDark
-                                ),
-                                modifier = Modifier
-                                    // TV focus highlight (no-op on phones).
-                                    .tvFocus(shape = RoundedCornerShape(20.dp), scale = 1.04f)
-                                    .testTag("sheet_season_tab_${season.id}")
+                                border =
+                                    androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (isSelected) AnimeRed else CardBorderDark,
+                                    ),
+                                modifier =
+                                    Modifier
+                                        // TV focus highlight (no-op on phones).
+                                        .tvFocus(shape = RoundedCornerShape(20.dp), scale = 1.04f)
+                                        .testTag("sheet_season_tab_${season.id}"),
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                 ) {
                                     Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(if (isSelected) AnimeRed else Color.Transparent)
+                                        modifier =
+                                            Modifier
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(if (isSelected) AnimeRed else Color.Transparent),
                                     )
                                     if (isSelected) {
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -227,7 +235,7 @@ fun EpisodesContent(
                                         text = season.title,
                                         color = if (isSelected) AnimeRed else TextSecondary,
                                         fontSize = 12.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     )
                                 }
                             }
@@ -241,16 +249,17 @@ fun EpisodesContent(
                         border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderDark),
                         // TV focus highlight (no-op on phones); small square buttons
                         // scale more so the focused one is obvious.
-                        modifier = Modifier
-                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.1f)
-                            .size(36.dp)
+                        modifier =
+                            Modifier
+                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.1f)
+                                .size(36.dp),
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.List,
                                 contentDescription = stringResource(R.string.cd_season_list),
                                 tint = TextSecondary,
-                                modifier = Modifier.size(17.dp)
+                                modifier = Modifier.size(17.dp),
                             )
                         }
                     }
@@ -260,31 +269,33 @@ fun EpisodesContent(
             }
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(SurfaceDark)
-                        .border(1.dp, CardBorderDark, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 10.dp),
-                    contentAlignment = Alignment.CenterStart
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .height(36.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(SurfaceDark)
+                            .border(1.dp, CardBorderDark, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp),
+                    contentAlignment = Alignment.CenterStart,
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = null,
                             tint = TextMuted,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(16.dp),
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         BasicTextField(
@@ -297,18 +308,18 @@ fun EpisodesContent(
                             decorationBox = { innerTextField ->
                                 Box(
                                     modifier = Modifier.fillMaxHeight(),
-                                    contentAlignment = Alignment.CenterStart
+                                    contentAlignment = Alignment.CenterStart,
                                 ) {
                                     if (searchQuery.isEmpty()) {
                                         Text(
                                             text = stringResource(R.string.episode_search_hint),
                                             color = TextMuted,
-                                            fontSize = 12.sp
+                                            fontSize = 12.sp,
                                         )
                                     }
                                     innerTextField()
                                 }
-                            }
+                            },
                         )
                     }
                 }
@@ -318,16 +329,17 @@ fun EpisodesContent(
                     color = SurfaceDark,
                     shape = RoundedCornerShape(8.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderDark),
-                    modifier = Modifier
-                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.1f)
-                        .size(36.dp)
+                    modifier =
+                        Modifier
+                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.1f)
+                            .size(36.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Sort,
                             contentDescription = stringResource(R.string.cd_sort),
                             tint = if (isAscending) TextSecondary else AnimeRed,
-                            modifier = Modifier.size(17.dp)
+                            modifier = Modifier.size(17.dp),
                         )
                     }
                 }
@@ -336,20 +348,22 @@ fun EpisodesContent(
                     onClick = { isGridView = !isGridView },
                     color = if (isGridView) AnimeRedContainer else SurfaceDark,
                     shape = RoundedCornerShape(8.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        if (isGridView) AnimeRed else CardBorderDark
-                    ),
-                    modifier = Modifier
-                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.1f)
-                        .size(36.dp)
+                    border =
+                        androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (isGridView) AnimeRed else CardBorderDark,
+                        ),
+                    modifier =
+                        Modifier
+                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.1f)
+                            .size(36.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (isGridView) Icons.Default.GridView else Icons.Default.ViewList,
                             contentDescription = stringResource(R.string.cd_toggle_view),
                             tint = if (isGridView) AnimeRed else TextSecondary,
-                            modifier = Modifier.size(17.dp)
+                            modifier = Modifier.size(17.dp),
                         )
                     }
                 }
@@ -360,20 +374,20 @@ fun EpisodesContent(
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Default.ErrorOutline,
                         contentDescription = null,
                         tint = TextMuted,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(40.dp),
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = stringResource(R.string.episodes_load_error_title),
                         color = TextPrimary,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -381,13 +395,13 @@ fun EpisodesContent(
                         color = TextMuted,
                         fontSize = 12.sp,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 24.dp)
+                        modifier = Modifier.padding(horizontal = 24.dp),
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = onRetryEpisodes,
                         colors = ButtonDefaults.buttonColors(containerColor = AnimeRed),
-                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp)
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                     ) {
                         Text(stringResource(R.string.action_retry), color = Color.White, fontSize = 13.sp)
                     }
@@ -401,24 +415,28 @@ fun EpisodesContent(
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Article,
                         contentDescription = null,
                         tint = TextMuted,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(40.dp),
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = stringResource(
-                            if (searchQuery.isNotBlank()) R.string.episodes_empty_search
-                            else R.string.episodes_empty
-                        ),
+                        text =
+                            stringResource(
+                                if (searchQuery.isNotBlank()) {
+                                    R.string.episodes_empty_search
+                                } else {
+                                    R.string.episodes_empty
+                                },
+                            ),
                         color = TextMuted,
                         fontSize = 13.sp,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 24.dp)
+                        modifier = Modifier.padding(horizontal = 24.dp),
                     )
                 }
             } else if (isGridView) {
@@ -444,7 +462,7 @@ fun EpisodesContent(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 36.dp),
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     items(filteredEpisodes) { ep ->
                         val isPlaying = ep.id == currentEpisode.id
@@ -452,21 +470,23 @@ fun EpisodesContent(
                             onClick = { onEpisodeSelected(ep) },
                             color = if (isPlaying) AnimeRedContainer else SurfaceDark,
                             shape = RoundedCornerShape(8.dp),
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (isPlaying) AnimeRed else CardBorderDark
-                            ),
-                            modifier = Modifier
-                                // TV focus highlight (no-op on phones).
-                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.06f)
-                                .height(42.dp)
+                            border =
+                                androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    if (isPlaying) AnimeRed else CardBorderDark,
+                                ),
+                            modifier =
+                                Modifier
+                                    // TV focus highlight (no-op on phones).
+                                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.06f)
+                                    .height(42.dp),
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
                                     text = ep.episodeNumber,
                                     color = if (isPlaying) AnimeRed else TextPrimary,
                                     fontSize = 13.sp,
-                                    fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Medium
+                                    fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Medium,
                                 )
                             }
                         }
@@ -493,7 +513,7 @@ fun EpisodesContent(
                     state = listState,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 36.dp),
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     items(filteredEpisodes) { ep ->
                         val isPlaying = ep.id == currentEpisode.id
@@ -503,7 +523,7 @@ fun EpisodesContent(
                             posterUrl = anime.posterUrl,
                             isPlaying = isPlaying,
                             progress = history?.progressFraction ?: 0f,
-                            onClick = { onEpisodeSelected(ep) }
+                            onClick = { onEpisodeSelected(ep) },
                         )
                     }
                 }
@@ -521,28 +541,28 @@ private fun SeasonVsEpisodePane(
     seasonPickerState: LazyListState,
     onSeasonChange: (String) -> Unit,
     onCloseSeasonList: () -> Unit,
-    episodesContent: @Composable ColumnScope.() -> Unit
+    episodesContent: @Composable ColumnScope.() -> Unit,
 ) {
     Box(modifier = modifier) {
         AnimatedVisibility(
             visible = showSeasonList,
             enter = fadeIn(animationSpec = tween(200)) + slideInHorizontally(initialOffsetX = { it }),
             exit = fadeOut(animationSpec = tween(160)) + slideOutHorizontally(targetOffsetX = { it }),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
         ) {
             SeasonPickerPane(
                 seasons = seasons,
                 selectedSeasonId = selectedSeasonId,
                 scrollState = seasonPickerState,
                 onSeasonChange = onSeasonChange,
-                onClose = onCloseSeasonList
+                onClose = onCloseSeasonList,
             )
         }
         AnimatedVisibility(
             visible = !showSeasonList,
             enter = fadeIn(animationSpec = tween(200)) + slideInHorizontally(initialOffsetX = { -it }),
             exit = fadeOut(animationSpec = tween(160)) + slideOutHorizontally(targetOffsetX = { -it }),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 episodesContent()
@@ -557,19 +577,19 @@ private fun SeasonPickerPane(
     selectedSeasonId: String,
     scrollState: LazyListState,
     onSeasonChange: (String) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
                 text = stringResource(R.string.season_picker_title, seasons.size),
                 color = TextPrimary,
                 fontSize = 15.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
             )
             IconButton(onClick = onClose) {
                 Icon(Icons.Default.Close, null, tint = TextSecondary)
@@ -578,7 +598,7 @@ private fun SeasonPickerPane(
 
         LazyColumn(
             state = scrollState,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             items(seasons) { season ->
                 val isSelected = season.id == selectedSeasonId
@@ -590,22 +610,23 @@ private fun SeasonPickerPane(
                     color = if (isSelected) AnimeRedContainer else SurfaceDark,
                     shape = RoundedCornerShape(10.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) AnimeRed else CardBorderDark),
-                    modifier = Modifier
-                        // TV focus highlight (no-op on phones); full-width rows keep
-                        // scale at 1.0 so the ring alone marks the focused row.
-                        .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
-                        .fillMaxWidth()
+                    modifier =
+                        Modifier
+                            // TV focus highlight (no-op on phones); full-width rows keep
+                            // scale at 1.0 so the ring alone marks the focused row.
+                            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                            .fillMaxWidth(),
                 ) {
                     Row(
                         modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text = season.title,
                             color = if (isSelected) AnimeRed else TextSecondary,
                             fontSize = 13.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                         if (isSelected) {
                             Icon(Icons.Default.Check, null, tint = AnimeRed, modifier = Modifier.size(18.dp))
@@ -627,11 +648,12 @@ private fun EpisodesSkeleton(isGridView: Boolean) {
     val pulseAlpha by transition.animateFloat(
         initialValue = 0.45f,
         targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(650),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "episodesSkeletonAlpha"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(650),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "episodesSkeletonAlpha",
     )
 
     Box(modifier = Modifier.fillMaxSize().alpha(pulseAlpha)) {
@@ -641,22 +663,23 @@ private fun EpisodesSkeleton(isGridView: Boolean) {
                 columns = GridCells.Adaptive(minSize = 64.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             ) {
                 items(count = 24) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(42.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(CardDark)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(42.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(CardDark),
                     )
                 }
             }
         } else {
             Column(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 repeat(8) {
                     SkeletonEpisodeRow()
@@ -670,45 +693,50 @@ private fun EpisodesSkeleton(isGridView: Boolean) {
 @Composable
 private fun SkeletonEpisodeRow() {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(SurfaceDark)
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(SurfaceDark)
+                .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(width = 88.dp, height = 54.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(CardDark)
+            modifier =
+                Modifier
+                    .size(width = 88.dp, height = 54.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(CardDark),
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.45f)
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(CardDark)
+                modifier =
+                    Modifier
+                        .fillMaxWidth(0.45f)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(CardDark),
             )
             Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.25f)
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(CardDark)
+                modifier =
+                    Modifier
+                        .fillMaxWidth(0.25f)
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(CardDark),
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
         Box(
-            modifier = Modifier
-                .size(width = 56.dp, height = 28.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(CardDark)
+            modifier =
+                Modifier
+                    .size(width = 56.dp, height = 28.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(CardDark),
         )
     }
 }
@@ -719,54 +747,57 @@ fun EpisodeListItemCard(
     posterUrl: String,
     isPlaying: Boolean,
     progress: Float = 0f,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Surface(
         onClick = onClick,
         color = if (isPlaying) AnimeRedContainer.copy(alpha = 0.5f) else SurfaceDark,
         shape = RoundedCornerShape(10.dp),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (isPlaying) AnimeRed else CardBorderDark
-        ),
-        modifier = Modifier
-            // TV focus highlight (no-op on phones); the ring marks the focused
-            // episode row (scale stays 1.0 — full width, must not overflow).
-            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
-            .fillMaxWidth()
+        border =
+            androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isPlaying) AnimeRed else CardBorderDark,
+            ),
+        modifier =
+            Modifier
+                // TV focus highlight (no-op on phones); the ring marks the focused
+                // episode row (scale stays 1.0 — full width, must not overflow).
+                .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                .fillMaxWidth(),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(width = 88.dp, height = 54.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(BackgroundDark)
+                modifier =
+                    Modifier
+                        .size(width = 88.dp, height = 54.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BackgroundDark),
             ) {
                 AsyncImage(
                     model = posterUrl,
                     contentDescription = episode.title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 )
                 Box(
                     modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.AutoMirrored.Filled.VolumeUp else Icons.Default.PlayArrow,
                         contentDescription = null,
                         tint = if (isPlaying) AnimeRed else Color.White,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                 }
 
                 if (progress > 0f) {
                     EpisodeProgressBar(
                         progress = progress,
-                        modifier = Modifier.align(Alignment.BottomCenter)
+                        modifier = Modifier.align(Alignment.BottomCenter),
                     )
                 }
             }
@@ -780,13 +811,13 @@ fun EpisodeListItemCard(
                     fontSize = 13.sp,
                     fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.SemiBold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = episode.quality,
                     color = TextMuted,
-                    fontSize = 11.sp
+                    fontSize = 11.sp,
                 )
             }
         }
@@ -802,7 +833,7 @@ fun SettingsContent(
     onStreamSelected: (StreamInfo) -> Unit,
     onTrackSelected: (Tracks.Group, Int) -> Unit,
     onClearTrackType: (Int) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var currentPane by remember { mutableStateOf(SettingsPane.MAIN) }
 
@@ -815,7 +846,7 @@ fun SettingsContent(
                 (slideInHorizontally { -it } + fadeIn()) togetherWith (slideOutHorizontally { it } + fadeOut())
             }
         },
-        label = "SettingsPaneTransition"
+        label = "SettingsPaneTransition",
     ) { pane ->
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             when (pane) {
@@ -826,19 +857,19 @@ fun SettingsContent(
                         item {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
                                     text = stringResource(R.string.player_settings_unified),
                                     style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold),
-                                    modifier = Modifier.padding(start = 8.dp)
+                                    modifier = Modifier.padding(start = 8.dp),
                                 )
                                 Spacer(modifier = Modifier.weight(1f))
                                 IconButton(onClick = onDismiss) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
                                         contentDescription = stringResource(R.string.cd_close),
-                                        tint = TextPrimary
+                                        tint = TextPrimary,
                                     )
                                 }
                             }
@@ -848,7 +879,7 @@ fun SettingsContent(
                                 icon = Icons.Default.Speed,
                                 title = stringResource(R.string.player_speed_title),
                                 value = "${if (playbackState.playbackSpeed == playbackState.playbackSpeed.toInt().toFloat()) playbackState.playbackSpeed.toInt().toString() else playbackState.playbackSpeed.toString()}x",
-                                onClick = { currentPane = SettingsPane.SPEED }
+                                onClick = { currentPane = SettingsPane.SPEED },
                             )
                         }
                         item {
@@ -856,7 +887,7 @@ fun SettingsContent(
                                 icon = Icons.Default.HighQuality,
                                 title = stringResource(R.string.player_quality),
                                 value = getSelectedVideoLabel(playbackState.videoTrackOverride, playbackState.videoSize),
-                                onClick = { currentPane = SettingsPane.QUALITY }
+                                onClick = { currentPane = SettingsPane.QUALITY },
                             )
                         }
                         item {
@@ -864,7 +895,7 @@ fun SettingsContent(
                                 icon = Icons.Default.Dns,
                                 title = stringResource(R.string.player_stream_source),
                                 value = playbackState.streams.find { it.id == playbackState.selectedStreamId }?.name ?: stringResource(R.string.unknown),
-                                onClick = { currentPane = SettingsPane.STREAM }
+                                onClick = { currentPane = SettingsPane.STREAM },
                             )
                         }
                         item {
@@ -872,7 +903,7 @@ fun SettingsContent(
                                 icon = Icons.Default.Audiotrack,
                                 title = stringResource(R.string.player_audio),
                                 value = getSelectedTrackLabel(playbackState.availableTracks, C.TRACK_TYPE_AUDIO),
-                                onClick = { currentPane = SettingsPane.AUDIO }
+                                onClick = { currentPane = SettingsPane.AUDIO },
                             )
                         }
                         item {
@@ -880,7 +911,7 @@ fun SettingsContent(
                                 icon = Icons.Default.Subtitles,
                                 title = stringResource(R.string.player_subtitle),
                                 value = getSelectedTrackLabel(playbackState.availableTracks, C.TRACK_TYPE_TEXT),
-                                onClick = { currentPane = SettingsPane.SUBTITLE }
+                                onClick = { currentPane = SettingsPane.SUBTITLE },
                             )
                         }
                         item {
@@ -888,7 +919,7 @@ fun SettingsContent(
                                 icon = Icons.Filled.SkipNext,
                                 title = stringResource(R.string.player_settings_auto_next),
                                 checked = autoNextEnabled,
-                                onCheckedChange = onAutoNextChange
+                                onCheckedChange = onAutoNextChange,
                             )
                         }
                     }
@@ -904,7 +935,7 @@ fun SettingsContent(
                                 onClick = {
                                     onSpeedChange(speed)
                                     onDismiss()
-                                }
+                                },
                             )
                         }
                     }
@@ -922,7 +953,7 @@ fun SettingsContent(
                             onClearTrackType(C.TRACK_TYPE_VIDEO)
                             onDismiss()
                         },
-                        onBack = { currentPane = SettingsPane.MAIN }
+                        onBack = { currentPane = SettingsPane.MAIN },
                     )
                 }
                 SettingsPane.STREAM -> {
@@ -930,7 +961,7 @@ fun SettingsContent(
                     if (playbackState.streams.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                            contentAlignment = Alignment.Center
+                            contentAlignment = Alignment.Center,
                         ) {
                             Text(text = stringResource(R.string.server_empty), color = TextMuted, fontSize = 13.sp)
                         }
@@ -943,7 +974,7 @@ fun SettingsContent(
                                     onClick = {
                                         onStreamSelected(stream)
                                         onDismiss()
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -962,7 +993,7 @@ fun SettingsContent(
                             onClearTrackType(C.TRACK_TYPE_AUDIO)
                             onDismiss()
                         },
-                        onBack = { currentPane = SettingsPane.MAIN }
+                        onBack = { currentPane = SettingsPane.MAIN },
                     )
                 }
                 SettingsPane.SUBTITLE -> {
@@ -978,7 +1009,7 @@ fun SettingsContent(
                             onClearTrackType(C.TRACK_TYPE_TEXT)
                             onDismiss()
                         },
-                        onBack = { currentPane = SettingsPane.MAIN }
+                        onBack = { currentPane = SettingsPane.MAIN },
                     )
                 }
             }
@@ -1001,7 +1032,7 @@ fun UnifiedPlayerSettingsSheet(
     onStreamSelected: (StreamInfo) -> Unit,
     onTrackSelected: (Tracks.Group, Int) -> Unit,
     onClearTrackType: (Int) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     // Pad by the HOST window's nav-bar height (the Dialog window insets are unreliable).
@@ -1011,25 +1042,26 @@ fun UnifiedPlayerSettingsSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = BackgroundDark,
-        contentColor = TextPrimary
+        contentColor = TextPrimary,
     ) {
         Box(modifier = Modifier.fillMaxWidth().padding(bottom = navBarBottom)) {
             SettingsContent(
-                playbackState = PlayerPlaybackState(
-                    playbackSpeed = playbackSpeed,
-                    availableTracks = availableTracks,
-                    streams = streams,
-                    selectedStreamId = selectedStreamId,
-                    videoTrackOverride = videoTrackOverride,
-                    videoSize = videoSize
-                ),
+                playbackState =
+                    PlayerPlaybackState(
+                        playbackSpeed = playbackSpeed,
+                        availableTracks = availableTracks,
+                        streams = streams,
+                        selectedStreamId = selectedStreamId,
+                        videoTrackOverride = videoTrackOverride,
+                        videoSize = videoSize,
+                    ),
                 autoNextEnabled = autoNextEnabled,
                 onAutoNextChange = onAutoNextChange,
                 onSpeedChange = onSpeedChange,
                 onStreamSelected = onStreamSelected,
                 onTrackSelected = onTrackSelected,
                 onClearTrackType = onClearTrackType,
-                onDismiss = onDismiss
+                onDismiss = onDismiss,
             )
         }
     }
@@ -1042,19 +1074,20 @@ fun SettingsItem(
     icon: ImageVector,
     title: String,
     value: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Surface(
         onClick = onClick,
         color = Color.Transparent,
-        modifier = Modifier
-            // TV focus highlight (no-op on phones).
-            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
-            .fillMaxWidth()
+        modifier =
+            Modifier
+                // TV focus highlight (no-op on phones).
+                .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                .fillMaxWidth(),
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(imageVector = icon, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(16.dp))
@@ -1073,13 +1106,14 @@ fun SettingsSwitchItem(
     icon: ImageVector,
     title: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(imageVector = icon, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(16.dp))
@@ -1089,10 +1123,13 @@ fun SettingsSwitchItem(
 }
 
 @Composable
-fun PaneHeader(title: String, onBack: () -> Unit) {
+fun PaneHeader(
+    title: String,
+    onBack: () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack) {
             Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = TextPrimary)
@@ -1102,25 +1139,30 @@ fun PaneHeader(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-fun SelectableItem(label: String, isSelected: Boolean, onClick: () -> Unit) {
+fun SelectableItem(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
     Surface(
         onClick = onClick,
         color = if (isSelected) AnimeRedContainer else Color.Transparent,
-        modifier = Modifier
-            // TV focus highlight (no-op on phones).
-            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
-            .fillMaxWidth()
+        modifier =
+            Modifier
+                // TV focus highlight (no-op on phones).
+                .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                .fillMaxWidth(),
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = label,
                 color = if (isSelected) AnimeRed else TextPrimary,
                 fontSize = 14.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
             if (isSelected) {
                 Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = AnimeRed, modifier = Modifier.size(18.dp))
@@ -1136,7 +1178,7 @@ fun TrackSelectionPane(
     availableTracks: Tracks?,
     onTrackSelected: (Tracks.Group, Int) -> Unit,
     onClearTrack: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
 ) {
     // Column (not bare siblings): this pane is dropped into a Box for the player's
     // fullscreen side-sheet content, where a PaneHeader next to a LazyColumn overlaps —
@@ -1149,7 +1191,7 @@ fun TrackSelectionPane(
                 SelectableItem(
                     label = stringResource(R.string.player_track_none),
                     isSelected = availableTracks?.let { it.groups.none { g -> g.type == type && g.isSelected } } ?: true,
-                    onClick = onClearTrack
+                    onClick = onClearTrack,
                 )
             }
             availableTracks?.groups?.filter { it.type == type }?.forEach { group ->
@@ -1159,7 +1201,7 @@ fun TrackSelectionPane(
                     SelectableItem(
                         label = label,
                         isSelected = group.isTrackSelected(index),
-                        onClick = { onTrackSelected(group, index) }
+                        onClick = { onTrackSelected(group, index) },
                     )
                 }
             }
@@ -1174,7 +1216,7 @@ fun QualitySelectionPane(
     videoSize: VideoSize,
     onTrackSelected: (Tracks.Group, Int) -> Unit,
     onClearTrack: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
 ) {
     // Same Column wrapper as TrackSelectionPane: usable as direct side-sheet content.
     Column(modifier = Modifier.fillMaxSize()) {
@@ -1188,7 +1230,7 @@ fun QualitySelectionPane(
                 SelectableItem(
                     label = stringResource(R.string.player_quality_auto),
                     isSelected = videoTrackOverride == null,
-                    onClick = onClearTrack
+                    onClick = onClearTrack,
                 )
             }
             availableTracks?.groups?.filter { it.type == C.TRACK_TYPE_VIDEO }?.forEach { group ->
@@ -1199,7 +1241,7 @@ fun QualitySelectionPane(
                         // A forced track is exactly one (FixedTrackSelection); in Auto no
                         // quality row may be highlighted even if adaptive marks several.
                         isSelected = videoTrackOverride != null && group.isTrackSelected(index),
-                        onClick = { onTrackSelected(group, index) }
+                        onClick = { onTrackSelected(group, index) },
                     )
                 }
             }
@@ -1208,12 +1250,16 @@ fun QualitySelectionPane(
 }
 
 @Composable
-fun getSelectedVideoLabel(override: Format?, videoSize: VideoSize): String {
+fun getSelectedVideoLabel(
+    override: Format?,
+    videoSize: VideoSize,
+): String {
     if (override != null) return getVideoTrackLabel(override)
     // Auto/adaptive — "Auto (480p)": the rendition ACTUALLY playing, read from
     // player.videoSize (Tracks can't tell which rendition is active in adaptive mode).
-    val reference = listOf(videoSize.height, videoSize.width).filter { it > 0 }.minOrNull()
-        ?: return stringResource(R.string.player_quality_auto)
+    val reference =
+        listOf(videoSize.height, videoSize.width).filter { it > 0 }.minOrNull()
+            ?: return stringResource(R.string.player_quality_auto)
     return stringResource(R.string.player_quality_auto_current, "${reference}p")
 }
 
@@ -1221,22 +1267,27 @@ fun getSelectedVideoLabel(override: Format?, videoSize: VideoSize): String {
 fun getVideoTrackLabel(format: Format): String {
     // Reference = the smaller positive dimension (1920x1080 -> 1080, portrait
     // 1080x1920 -> 1080), mapped to a familiar short label like YouTube's.
-    val reference = listOf(format.height, format.width).filter { it > 0 }.minOrNull()
-        ?: return format.label ?: stringResource(R.string.unknown)
-    val name = when {
-        reference >= 4320 -> stringResource(R.string.player_quality_8k)
-        reference >= 2160 -> stringResource(R.string.player_quality_4k)
-        reference >= 1440 -> stringResource(R.string.player_quality_2k)
-        reference >= 1080 -> stringResource(R.string.player_quality_fhd)
-        reference >= 720 -> stringResource(R.string.player_quality_hd)
-        reference >= 480 -> stringResource(R.string.player_quality_sd)
-        else -> null
-    }
+    val reference =
+        listOf(format.height, format.width).filter { it > 0 }.minOrNull()
+            ?: return format.label ?: stringResource(R.string.unknown)
+    val name =
+        when {
+            reference >= 4320 -> stringResource(R.string.player_quality_8k)
+            reference >= 2160 -> stringResource(R.string.player_quality_4k)
+            reference >= 1440 -> stringResource(R.string.player_quality_2k)
+            reference >= 1080 -> stringResource(R.string.player_quality_fhd)
+            reference >= 720 -> stringResource(R.string.player_quality_hd)
+            reference >= 480 -> stringResource(R.string.player_quality_sd)
+            else -> null
+        }
     return if (name != null) "${reference}p ($name)" else "${reference}p"
 }
 
 @Composable
-fun getSelectedTrackLabel(tracks: Tracks?, type: Int): String {
+fun getSelectedTrackLabel(
+    tracks: Tracks?,
+    type: Int,
+): String {
     val selectedGroup = tracks?.groups?.find { it.type == type && it.isSelected }
     if (selectedGroup == null) return stringResource(R.string.player_track_none)
     for (i in 0 until selectedGroup.length) {
@@ -1254,7 +1305,7 @@ fun ServerMenuContent(
     selectedStreamId: String?,
     isLoading: Boolean,
     onStreamSelected: (StreamInfo) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     when {
         isLoading -> {
@@ -1271,7 +1322,7 @@ fun ServerMenuContent(
             LazyColumn(
                 modifier = modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(streams) { stream ->
                     val isSelected = stream.id == selectedStreamId
@@ -1280,21 +1331,22 @@ fun ServerMenuContent(
                         color = if (isSelected) AnimeRedContainer else SurfaceDark,
                         shape = RoundedCornerShape(10.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) AnimeRed else CardBorderDark),
-                        modifier = Modifier
-                            // TV focus highlight (no-op on phones).
-                            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
-                            .fillMaxWidth()
+                        modifier =
+                            Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                                .fillMaxWidth(),
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
                                 text = stream.name,
                                 color = if (isSelected) AnimeRed else TextPrimary,
                                 fontSize = 14.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
                             )
                             if (isSelected) {
                                 Icon(Icons.Default.Check, null, tint = AnimeRed, modifier = Modifier.size(18.dp))

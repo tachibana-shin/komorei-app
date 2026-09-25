@@ -70,10 +70,11 @@ class SearchHistoryStore @Inject constructor(
     fun snapshot(): List<String> = _history.value.toList()
 
     fun restore(history: List<String>) {
-        val restored = history
-            .filter { it.isNotBlank() }
-            .distinct()
-            .take(MAX_SIZE)
+        val restored =
+            history
+                .filter { it.isNotBlank() }
+                .distinct()
+                .take(MAX_SIZE)
         _history.value = restored
         persist(restored)
     }

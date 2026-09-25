@@ -18,12 +18,14 @@ import git.shin.komorei.model.Source
  */
 sealed interface SearchUiState {
     data object Idle : SearchUiState
+
     data class Searching(
         val candidateSources: List<Source>,
         val resultsBySource: Map<Source, List<Anime>> = emptyMap(),
         val sourceErrors: Map<Source, String> = emptyMap(),
         val emptySources: Set<Source> = emptySet(),
     ) : SearchUiState
+
     data class Success(
         val resultsBySource: Map<Source, List<Anime>>,
         val totalCount: Int,
@@ -31,5 +33,7 @@ sealed interface SearchUiState {
         val emptySources: Set<Source> = emptySet(),
     ) : SearchUiState
 
-    data class Error(val message: String) : SearchUiState
+    data class Error(
+        val message: String,
+    ) : SearchUiState
 }

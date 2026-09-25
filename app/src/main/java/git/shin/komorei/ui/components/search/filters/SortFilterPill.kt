@@ -34,11 +34,12 @@ fun SortFilterPill(
     val active = current != null
 
     val option = kind.options.getOrNull(selectedIndex)
-    val label = if (option != null) {
-        stringResource(R.string.filter_sort_label_format, filter.title.orEmpty(), option)
-    } else {
-        filter.title.orEmpty()
-    }
+    val label =
+        if (option != null) {
+            stringResource(R.string.filter_sort_label_format, filter.title.orEmpty(), option)
+        } else {
+            filter.title.orEmpty()
+        }
 
     var showSheet by remember { mutableStateOf(false) }
 

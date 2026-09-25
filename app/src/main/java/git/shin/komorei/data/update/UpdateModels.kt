@@ -12,12 +12,23 @@ data class UpdateInfo(
 
 sealed interface UpdateCheckResult {
     data object UpToDate : UpdateCheckResult
-    data class Available(val info: UpdateInfo) : UpdateCheckResult
+
+    data class Available(
+        val info: UpdateInfo,
+    ) : UpdateCheckResult
 }
 
 sealed interface UpdateUiState {
     data object Idle : UpdateUiState
+
     data object Checking : UpdateUiState
-    data class Available(val info: UpdateInfo) : UpdateUiState
-    data class Downloading(val info: UpdateInfo, val progress: Int) : UpdateUiState
+
+    data class Available(
+        val info: UpdateInfo,
+    ) : UpdateUiState
+
+    data class Downloading(
+        val info: UpdateInfo,
+        val progress: Int,
+    ) : UpdateUiState
 }

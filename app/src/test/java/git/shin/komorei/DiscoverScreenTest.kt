@@ -1,12 +1,13 @@
 package git.shin.komorei
 
 import android.content.Context
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
+import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.SearchHistoryStore
 import git.shin.komorei.data.SourceSearchEvent
@@ -31,8 +32,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
-import androidx.compose.ui.test.junit4.v2.createComposeRule
 import java.io.File
 
 /**
@@ -53,7 +52,6 @@ import java.io.File
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class DiscoverScreenTest {
-
     @get:Rule val composeTestRule = createComposeRule()
 
     private lateinit var repository: AnimeRepository
@@ -62,20 +60,22 @@ class DiscoverScreenTest {
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     companion object {
-        private val fakeKrx: String = System.getProperty("komorei.test.fakeKrx")
-            ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
+        private val fakeKrx: String =
+            System.getProperty("komorei.test.fakeKrx")
+                ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
     }
 
     @Before
-    fun setUp() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        registry = KrxSourceRegistry(context, KrxHostImpl(context))
-        val runner = registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
-        checkNotNull(runner) { "fake source should load" }
-        repository = AnimeRepository(registry)
-        searchHistoryStore = SearchHistoryStore(context)
-        Dispatchers.setMain(mainDispatcher)
-    }
+    fun setUp() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            registry = KrxSourceRegistry(context, KrxHostImpl(context))
+            val runner = registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
+            checkNotNull(runner) { "fake source should load" }
+            repository = AnimeRepository(registry)
+            searchHistoryStore = SearchHistoryStore(context)
+            Dispatchers.setMain(mainDispatcher)
+        }
 
     @After
     fun tearDown() {
@@ -96,38 +96,44 @@ class DiscoverScreenTest {
      * mixed world where some sections show cards and others must render the
      * "không có kết quả" note instead of vanishing.
      */
-    private class MixedOutcomeRepository(registry: KrxSourceRegistry) : AnimeRepository(registry) {
+    private class MixedOutcomeRepository(
+        registry: KrxSourceRegistry,
+    ) : AnimeRepository(registry) {
         override fun searchMultiSourceStream(
             query: String,
             selectedGenreId: String?,
             contentRating: Int?,
             languages: Set<String>,
             sourceIds: Set<String>,
-        ): Flow<SourceSearchEvent> = flow {
-            val real = candidateSourcesForSearch(contentRating, languages, sourceIds).first()
-            val results = search(real.id, query.ifBlank { null }, 1, emptyList()).entries
-            emit(SourceSearchEvent.Completed(real, results))
-            emit(
-                SourceSearchEvent.Completed(
-                    Source(id = "vi.dummy-empty", name = "Dummy Empty"),
-                    emptyList(),
-                ),
-            )
-        }
+        ): Flow<SourceSearchEvent> =
+            flow {
+                val real = candidateSourcesForSearch(contentRating, languages, sourceIds).first()
+                val results = search(real.id, query.ifBlank { null }, 1, emptyList()).entries
+                emit(SourceSearchEvent.Completed(real, results))
+                emit(
+                    SourceSearchEvent.Completed(
+                        Source(id = "vi.dummy-empty", name = "Dummy Empty"),
+                        emptyList(),
+                    ),
+                )
+            }
     }
 
     /** Multi-source search that always fails (deterministic error section). */
-    private class ErroringRepository(registry: KrxSourceRegistry) : AnimeRepository(registry) {
+    private class ErroringRepository(
+        registry: KrxSourceRegistry,
+    ) : AnimeRepository(registry) {
         override fun searchMultiSourceStream(
             query: String,
             selectedGenreId: String?,
             contentRating: Int?,
             languages: Set<String>,
             sourceIds: Set<String>,
-        ): Flow<SourceSearchEvent> = flow {
-            val source = candidateSourcesForSearch(contentRating, languages, sourceIds).first()
-            emit(SourceSearchEvent.Failed(source, "HTTP 500"))
-        }
+        ): Flow<SourceSearchEvent> =
+            flow {
+                val source = candidateSourcesForSearch(contentRating, languages, sourceIds).first()
+                emit(SourceSearchEvent.Failed(source, "HTTP 500"))
+            }
     }
 
     @Test
@@ -141,7 +147,8 @@ class DiscoverScreenTest {
         }
 
         // Idle state — search history prompt (no genre grid)
-        composeTestRule.onNodeWithText("Chưa có lịch sử tìm kiếm")
+        composeTestRule
+            .onNodeWithText("Chưa có lịch sử tìm kiếm")
             .performClick()
     }
 
@@ -156,15 +163,18 @@ class DiscoverScreenTest {
         }
 
         // Open the aggregate filter sheet via FilterSheetButton
-        composeTestRule.onNodeWithTag("filter_sheet_button")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_button")
             .performClick()
 
         // Sheet rendered — close it
-        composeTestRule.onNodeWithTag("filter_sheet_close")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_close")
             .performClick()
 
         // Still idle — search history prompt (no search triggered by filter change alone)
-        composeTestRule.onNodeWithText("Chưa có lịch sử tìm kiếm")
+        composeTestRule
+            .onNodeWithText("Chưa có lịch sử tìm kiếm")
             .performClick()
     }
 

@@ -1,15 +1,15 @@
 package git.shin.komorei
 
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import git.shin.komorei.ui.components.search.filters.FilterSheetButton
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
-import androidx.compose.ui.test.junit4.v2.createComposeRule
 
 /**
  * Compose UI tests for [FilterSheetButton] — the aggregate filter
@@ -23,7 +23,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class FilterSheetButtonTest {
-
     @get:Rule val composeTestRule = createComposeRule()
 
     @Test
@@ -34,7 +33,8 @@ class FilterSheetButtonTest {
                 onClick = {},
             )
         }
-        composeTestRule.onNodeWithTag("filter_sheet_button")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_button")
             .performClick()
     }
 
@@ -46,7 +46,8 @@ class FilterSheetButtonTest {
                 onClick = {},
             )
         }
-        composeTestRule.onNodeWithTag("filter_sheet_button")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_button")
             .performClick()
     }
 
@@ -58,7 +59,8 @@ class FilterSheetButtonTest {
                 onClick = {},
             )
         }
-        composeTestRule.onNodeWithTag("filter_sheet_button")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_button")
             .performClick()
     }
 
@@ -70,7 +72,8 @@ class FilterSheetButtonTest {
                 onClick = {},
             )
         }
-        composeTestRule.onNodeWithTag("filter_sheet_button")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_button")
             .performClick()
     }
 
@@ -85,7 +88,8 @@ class FilterSheetButtonTest {
             )
         }
         // Verify the button renders (badge is invisible but space is reserved)
-        composeTestRule.onNodeWithTag("filter_sheet_button")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_button")
             .performClick()
     }
 }

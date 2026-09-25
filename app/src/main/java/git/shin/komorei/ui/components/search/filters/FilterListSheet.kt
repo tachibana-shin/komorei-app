@@ -44,7 +44,10 @@ fun FilterListSheet(
     var enabledFilters by remember { mutableStateOf(initialEnabled) }
 
     /** Applies the current filter list and optionally dismisses. */
-    fun applyAndDismiss(values: List<FilterValue>, dismiss: Boolean = false) {
+    fun applyAndDismiss(
+        values: List<FilterValue>,
+        dismiss: Boolean = false,
+    ) {
         enabledFilters = values
         onApply(values)
         if (dismiss) onDismiss()
@@ -69,21 +72,23 @@ fun FilterListSheet(
             )
         } else {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 520.dp)
-                    .verticalScroll(rememberScrollState()),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 520.dp)
+                        .verticalScroll(rememberScrollState()),
             ) {
                 filters.forEach { filter ->
                     when (val kind = filter.kind) {
-                        is FilterKind.Text -> TextFilterRow(
-                            filter = filter,
-                            value = (enabledFilters.firstOrNull { it.id == filter.id } as? FilterValue.Text)?.value.orEmpty(),
-                            onValueChange = { value ->
-                                val newValue = textFilterValue(filter.id, value)
-                                applyAndDismiss(upsertFilterValue(enabledFilters, filter.id, newValue))
-                            },
-                        )
+                        is FilterKind.Text ->
+                            TextFilterRow(
+                                filter = filter,
+                                value = (enabledFilters.firstOrNull { it.id == filter.id } as? FilterValue.Text)?.value.orEmpty(),
+                                onValueChange = { value ->
+                                    val newValue = textFilterValue(filter.id, value)
+                                    applyAndDismiss(upsertFilterValue(enabledFilters, filter.id, newValue))
+                                },
+                            )
                         is FilterKind.Sort -> {
                             val current = enabledFilters.firstOrNull { it.id == filter.id } as? FilterValue.Sort
                             val d = sortFilterDefaults(kind)
@@ -154,10 +159,11 @@ fun FilterListSheet(
                                 },
                             )
                         }
-                        is FilterKind.Note -> FilterGroupHeader(
-                            title = kind.text,
-                            muted = true,
-                        )
+                        is FilterKind.Note ->
+                            FilterGroupHeader(
+                                title = kind.text,
+                                muted = true,
+                            )
                     }
                 }
             }
@@ -167,7 +173,10 @@ fun FilterListSheet(
 
 /** A small section header above each filter block in the list sheet. */
 @Composable
-private fun FilterGroupHeader(title: String, muted: Boolean = false) {
+private fun FilterGroupHeader(
+    title: String,
+    muted: Boolean = false,
+) {
     Text(
         text = title,
         color = if (muted) TextMuted else TextPrimary,

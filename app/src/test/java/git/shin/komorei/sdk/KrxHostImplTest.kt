@@ -24,7 +24,6 @@ import java.util.zip.ZipOutputStream
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class KrxHostImplTest {
-
     private lateinit var host: KrxHostImpl
 
     @Before
@@ -52,14 +51,15 @@ class KrxHostImplTest {
 
     @Test
     fun `parse select traverse and mutate`() {
-        val doc = host.htmlParse(
-            """<html><body><div id="a" class="x">
+        val doc =
+            host.htmlParse(
+                """<html><body><div id="a" class="x">
                <h1>Title</h1>
                <p>Para <b>bold</b> text</p>
                <a href="/link">Link</a>
              </div></body></html>""",
-            "https://example.com/base/",
-        )
+                "https://example.com/base/",
+            )
         assertTrue("document handle must be positive", doc > 0)
         assertEquals(7, host.htmlKind(doc)) // Document
 
@@ -160,10 +160,11 @@ class KrxHostImplTest {
         // `Element.data()` must return the raw `<script id="srcData">` body —
         // kkphim-style sources read their episode/stream JSON straight from it.
         val json = """[{"server_name":"Youtube","server_data":[{"slug":"tap-1","link_m3u8":"https://a.kvp726.com/x/index.m3u8"}]}]"""
-        val doc = host.htmlParse(
-            """<html><body><script type="application/json" id="srcData">$json</script></body></html>""",
-            "",
-        )
+        val doc =
+            host.htmlParse(
+                """<html><body><script type="application/json" id="srcData">$json</script></body></html>""",
+                "",
+            )
         val script = host.htmlSelectFirst(doc, "script#srcData")!!
         assertEquals(json, host.htmlData(script))
         // never the `data` HTML attribute
@@ -265,16 +266,18 @@ class KrxHostImplTest {
 
     @Test
     fun `extract main wasm from a krx zip`() {
-        val bytes = ByteArrayOutputStream().also { out ->
-            ZipOutputStream(out).use { zip ->
-                zip.putNextEntry(ZipEntry("manifest.json"))
-                zip.write("{}".toByteArray())
-                zip.closeEntry()
-                zip.putNextEntry(ZipEntry("Payload/main.wasm"))
-                zip.write(byteArrayOf(0, 97, 115, 109, 1, 0, 0, 0))
-                zip.closeEntry()
-            }
-        }.toByteArray()
+        val bytes =
+            ByteArrayOutputStream()
+                .also { out ->
+                    ZipOutputStream(out).use { zip ->
+                        zip.putNextEntry(ZipEntry("manifest.json"))
+                        zip.write("{}".toByteArray())
+                        zip.closeEntry()
+                        zip.putNextEntry(ZipEntry("Payload/main.wasm"))
+                        zip.write(byteArrayOf(0, 97, 115, 109, 1, 0, 0, 0))
+                        zip.closeEntry()
+                    }
+                }.toByteArray()
 
         val wasm = KrxManager.extractMainWasm(bytes)
         assertNotNull(wasm)
@@ -289,16 +292,18 @@ class KrxHostImplTest {
     @Test
     fun `extract icon from a krx zip`() {
         val iconBytes = byteArrayOf(0x89.toByte(), 'P'.code.toByte(), 'N'.code.toByte(), 'G'.code.toByte())
-        val bytes = ByteArrayOutputStream().also { out ->
-            ZipOutputStream(out).use { zip ->
-                zip.putNextEntry(ZipEntry("Payload/icon.png"))
-                zip.write(iconBytes)
-                zip.closeEntry()
-                zip.putNextEntry(ZipEntry("Payload/main.wasm"))
-                zip.write(byteArrayOf(0, 97, 115, 109))
-                zip.closeEntry()
-            }
-        }.toByteArray()
+        val bytes =
+            ByteArrayOutputStream()
+                .also { out ->
+                    ZipOutputStream(out).use { zip ->
+                        zip.putNextEntry(ZipEntry("Payload/icon.png"))
+                        zip.write(iconBytes)
+                        zip.closeEntry()
+                        zip.putNextEntry(ZipEntry("Payload/main.wasm"))
+                        zip.write(byteArrayOf(0, 97, 115, 109))
+                        zip.closeEntry()
+                    }
+                }.toByteArray()
 
         assertArrayEquals(iconBytes, KrxManager.extractIcon(bytes))
     }
@@ -306,26 +311,30 @@ class KrxHostImplTest {
     @Test
     fun `extract icon from root entry for non-payload packages`() {
         val iconBytes = byteArrayOf(1, 2, 3, 4)
-        val bytes = ByteArrayOutputStream().also { out ->
-            ZipOutputStream(out).use { zip ->
-                zip.putNextEntry(ZipEntry("icon.png"))
-                zip.write(iconBytes)
-                zip.closeEntry()
-            }
-        }.toByteArray()
+        val bytes =
+            ByteArrayOutputStream()
+                .also { out ->
+                    ZipOutputStream(out).use { zip ->
+                        zip.putNextEntry(ZipEntry("icon.png"))
+                        zip.write(iconBytes)
+                        zip.closeEntry()
+                    }
+                }.toByteArray()
 
         assertArrayEquals(iconBytes, KrxManager.extractIcon(bytes))
     }
 
     @Test
     fun `extract icon returns null when package ships no icon`() {
-        val bytes = ByteArrayOutputStream().also { out ->
-            ZipOutputStream(out).use { zip ->
-                zip.putNextEntry(ZipEntry("Payload/main.wasm"))
-                zip.write(byteArrayOf(0, 97, 115, 109))
-                zip.closeEntry()
-            }
-        }.toByteArray()
+        val bytes =
+            ByteArrayOutputStream()
+                .also { out ->
+                    ZipOutputStream(out).use { zip ->
+                        zip.putNextEntry(ZipEntry("Payload/main.wasm"))
+                        zip.write(byteArrayOf(0, 97, 115, 109))
+                        zip.closeEntry()
+                    }
+                }.toByteArray()
 
         assertNull(KrxManager.extractIcon(bytes))
     }

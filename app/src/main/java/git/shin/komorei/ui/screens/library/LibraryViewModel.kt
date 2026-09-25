@@ -15,26 +15,25 @@ import javax.inject.Inject
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val libraryRepository: LibraryRepository,
-    private val animeRepository: AnimeRepository
+    private val animeRepository: AnimeRepository,
 ) : ViewModel() {
+    fun getSourceName(sourceId: String): String = animeRepository.getSourceName(sourceId)
 
-    fun getSourceName(sourceId: String): String {
-        return animeRepository.getSourceName(sourceId)
-    }
+    val bookmarkedAnimes: StateFlow<List<Anime>> =
+        libraryRepository.bookmarkedAnimes
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList(),
+            )
 
-    val bookmarkedAnimes: StateFlow<List<Anime>> = libraryRepository.bookmarkedAnimes
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
-
-    val historyAnimes: StateFlow<List<Anime>> = libraryRepository.historyAnimes
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    val historyAnimes: StateFlow<List<Anime>> =
+        libraryRepository.historyAnimes
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList(),
+            )
 
     fun toggleBookmark(anime: Anime) {
         viewModelScope.launch {

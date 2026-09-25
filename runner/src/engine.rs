@@ -40,7 +40,9 @@ impl EngineState {
 		instance
 			.get_export(&store, "memory")
 			.and_then(|e| e.into_memory())
-			.ok_or_else(|| RunnerError::ExportMissing { name: "memory".into() })?;
+			.ok_or_else(|| RunnerError::ExportMissing {
+				name: "memory".into(),
+			})?;
 		Ok(Self { store, instance })
 	}
 
@@ -80,13 +82,23 @@ impl EngineState {
 
 	pub(crate) fn call2(&mut self, name: &str, a0: i32, a1: i32) -> Result<i32, RunnerError> {
 		let f = self.get_typed::<(i32, i32), (i32,)>(name)?;
-		let (result,) = f.call(&mut self.store, (a0, a1)).map_err(RunnerError::wasm)?;
+		let (result,) = f
+			.call(&mut self.store, (a0, a1))
+			.map_err(RunnerError::wasm)?;
 		Ok(result)
 	}
 
-	pub(crate) fn call3(&mut self, name: &str, a0: i32, a1: i32, a2: i32) -> Result<i32, RunnerError> {
+	pub(crate) fn call3(
+		&mut self,
+		name: &str,
+		a0: i32,
+		a1: i32,
+		a2: i32,
+	) -> Result<i32, RunnerError> {
 		let f = self.get_typed::<(i32, i32, i32), (i32,)>(name)?;
-		let (result,) = f.call(&mut self.store, (a0, a1, a2)).map_err(RunnerError::wasm)?;
+		let (result,) = f
+			.call(&mut self.store, (a0, a1, a2))
+			.map_err(RunnerError::wasm)?;
 		Ok(result)
 	}
 
@@ -112,13 +124,17 @@ impl EngineState {
 		self.instance
 			.get_export(&self.store, "memory")
 			.and_then(|e| e.into_memory())
-			.ok_or_else(|| RunnerError::ExportMissing { name: "memory".into() })
+			.ok_or_else(|| RunnerError::ExportMissing {
+				name: "memory".into(),
+			})
 	}
 
 	fn read_mem(&self, ptr: usize, len: usize) -> Result<Vec<u8>, RunnerError> {
 		let memory = self.memory()?;
 		let mut buf = vec![0u8; len];
-		memory.read(&self.store, ptr, &mut buf).map_err(RunnerError::wasm)?;
+		memory
+			.read(&self.store, ptr, &mut buf)
+			.map_err(RunnerError::wasm)?;
 		Ok(buf)
 	}
 
@@ -132,7 +148,10 @@ impl EngineState {
 	/// `[len][cap]` header), freeing the wasm buffer on the way out.
 	pub(crate) fn decode_raw(&mut self, ptr: i32) -> Result<Vec<u8>, RunnerError> {
 		if ptr < 0 {
-			return Err(RunnerError::Source { code: ptr, message: String::new() });
+			return Err(RunnerError::Source {
+				code: ptr,
+				message: String::new(),
+			});
 		}
 		let len_bytes = self.read_mem(ptr as usize, 4)?;
 		let len = i32::from_le_bytes(len_bytes.try_into().unwrap());
@@ -144,7 +163,8 @@ impl EngineState {
 				Err(_) => 0,
 			};
 			let msg = if msg_len > 0 {
-				self.read_mem((ptr as usize) + 12, msg_len).unwrap_or_default()
+				self.read_mem((ptr as usize) + 12, msg_len)
+					.unwrap_or_default()
 			} else {
 				Vec::new()
 			};

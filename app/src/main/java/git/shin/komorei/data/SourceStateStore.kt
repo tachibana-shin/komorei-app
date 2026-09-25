@@ -29,12 +29,14 @@ class SourceStateStore @Inject constructor(
     private val _disabled = MutableStateFlow(readDisabled())
     val disabled: StateFlow<Set<String>> = _disabled.asStateFlow()
 
-    private fun readDisabled(): Set<String> =
-        prefs.getStringSet(KEY_DISABLED, emptySet()).orEmpty().toSet()
+    private fun readDisabled(): Set<String> = prefs.getStringSet(KEY_DISABLED, emptySet()).orEmpty().toSet()
 
     fun isDisabled(sourceId: String): Boolean = sourceId in _disabled.value
 
-    fun setDisabled(sourceId: String, disabled: Boolean) {
+    fun setDisabled(
+        sourceId: String,
+        disabled: Boolean,
+    ) {
         val next = _disabled.value.toMutableSet()
         if (disabled) next += sourceId else next -= sourceId
         prefs.edit().putStringSet(KEY_DISABLED, next).apply()
@@ -47,7 +49,11 @@ class SourceStateStore @Inject constructor(
     val pinned: StateFlow<List<String>> = _pinned.asStateFlow()
 
     private fun readPinned(): List<String> =
-        prefs.getString(KEY_PINNED, null)?.split('\n').orEmpty().filter { it.isNotBlank() }
+        prefs
+            .getString(KEY_PINNED, null)
+            ?.split('\n')
+            .orEmpty()
+            .filter { it.isNotBlank() }
 
     fun pinnedIndex(sourceId: String): Int = _pinned.value.indexOf(sourceId)
 
@@ -77,7 +83,11 @@ class SourceStateStore @Inject constructor(
     val repos: StateFlow<List<String>> = _repos.asStateFlow()
 
     private fun readRepos(): List<String> =
-        prefs.getString(KEY_REPOS, null)?.split('\n').orEmpty().filter { it.isNotBlank() }
+        prefs
+            .getString(KEY_REPOS, null)
+            ?.split('\n')
+            .orEmpty()
+            .filter { it.isNotBlank() }
 
     fun addRepo(url: String): Boolean {
         val normalized = url.trim().trimEnd('/')
@@ -96,18 +106,20 @@ class SourceStateStore @Inject constructor(
     }
 
     /** A structured snapshot used by the backup repository. */
-    fun snapshot(): SourceStateSnapshot = SourceStateSnapshot(
-        disabledSources = disabled.value.sorted(),
-        pinnedSources = pinned.value.toList(),
-        repositoryUrls = repos.value.toList(),
-    )
+    fun snapshot(): SourceStateSnapshot =
+        SourceStateSnapshot(
+            disabledSources = disabled.value.sorted(),
+            pinnedSources = pinned.value.toList(),
+            repositoryUrls = repos.value.toList(),
+        )
 
     /** Restores the state and publishes it to all existing collectors. */
     fun restore(snapshot: SourceStateSnapshot) {
         val validRepos = snapshot.repositoryUrls.mapNotNull(::normalizeRepoUrl).distinct()
         val nextDisabled = snapshot.disabledSources.toSet()
         val nextPinned = snapshot.pinnedSources.distinct()
-        prefs.edit()
+        prefs
+            .edit()
             .putStringSet(KEY_DISABLED, nextDisabled)
             .putString(KEY_PINNED, nextPinned.joinToString("\n"))
             .putString(KEY_REPOS, validRepos.joinToString("\n"))

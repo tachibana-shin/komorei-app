@@ -11,16 +11,16 @@ import java.util.TimeZone
 
 /** Pure aggregation tests for the Aidoku-style Insights data. */
 class InsightsDataTest {
-
     private val utc = TimeZone.getTimeZone("UTC")
 
     @Test
     fun emptyHistoryHasNoStatsButKeepsAYearOfHeatmapCells() {
-        val data = InsightsData.from(
-            history = emptyList(),
-            now = timestamp(2026, Calendar.JANUARY, 15),
-            timeZone = utc,
-        )
+        val data =
+            InsightsData.from(
+                history = emptyList(),
+                now = timestamp(2026, Calendar.JANUARY, 15),
+                timeZone = utc,
+            )
 
         assertEquals(0, data.currentStreak)
         assertEquals(0, data.longestStreak)
@@ -33,16 +33,18 @@ class InsightsDataTest {
     @Test
     fun aggregatesEpisodesDistinctAnimeAndSavedWatchTime() {
         val now = timestamp(2026, Calendar.JANUARY, 15)
-        val data = InsightsData.from(
-            history = listOf(
-                history("a-1", "anime-a", now - 5 * DAY, 2 * HOUR),
-                history("a-2", "anime-a", now - 4 * DAY, HOUR),
-                history("b-1", "anime-b", now - 3 * DAY, 90 * MINUTE),
-                history("c-1", "anime-c", timestamp(2025, Calendar.DECEMBER, 20), 30 * MINUTE),
-            ),
-            now = now,
-            timeZone = utc,
-        )
+        val data =
+            InsightsData.from(
+                history =
+                    listOf(
+                        history("a-1", "anime-a", now - 5 * DAY, 2 * HOUR),
+                        history("a-2", "anime-a", now - 4 * DAY, HOUR),
+                        history("b-1", "anime-b", now - 3 * DAY, 90 * MINUTE),
+                        history("c-1", "anime-c", timestamp(2025, Calendar.DECEMBER, 20), 30 * MINUTE),
+                    ),
+                now = now,
+                timeZone = utc,
+            )
 
         assertEquals(4, data.stats.forStat(SmallStat.Kind.EPISODES).total)
         assertEquals(3, data.stats.forStat(SmallStat.Kind.EPISODES).thisMonth)
@@ -61,12 +63,13 @@ class InsightsDataTest {
     @Test
     fun currentStreakMustEndTodayOrYesterday() {
         val now = timestamp(2026, Calendar.FEBRUARY, 10)
-        val history = listOf(
-            history("e-1", "anime", timestamp(2026, Calendar.FEBRUARY, 6)),
-            history("e-2", "anime", timestamp(2026, Calendar.FEBRUARY, 7)),
-            history("e-3", "anime", timestamp(2026, Calendar.FEBRUARY, 8)),
-            history("e-4", "anime", timestamp(2026, Calendar.FEBRUARY, 10)),
-        )
+        val history =
+            listOf(
+                history("e-1", "anime", timestamp(2026, Calendar.FEBRUARY, 6)),
+                history("e-2", "anime", timestamp(2026, Calendar.FEBRUARY, 7)),
+                history("e-3", "anime", timestamp(2026, Calendar.FEBRUARY, 8)),
+                history("e-4", "anime", timestamp(2026, Calendar.FEBRUARY, 10)),
+            )
 
         val data = InsightsData.from(history, now, utc)
 
@@ -77,10 +80,11 @@ class InsightsDataTest {
     @Test
     fun isolatedDaysDoNotCreateAOneDayStreak() {
         val now = timestamp(2026, Calendar.FEBRUARY, 10)
-        val history = listOf(
-            history("e-1", "anime", timestamp(2026, Calendar.FEBRUARY, 8)),
-            history("e-2", "anime", timestamp(2026, Calendar.FEBRUARY, 10)),
-        )
+        val history =
+            listOf(
+                history("e-1", "anime", timestamp(2026, Calendar.FEBRUARY, 8)),
+                history("e-2", "anime", timestamp(2026, Calendar.FEBRUARY, 10)),
+            )
 
         val data = InsightsData.from(history, now, utc)
 
@@ -91,10 +95,11 @@ class InsightsDataTest {
     @Test
     fun yesterdayStillCountsAsCurrent() {
         val now = timestamp(2026, Calendar.MARCH, 10)
-        val history = listOf(
-            history("e-1", "anime", timestamp(2026, Calendar.MARCH, 8)),
-            history("e-2", "anime", timestamp(2026, Calendar.MARCH, 9)),
-        )
+        val history =
+            listOf(
+                history("e-1", "anime", timestamp(2026, Calendar.MARCH, 8)),
+                history("e-2", "anime", timestamp(2026, Calendar.MARCH, 9)),
+            )
 
         val data = InsightsData.from(history, now, utc)
 
@@ -105,15 +110,17 @@ class InsightsDataTest {
     @Test
     fun heatmapCountsOneSavedEpisodePerDay() {
         val now = timestamp(2026, Calendar.APRIL, 10)
-        val data = InsightsData.from(
-            history = listOf(
-                history("e-1", "anime", timestamp(2026, Calendar.APRIL, 9)),
-                history("e-2", "anime", timestamp(2026, Calendar.APRIL, 9), 5_000),
-                history("e-3", "anime", timestamp(2026, Calendar.APRIL, 10)),
-            ),
-            now = now,
-            timeZone = utc,
-        )
+        val data =
+            InsightsData.from(
+                history =
+                    listOf(
+                        history("e-1", "anime", timestamp(2026, Calendar.APRIL, 9)),
+                        history("e-2", "anime", timestamp(2026, Calendar.APRIL, 9), 5_000),
+                        history("e-3", "anime", timestamp(2026, Calendar.APRIL, 10)),
+                    ),
+                now = now,
+                timeZone = utc,
+            )
 
         assertTrue(data.heatmap.values.any { it == 2 })
         assertTrue(data.heatmap.values.any { it == 1 })
@@ -136,14 +143,19 @@ class InsightsDataTest {
         durationMs = progressMs,
     )
 
-    private fun timestamp(year: Int, month: Int, day: Int): Long =
-        Calendar.getInstance(utc).apply {
-            clear()
-            set(year, month, day, 12, 0, 0)
-        }.timeInMillis
+    private fun timestamp(
+        year: Int,
+        month: Int,
+        day: Int,
+    ): Long =
+        Calendar
+            .getInstance(utc)
+            .apply {
+                clear()
+                set(year, month, day, 12, 0, 0)
+            }.timeInMillis
 
-    private fun List<SmallStat>.forStat(kind: SmallStat.Kind): SmallStat =
-        first { it.kind == kind }
+    private fun List<SmallStat>.forStat(kind: SmallStat.Kind): SmallStat = first { it.kind == kind }
 
     private companion object {
         const val MINUTE = 60_000L

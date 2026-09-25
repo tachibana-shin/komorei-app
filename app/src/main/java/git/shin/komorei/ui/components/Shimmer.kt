@@ -35,33 +35,38 @@ import git.shin.komorei.ui.theme.ShimmerHighlight
  * 120Hz smooth shimmer placeholder modifier for images and loading states.
  */
 fun Modifier.shimmerEffect(
-    shape: RoundedCornerShape = RoundedCornerShape(10.dp)
-): Modifier = composed {
-    val transition = rememberInfiniteTransition(label = "ShimmerTransition")
-    val translateAnim = transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1100, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "ShimmerTranslate"
-    )
+    shape: RoundedCornerShape = RoundedCornerShape(10.dp),
+): Modifier =
+    composed {
+        val transition = rememberInfiniteTransition(label = "ShimmerTransition")
+        val translateAnim =
+            transition.animateFloat(
+                initialValue = 0f,
+                targetValue = 1000f,
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(durationMillis = 1100, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart,
+                    ),
+                label = "ShimmerTranslate",
+            )
 
-    val shimmerBrush = Brush.linearGradient(
-        colors = listOf(
-            ShimmerBase,
-            ShimmerHighlight,
-            ShimmerBase
-        ),
-        start = Offset(translateAnim.value - 400f, translateAnim.value - 400f),
-        end = Offset(translateAnim.value, translateAnim.value)
-    )
+        val shimmerBrush =
+            Brush.linearGradient(
+                colors =
+                    listOf(
+                        ShimmerBase,
+                        ShimmerHighlight,
+                        ShimmerBase,
+                    ),
+                start = Offset(translateAnim.value - 400f, translateAnim.value - 400f),
+                end = Offset(translateAnim.value, translateAnim.value),
+            )
 
-    this
-        .clip(shape)
-        .background(shimmerBrush)
-}
+        this
+            .clip(shape)
+            .background(shimmerBrush)
+    }
 
 /**
  * Shimmer loading bar used in-place of circular spinners.
@@ -71,16 +76,18 @@ fun ShimmerLoadingRow(
     modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            modifier = Modifier
-                .width(80.dp)
-                .height(12.dp)
-                .shimmerEffect(RoundedCornerShape(100)),
+            modifier =
+                Modifier
+                    .width(80.dp)
+                    .height(12.dp)
+                    .shimmerEffect(RoundedCornerShape(100)),
         )
     }
 }
@@ -91,9 +98,10 @@ fun ShimmerLoadingRow(
 @Composable
 fun ListingGridSkeleton(modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         repeat(6) {
@@ -104,24 +112,27 @@ fun ListingGridSkeleton(modifier: Modifier = Modifier) {
                 repeat(3) {
                     Column(modifier = Modifier.weight(1f)) {
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(0.7f)
-                                .shimmerEffect(RoundedCornerShape(12.dp))
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(0.7f)
+                                    .shimmerEffect(RoundedCornerShape(12.dp)),
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.85f)
-                                .height(12.dp)
-                                .shimmerEffect(RoundedCornerShape(4.dp))
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth(0.85f)
+                                    .height(12.dp)
+                                    .shimmerEffect(RoundedCornerShape(4.dp)),
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.5f)
-                                .height(10.dp)
-                                .shimmerEffect(RoundedCornerShape(4.dp))
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth(0.5f)
+                                    .height(10.dp)
+                                    .shimmerEffect(RoundedCornerShape(4.dp)),
                         )
                     }
                 }
@@ -136,9 +147,10 @@ fun ListingGridSkeleton(modifier: Modifier = Modifier) {
 @Composable
 fun SearchResultSkeleton(modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         repeat(5) {
@@ -147,34 +159,39 @@ fun SearchResultSkeleton(modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier = Modifier
-                        .width(60.dp)
-                        .height(80.dp)
-                        .shimmerEffect(RoundedCornerShape(8.dp))
+                    modifier =
+                        Modifier
+                            .width(60.dp)
+                            .height(80.dp)
+                            .shimmerEffect(RoundedCornerShape(8.dp)),
                 )
                 Column(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(vertical = 4.dp),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .padding(vertical = 4.dp),
                 ) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.75f)
-                            .height(14.dp)
-                            .shimmerEffect(RoundedCornerShape(4.dp))
+                        modifier =
+                            Modifier
+                                .fillMaxWidth(0.75f)
+                                .height(14.dp)
+                                .shimmerEffect(RoundedCornerShape(4.dp)),
                     )
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.5f)
-                            .height(11.dp)
-                            .shimmerEffect(RoundedCornerShape(4.dp))
+                        modifier =
+                            Modifier
+                                .fillMaxWidth(0.5f)
+                                .height(11.dp)
+                                .shimmerEffect(RoundedCornerShape(4.dp)),
                     )
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.35f)
-                            .height(11.dp)
-                            .shimmerEffect(RoundedCornerShape(4.dp))
+                        modifier =
+                            Modifier
+                                .fillMaxWidth(0.35f)
+                                .height(11.dp)
+                                .shimmerEffect(RoundedCornerShape(4.dp)),
                     )
                 }
             }
@@ -184,49 +201,53 @@ fun SearchResultSkeleton(modifier: Modifier = Modifier) {
 
 @Composable
 fun AnimeCardSkeleton(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.width(135.dp)
+        modifier = modifier.width(135.dp),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.7f)
-                .shimmerEffect(RoundedCornerShape(12.dp))
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(0.7f)
+                    .shimmerEffect(RoundedCornerShape(12.dp)),
         )
         Spacer(modifier = Modifier.height(8.dp))
         Box(
-            modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .height(14.dp)
-                .shimmerEffect(RoundedCornerShape(4.dp))
+            modifier =
+                Modifier
+                    .fillMaxWidth(0.85f)
+                    .height(14.dp)
+                    .shimmerEffect(RoundedCornerShape(4.dp)),
         )
         Spacer(modifier = Modifier.height(4.dp))
         Box(
-            modifier = Modifier
-                .fillMaxWidth(0.5f)
-                .height(11.dp)
-                .shimmerEffect(RoundedCornerShape(4.dp))
+            modifier =
+                Modifier
+                    .fillMaxWidth(0.5f)
+                    .height(11.dp)
+                    .shimmerEffect(RoundedCornerShape(4.dp)),
         )
     }
 }
 
 @Composable
 fun SectionSkeleton(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Box(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .width(140.dp)
-                .height(18.dp)
-                .shimmerEffect(RoundedCornerShape(4.dp))
+            modifier =
+                Modifier
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .width(140.dp)
+                    .height(18.dp)
+                    .shimmerEffect(RoundedCornerShape(4.dp)),
         )
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(30) {
                 AnimeCardSkeleton(modifier = Modifier.width(110.dp))
@@ -237,13 +258,14 @@ fun SectionSkeleton(
 
 @Composable
 fun BannerCarouselSkeleton(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(240.dp)
-            .padding(16.dp)
-            .shimmerEffect(RoundedCornerShape(16.dp))
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(240.dp)
+                .padding(16.dp)
+                .shimmerEffect(RoundedCornerShape(16.dp)),
     )
 }

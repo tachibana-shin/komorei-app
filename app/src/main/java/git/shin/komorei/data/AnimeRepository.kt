@@ -1,5 +1,7 @@
 package git.shin.komorei.data
 
+import git.shin.komorei.data.SourceSearchEvent.Completed
+import git.shin.komorei.data.SourceSearchEvent.Failed
 import git.shin.komorei.data.remote.SegmentDataInterceptor
 import git.shin.komorei.data.remote.SegmentUrlInterceptor
 import git.shin.komorei.model.Anime
@@ -18,13 +20,11 @@ import git.shin.komorei.model.StreamData
 import git.shin.komorei.model.StreamInfo
 import git.shin.komorei.sdk.KrxPage
 import git.shin.komorei.sdk.KrxSourceRegistry
+import git.shin.komorei.sdk.runner.HostDefaultValue
+import git.shin.komorei.sdk.runner.RunnerException
 import git.shin.komorei.sdk.toAppModel
 import git.shin.komorei.sdk.toAppPage
 import git.shin.komorei.sdk.toRunner
-import git.shin.komorei.sdk.runner.HostDefaultValue
-import git.shin.komorei.sdk.runner.RunnerException
-import git.shin.komorei.data.SourceSearchEvent.Completed
-import git.shin.komorei.data.SourceSearchEvent.Failed
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -47,10 +47,10 @@ import javax.inject.Singleton
 open class AnimeRepository @Inject constructor(
     private val registry: KrxSourceRegistry,
 ) {
-
     private companion object {
         const val AGGREGATOR_ID = "all"
         const val AGGREGATOR_NAME = "Tổng hợp"
+
         // The aggregator is a virtual source with no krx artwork; SourceIcon
         // falls back to a vector glyph when the icon path is blank.
         const val AGGREGATOR_ICON = ""
@@ -59,47 +59,62 @@ open class AnimeRepository @Inject constructor(
     }
 
     /** The "all" virtual source + every bundled source. */
-    val sources: List<Source> = buildList {
-        add(
-            Source(
-                AGGREGATOR_ID, AGGREGATOR_NAME, AGGREGATOR_ICON,
-                AGGREGATOR_VERSION, "", true, true, AGGREGATOR_BADGE
+    val sources: List<Source> =
+        buildList {
+            add(
+                Source(
+                    AGGREGATOR_ID,
+                    AGGREGATOR_NAME,
+                    AGGREGATOR_ICON,
+                    AGGREGATOR_VERSION,
+                    "",
+                    true,
+                    true,
+                    AGGREGATOR_BADGE,
+                ),
             )
-        )
-        addAll(registry.sourceAppList())
-    }
+            addAll(registry.sourceAppList())
+        }
 
     /**
      * Reactive variant of [sources] — re-emits when the registry's source set
      * changes (install / uninstall), so Home tabs and the Sources tab stay
      * in sync without process restarts.
      */
-    val sourcesFlow: Flow<List<Source>> = registry.sourceAppFlow.map { appSources ->
-        buildList {
-            add(
-                Source(
-                    AGGREGATOR_ID, AGGREGATOR_NAME, AGGREGATOR_ICON,
-                    AGGREGATOR_VERSION, "", true, true, AGGREGATOR_BADGE
+    val sourcesFlow: Flow<List<Source>> =
+        registry.sourceAppFlow.map { appSources ->
+            buildList {
+                add(
+                    Source(
+                        AGGREGATOR_ID,
+                        AGGREGATOR_NAME,
+                        AGGREGATOR_ICON,
+                        AGGREGATOR_VERSION,
+                        "",
+                        true,
+                        true,
+                        AGGREGATOR_BADGE,
+                    ),
                 )
-            )
-            addAll(appSources)
+                addAll(appSources)
+            }
         }
-    }
 
-    val genres: List<Genre> = listOf(
-        Genre("action", "Hành Động", "⚔️", 0xFFE53935, 142),
-        Genre("isekai", "Chuyển Sinh", "🌀", 0xFF8E24AA, 98),
-        Genre("adventure", "Phiêu Lưu", "🧭", 0xFF1E88E5, 115),
-        Genre("harem", "Harem", "🌸", 0xFFD81B60, 64),
-        Genre("shounen", "Shounen", "🔥", 0xFFFF8F00, 180),
-        Genre("romance", "Lãng Mạn", "💖", 0xFFEC407A, 88),
-        Genre("supernatural", "Siêu Nhiên", "👁️", 0xFF5E35B1, 76),
-        Genre("school", "Học Đường", "🏫", 0xFF43A047, 92),
-        Genre("comedy", "Hài Hước", "🤣", 0xFFFDD835, 120),
-        Genre("mystery", "Bí Ẩn", "🕵️", 0xFF3949AB, 55),
-        Genre("fantasy", "Giả Tưởng", "✨", 0xFF00ACC1, 134),
-        Genre("mecha", "Mecha", "🤖", 0xFF546E7A, 42)
-    )
+    val genres: List<Genre> =
+        listOf(
+            Genre("action", "Hành Động", "⚔️", 0xFFE53935, 142),
+            Genre("isekai", "Chuyển Sinh", "🌀", 0xFF8E24AA, 98),
+            Genre("adventure", "Phiêu Lưu", "🧭", 0xFF1E88E5, 115),
+            Genre("harem", "Harem", "🌸", 0xFFD81B60, 64),
+            Genre("shounen", "Shounen", "🔥", 0xFFFF8F00, 180),
+            Genre("romance", "Lãng Mạn", "💖", 0xFFEC407A, 88),
+            Genre("supernatural", "Siêu Nhiên", "👁️", 0xFF5E35B1, 76),
+            Genre("school", "Học Đường", "🏫", 0xFF43A047, 92),
+            Genre("comedy", "Hài Hước", "🤣", 0xFFFDD835, 120),
+            Genre("mystery", "Bí Ẩn", "🕵️", 0xFF3949AB, 55),
+            Genre("fantasy", "Giả Tưởng", "✨", 0xFF00ACC1, 134),
+            Genre("mecha", "Mecha", "🤖", 0xFF546E7A, 42),
+        )
 
     fun getSource(sourceId: String): Source? = sources.find { it.id == sourceId }
 
@@ -147,24 +162,28 @@ open class AnimeRepository @Inject constructor(
     suspend fun getAnimeUpdate(
         anime: Anime,
         needsDetails: Boolean,
-        needsChapters: Boolean
-    ): Anime {
-        return registry.call(anime.sourceId) { runner ->
+        needsChapters: Boolean,
+    ): Anime =
+        registry.call(anime.sourceId) { runner ->
             runner.animeUpdate(anime.toRunner(), needsDetails, needsChapters).toAppModel()
         } ?: anime
-    }
 
-    suspend fun getStreamList(anime: Anime, episode: Episode): List<StreamInfo> {
-        return registry.call(anime.sourceId) { runner ->
+    suspend fun getStreamList(
+        anime: Anime,
+        episode: Episode,
+    ): List<StreamInfo> =
+        registry.call(anime.sourceId) { runner ->
             runner.streamList(anime.toRunner(), episode.toRunner()).map { it.toAppModel() }
         } ?: emptyList()
-    }
 
-    suspend fun getStream(anime: Anime, episode: Episode, stream: StreamInfo): StreamData {
-        return registry.call(anime.sourceId) { runner ->
+    suspend fun getStream(
+        anime: Anime,
+        episode: Episode,
+        stream: StreamInfo,
+    ): StreamData =
+        registry.call(anime.sourceId) { runner ->
             runner.stream(anime.toRunner(), episode.toRunner(), stream.toRunner()).toAppModel()
         } ?: throw IllegalStateException("Source unavailable: ${anime.sourceId}")
-    }
 
     // ── deep links ─────────────────────────────────────────────────────────
 
@@ -173,27 +192,32 @@ open class AnimeRepository @Inject constructor(
      * Returns the app-model [DeepLinkTarget], or null when the source doesn't
      * handle the URL (or the source can't be loaded).
      */
-    suspend fun handleDeepLink(sourceId: String, url: String): DeepLinkTarget? {
-        return registry.call(sourceId) { runner ->
+    suspend fun handleDeepLink(
+        sourceId: String,
+        url: String,
+    ): DeepLinkTarget? =
+        registry.call(sourceId) { runner ->
             runner.deepLink(url)?.toAppModel()
         }
-    }
 
     /**
      * Asks [sourceId]'s `handle_anime_migration` to map [key] to its current
      * form (null when the source can't be loaded).
      */
-    suspend fun migrateAnime(sourceId: String, key: String): String? {
-        return registry.call(sourceId) { runner -> runner.migrateAnime(key) }
-    }
+    suspend fun migrateAnime(
+        sourceId: String,
+        key: String,
+    ): String? = registry.call(sourceId) { runner -> runner.migrateAnime(key) }
 
     /**
      * Asks [sourceId]'s `handle_episode_migration` to map [episodeKey] under
      * the (old) [animeKey] to its current form.
      */
-    suspend fun migrateEpisode(sourceId: String, animeKey: String, episodeKey: String): String? {
-        return registry.call(sourceId) { runner -> runner.migrateEpisode(animeKey, episodeKey) }
-    }
+    suspend fun migrateEpisode(
+        sourceId: String,
+        animeKey: String,
+        episodeKey: String,
+    ): String? = registry.call(sourceId) { runner -> runner.migrateEpisode(animeKey, episodeKey) }
 
     // ── search ─────────────────────────────────────────────────────────────
 
@@ -202,9 +226,7 @@ open class AnimeRepository @Inject constructor(
      * export. Used by the Search screen and by [searchMultiSource] to translate
      * a genre selection into the source's own filter ids.
      */
-    suspend fun getFilters(sourceId: String): List<Filter> {
-        return registry.call(sourceId) { it.filters().map { f -> f.toAppModel() } } ?: emptyList()
-    }
+    suspend fun getFilters(sourceId: String): List<Filter> = registry.call(sourceId) { it.filters().map { f -> f.toAppModel() } } ?: emptyList()
 
     /**
      * Paginated per-source search — a 1:1 mirror of the runner's `search()`
@@ -216,11 +238,10 @@ open class AnimeRepository @Inject constructor(
         query: String?,
         page: Int,
         selected: List<FilterValue> = emptyList(),
-    ): KrxPage<Anime> {
-        return registry.call(sourceId) { runner ->
+    ): KrxPage<Anime> =
+        registry.call(sourceId) { runner ->
             runner.search(query, page, selected.map { it.toRunner() }).toAppPage()
         } ?: KrxPage(emptyList(), false)
-    }
 
     /**
      * Parallel multi-source search. Each source is queried on its own thread;
@@ -241,91 +262,105 @@ open class AnimeRepository @Inject constructor(
         sourceIds: Set<String> = emptySet(),
     ): Map<Source, List<Anime>> {
         val genreName = selectedGenreId?.let { id -> genres.find { it.id == id }?.name }
-        val candidateSources = sources.filter { !it.isAggregator }
-            .filter { sourceIds.isEmpty() || it.id in sourceIds }
-            .filter { contentRating == null || ratingMatches(it.contentRating, contentRating) }
-            .filter { languages.isEmpty() || it.languages.any { lang -> lang in languages } }
+        val candidateSources =
+            sources
+                .filter { !it.isAggregator }
+                .filter { sourceIds.isEmpty() || it.id in sourceIds }
+                .filter { contentRating == null || ratingMatches(it.contentRating, contentRating) }
+                .filter { languages.isEmpty() || it.languages.any { lang -> lang in languages } }
 
         return coroutineScope {
-            candidateSources.map { source ->
-                async {
-                    val genreValues = genreName?.let { name -> buildGenreFilter(source.id, name) }
-                        ?: emptyList()
-                    source to search(source.id, query.ifBlank { null }, 1, genreValues).entries
-                }
-            }.awaitAll()
+            candidateSources
+                .map { source ->
+                    async {
+                        val genreValues =
+                            genreName?.let { name -> buildGenreFilter(source.id, name) }
+                                ?: emptyList()
+                        source to search(source.id, query.ifBlank { null }, 1, genreValues).entries
+                    }
+                }.awaitAll()
                 .filter { (_, animes) -> animes.isNotEmpty() }
                 .toMap()
         }
     }
 
     /**
-      * The sources a multi-source search would query given the same filters —
-      * exposed so search UIs can render one section per candidate source
-      * (each with its own load/result/error state) before results arrive.
-      */
+     * The sources a multi-source search would query given the same filters —
+     * exposed so search UIs can render one section per candidate source
+     * (each with its own load/result/error state) before results arrive.
+     */
     fun candidateSourcesForSearch(
         contentRating: Int? = null,
         languages: Set<String> = emptySet(),
         sourceIds: Set<String> = emptySet(),
-    ): List<Source> = sources.filter { !it.isAggregator }
-        .filter { sourceIds.isEmpty() || it.id in sourceIds }
-        .filter { contentRating == null || ratingMatches(it.contentRating, contentRating) }
-        .filter { languages.isEmpty() || it.languages.any { lang -> lang in languages } }
+    ): List<Source> =
+        sources
+            .filter { !it.isAggregator }
+            .filter { sourceIds.isEmpty() || it.id in sourceIds }
+            .filter { contentRating == null || ratingMatches(it.contentRating, contentRating) }
+            .filter { languages.isEmpty() || it.languages.any { lang -> lang in languages } }
 
     /**
-      * Parallel multi-source search that reports each source's outcome
-      * independently ([SourceSearchEvent]) — as a *cold stream* so results
-      * appear directly when each source finishes instead of waiting for all
-      * of them ([channelFlow] preserves completion order: the fastest source
-      * emits first). Unlike [searchMultiSource] which silently drops failures,
-      * this exposes every source — [Completed] with its results (possibly
-      * empty) and [Failed] with the error message — so the UI can render
-      * per-source sections (each with its own state) as they arrive.
-      *
-      * Each source is queried on its own thread; a broken source only
-      * surfaces as its own [Failed] event and never blocks the others.
-      */
+     * Parallel multi-source search that reports each source's outcome
+     * independently ([SourceSearchEvent]) — as a *cold stream* so results
+     * appear directly when each source finishes instead of waiting for all
+     * of them ([channelFlow] preserves completion order: the fastest source
+     * emits first). Unlike [searchMultiSource] which silently drops failures,
+     * this exposes every source — [Completed] with its results (possibly
+     * empty) and [Failed] with the error message — so the UI can render
+     * per-source sections (each with its own state) as they arrive.
+     *
+     * Each source is queried on its own thread; a broken source only
+     * surfaces as its own [Failed] event and never blocks the others.
+     */
     open fun searchMultiSourceStream(
         query: String,
         selectedGenreId: String? = null,
         contentRating: Int? = null,
         languages: Set<String> = emptySet(),
         sourceIds: Set<String> = emptySet(),
-    ): Flow<SourceSearchEvent> = channelFlow {
-        val genreName = selectedGenreId?.let { id -> genres.find { it.id == id }?.name }
-        val candidateSources = candidateSourcesForSearch(contentRating, languages, sourceIds)
+    ): Flow<SourceSearchEvent> =
+        channelFlow {
+            val genreName = selectedGenreId?.let { id -> genres.find { it.id == id }?.name }
+            val candidateSources = candidateSourcesForSearch(contentRating, languages, sourceIds)
 
-        // Launch every source concurrently; each one sends its outcome the
-        // moment it completes so the collector gets per-source updates live.
-        coroutineScope {
-            candidateSources.map { source ->
-                launch {
-                    try {
-                        val genreValues = genreName?.let { name -> buildGenreFilter(source.id, name) }
-                            ?: emptyList()
-                        val results = search(source.id, query.ifBlank { null }, 1, genreValues).entries
-                        send(Completed(source, results))
-                    } catch (e: Exception) {
-                        send(Failed(source, e.localizedMessage ?: e.javaClass.simpleName))
+            // Launch every source concurrently; each one sends its outcome the
+            // moment it completes so the collector gets per-source updates live.
+            coroutineScope {
+                candidateSources.map { source ->
+                    launch {
+                        try {
+                            val genreValues =
+                                genreName?.let { name -> buildGenreFilter(source.id, name) }
+                                    ?: emptyList()
+                            val results = search(source.id, query.ifBlank { null }, 1, genreValues).entries
+                            send(Completed(source, results))
+                        } catch (e: Exception) {
+                            send(Failed(source, e.localizedMessage ?: e.javaClass.simpleName))
+                        }
                     }
                 }
             }
         }
-    }
 
     /** [filterRating] `0` = safe-only, anything else = 18+-only. */
-    private fun ratingMatches(sourceRating: Int, filterRating: Int): Boolean =
-        if (filterRating == 0) sourceRating == 0 else sourceRating > 0
+    private fun ratingMatches(
+        sourceRating: Int,
+        filterRating: Int,
+    ): Boolean = if (filterRating == 0) sourceRating == 0 else sourceRating > 0
 
-    private suspend fun buildGenreFilter(sourceId: String, genreName: String): List<FilterValue> {
-        val genreFilter = getFilters(sourceId).firstOrNull { f ->
-            when (val k = f.kind) {
-                is git.shin.komorei.model.FilterKind.Select -> k.isGenre
-                is git.shin.komorei.model.FilterKind.MultiSelect -> k.isGenre
-                else -> false
-            }
-        } ?: return emptyList()
+    private suspend fun buildGenreFilter(
+        sourceId: String,
+        genreName: String,
+    ): List<FilterValue> {
+        val genreFilter =
+            getFilters(sourceId).firstOrNull { f ->
+                when (val k = f.kind) {
+                    is git.shin.komorei.model.FilterKind.Select -> k.isGenre
+                    is git.shin.komorei.model.FilterKind.MultiSelect -> k.isGenre
+                    else -> false
+                }
+            } ?: return emptyList()
         return when (val kind = genreFilter.kind) {
             is git.shin.komorei.model.FilterKind.MultiSelect ->
                 listOf(FilterValue.MultiSelect(genreFilter.id, listOf(genreName), emptyList()))
@@ -348,9 +383,13 @@ open class AnimeRepository @Inject constructor(
     suspend fun getListings(sourceId: String): List<Listing> {
         if (sourceId == AGGREGATOR_ID) {
             return coroutineScope {
-                sources.filter { !it.isAggregator }.map { s ->
-                    async { getListings(s.id) }
-                }.awaitAll().flatten().distinctBy { it.id }
+                sources
+                    .filter { !it.isAggregator }
+                    .map { s ->
+                        async { getListings(s.id) }
+                    }.awaitAll()
+                    .flatten()
+                    .distinctBy { it.id }
             }
         }
         return registry.call(sourceId) { it.listings().map { l -> l.toAppModel() } } ?: emptyList()
@@ -366,17 +405,24 @@ open class AnimeRepository @Inject constructor(
      * source (in parallel, on their own threads) for the same listing+page and
      * merges the results, deduped by id.
      */
-    suspend fun getListing(sourceId: String, listing: Listing, page: Int): KrxPage<Anime> {
+    suspend fun getListing(
+        sourceId: String,
+        listing: Listing,
+        page: Int,
+    ): KrxPage<Anime> {
         if (sourceId == AGGREGATOR_ID) {
             return coroutineScope {
-                sources.filter { !it.isAggregator }.map { s ->
-                    async { getListing(s.id, listing, page) }
-                }.awaitAll().let { pages ->
-                    KrxPage(
-                        entries = pages.flatMap { it.entries }.distinctBy { it.id },
-                        hasNextPage = pages.any { it.hasNextPage },
-                    )
-                }
+                sources
+                    .filter { !it.isAggregator }
+                    .map { s ->
+                        async { getListing(s.id, listing, page) }
+                    }.awaitAll()
+                    .let { pages ->
+                        KrxPage(
+                            entries = pages.flatMap { it.entries }.distinctBy { it.id },
+                            hasNextPage = pages.any { it.hasNextPage },
+                        )
+                    }
             }
         }
         return registry.call(sourceId) { runner ->
@@ -399,18 +445,21 @@ open class AnimeRepository @Inject constructor(
      */
     suspend fun getRecommendedAnime(anime: Anime): KrxPage<Anime> {
         return registry.call(anime.sourceId) { runner ->
-            val page = try {
-                runner.recommendedAnime(anime.toRunner()).toAppPage()
-            } catch (e: RunnerException.ExportMissing) {
-                // No RecommendationsHandler export — fall back to a search by
-                // the first genre tag (see the SDK trait doc).
-                val firstGenre = anime.genres.firstOrNull()
-                    ?: return@call KrxPage(emptyList(), false)
-                val genreValues = firstGenre.filters
-                    .ifEmpty { buildGenreFilter(anime.sourceId, firstGenre.name) }
-                if (genreValues.isEmpty()) return@call KrxPage(emptyList(), false)
-                runner.search(null, 1, genreValues.map { it.toRunner() }).toAppPage()
-            }
+            val page =
+                try {
+                    runner.recommendedAnime(anime.toRunner()).toAppPage()
+                } catch (e: RunnerException.ExportMissing) {
+                    // No RecommendationsHandler export — fall back to a search by
+                    // the first genre tag (see the SDK trait doc).
+                    val firstGenre =
+                        anime.genres.firstOrNull()
+                            ?: return@call KrxPage(emptyList(), false)
+                    val genreValues =
+                        firstGenre.filters
+                            .ifEmpty { buildGenreFilter(anime.sourceId, firstGenre.name) }
+                    if (genreValues.isEmpty()) return@call KrxPage(emptyList(), false)
+                    runner.search(null, 1, genreValues.map { it.toRunner() }).toAppPage()
+                }
             KrxPage(page.entries.filterNot { it.id == anime.id }, page.hasNextPage)
         } ?: KrxPage(emptyList(), false)
     }
@@ -427,13 +476,12 @@ open class AnimeRepository @Inject constructor(
      * setting shows up immediately on reload even if the source hardcodes its
      * description default.  Runs on the source's thread.
      */
-    suspend fun getSettings(sourceId: String): List<SourceSetting> {
-        return registry.call(sourceId) { runner ->
+    suspend fun getSettings(sourceId: String): List<SourceSetting> =
+        registry.call(sourceId) { runner ->
             runner.settings().map { s ->
                 s.toAppModel().withPersistedValues { key -> registry.defaultsGet(sourceId, key) }
             }
         } ?: emptyList()
-    }
 
     /** Drops the cached `home()` layout for [sourceId] — the next read re-fetches. */
     fun clearCachedHome(sourceId: String) {
@@ -448,7 +496,10 @@ open class AnimeRepository @Inject constructor(
      * can react (e.g. clear caches, resync). No-op when the source does not
      * register the trait (the wasm export simply doesn't exist).
      */
-    suspend fun handleNotification(sourceId: String, notification: String) {
+    suspend fun handleNotification(
+        sourceId: String,
+        notification: String,
+    ) {
         registry.call(sourceId) { it.notify(notification) }
     }
 
@@ -457,11 +508,12 @@ open class AnimeRepository @Inject constructor(
     // host store — the same one the source sees through its `defaults_get`.
     private fun SourceSetting.withPersistedValues(defaults: (String) -> HostDefaultValue?): SourceSetting {
         var value = value.overlayPersisted(defaults(key))
-        value = when (value) {
-            is SourceSettingValue.Group -> value.copy(items = value.items.map { it.withPersistedValues(defaults) })
-            is SourceSettingValue.Page -> value.copy(items = value.items.map { it.withPersistedValues(defaults) })
-            else -> value
-        }
+        value =
+            when (value) {
+                is SourceSettingValue.Group -> value.copy(items = value.items.map { it.withPersistedValues(defaults) })
+                is SourceSettingValue.Page -> value.copy(items = value.items.map { it.withPersistedValues(defaults) })
+                else -> value
+            }
         return if (value === this.value) this else copy(value = value)
     }
 
@@ -522,8 +574,11 @@ open class AnimeRepository @Inject constructor(
     suspend fun getHome(sourceId: String): List<HomeComponent> {
         if (sourceId == AGGREGATOR_ID) {
             return coroutineScope {
-                sources.filter { !it.isAggregator }.map { s -> async { getHome(s.id) } }
-                    .awaitAll().flatten()
+                sources
+                    .filter { !it.isAggregator }
+                    .map { s -> async { getHome(s.id) } }
+                    .awaitAll()
+                    .flatten()
             }
         }
         homeCache[sourceId]?.let { return it.await() }
@@ -531,9 +586,10 @@ open class AnimeRepository @Inject constructor(
         val existing = homeCache.putIfAbsent(sourceId, deferred)
         if (existing != null) return existing.await()
         return try {
-            val components = registry.call(sourceId) { runner ->
-                runner.home().components.map { it.toAppModel() }
-            } ?: emptyList()
+            val components =
+                registry.call(sourceId) { runner ->
+                    runner.home().components.map { it.toAppModel() }
+                } ?: emptyList()
             deferred.complete(components)
             components
         } catch (e: Exception) {
@@ -547,11 +603,10 @@ open class AnimeRepository @Inject constructor(
      * Featured anime for the Home tab — the `BigScroller` components of
      * [getHome]. "all" aggregates every source (in parallel, cached).
      */
-    suspend fun getFeaturedAnime(sourceId: String): List<Anime> {
-        return getHome(sourceId)
+    suspend fun getFeaturedAnime(sourceId: String): List<Anime> =
+        getHome(sourceId)
             .flatMap { comp -> (comp.value as? HomeComponentValue.BigScroller)?.entries ?: emptyList() }
             .distinctBy { it.id }
-    }
 
     /**
      * Grouped sections for the Home hub, built from [getHome]: anime rails
@@ -562,12 +617,13 @@ open class AnimeRepository @Inject constructor(
         val combined = linkedMapOf<String, MutableList<Anime>>()
         getHome(sourceId).forEach { comp ->
             val title = comp.title ?: return@forEach
-            val items: List<Anime> = when (val v = comp.value) {
-                is HomeComponentValue.AnimeEpisodeList -> v.entries.map { it.anime }
-                is HomeComponentValue.AnimeList -> v.entries.mapNotNull { it.anime }
-                is HomeComponentValue.Scroller -> v.entries.mapNotNull { it.anime }
-                else -> return@forEach
-            }
+            val items: List<Anime> =
+                when (val v = comp.value) {
+                    is HomeComponentValue.AnimeEpisodeList -> v.entries.map { it.anime }
+                    is HomeComponentValue.AnimeList -> v.entries.mapNotNull { it.anime }
+                    is HomeComponentValue.Scroller -> v.entries.mapNotNull { it.anime }
+                    else -> return@forEach
+                }
             if (items.isEmpty()) return@forEach
             combined.getOrPut(title) { mutableListOf() }.addAll(items)
         }
@@ -583,9 +639,10 @@ open class AnimeRepository @Inject constructor(
         for (id in ids) {
             var page = 1
             while (true) {
-                val result = registry.call(id) { runner ->
-                    runner.search(null, page, emptyList())
-                } ?: break
+                val result =
+                    registry.call(id) { runner ->
+                        runner.search(null, page, emptyList())
+                    } ?: break
                 val found = result.entries.firstOrNull { it.key == animeId }
                 if (found != null) return found.toAppModel()
                 if (!result.hasNextPage) break

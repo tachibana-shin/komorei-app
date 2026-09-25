@@ -25,9 +25,10 @@ import kotlinx.coroutines.flow.asStateFlow
  * second dialog.
  */
 object JsChallengeCoordinator {
-
     /** A bypass that is waiting for the user in the visible WebView dialog. */
-    data class PendingChallenge(val url: String)
+    data class PendingChallenge(
+        val url: String,
+    )
 
     private val lock = Any()
 
@@ -53,14 +54,15 @@ object JsChallengeCoordinator {
      * true only when the user actually completed the challenge.
      */
     suspend fun requestUserBypass(url: String): Boolean {
-        val deferred = synchronized(lock) {
-            // Reuse an in-flight bypass — a concurrent 403 while the dialog is
-            // up shares the same outcome instead of opening a second dialog.
-            activeBypass ?: CompletableDeferred<Boolean>().also {
-                activeBypass = it
-                _pending.value = PendingChallenge(url)
+        val deferred =
+            synchronized(lock) {
+                // Reuse an in-flight bypass — a concurrent 403 while the dialog is
+                // up shares the same outcome instead of opening a second dialog.
+                activeBypass ?: CompletableDeferred<Boolean>().also {
+                    activeBypass = it
+                    _pending.value = PendingChallenge(url)
+                }
             }
-        }
         return deferred.await()
     }
 

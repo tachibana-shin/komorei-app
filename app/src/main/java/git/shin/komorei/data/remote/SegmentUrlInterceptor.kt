@@ -10,5 +10,8 @@ import git.shin.komorei.model.StreamData
  * Inspired by git.shin.animevsub.data.remote.SegmentUrlInterceptor.
  */
 fun interface SegmentUrlInterceptor {
-    fun intercept(streamData: StreamData?, requestUrl: String): String
+    fun intercept(
+        streamData: StreamData?,
+        requestUrl: String,
+    ): String
 }

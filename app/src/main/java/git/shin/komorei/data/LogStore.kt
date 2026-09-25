@@ -14,7 +14,9 @@ import java.util.Locale
  * [DEFAULT] carries no badge — it is a bare source `println!` (see Aidoku's
  * `printHandler`), while the others are app- or runner-level events.
  */
-enum class LogLevel(val label: String) {
+enum class LogLevel(
+    val label: String,
+) {
     DEFAULT(""),
     DEBUG("DEBUG"),
     INFO("INFO"),
@@ -57,24 +59,44 @@ object LogStore {
     private val lock = Any()
 
     /** Appends a line, evicting the oldest ones past [MAX_ENTRIES]. */
-    fun add(level: LogLevel = LogLevel.DEFAULT, message: String, sourceId: String? = null) {
+    fun add(
+        level: LogLevel = LogLevel.DEFAULT,
+        message: String,
+        sourceId: String? = null,
+    ) {
         val entry = LogEntry(level = level, message = message, sourceId = sourceId)
         synchronized(lock) {
             val current = _entries.value
-            val next = if (current.size >= MAX_ENTRIES) {
-                current.subList(current.size - MAX_ENTRIES + 1, current.size).toList() + entry
-            } else {
-                current + entry
-            }
+            val next =
+                if (current.size >= MAX_ENTRIES) {
+                    current.subList(current.size - MAX_ENTRIES + 1, current.size).toList() + entry
+                } else {
+                    current + entry
+                }
             _entries.value = next
         }
         LogStreamClient.send(entry.formatted())
     }
 
-    fun debug(message: String, sourceId: String? = null) = add(LogLevel.DEBUG, message, sourceId)
-    fun info(message: String, sourceId: String? = null) = add(LogLevel.INFO, message, sourceId)
-    fun warn(message: String, sourceId: String? = null) = add(LogLevel.WARN, message, sourceId)
-    fun error(message: String, sourceId: String? = null) = add(LogLevel.ERROR, message, sourceId)
+    fun debug(
+        message: String,
+        sourceId: String? = null,
+    ) = add(LogLevel.DEBUG, message, sourceId)
+
+    fun info(
+        message: String,
+        sourceId: String? = null,
+    ) = add(LogLevel.INFO, message, sourceId)
+
+    fun warn(
+        message: String,
+        sourceId: String? = null,
+    ) = add(LogLevel.WARN, message, sourceId)
+
+    fun error(
+        message: String,
+        sourceId: String? = null,
+    ) = add(LogLevel.ERROR, message, sourceId)
 
     fun clear() = synchronized(lock) { _entries.value = emptyList() }
 
@@ -85,11 +107,12 @@ object LogStore {
      * Writes [export] to [dir] as `log_<yyyy-MM-dd_HH-mm-ss>.txt` (AIDOKU's
      * naming) and returns the file, or null if the write failed.
      */
-    fun exportTo(dir: File): File? = runCatching {
-        if (!dir.exists()) dir.mkdirs()
-        val stamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
-        val file = File(dir, "log_$stamp.txt")
-        file.writeText(export())
-        file
-    }.getOrNull()
+    fun exportTo(dir: File): File? =
+        runCatching {
+            if (!dir.exists()) dir.mkdirs()
+            val stamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
+            val file = File(dir, "log_$stamp.txt")
+            file.writeText(export())
+            file
+        }.getOrNull()
 }

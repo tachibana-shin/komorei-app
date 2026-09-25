@@ -12,7 +12,10 @@ import okhttp3.HttpUrl
 class WebViewCookieJar : CookieJar {
     private val cookieManager = CookieManager.getInstance()
 
-    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+    override fun saveFromResponse(
+        url: HttpUrl,
+        cookies: List<Cookie>,
+    ) {
         val urlString = url.toString()
         for (cookie in cookies) {
             cookieManager.setCookie(urlString, cookie.toString())
@@ -42,9 +45,10 @@ fun clearCookiesForHost(host: String) {
     val manager = CookieManager.getInstance()
     for (url in listOf("https://$host", "http://$host")) {
         val header = manager.getCookie(url) ?: continue
-        val names = header.split(";").mapNotNull {
-            it.trim().substringBefore("=").takeIf { name -> name.isNotEmpty() }
-        }
+        val names =
+            header.split(";").mapNotNull {
+                it.trim().substringBefore("=").takeIf { name -> name.isNotEmpty() }
+            }
         for (name in names) {
             manager.setCookie(
                 url,

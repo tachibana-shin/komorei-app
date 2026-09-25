@@ -85,13 +85,13 @@ fun partitionUpdates(
     sources: List<ExternalSourceInfo>,
     installedVersions: Map<String, String>,
 ): Pair<List<ExternalSourceInfo>, List<ExternalSourceInfo>> {
-    val updateIds = sources
-        .asSequence()
-        .filter { info ->
-            val installed = installedVersions[info.id]
-            installed != null && compareVersions(info.version, installed) > 0
-        }
-        .map { it.id }
-        .toSet()
+    val updateIds =
+        sources
+            .asSequence()
+            .filter { info ->
+                val installed = installedVersions[info.id]
+                installed != null && compareVersions(info.version, installed) > 0
+            }.map { it.id }
+            .toSet()
     return sources.filter { it.id in updateIds } to sources.filter { it.id !in updateIds }
 }

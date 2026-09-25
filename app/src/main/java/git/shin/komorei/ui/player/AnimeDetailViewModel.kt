@@ -38,7 +38,7 @@ data class AnimeDetailUiState(
     val currentSeasonEpisodes: List<Episode> = emptyList(),
     val isLoadingEpisodes: Boolean = false,
     val episodeError: String? = null,
-    val sourceName: String = ""
+    val sourceName: String = "",
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -46,9 +46,8 @@ data class AnimeDetailUiState(
 class AnimeDetailViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val animeRepository: AnimeRepository,
-    private val libraryRepository: LibraryRepository
+    private val libraryRepository: LibraryRepository,
 ) : ViewModel() {
-
     private val _uiState = MutableStateFlow(AnimeDetailUiState())
     val uiState: StateFlow<AnimeDetailUiState> = _uiState.asStateFlow()
 
@@ -63,34 +62,37 @@ class AnimeDetailViewModel @Inject constructor(
     private val seasonEpisodesCache: MutableMap<String, List<Episode>> = mutableMapOf()
 
     // Observe bookmark status for the master anime
-    val isBookmarked: StateFlow<Boolean> = _uiState
-        .flatMapLatest { state ->
-            val anime = state.masterAnime ?: return@flatMapLatest flowOf(false)
-            libraryRepository.bookmarkedAnimes.map { list ->
-                list.any { it.id == anime.id && it.sourceId == anime.sourceId }
-            }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val isBookmarked: StateFlow<Boolean> =
+        _uiState
+            .flatMapLatest { state ->
+                val anime = state.masterAnime ?: return@flatMapLatest flowOf(false)
+                libraryRepository.bookmarkedAnimes.map { list ->
+                    list.any { it.id == anime.id && it.sourceId == anime.sourceId }
+                }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     // Lazy observe history based on the current season's animeId
-    val watchHistory: StateFlow<List<WatchHistory>> = _uiState
-        .flatMapLatest { state ->
-            val anime = state.masterAnime ?: return@flatMapLatest flowOf(emptyList())
-            val seasonId = state.selectedSeason?.animeId ?: anime.id
-            
-            libraryRepository.getWatchHistoryForAnime(seasonId, anime.sourceId)
-                .map { entities ->
-                    entities.map { entity ->
-                        WatchHistory(
-                            animeId = entity.animeId,
-                            sourceId = entity.sourceId,
-                            episodeId = entity.episodeId,
-                            progressMs = entity.progressMs,
-                            durationMs = entity.durationMs,
-                            lastWatchedAt = entity.lastWatchedAt
-                        )
+    val watchHistory: StateFlow<List<WatchHistory>> =
+        _uiState
+            .flatMapLatest { state ->
+                val anime = state.masterAnime ?: return@flatMapLatest flowOf(emptyList())
+                val seasonId = state.selectedSeason?.animeId ?: anime.id
+
+                libraryRepository
+                    .getWatchHistoryForAnime(seasonId, anime.sourceId)
+                    .map { entities ->
+                        entities.map { entity ->
+                            WatchHistory(
+                                animeId = entity.animeId,
+                                sourceId = entity.sourceId,
+                                episodeId = entity.episodeId,
+                                progressMs = entity.progressMs,
+                                durationMs = entity.durationMs,
+                                lastWatchedAt = entity.lastWatchedAt,
+                            )
+                        }
                     }
-                }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /**
      * Initial entry point: Upgrades Lite anime to Full metadata + first season episodes.
@@ -98,10 +100,10 @@ class AnimeDetailViewModel @Inject constructor(
     fun loadInitialData(liteAnime: Anime) {
         if (_uiState.value.masterAnime?.id == liteAnime.id) return
         lastLiteAnime = liteAnime
-        
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingEpisodes = true, episodeError = null) }
-            
+
             // 1. Fetch FULL metadata (including all available seasons)
             runCatching {
                 animeRepository.getAnimeUpdate(liteAnime, needsDetails = true, needsChapters = false)
@@ -109,12 +111,13 @@ class AnimeDetailViewModel @Inject constructor(
                 val sourceName = animeRepository.getSourceName(liteAnime.sourceId)
 
                 // 2. Select initial season (usually the one provided by liteAnime or the first in list)
-                val initialSeason = fullMetadata.seasons.find { it.animeId == liteAnime.id }
-                    ?: fullMetadata.seasons.firstOrNull()
-                    ?: AnimeSeason(
-                        liteAnime.id,
-                        appContext.getString(R.string.season_fallback_full)
-                    )
+                val initialSeason =
+                    fullMetadata.seasons.find { it.animeId == liteAnime.id }
+                        ?: fullMetadata.seasons.firstOrNull()
+                        ?: AnimeSeason(
+                            liteAnime.id,
+                            appContext.getString(R.string.season_fallback_full),
+                        )
 
                 _uiState.update {
                     it.copy(masterAnime = fullMetadata, selectedSeason = initialSeason, sourceName = sourceName)
@@ -126,7 +129,7 @@ class AnimeDetailViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoadingEpisodes = false,
-                        episodeError = e.message ?: appContext.getString(R.string.error_load_data)
+                        episodeError = e.message ?: appContext.getString(R.string.error_load_data),
                     )
                 }
             }
@@ -145,14 +148,15 @@ class AnimeDetailViewModel @Inject constructor(
         // Virtual chunk switch — fully local, no network.
         if (state.virtualSeasons.any { it.id == season.id }) {
             val chunkIndex = season.id.substringAfterLast('#').toIntOrNull() ?: return
-            val chunk = state.fullSeasonEpisodes
-                .chunked(VIRTUAL_SEASON_MAX_EPISODES)
-                .getOrNull(chunkIndex) ?: return
+            val chunk =
+                state.fullSeasonEpisodes
+                    .chunked(VIRTUAL_SEASON_MAX_EPISODES)
+                    .getOrNull(chunkIndex) ?: return
             _uiState.update {
                 it.copy(
                     selectedVirtualSeasonId = season.id,
                     currentSeasonEpisodes = chunk,
-                    episodeError = null
+                    episodeError = null,
                 )
             }
             return
@@ -175,7 +179,7 @@ class AnimeDetailViewModel @Inject constructor(
                 virtualSeasons = emptyList(),
                 selectedVirtualSeasonId = null,
                 currentSeasonEpisodes = emptyList(),
-                episodeError = null
+                episodeError = null,
             )
         }
 
@@ -184,7 +188,10 @@ class AnimeDetailViewModel @Inject constructor(
         }
     }
 
-    private suspend fun fetchEpisodesForSeason(season: AnimeSeason, sourceId: String) {
+    private suspend fun fetchEpisodesForSeason(
+        season: AnimeSeason,
+        sourceId: String,
+    ) {
         // Serve previously fetched list instantly (cache hit path: no loading flash).
         val cached = seasonEpisodesCache[season.animeId]
         if (cached != null) {
@@ -193,33 +200,34 @@ class AnimeDetailViewModel @Inject constructor(
         }
 
         _uiState.update { it.copy(isLoadingEpisodes = true, episodeError = null) }
-        
+
         // Reconstruct minimal Anime for the update call
-        val liteSeasonAnime = Anime(
-            id = season.animeId,
-            sourceId = sourceId,
-            title = "",
-            originalTitle = "",
-            posterUrl = "",
-            bannerUrl = "",
-            description = "",
-            episodeCount = 0,
-            currentEpisode = null,
-            rating = null,
-            ratingCount = null,
-            status = AnimeStatus.UNKNOWN,
-            releaseYear = null,
-            genres = emptyList(),
-            authors = emptyList(),
-            studio = null,
-            seasonOf = null
-        )
-        
+        val liteSeasonAnime =
+            Anime(
+                id = season.animeId,
+                sourceId = sourceId,
+                title = "",
+                originalTitle = "",
+                posterUrl = "",
+                bannerUrl = "",
+                description = "",
+                episodeCount = 0,
+                currentEpisode = null,
+                rating = null,
+                ratingCount = null,
+                status = AnimeStatus.UNKNOWN,
+                releaseYear = null,
+                genres = emptyList(),
+                authors = emptyList(),
+                studio = null,
+                seasonOf = null,
+            )
+
         runCatching {
             animeRepository.getAnimeUpdate(
                 liteSeasonAnime,
                 needsDetails = false,
-                needsChapters = true
+                needsChapters = true,
             )
         }.onSuccess { updatedWithChapters ->
             val full = updatedWithChapters.episodes
@@ -230,7 +238,7 @@ class AnimeDetailViewModel @Inject constructor(
                 it.copy(
                     currentSeasonEpisodes = emptyList(),
                     isLoadingEpisodes = false,
-                    episodeError = e.message ?: appContext.getString(R.string.error_load_data)
+                    episodeError = e.message ?: appContext.getString(R.string.error_load_data),
                 )
             }
         }
@@ -240,35 +248,41 @@ class AnimeDetailViewModel @Inject constructor(
      * Applies a (possibly cached) full episode list for [season]: splits it into
      * 50-episode virtual seasons when huge and updates all related UI state.
      */
-    private fun applySeasonEpisodes(season: AnimeSeason, full: List<Episode>) {
+    private fun applySeasonEpisodes(
+        season: AnimeSeason,
+        full: List<Episode>,
+    ) {
         val chunks = full.chunked(VIRTUAL_SEASON_MAX_EPISODES)
         // Split huge seasons (e.g. Conan, 1000+ eps) into 50-episode "virtual seasons".
-        val virtual = if (chunks.size > 1) {
-            chunks.mapIndexed { index, chunk ->
-                AnimeSeason(
-                    animeId = season.animeId,
-                    title = appContext.getString(
-                        R.string.virtual_season_title_format,
-                        chunk.first().episodeNumber,
-                        chunk.last().episodeNumber
-                    ),
-                    id = "${season.animeId}#$index"
-                )
+        val virtual =
+            if (chunks.size > 1) {
+                chunks.mapIndexed { index, chunk ->
+                    AnimeSeason(
+                        animeId = season.animeId,
+                        title =
+                            appContext.getString(
+                                R.string.virtual_season_title_format,
+                                chunk.first().episodeNumber,
+                                chunk.last().episodeNumber,
+                            ),
+                        id = "${season.animeId}#$index",
+                    )
+                }
+            } else {
+                emptyList()
             }
-        } else {
-            emptyList()
-        }
         _uiState.update {
             it.copy(
                 selectedSeason = season,
                 fullSeasonEpisodes = full,
                 virtualSeasons = virtual,
                 selectedVirtualSeasonId = virtual.firstOrNull()?.id,
-                currentSeasonEpisodes = virtual.firstOrNull()?.run {
-                    chunks[id.substringAfterLast('#').toInt()]
-                } ?: full,
+                currentSeasonEpisodes =
+                    virtual.firstOrNull()?.run {
+                        chunks[id.substringAfterLast('#').toInt()]
+                    } ?: full,
                 isLoadingEpisodes = false,
-                episodeError = null
+                episodeError = null,
             )
         }
     }

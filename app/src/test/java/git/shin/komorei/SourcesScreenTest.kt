@@ -1,8 +1,12 @@
 package git.shin.komorei
 
 import android.content.Context
-import androidx.test.core.app.ApplicationProvider
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.SourceStateStore
 import git.shin.komorei.data.local.KomoreiDatabase
@@ -24,10 +28,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.junit4.v2.createComposeRule
 import java.io.File
 
 /**
@@ -42,7 +42,6 @@ import java.io.File
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class SourcesScreenTest {
-
     @get:Rule val composeTestRule = createComposeRule()
 
     private lateinit var repository: AnimeRepository
@@ -50,30 +49,36 @@ class SourcesScreenTest {
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     companion object {
-        private val fakeKrx: String = System.getProperty("komorei.test.fakeKrx")
-            ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
+        private val fakeKrx: String =
+            System.getProperty("komorei.test.fakeKrx")
+                ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
     }
 
     @Before
-    fun setUp() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val host = KrxHostImpl(context)
-        val registry = KrxSourceRegistry(context, host)
-        registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
-        val db = Room.inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java)
-            .allowMainThreadQueries()
-            .build()
-        repository = AnimeRepository(registry)
-        val stateStore = SourceStateStore(context)
-        sourcesViewModel = SourcesViewModel(
-            context,
-            repository,
-            registry,
-            stateStore,
-            git.shin.komorei.data.SourceReposRepository(OkHttpClient()),
-        )
-        Dispatchers.setMain(mainDispatcher)
-    }
+    fun setUp() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val host = KrxHostImpl(context)
+            val registry = KrxSourceRegistry(context, host)
+            registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
+            val db =
+                Room
+                    .inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java)
+                    .allowMainThreadQueries()
+                    .build()
+            repository = AnimeRepository(registry)
+            val stateStore = SourceStateStore(context)
+            sourcesViewModel =
+                SourcesViewModel(
+                    context,
+                    repository,
+                    registry,
+                    stateStore,
+                    git.shin.komorei.data
+                        .SourceReposRepository(OkHttpClient()),
+                )
+            Dispatchers.setMain(mainDispatcher)
+        }
 
     @After
     fun tearDown() {
@@ -89,7 +94,8 @@ class SourcesScreenTest {
                 viewModel = sourcesViewModel,
             )
         }
-        composeTestRule.onNodeWithTag("sources_screen")
+        composeTestRule
+            .onNodeWithTag("sources_screen")
             .performClick()
     }
 
@@ -103,7 +109,8 @@ class SourcesScreenTest {
             )
         }
         // The fake source should appear in the list
-        composeTestRule.onNodeWithTag("source_row_vi.fake-source")
+        composeTestRule
+            .onNodeWithTag("source_row_vi.fake-source")
             .performClick()
     }
 
@@ -116,7 +123,8 @@ class SourcesScreenTest {
                 viewModel = sourcesViewModel,
             )
         }
-        composeTestRule.onNodeWithTag("sources_refresh_button")
+        composeTestRule
+            .onNodeWithTag("sources_refresh_button")
             .performClick()
     }
 
@@ -129,7 +137,8 @@ class SourcesScreenTest {
                 viewModel = sourcesViewModel,
             )
         }
-        composeTestRule.onNodeWithTag("sources_add_source_button")
+        composeTestRule
+            .onNodeWithTag("sources_add_source_button")
             .performClick()
     }
 
@@ -143,10 +152,12 @@ class SourcesScreenTest {
             )
         }
         // Click the fake source row
-        composeTestRule.onNodeWithTag("source_row_vi.fake-source")
+        composeTestRule
+            .onNodeWithTag("source_row_vi.fake-source")
             .performClick()
         // Click refresh
-        composeTestRule.onNodeWithTag("sources_refresh_button")
+        composeTestRule
+            .onNodeWithTag("sources_refresh_button")
             .performClick()
     }
 }

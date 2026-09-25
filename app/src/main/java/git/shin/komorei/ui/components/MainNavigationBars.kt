@@ -59,12 +59,13 @@ fun MainBottomNavigation(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(SurfaceDark)
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 4.dp, vertical = 4.dp)
-            .testTag("main_bottom_navigation"),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .background(SurfaceDark)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(horizontal = 4.dp, vertical = 4.dp)
+                .testTag("main_bottom_navigation"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
@@ -73,9 +74,10 @@ fun MainBottomNavigation(
                 tab = tab,
                 selected = tab.route == currentRoute,
                 onClick = { onSelect(tab) },
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("tab_${tab.key}"),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .testTag("tab_${tab.key}"),
             )
         }
     }
@@ -89,21 +91,23 @@ private fun BottomNavItem(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            // TV focus highlight (no-op on phones) — distinct from the AnimeRed
-            // "selected" pill so D-pad focus is also visible before OK is pressed.
-            .tvFocus(shape = RoundedCornerShape(16.dp), scale = 1.05f)
-            .clickable(onClick = onClick)
-            .padding(vertical = 4.dp),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(16.dp))
+                // TV focus highlight (no-op on phones) — distinct from the AnimeRed
+                // "selected" pill so D-pad focus is also visible before OK is pressed.
+                .tvFocus(shape = RoundedCornerShape(16.dp), scale = 1.05f)
+                .clickable(onClick = onClick)
+                .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .height(30.dp)
-                .width(56.dp)
-                .clip(RoundedCornerShape(15.dp))
-                .background(if (selected) AnimeRed else Color.Transparent),
+            modifier =
+                Modifier
+                    .height(30.dp)
+                    .width(56.dp)
+                    .clip(RoundedCornerShape(15.dp))
+                    .background(if (selected) AnimeRed else Color.Transparent),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -139,19 +143,21 @@ fun MainNavigationRail(
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
-    val selectedIndex = remember(tabs, currentRoute) {
-        tabs.indexOfFirst { it.route == currentRoute }.coerceAtLeast(0)
-    }
+    val selectedIndex =
+        remember(tabs, currentRoute) {
+            tabs.indexOfFirst { it.route == currentRoute }.coerceAtLeast(0)
+        }
     LaunchedEffect(selectedIndex) { listState.animateScrollToItem(selectedIndex) }
 
     LazyColumn(
         state = listState,
-        modifier = modifier
-            .width(84.dp)
-            .fillMaxHeight()
-            .background(SurfaceDark)
-            .windowInsetsPadding(WindowInsets.systemBars)
-            .testTag("main_navigation_rail"),
+        modifier =
+            modifier
+                .width(84.dp)
+                .fillMaxHeight()
+                .background(SurfaceDark)
+                .windowInsetsPadding(WindowInsets.systemBars)
+                .testTag("main_navigation_rail"),
         horizontalAlignment = Alignment.CenterHorizontally,
         contentPadding = PaddingValues(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -175,20 +181,22 @@ private fun RailNavItem(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            // TV focus highlight (no-op on phones).
-            .tvFocus(shape = RoundedCornerShape(16.dp), scale = 1.05f)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 6.dp),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(16.dp))
+                // TV focus highlight (no-op on phones).
+                .tvFocus(shape = RoundedCornerShape(16.dp), scale = 1.05f)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 4.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .height(30.dp)
-                .width(56.dp)
-                .clip(RoundedCornerShape(15.dp))
-                .background(if (selected) AnimeRed else Color.Transparent),
+            modifier =
+                Modifier
+                    .height(30.dp)
+                    .width(56.dp)
+                    .clip(RoundedCornerShape(15.dp))
+                    .background(if (selected) AnimeRed else Color.Transparent),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

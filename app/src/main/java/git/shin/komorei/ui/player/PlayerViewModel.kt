@@ -6,6 +6,19 @@ import android.os.SystemClock
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.Tracks
+import androidx.media3.common.VideoSize
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import git.shin.komorei.KomoreiApplication
@@ -33,21 +46,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.media3.common.C
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
-import androidx.media3.common.MimeTypes
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
-import androidx.media3.common.TrackSelectionOverride
-import androidx.media3.common.VideoSize
-import androidx.media3.common.Tracks
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import javax.inject.Inject
 import java.io.File
+import javax.inject.Inject
 
 @UnstableApi
 @HiltViewModel
@@ -55,9 +55,8 @@ class PlayerViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val repository: AnimeRepository,
     private val libraryRepository: LibraryRepository,
-    private val savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-
     /**
      * Process-death persistence ("savedState"): the open session is mirrored into the
      * SavedStateHandle, so when the app is backgrounded long enough to be recreated
@@ -86,15 +85,15 @@ class PlayerViewModel @Inject constructor(
      * single global catalog loaded once in init, so switching anime never
      * changed the section. An empty result hides the section.
      */
-    val relatedAnimeList: StateFlow<List<Anime>> = _playbackState
-        .map { it.fullAnime ?: it.currentAnime }
-        .distinctUntilChanged()
-        .flatMapLatest { anime ->
-            flow {
-                emit(if (anime == null) emptyList() else repository.getRecommendedAnime(anime).entries)
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val relatedAnimeList: StateFlow<List<Anime>> =
+        _playbackState
+            .map { it.fullAnime ?: it.currentAnime }
+            .distinctUntilChanged()
+            .flatMapLatest { anime ->
+                flow {
+                    emit(if (anime == null) emptyList() else repository.getRecommendedAnime(anime).entries)
+                }
+            }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // Shared OkHttp-backed factory: injects stream headers + optional segment transformers.
     // Lives in the application graph so WebView cookies & the shared HttpClient stay consistent.
@@ -103,10 +102,11 @@ class PlayerViewModel @Inject constructor(
 
     // The single playback engine, owned by the ViewModel so the UI (sheet, mini player,
     // fullscreen, controls) all drive one source of truth instead of competing players.
-    private val exoPlayer = ExoPlayer.Builder(appContext).build().apply {
-        repeatMode = Player.REPEAT_MODE_OFF
-        playWhenReady = true
-    }
+    private val exoPlayer =
+        ExoPlayer.Builder(appContext).build().apply {
+            repeatMode = Player.REPEAT_MODE_OFF
+            playWhenReady = true
+        }
 
     val player: ExoPlayer get() = exoPlayer
 
@@ -135,73 +135,77 @@ class PlayerViewModel @Inject constructor(
 
     init {
         // Mirror real player state (playing / buffering / errors) back into the UI state.
-        exoPlayer.addListener(object : Player.Listener {
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                _playbackState.update { it.copy(isPlaying = isPlaying) }
-            }
-
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                _playbackState.update {
-                    it.copy(isLoading = playbackState == Player.STATE_BUFFERING)
+        exoPlayer.addListener(
+            object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    _playbackState.update { it.copy(isPlaying = isPlaying) }
                 }
-                // Apply a pending auto-resume now the timeline is actually loaded —
-                // seeking before Media3 has the source prepared can be discarded.
-                if (playbackState == Player.STATE_READY) {
-                    pendingRestorePositionMs?.let { exoPlayer.seekTo(it) }
-                    pendingRestorePositionMs = null
-                }
-                // Episode finished → mark it watched + auto-play the next one (settings toggle).
-                if (playbackState == Player.STATE_ENDED) {
-                    saveWatchTime()
-                    autoPlayNextEpisode()
-                }
-            }
 
-            override fun onPlayerError(error: PlaybackException) {
-                _playbackState.update {
-                    it.copy(error = appContext.getString(R.string.error_source_playback))
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    _playbackState.update {
+                        it.copy(isLoading = playbackState == Player.STATE_BUFFERING)
+                    }
+                    // Apply a pending auto-resume now the timeline is actually loaded —
+                    // seeking before Media3 has the source prepared can be discarded.
+                    if (playbackState == Player.STATE_READY) {
+                        pendingRestorePositionMs?.let { exoPlayer.seekTo(it) }
+                        pendingRestorePositionMs = null
+                    }
+                    // Episode finished → mark it watched + auto-play the next one (settings toggle).
+                    if (playbackState == Player.STATE_ENDED) {
+                        saveWatchTime()
+                        autoPlayNextEpisode()
+                    }
                 }
-            }
 
-            override fun onTracksChanged(tracks: Tracks) {
-                _playbackState.update { it.copy(availableTracks = tracks) }
-            }
+                override fun onPlayerError(error: PlaybackException) {
+                    _playbackState.update {
+                        it.copy(error = appContext.getString(R.string.error_source_playback))
+                    }
+                }
 
-            override fun onVideoSizeChanged(videoSize: VideoSize) {
-                _playbackState.update { it.copy(videoSize = videoSize) }
-            }
-        })
+                override fun onTracksChanged(tracks: Tracks) {
+                    _playbackState.update { it.copy(availableTracks = tracks) }
+                }
+
+                override fun onVideoSizeChanged(videoSize: VideoSize) {
+                    _playbackState.update { it.copy(videoSize = videoSize) }
+                }
+            },
+        )
 
         // Poll position/duration/buffer so the timeline scrubber stays live without
         // depending on UI-driven callbacks (which previously were no-ops).
-        positionPoller = viewModelScope.launch {
-            while (isActive) {
-                _playbackState.update {
-                    it.copy(
-                        currentPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L),
-                        durationMs = exoPlayer.duration.coerceAtLeast(0L),
-                        bufferedPositionMs = exoPlayer.bufferedPosition.coerceAtLeast(0L)
-                    )
-                }
-                // Auto-save watch time (write-side of the watch-history feature) so
-                // progress survives crashes/close and the resume position stays
-                // accurate. First save only once playback has advanced >= 3s into the
-                // piece; later saves at least 10s apart. STATE_ENDED / pause / switch /
-                // dismiss save via saveWatchTime() directly (no spacing gate) and reset
-                // lastSaveUptimeMs there, so the next periodic save still respects the
-                // 10s gap.
-                if (exoPlayer.isPlaying) {
-                    val last = lastSaveUptimeMs
-                    val due = if (last == null) {
-                        exoPlayer.currentPosition.coerceAtLeast(0L) >= FIRST_SAVE_POSITION_MS
-                    } else {
-                        SystemClock.uptimeMillis() - last >= SAVE_INTERVAL_MS
+        positionPoller =
+            viewModelScope.launch {
+                while (isActive) {
+                    _playbackState.update {
+                        it.copy(
+                            currentPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L),
+                            durationMs = exoPlayer.duration.coerceAtLeast(0L),
+                            bufferedPositionMs = exoPlayer.bufferedPosition.coerceAtLeast(0L),
+                        )
                     }
-                    if (due) saveWatchTime()
+                    // Auto-save watch time (write-side of the watch-history feature) so
+                    // progress survives crashes/close and the resume position stays
+                    // accurate. First save only once playback has advanced >= 3s into the
+                    // piece; later saves at least 10s apart. STATE_ENDED / pause / switch /
+                    // dismiss save via saveWatchTime() directly (no spacing gate) and reset
+                    // lastSaveUptimeMs there, so the next periodic save still respects the
+                    // 10s gap.
+                    if (exoPlayer.isPlaying) {
+                        val last = lastSaveUptimeMs
+                        val due =
+                            if (last == null) {
+                                exoPlayer.currentPosition.coerceAtLeast(0L) >= FIRST_SAVE_POSITION_MS
+                            } else {
+                                SystemClock.uptimeMillis() - last >= SAVE_INTERVAL_MS
+                            }
+                        if (due) saveWatchTime()
+                    }
+                    delay(250)
                 }
-                delay(250)
             }
-        }
 
         // Reopen the session that was playing when this process died (if any). The
         // engine is rebuilt from scratch; position restore happens via Room watch
@@ -209,18 +213,22 @@ class PlayerViewModel @Inject constructor(
         restoreSession()
     }
 
-    fun openAnime(anime: Anime, episode: Episode? = null) {
+    fun openAnime(
+        anime: Anime,
+        episode: Episode? = null,
+    ) {
         // Persist whatever was playing before switching (periodic saves cover this too,
         // but save at the boundary so the switch is never lossy).
         saveWatchTime()
 
-        val targetEp = episode ?: anime.episodes.firstOrNull() ?: Episode(
-            id = "${anime.id}_ep_1",
-            animeId = anime.id,
-            sourceId = anime.sourceId,
-            episodeNumber = "1",
-            title = appContext.getString(R.string.episode_fallback_title)
-        )
+        val targetEp =
+            episode ?: anime.episodes.firstOrNull() ?: Episode(
+                id = "${anime.id}_ep_1",
+                animeId = anime.id,
+                sourceId = anime.sourceId,
+                episodeNumber = "1",
+                title = appContext.getString(R.string.episode_fallback_title),
+            )
 
         val durationMs = (targetEp.durationSeconds ?: 1440L) * 1000L
 
@@ -237,7 +245,7 @@ class PlayerViewModel @Inject constructor(
                 selectedStreamId = null,
                 streamData = null,
                 streamError = null,
-                error = null
+                error = null,
             )
         }
 
@@ -323,11 +331,15 @@ class PlayerViewModel @Inject constructor(
         _playbackState.update { it.copy(isLocked = !it.isLocked) }
     }
 
-    fun selectTrack(group: Tracks.Group, trackIndex: Int) {
-        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
-            .buildUpon()
-            .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, trackIndex))
-            .build()
+    fun selectTrack(
+        group: Tracks.Group,
+        trackIndex: Int,
+    ) {
+        exoPlayer.trackSelectionParameters =
+            exoPlayer.trackSelectionParameters
+                .buildUpon()
+                .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, trackIndex))
+                .build()
         when (group.type) {
             C.TRACK_TYPE_VIDEO -> {
                 // Remember the forced rendition so the quality picker can tell it from Auto
@@ -338,20 +350,22 @@ class PlayerViewModel @Inject constructor(
                 // Picking a subtitle track turns subtitles ON — re-enable the text type if
                 // the CC button had disabled it, so the CC icon stays in sync with the pane.
                 _playbackState.update { it.copy(isSubtitleEnabled = true) }
-                exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
-                    .buildUpon()
-                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
-                    .build()
+                exoPlayer.trackSelectionParameters =
+                    exoPlayer.trackSelectionParameters
+                        .buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                        .build()
             }
             else -> Unit
         }
     }
 
     fun clearTrackType(type: Int) {
-        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
-            .buildUpon()
-            .clearOverridesOfType(type)
-            .build()
+        exoPlayer.trackSelectionParameters =
+            exoPlayer.trackSelectionParameters
+                .buildUpon()
+                .clearOverridesOfType(type)
+                .build()
         when (type) {
             C.TRACK_TYPE_VIDEO -> {
                 _playbackState.update { it.copy(videoTrackOverride = null) }
@@ -360,10 +374,11 @@ class PlayerViewModel @Inject constructor(
                 // "No subtitle" means subtitles OFF (not just "auto"): disable the text
                 // type too so no track auto-selects and the CC icon flips off.
                 _playbackState.update { it.copy(isSubtitleEnabled = false) }
-                exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
-                    .buildUpon()
-                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
-                    .build()
+                exoPlayer.trackSelectionParameters =
+                    exoPlayer.trackSelectionParameters
+                        .buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+                        .build()
             }
             else -> Unit
         }
@@ -372,10 +387,11 @@ class PlayerViewModel @Inject constructor(
     fun toggleSubtitles() {
         val newState = !_playbackState.value.isSubtitleEnabled
         _playbackState.update { it.copy(isSubtitleEnabled = newState) }
-        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
-            .buildUpon()
-            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !newState)
-            .build()
+        exoPlayer.trackSelectionParameters =
+            exoPlayer.trackSelectionParameters
+                .buildUpon()
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !newState)
+                .build()
     }
 
     /** Toggle auto-play of the next episode when the current one ends. */
@@ -413,8 +429,10 @@ class PlayerViewModel @Inject constructor(
         if (durationMs <= 0L) return
         viewModelScope.launch {
             libraryRepository.saveProgress(
-                anime, episode,
-                positionMs.coerceAtMost(durationMs), durationMs
+                anime,
+                episode,
+                positionMs.coerceAtMost(durationMs),
+                durationMs,
             )
         }
         // Any save (periodic or boundary) restarts the >= 10s periodic clock so the
@@ -437,11 +455,14 @@ class PlayerViewModel @Inject constructor(
         val savedMs = libraryRepository.getWatchTime(anime.id, anime.sourceId, episode.id) ?: return
         // null (no restore) when there's nothing to resume or the episode was watched
         // to the end — pending is cleared so no stale seek fires on the next media.
-        val durationMs = exoPlayer.duration.coerceAtLeast(0L)
-            .coerceAtLeast(state.durationMs)
-        pendingRestorePositionMs = savedMs.takeIf {
-            it > 0L && it < (durationMs * 0.95f).toLong()
-        }
+        val durationMs =
+            exoPlayer.duration
+                .coerceAtLeast(0L)
+                .coerceAtLeast(state.durationMs)
+        pendingRestorePositionMs =
+            savedMs.takeIf {
+                it > 0L && it < (durationMs * 0.95f).toLong()
+            }
     }
 
     fun selectEpisode(episode: Episode) {
@@ -460,7 +481,7 @@ class PlayerViewModel @Inject constructor(
                 streamData = null,
                 streamError = null,
                 error = null,
-                videoTrackOverride = null
+                videoTrackOverride = null,
             )
         }
         val anime = _playbackState.value.fullAnime ?: _playbackState.value.currentAnime ?: return
@@ -487,7 +508,7 @@ class PlayerViewModel @Inject constructor(
                 isLoadingStreams = true,
                 streamError = null,
                 error = null,
-                videoTrackOverride = null
+                videoTrackOverride = null,
             )
         }
 
@@ -499,7 +520,7 @@ class PlayerViewModel @Inject constructor(
                             streamData = resolved,
                             selectedStreamId = stream.id,
                             isLoadingStreams = false,
-                            streamError = null
+                            streamError = null,
                         )
                     }
                     // (Re)build the media source on the shared engine so headers &
@@ -507,12 +528,11 @@ class PlayerViewModel @Inject constructor(
                     exoPlayer.playWhenReady = true
                     buildMediaSource(resolved)
                     restoreWatchTime()
-                }
-                .onFailure { e ->
+                }.onFailure { e ->
                     _playbackState.update {
                         it.copy(
                             isLoadingStreams = false,
-                            streamError = e.message ?: appContext.getString(R.string.error_source_playback)
+                            streamError = e.message ?: appContext.getString(R.string.error_source_playback),
                         )
                     }
                 }
@@ -526,7 +546,11 @@ class PlayerViewModel @Inject constructor(
      * upgrade it via getAnimeUpdate(needsDetails = true, needsChapters = true) before
      * asking the source for servers. The first server is auto-resolved via getStream(...).
      */
-    private suspend fun loadStreams(anime: Anime, episode: Episode, restorePosition: Boolean = true) {
+    private suspend fun loadStreams(
+        anime: Anime,
+        episode: Episode,
+        restorePosition: Boolean = true,
+    ) {
         // Drop any stale restore target from a previous build before re-resolving.
         pendingRestorePositionMs = null
         _playbackState.update { it.copy(isLoadingStreams = true, streamError = null, error = null) }
@@ -541,16 +565,17 @@ class PlayerViewModel @Inject constructor(
             // the first REAL episode instead of sending the phantom key (KKPhim
             // bails with "Nguồn phát … không có tập 1 (<animeId>_ep_1)" and no
             // episode stays highlighted).
-            val fullEpisode = full.episodes.find { it.id == episode.id }
-                ?: full.episodes.firstOrNull()
-                ?: episode
+            val fullEpisode =
+                full.episodes.find { it.id == episode.id }
+                    ?: full.episodes.firstOrNull()
+                    ?: episode
             _playbackState.update { it.copy(currentEpisode = fullEpisode) }
             finishLoadStreams(full, fullEpisode, restorePosition)
         }.onFailure { e ->
             _playbackState.update {
                 it.copy(
                     isLoadingStreams = false,
-                    streamError = e.message ?: appContext.getString(R.string.error_source_playback)
+                    streamError = e.message ?: appContext.getString(R.string.error_source_playback),
                 )
             }
         }
@@ -562,7 +587,11 @@ class PlayerViewModel @Inject constructor(
      * Shared by [loadStreams] and [restoreSession] so a process-death restore reuses the
      * exact same pipeline.
      */
-    private suspend fun finishLoadStreams(full: Anime, episode: Episode, restorePosition: Boolean) {
+    private suspend fun finishLoadStreams(
+        full: Anime,
+        episode: Episode,
+        restorePosition: Boolean,
+    ) {
         val streams = repository.getStreamList(full, episode)
         val first = streams.firstOrNull()
         val resolved = first?.let { repository.getStream(full, episode, it) }
@@ -578,7 +607,7 @@ class PlayerViewModel @Inject constructor(
                 segmentUrlInterceptor = repository.segmentUrlInterceptorFor(full.sourceId),
                 segmentDataInterceptor = repository.segmentDataInterceptorFor(full.sourceId),
                 introRange = resolved?.intro?.let { it.startMs..it.endMs },
-                outroRange = resolved?.outro?.let { it.startMs..it.endMs }
+                outroRange = resolved?.outro?.let { it.startMs..it.endMs },
             )
         }
 
@@ -606,17 +635,20 @@ class PlayerViewModel @Inject constructor(
         dataSourceFactory.configure(
             streamData,
             state.segmentUrlInterceptor,
-            state.segmentDataInterceptor
+            state.segmentDataInterceptor,
         )
 
-        val mediaItemBuilder = MediaItem.Builder()
-            .setMediaMetadata(
-                MediaMetadata.Builder()
-                    .setTitle(state.currentAnime?.title)
-                    .setSubtitle(state.currentEpisode?.title)
-                    .setArtworkUri(state.currentAnime?.posterUrl?.let { android.net.Uri.parse(it) })
-                    .build()
-            )
+        val mediaItemBuilder =
+            MediaItem
+                .Builder()
+                .setMediaMetadata(
+                    MediaMetadata
+                        .Builder()
+                        .setTitle(state.currentAnime?.title)
+                        .setSubtitle(state.currentEpisode?.title)
+                        .setArtworkUri(state.currentAnime?.posterUrl?.let { android.net.Uri.parse(it) })
+                        .build(),
+                )
 
         if (streamData.isContent) {
             // The url field holds raw content text -> cache file so the player can open it.
@@ -639,27 +671,30 @@ class PlayerViewModel @Inject constructor(
         }
 
         if (streamData.subtitles.isNotEmpty()) {
-            val subtitleConfigurations = streamData.subtitles.map { sub ->
-                MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(sub.url))
-                    .setMimeType(MimeTypes.TEXT_VTT) // Defaulting to VTT for mock, real sources should provide mime
-                    .setLanguage(sub.language)
-                    .setLabel(sub.label)
-                    .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
-                    .build()
-            }
+            val subtitleConfigurations =
+                streamData.subtitles.map { sub ->
+                    MediaItem.SubtitleConfiguration
+                        .Builder(android.net.Uri.parse(sub.url))
+                        .setMimeType(MimeTypes.TEXT_VTT) // Defaulting to VTT for mock, real sources should provide mime
+                        .setLanguage(sub.language)
+                        .setLabel(sub.label)
+                        .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                        .build()
+                }
             mediaItemBuilder.setSubtitleConfigurations(subtitleConfigurations)
         }
 
         // Content played from a file still routes its segments over HTTP through our
         // header-injecting factory — DefaultDataSource dispatches file:// locally and
         // everything else to the base factory.
-        val sourceFactory = DefaultMediaSourceFactory(
-            if (streamData.isContent) {
-                DefaultDataSource.Factory(appContext, dataSourceFactory)
-            } else {
-                dataSourceFactory
-            }
-        )
+        val sourceFactory =
+            DefaultMediaSourceFactory(
+                if (streamData.isContent) {
+                    DefaultDataSource.Factory(appContext, dataSourceFactory)
+                } else {
+                    dataSourceFactory
+                },
+            )
         exoPlayer.setMediaSource(sourceFactory.createMediaSource(mediaItemBuilder.build()))
         exoPlayer.prepare()
         exoPlayer.play()
@@ -672,11 +707,12 @@ class PlayerViewModel @Inject constructor(
      * re-written every resolve — no unbounded cache growth.
      */
     private fun writeContentToCache(streamData: StreamData): File {
-        val extension = when (streamData.type) {
-            StreamType.HLS -> "m3u8"
-            StreamType.DASH -> "mpd"
-            StreamType.MP4, StreamType.OTHER -> "mp4"
-        }
+        val extension =
+            when (streamData.type) {
+                StreamType.HLS -> "m3u8"
+                StreamType.DASH -> "mpd"
+                StreamType.MP4, StreamType.OTHER -> "mp4"
+            }
         val dir = File(appContext.cacheDir, "komorei_content").apply { mkdirs() }
         return File(dir, "content_${streamData.type.name.lowercase()}.$extension").also { file ->
             file.writeText(streamData.url)
@@ -705,9 +741,11 @@ class PlayerViewModel @Inject constructor(
     private fun restoreSession() {
         val animeId = savedStateHandle.get<String>(KEY_ANIME_ID) ?: return
         val savedEpisodeId = savedStateHandle.get<String>(KEY_EPISODE_ID)
-        val savedSheet = savedStateHandle.get<String>(KEY_SHEET_VALUE)
-            ?.let { name -> runCatching { PlayerSheetValue.valueOf(name) }.getOrNull() }
-            ?: PlayerSheetValue.EXPANDED
+        val savedSheet =
+            savedStateHandle
+                .get<String>(KEY_SHEET_VALUE)
+                ?.let { name -> runCatching { PlayerSheetValue.valueOf(name) }.getOrNull() }
+                ?: PlayerSheetValue.EXPANDED
 
         viewModelScope.launch {
             runCatching {
@@ -716,9 +754,10 @@ class PlayerViewModel @Inject constructor(
                 val lite = repository.findAnimeById(animeId) ?: return@runCatching
                 val anime = lite
                 val full = repository.getAnimeUpdate(anime, needsDetails = true, needsChapters = true)
-                val episode = savedEpisodeId?.let { id -> full.episodes.firstOrNull { it.id == id } }
-                    ?: full.episodes.firstOrNull()
-                    ?: return@runCatching
+                val episode =
+                    savedEpisodeId?.let { id -> full.episodes.firstOrNull { it.id == id } }
+                        ?: full.episodes.firstOrNull()
+                        ?: return@runCatching
                 val durationMs = (episode.durationSeconds ?: 1440L) * 1000L
                 _playbackState.update {
                     it.copy(
@@ -733,7 +772,7 @@ class PlayerViewModel @Inject constructor(
                         selectedStreamId = null,
                         streamData = null,
                         streamError = null,
-                        error = null
+                        error = null,
                     )
                 }
                 finishLoadStreams(full, episode, restorePosition = true)
@@ -790,7 +829,7 @@ class PlayerViewModel @Inject constructor(
                 outroRange = null,
                 currentPositionMs = 0L,
                 durationMs = 0L,
-                bufferedPositionMs = 0L
+                bufferedPositionMs = 0L,
             )
         }
     }

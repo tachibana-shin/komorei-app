@@ -19,13 +19,25 @@ data class RemoteDriveFile(
     val size: Long?,
 )
 
-class DriveApiException(val statusCode: Int, message: String) : Exception(message)
+class DriveApiException(
+    val statusCode: Int,
+    message: String,
+) : Exception(message)
 
 /** Small Drive REST surface; the hidden appDataFolder keeps the backup private. */
 interface DriveBackupApi {
     suspend fun findBackup(accessToken: String): RemoteDriveFile?
-    suspend fun uploadBackup(accessToken: String, bytes: ByteArray, existingId: String?): RemoteDriveFile
-    suspend fun downloadBackup(accessToken: String, fileId: String): ByteArray?
+
+    suspend fun uploadBackup(
+        accessToken: String,
+        bytes: ByteArray,
+        existingId: String?,
+    ): RemoteDriveFile
+
+    suspend fun downloadBackup(
+        accessToken: String,
+        fileId: String,
+    ): ByteArray?
 }
 
 @Singleton
@@ -34,19 +46,24 @@ class GoogleDriveBackupApi @Inject constructor(
 ) : DriveBackupApi {
     override suspend fun findBackup(accessToken: String): RemoteDriveFile? =
         withContext(Dispatchers.IO) {
-            val url = FILES_URL.toHttpUrl().newBuilder()
-                .addQueryParameter("spaces", "appDataFolder")
-                .addQueryParameter("q", "name = '${BackupFormat.FILE_NAME}' and trashed = false")
-                .addQueryParameter("pageSize", "10")
-                .addQueryParameter("fields", "files(id,name,modifiedTime,size)")
-                .build()
-            val response = execute(
-                Request.Builder()
-                    .url(url)
-                    .header("Authorization", "Bearer $accessToken")
-                    .get()
-                    .build(),
-            )
+            val url =
+                FILES_URL
+                    .toHttpUrl()
+                    .newBuilder()
+                    .addQueryParameter("spaces", "appDataFolder")
+                    .addQueryParameter("q", "name = '${BackupFormat.FILE_NAME}' and trashed = false")
+                    .addQueryParameter("pageSize", "10")
+                    .addQueryParameter("fields", "files(id,name,modifiedTime,size)")
+                    .build()
+            val response =
+                execute(
+                    Request
+                        .Builder()
+                        .url(url)
+                        .header("Authorization", "Bearer $accessToken")
+                        .get()
+                        .build(),
+                )
             val files = response.optJSONArray("files") ?: return@withContext null
             if (files.length() == 0) return@withContext null
             files.optJSONObject(0)?.toRemoteFile()
@@ -56,64 +73,84 @@ class GoogleDriveBackupApi @Inject constructor(
         accessToken: String,
         bytes: ByteArray,
         existingId: String?,
-    ): RemoteDriveFile = withContext(Dispatchers.IO) {
-        val response = if (existingId == null) {
-            val metadata = JSONObject()
-                .put("name", BackupFormat.FILE_NAME)
-                .put("parents", org.json.JSONArray().put("appDataFolder"))
-            val body = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart(
-                    "metadata",
-                    null,
-                    metadata.toString().toRequestBody(JSON_MEDIA_TYPE),
-                )
-                .addFormDataPart(
-                    "file",
-                    BackupFormat.FILE_NAME,
-                    bytes.toRequestBody(JSON_MEDIA_TYPE),
-                )
-                .build()
-            val url = UPLOAD_URL.toHttpUrl().newBuilder()
-                .addQueryParameter("uploadType", "multipart")
-                .addQueryParameter("fields", "id,name,modifiedTime,size")
-                .build()
-            execute(
-                Request.Builder()
-                    .url(url)
-                    .header("Authorization", "Bearer $accessToken")
-                    .post(body)
-                    .build(),
-            )
-        } else {
-            val url = "$UPLOAD_URL/$existingId".toHttpUrl().newBuilder()
-                .addQueryParameter("uploadType", "media")
-                .addQueryParameter("fields", "id,name,modifiedTime,size")
-                .build()
-            execute(
-                Request.Builder()
-                    .url(url)
-                    .header("Authorization", "Bearer $accessToken")
-                    .patch(bytes.toRequestBody(JSON_MEDIA_TYPE))
-                    .build(),
-            )
-        }
-        response.toRemoteFile()
-    }
-
-    override suspend fun downloadBackup(accessToken: String, fileId: String): ByteArray? =
+    ): RemoteDriveFile =
         withContext(Dispatchers.IO) {
-            val url = FILES_URL.toHttpUrl().newBuilder()
-                .addPathSegment(fileId)
-                .addQueryParameter("alt", "media")
-                .build()
-            val raw = client.newCall(
-                Request.Builder()
-                    .url(url)
-                    .header("Authorization", "Bearer $accessToken")
-                    .get()
-                    .build(),
-            ).execute()
+            val response =
+                if (existingId == null) {
+                    val metadata =
+                        JSONObject()
+                            .put("name", BackupFormat.FILE_NAME)
+                            .put("parents", org.json.JSONArray().put("appDataFolder"))
+                    val body =
+                        MultipartBody
+                            .Builder()
+                            .setType(MultipartBody.FORM)
+                            .addFormDataPart(
+                                "metadata",
+                                null,
+                                metadata.toString().toRequestBody(JSON_MEDIA_TYPE),
+                            ).addFormDataPart(
+                                "file",
+                                BackupFormat.FILE_NAME,
+                                bytes.toRequestBody(JSON_MEDIA_TYPE),
+                            ).build()
+                    val url =
+                        UPLOAD_URL
+                            .toHttpUrl()
+                            .newBuilder()
+                            .addQueryParameter("uploadType", "multipart")
+                            .addQueryParameter("fields", "id,name,modifiedTime,size")
+                            .build()
+                    execute(
+                        Request
+                            .Builder()
+                            .url(url)
+                            .header("Authorization", "Bearer $accessToken")
+                            .post(body)
+                            .build(),
+                    )
+                } else {
+                    val url =
+                        "$UPLOAD_URL/$existingId"
+                            .toHttpUrl()
+                            .newBuilder()
+                            .addQueryParameter("uploadType", "media")
+                            .addQueryParameter("fields", "id,name,modifiedTime,size")
+                            .build()
+                    execute(
+                        Request
+                            .Builder()
+                            .url(url)
+                            .header("Authorization", "Bearer $accessToken")
+                            .patch(bytes.toRequestBody(JSON_MEDIA_TYPE))
+                            .build(),
+                    )
+                }
+            response.toRemoteFile()
+        }
+
+    override suspend fun downloadBackup(
+        accessToken: String,
+        fileId: String,
+    ): ByteArray? =
+        withContext(Dispatchers.IO) {
+            val url =
+                FILES_URL
+                    .toHttpUrl()
+                    .newBuilder()
+                    .addPathSegment(fileId)
+                    .addQueryParameter("alt", "media")
+                    .build()
+            val raw =
+                client
+                    .newCall(
+                        Request
+                            .Builder()
+                            .url(url)
+                            .header("Authorization", "Bearer $accessToken")
+                            .get()
+                            .build(),
+                    ).execute()
             raw.use {
                 if (it.code == 404) return@withContext null
                 if (!it.isSuccessful) {
@@ -136,12 +173,13 @@ class GoogleDriveBackupApi @Inject constructor(
         }
     }
 
-    private fun JSONObject.toRemoteFile() = RemoteDriveFile(
-        id = getString("id"),
-        name = optString("name", BackupFormat.FILE_NAME),
-        modifiedTime = optString("modifiedTime").takeIf { it.isNotBlank() },
-        size = optLong("size", -1L).takeIf { it >= 0L },
-    )
+    private fun JSONObject.toRemoteFile() =
+        RemoteDriveFile(
+            id = getString("id"),
+            name = optString("name", BackupFormat.FILE_NAME),
+            modifiedTime = optString("modifiedTime").takeIf { it.isNotBlank() },
+            size = optLong("size", -1L).takeIf { it >= 0L },
+        )
 
     private companion object {
         const val FILES_URL = "https://www.googleapis.com/drive/v3/files"

@@ -1,0 +1,55 @@
+# EditorConfig — shared by the IDE, ktlint (via the Gradle plugin) and any
+# other tool that reads it. This is the single source of truth for Kotlin
+# style: build.gradle.kts deliberately duplicates none of these values.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{kt,kts}]
+max_line_length = 120
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+ktlint_standard_filename = disabled
+# Wildcard imports are DISABLED deliberately. Compose's own samples, and the
+# code style Android Studio generates for a new Compose project, use them:
+# `import androidx.compose.foundation.layout.*` keeps every `Modifier.padding`
+# readable instead of prefixing each of the ~200 layout symbols. Enforcing the
+# plain-JVM rule here reported 22 legitimate imports as violations.
+ktlint_standard_no-wildcard-imports = disabled
+# Compose files are long by nature: a single Composable can legitimately span
+# hundreds of lines, and the framework's idioms (slot lambdas, Modifier
+# chains) make the usual max-100/120 heuristics produce constant noise.
+# Real complexity is enforced by detekt/Sonar, not by line length.
+ktlint_standard_max-line-length = disabled
+# Annotation-heavy code (Hilt, Room, Compose previews) reads better on one
+# line than spread across five.
+ktlint_standard_annotation = disabled
+ktlint_standard_function-naming = disabled
+ktlint_standard_property-naming = disabled
+# NOTE: chain-method-continuation is deliberately LEFT ON. The Kotlin sources
+# already use the leading-dot style (`.fillMaxWidth()`) in ~984 places; a few
+# androidTest files drifted to the trailing-dot style and the formatter brings
+# them back in line rather than the other way round.
+
+# Gradle build scripts in this repo are written with 2-space indent (a long
+# standing convention here), while application/test Kotlin uses 4. Without this
+# override ktlint reports ~330 phantom indent errors in app/build.gradle.kts.
+[*.kts]
+indent_size = 2
+
+# Generated / vendored Kotlin: never touched.
+[app/build/**]
+ktlint_standard = disabled
+
+# Rust is governed by runner/rustfmt.toml (`hard_tabs = true`, matching
+# komorei-sdk/), so the editor must agree with it — otherwise the IDE and
+# `cargo fmt` will fight over every line.
+[*.rs]
+indent_style = tab
+max_line_length = 120

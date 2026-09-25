@@ -6,13 +6,20 @@ package git.shin.komorei.model
  */
 sealed class DeepLinkTarget {
     /** Open the source's anime with key [animeKey] (detail + first episode). */
-    data class Anime(val animeKey: String) : DeepLinkTarget()
+    data class Anime(
+        val animeKey: String,
+    ) : DeepLinkTarget()
 
     /** Open the player directly at [episodeKey] of [animeKey]. */
-    data class Episode(val animeKey: String, val episodeKey: String) : DeepLinkTarget()
+    data class Episode(
+        val animeKey: String,
+        val episodeKey: String,
+    ) : DeepLinkTarget()
 
     /** Open the source catalog listing with the given [listing] (id + name + kind). */
-    data class Listing(val listing: git.shin.komorei.model.Listing) : DeepLinkTarget()
+    data class Listing(
+        val listing: git.shin.komorei.model.Listing,
+    ) : DeepLinkTarget()
 }
 
 /**

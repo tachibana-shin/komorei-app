@@ -13,13 +13,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
@@ -51,24 +50,25 @@ fun PlayerSideMenu(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     title: String? = null,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         // Backdrop
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn(),
-            exit = fadeOut()
+            exit = fadeOut(),
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.45f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onDismiss
-                    )
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.45f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onDismiss,
+                        ),
             )
         }
 
@@ -77,52 +77,55 @@ fun PlayerSideMenu(
             visible = visible,
             enter = fadeIn() + slideInHorizontally(initialOffsetX = { it }),
             exit = fadeOut() + slideOutHorizontally(targetOffsetX = { it }),
-            modifier = Modifier.align(Alignment.CenterEnd)
+            modifier = Modifier.align(Alignment.CenterEnd),
         ) {
             BoxWithConstraints(
-                modifier = Modifier.fillMaxHeight()
+                modifier = Modifier.fillMaxHeight(),
             ) {
                 // Wide in portrait, narrower in landscape so the video stays visible.
                 val widthFraction = if (maxWidth > maxHeight) 0.6f else 0.92f
                 Column(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(widthFraction)
-                        .background(SurfaceDark)
-                        // Consume touches so they don't fall through to the video surface.
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {}
+                    modifier =
+                        Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(widthFraction)
+                            .background(SurfaceDark)
+                            // Consume touches so they don't fall through to the video surface.
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) {},
                 ) {
                     if (title != null) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 6.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
                                 text = title,
                                 color = TextPrimary,
                                 fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
                             )
                             IconButton(
                                 onClick = onDismiss,
-                                modifier = Modifier
-                                    // TV focus highlight (no-op on phones). The panel is a
-                                    // sibling overlay of the sheet — never an ancestor of the
-                                    // TextureView, so the graphicsLayer is safe here.
-                                    .tvFocus(shape = CircleShape, scale = 1.15f)
-                                    .size(36.dp),
+                                modifier =
+                                    Modifier
+                                        // TV focus highlight (no-op on phones). The panel is a
+                                        // sibling overlay of the sheet — never an ancestor of the
+                                        // TextureView, so the graphicsLayer is safe here.
+                                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                                        .size(36.dp),
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = stringResource(R.string.cd_close),
                                     tint = TextPrimary,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
                         }

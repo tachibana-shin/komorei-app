@@ -68,7 +68,6 @@ class SourceSearchViewModel @Inject constructor(
     private val repository: AnimeRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-
     private companion object {
         // Same names as the route's optional query arguments; writing a handle
         // key shadows the immutable nav argument so `get` returns the live value.
@@ -121,8 +120,7 @@ class SourceSearchViewModel @Inject constructor(
                 } else {
                     runSearch(query = q.ifBlank { null }, filters = f, reset = true)
                 }
-            }
-            .launchIn(viewModelScope)
+            }.launchIn(viewModelScope)
 
         // Restored search (route args / tab switch / process death): run it
         // without waiting for a debounced pipeline emission.
@@ -157,7 +155,10 @@ class SourceSearchViewModel @Inject constructor(
      * Upserts one filter value (Aidoku `update*Filter`): a `null` [value]
      * removes the filter by id, otherwise the id is replaced or appended.
      */
-    fun setFilterValue(id: String, value: FilterValue?) {
+    fun setFilterValue(
+        id: String,
+        value: FilterValue?,
+    ) {
         _enabledFilters.value = _enabledFilters.value.filter { it.id != id } + listOfNotNull(value)
         mirrorFilters()
     }
@@ -205,48 +206,13 @@ class SourceSearchViewModel @Inject constructor(
         val query = _query.value.ifBlank { null }
         val filters = _enabledFilters.value
         searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshing = true) }
-            runCatching { repository.search(sourceId, query, 1, filters) }
-                .onSuccess { result ->
-                    _uiState.update {
-                        it.copy(
-                            items = result.entries,
-                            hasNextPage = result.hasNextPage,
-                            loadedPage = 1,
-                            isLoading = false,
-                            isLoadingMore = false,
-                            error = null,
-                            isRefreshing = false,
-                        )
-                    }
-                }
-                .onFailure { e ->
-                    _uiState.update { s ->
-                        s.copy(
-                            isLoading = false,
-                            isLoadingMore = false,
-                            error = e.message ?: appContext.getString(R.string.source_search_error),
-                            isRefreshing = false,
-                        )
-                    }
-                }
-        }
-    }
-
-    private fun runSearch(query: String?, filters: List<FilterValue>, reset: Boolean, nextPage: Int = 1) {
-        if (sourceId.isBlank()) return
-        searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            val page = if (reset) 1 else nextPage
-            _uiState.update { s ->
-                if (reset) s.copy(isLoading = true, error = null) else s.copy(isLoadingMore = true, error = null)
-            }
-            runCatching { repository.search(sourceId, query, page, filters) }
-                .onSuccess { result ->
-                    _uiState.update { s ->
-                        if (reset) {
-                            s.copy(
+        searchJob =
+            viewModelScope.launch {
+                _uiState.update { it.copy(isRefreshing = true) }
+                runCatching { repository.search(sourceId, query, 1, filters) }
+                    .onSuccess { result ->
+                        _uiState.update {
+                            it.copy(
                                 items = result.entries,
                                 hasNextPage = result.hasNextPage,
                                 loadedPage = 1,
@@ -255,29 +221,69 @@ class SourceSearchViewModel @Inject constructor(
                                 error = null,
                                 isRefreshing = false,
                             )
-                        } else {
+                        }
+                    }.onFailure { e ->
+                        _uiState.update { s ->
                             s.copy(
-                                items = (s.items + result.entries).distinctBy { it.id },
-                                hasNextPage = result.hasNextPage,
-                                loadedPage = page,
                                 isLoading = false,
                                 isLoadingMore = false,
-                                error = null,
-                                isRefreshing = s.isRefreshing,
+                                error = e.message ?: appContext.getString(R.string.source_search_error),
+                                isRefreshing = false,
                             )
                         }
                     }
+            }
+    }
+
+    private fun runSearch(
+        query: String?,
+        filters: List<FilterValue>,
+        reset: Boolean,
+        nextPage: Int = 1,
+    ) {
+        if (sourceId.isBlank()) return
+        searchJob?.cancel()
+        searchJob =
+            viewModelScope.launch {
+                val page = if (reset) 1 else nextPage
+                _uiState.update { s ->
+                    if (reset) s.copy(isLoading = true, error = null) else s.copy(isLoadingMore = true, error = null)
                 }
-                .onFailure { e ->
-                    _uiState.update { s ->
-                        s.copy(
-                            isLoading = false,
-                            isLoadingMore = false,
-                            error = e.message ?: appContext.getString(R.string.source_search_error),
-                            isRefreshing = false,
-                        )
+                runCatching { repository.search(sourceId, query, page, filters) }
+                    .onSuccess { result ->
+                        _uiState.update { s ->
+                            if (reset) {
+                                s.copy(
+                                    items = result.entries,
+                                    hasNextPage = result.hasNextPage,
+                                    loadedPage = 1,
+                                    isLoading = false,
+                                    isLoadingMore = false,
+                                    error = null,
+                                    isRefreshing = false,
+                                )
+                            } else {
+                                s.copy(
+                                    items = (s.items + result.entries).distinctBy { it.id },
+                                    hasNextPage = result.hasNextPage,
+                                    loadedPage = page,
+                                    isLoading = false,
+                                    isLoadingMore = false,
+                                    error = null,
+                                    isRefreshing = s.isRefreshing,
+                                )
+                            }
+                        }
+                    }.onFailure { e ->
+                        _uiState.update { s ->
+                            s.copy(
+                                isLoading = false,
+                                isLoadingMore = false,
+                                error = e.message ?: appContext.getString(R.string.source_search_error),
+                                isRefreshing = false,
+                            )
+                        }
                     }
-                }
-        }
+            }
     }
 }

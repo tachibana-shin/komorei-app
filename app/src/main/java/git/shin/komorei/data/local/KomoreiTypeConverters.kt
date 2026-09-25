@@ -13,21 +13,26 @@ import git.shin.komorei.model.FilterValue
 import git.shin.komorei.model.FilterValueJsonAdapter
 
 class KomoreiTypeConverters {
-    private val moshi = Moshi.Builder()
-        .add(FilterKind::class.java, FilterKindJsonAdapter())
-        .add(FilterValue::class.java, FilterValueJsonAdapter())
-        .build()
-    
+    private val moshi =
+        Moshi
+            .Builder()
+            .add(FilterKind::class.java, FilterKindJsonAdapter())
+            .add(FilterValue::class.java, FilterValueJsonAdapter())
+            .build()
+
     private val categoryLinkAdapter = moshi.adapter(CategoryLink::class.java)
-    private val listCategoryLinkAdapter = moshi.adapter<List<CategoryLink>>(
-        Types.newParameterizedType(List::class.java, CategoryLink::class.java)
-    )
-    private val listEpisodeAdapter = moshi.adapter<List<Episode>>(
-        Types.newParameterizedType(List::class.java, Episode::class.java)
-    )
-    private val listSeasonAdapter = moshi.adapter<List<AnimeSeason>>(
-        Types.newParameterizedType(List::class.java, AnimeSeason::class.java)
-    )
+    private val listCategoryLinkAdapter =
+        moshi.adapter<List<CategoryLink>>(
+            Types.newParameterizedType(List::class.java, CategoryLink::class.java),
+        )
+    private val listEpisodeAdapter =
+        moshi.adapter<List<Episode>>(
+            Types.newParameterizedType(List::class.java, Episode::class.java),
+        )
+    private val listSeasonAdapter =
+        moshi.adapter<List<AnimeSeason>>(
+            Types.newParameterizedType(List::class.java, AnimeSeason::class.java),
+        )
 
     @TypeConverter
     fun fromAnimeStatus(status: AnimeStatus): String = status.value

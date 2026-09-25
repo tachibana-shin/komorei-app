@@ -32,7 +32,6 @@ import org.robolectric.annotation.Config
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class LogsScreenTest {
-
     @get:Rule val composeTestRule = createComposeRule()
 
     @Before

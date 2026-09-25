@@ -24,7 +24,7 @@ private val DarkColorScheme =
         surfaceVariant = SurfaceVariantDark,
         onSurfaceVariant = TextSecondary,
         outline = CardBorderDark,
-        outlineVariant = Color(0xFF1E2638)
+        outlineVariant = Color(0xFF1E2638),
     )
 
 @Composable
@@ -36,7 +36,6 @@ fun MyApplicationTheme(
     MaterialTheme(
         colorScheme = DarkColorScheme,
         typography = Typography,
-        content = content
+        content = content,
     )
 }
-

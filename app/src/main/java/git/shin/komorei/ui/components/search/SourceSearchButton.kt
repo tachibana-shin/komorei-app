@@ -35,16 +35,17 @@ fun SourceSearchButton(
     val shape = CircleShape
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier
-            .size(32.dp)
-            // TV focus highlight (no-op on phones); the small circle magnifier
-            // scales noticeably so the ring reads at viewing distance.
-            .tvFocus(shape = CircleShape, scale = 1.2f, borderWidth = 2.dp)
-            .clip(shape)
-            .background(SurfaceDark)
-            .border(width = 1.dp, color = CardBorderDark, shape = shape)
-            .clickable(onClick = onClick)
-            .testTag("source_search_button"),
+        modifier =
+            modifier
+                .size(32.dp)
+                // TV focus highlight (no-op on phones); the small circle magnifier
+                // scales noticeably so the ring reads at viewing distance.
+                .tvFocus(shape = CircleShape, scale = 1.2f, borderWidth = 2.dp)
+                .clip(shape)
+                .background(SurfaceDark)
+                .border(width = 1.dp, color = CardBorderDark, shape = shape)
+                .clickable(onClick = onClick)
+                .testTag("source_search_button"),
     ) {
         Icon(
             imageVector = Icons.Default.Search,

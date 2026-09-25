@@ -6,12 +6,11 @@ import git.shin.komorei.model.Anime
 
 @Entity(
     tableName = "anime_library",
-    primaryKeys = ["id", "sourceId"]
+    primaryKeys = ["id", "sourceId"],
 )
 data class AnimeEntity(
     @Embedded
     val anime: Anime,
-    
     val isBookmarked: Boolean = false,
-    val bookmarkAddedAt: Long? = null
+    val bookmarkAddedAt: Long? = null,
 )

@@ -26,13 +26,13 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.Closeable
+import java.io.File
 import java.io.IOException
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
-import java.io.File
 
 /**
  * The REAL OPhim source (`sources/sources/vi.ophim` → `package.krx`) driven through the
@@ -52,14 +52,14 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class OphimSourceRunnerIntegrationTest {
-
     private lateinit var host: KrxHostImpl
     private lateinit var runner: git.shin.komorei.sdk.runner.KomoreiRunner
     private lateinit var fixture: FixtureServer
 
     companion object {
-        private val ophimKrx: String = System.getProperty("komorei.test.ophimKrx")
-            ?: error("missing -Dkomorei.test.ophimKrx (set by app/build.gradle.kts)")
+        private val ophimKrx: String =
+            System.getProperty("komorei.test.ophimKrx")
+                ?: error("missing -Dkomorei.test.ophimKrx (set by app/build.gradle.kts)")
     }
 
     @Before
@@ -124,7 +124,8 @@ class OphimSourceRunnerIntegrationTest {
     @Test
     fun `filters serialize category country type year and sort into the query`() {
         runner.search(
-            null, 1,
+            null,
+            1,
             listOf(
                 FilterValue.MultiSelect("category", listOf("Hành Động"), emptyList()),
                 FilterValue.MultiSelect("country", listOf("Mỹ"), emptyList()),
@@ -269,10 +270,12 @@ class OphimSourceRunnerIntegrationTest {
 
     @Test
     fun `stream list serves one StreamInfo per server with the detail quality`() {
-        val full = runner.animeUpdate(
-            runner.search("Người nhện", 1, emptyList()).entries.single { it.key == "nguoi-nhan" },
-            needsDetails = true, needsChapters = false,
-        )
+        val full =
+            runner.animeUpdate(
+                runner.search("Người nhện", 1, emptyList()).entries.single { it.key == "nguoi-nhan" },
+                needsDetails = true,
+                needsChapters = false,
+            )
         val servers = runner.streamList(full, ep("tap-1", "1"))
         assertEquals(listOf("OPhim", "Trailer"), servers.map { it.key })
         assertEquals(listOf("OPhim", "Trailer"), servers.map { it.name })
@@ -281,10 +284,12 @@ class OphimSourceRunnerIntegrationTest {
 
     @Test
     fun `stream resolves the m3u8 with a referer and falls back across server groups`() {
-        val full = runner.animeUpdate(
-            runner.search("Người nhện", 1, emptyList()).entries.single { it.key == "nguoi-nhan" },
-            needsDetails = true, needsChapters = false,
-        )
+        val full =
+            runner.animeUpdate(
+                runner.search("Người nhện", 1, emptyList()).entries.single { it.key == "nguoi-nhan" },
+                needsDetails = true,
+                needsChapters = false,
+            )
         val ophim = runner.streamList(full, ep("tap-1", "1")).first { it.key == "OPhim" }
 
         val tap1 = runner.stream(full, ep("tap-1", "1"), ophim)
@@ -303,10 +308,12 @@ class OphimSourceRunnerIntegrationTest {
 
     @Test
     fun `stream bails with the source message when the episode is unknown`() {
-        val full = runner.animeUpdate(
-            runner.search("Người nhện", 1, emptyList()).entries.single { it.key == "nguoi-nhan" },
-            needsDetails = true, needsChapters = false,
-        )
+        val full =
+            runner.animeUpdate(
+                runner.search("Người nhện", 1, emptyList()).entries.single { it.key == "nguoi-nhan" },
+                needsDetails = true,
+                needsChapters = false,
+            )
         val ophim = runner.streamList(full, ep("tap-1", "1")).first { it.key == "OPhim" }
         try {
             runner.stream(full, ep("tap-999", "999"), ophim)
@@ -373,8 +380,10 @@ class OphimSourceRunnerIntegrationTest {
             listOf("latest", "bo", "le", "hoat-hinh", "chieu-rap", "sap-chieu", "tv-shows"),
             listings.map { it.id },
         )
-        assertEquals(listOf("Mới Cập Nhật", "Phim Bộ", "Phim Lẻ", "Hoạt Hình", "Phim Chiếu Rạp", "Sắp Chiếu", "TV Shows"),
-            listings.map { it.name })
+        assertEquals(
+            listOf("Mới Cập Nhật", "Phim Bộ", "Phim Lẻ", "Hoạt Hình", "Phim Chiếu Rạp", "Sắp Chiếu", "TV Shows"),
+            listings.map { it.name },
+        )
         assertTrue(listings.all { it.kind == ListingKind.LIST })
 
         val bo = runner.animeList(listings[1], 1)
@@ -414,35 +423,39 @@ class OphimSourceRunnerIntegrationTest {
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
-    private fun stubAnime(key: String) = Anime(
-        key = key,
-        sourceId = "vi.ophim",
-        title = key,
-        originalTitle = "",
-        cover = "",
-        banner = null,
-        description = null,
-        episodeCount = 0,
-        currentEpisode = null,
-        rating = null,
-        ratingCount = null,
-        status = AnimeStatus.UNKNOWN,
-        releaseYear = null,
-        genres = emptyList(),
-        authors = emptyList(),
-        studio = null,
-        seasonOf = null,
-        countries = emptyList(),
-        isFeatured = false,
-        views = 0,
-        nextEpisodeAirInfo = null,
-        qualityTag = null,
-        seasons = emptyList(),
-        episodes = null,
-        url = null,
-    )
+    private fun stubAnime(key: String) =
+        Anime(
+            key = key,
+            sourceId = "vi.ophim",
+            title = key,
+            originalTitle = "",
+            cover = "",
+            banner = null,
+            description = null,
+            episodeCount = 0,
+            currentEpisode = null,
+            rating = null,
+            ratingCount = null,
+            status = AnimeStatus.UNKNOWN,
+            releaseYear = null,
+            genres = emptyList(),
+            authors = emptyList(),
+            studio = null,
+            seasonOf = null,
+            countries = emptyList(),
+            isFeatured = false,
+            views = 0,
+            nextEpisodeAirInfo = null,
+            qualityTag = null,
+            seasons = emptyList(),
+            episodes = null,
+            url = null,
+        )
 
-    private fun ep(key: String, number: String) = Episode(
+    private fun ep(
+        key: String,
+        number: String,
+    ) = Episode(
         key = key,
         episodeNumber = number,
         title = null,
@@ -459,24 +472,32 @@ class OphimSourceRunnerIntegrationTest {
 
     private class FixtureServer : Closeable {
         private val server = ServerSocket(0, 64, InetAddress.getByName("127.0.0.1"))
+
         @Volatile private var closed = false
         val requests = CopyOnWriteArrayList<String>()
         val baseUrl: String get() = "http://127.0.0.1:${server.localPort}"
 
         init {
-            Thread({ acceptLoop() }, "ophim-fixture").apply { isDaemon = true; start() }
+            Thread({ acceptLoop() }, "ophim-fixture").apply {
+                isDaemon = true
+                start()
+            }
         }
 
         fun lastRequest(): String = requests.lastOrNull() ?: ""
 
         private fun acceptLoop() {
             while (!closed) {
-                val sock = try {
-                    server.accept()
-                } catch (e: IOException) {
-                    break
+                val sock =
+                    try {
+                        server.accept()
+                    } catch (e: IOException) {
+                        break
+                    }
+                Thread({ handle(sock) }, "ophim-fixture-handler").apply {
+                    isDaemon = true
+                    start()
                 }
-                Thread({ handle(sock) }, "ophim-fixture-handler").apply { isDaemon = true; start() }
             }
         }
 
@@ -494,10 +515,12 @@ class OphimSourceRunnerIntegrationTest {
                     val bytes = body.toByteArray(Charsets.UTF_8)
                     val out = s.getOutputStream()
                     out.write(
-                        ("HTTP/1.1 200 OK\r\n" +
-                            "Content-Type: application/json; charset=utf-8\r\n" +
-                            "Content-Length: ${bytes.size}\r\n" +
-                            "Connection: close\r\n\r\n").toByteArray(Charsets.US_ASCII),
+                        (
+                            "HTTP/1.1 200 OK\r\n" +
+                                "Content-Type: application/json; charset=utf-8\r\n" +
+                                "Content-Length: ${bytes.size}\r\n" +
+                                "Connection: close\r\n\r\n"
+                        ).toByteArray(Charsets.US_ASCII),
                     )
                     out.write(bytes)
                     out.flush()
@@ -511,8 +534,11 @@ class OphimSourceRunnerIntegrationTest {
             val path = target.substringBefore('?')
             return when (path) {
                 "/danh-sach/phim-moi-cap-nhat" ->
-                    if (target.contains("page=2")) classicList("[]", "2", "2")
-                    else classicList("[$A,$B]", "1", "2")
+                    if (target.contains("page=2")) {
+                        classicList("[]", "2", "2")
+                    } else {
+                        classicList("[$A,$B]", "1", "2")
+                    }
                 "/danh-sach/phim-bo" -> classicList("[$A,$B]", "1", "1")
                 "/danh-sach/phim-le" -> classicList("[$B]", "1", "1")
                 "/tim-kiem" -> flatSearch
@@ -522,9 +548,14 @@ class OphimSourceRunnerIntegrationTest {
             }
         }
 
-        private fun classicList(items: String, currentPage: String, totalPages: String) = """{"status":"success","msg":"",
+        private fun classicList(
+            items: String,
+            currentPage: String,
+            totalPages: String,
+        ) = """{"status":"success","msg":"",
             |"data":{"items":$items,"params":{"pagination":{"totalItems":40,"totalItemsPerPage":24,
-            |"currentPage":$currentPage,"totalPages":$totalPages}}}}""".trimMargin()
+            |"currentPage":$currentPage,"totalPages":$totalPages}}}}
+            """.trimMargin()
 
         private val flatSearch = """{"status":"success","msg":"done","items":[$A,$B]}"""
 
@@ -542,21 +573,26 @@ class OphimSourceRunnerIntegrationTest {
         }
 
         companion object {
-            private val A = """{"_id":"a1","name":"Người Nhện","origin_name":"Spider-Man","slug":"nguoi-nhan",
+            private val A =
+                """{"_id":"a1","name":"Người Nhện","origin_name":"Spider-Man","slug":"nguoi-nhan",
                 |"poster_url":"//img.ophim.com/nguoi-nhan.jpg","thumb_url":"https://img.ophim.com/nguoi-nhan-thumb.jpg",
                 |"year":2023,"type":"series","quality":"FHD","lang":"Vietsub","episode_total":"24",
                 |"episode_current":"Tập 2/24","status":"ongoing","director":["Jon Watts"],"actor":["Tom Holland"],
                 |"category":[{"name":"Hành Động","slug":"hanh-dong"},{"name":"Viễn Tưởng","slug":"vien-tuong"}],
-                |"country":[{"name":"Mỹ","slug":"my"}],"modified":{"time":"2026-09-21T18:52:19.000Z"},"view":1234}""".trimMargin()
+                |"country":[{"name":"Mỹ","slug":"my"}],"modified":{"time":"2026-09-21T18:52:19.000Z"},"view":1234}
+                """.trimMargin()
 
-            private val B = """{"_id":"b2","name":"Kim Loại","origin_name":"Metal Gear","slug":"kim-loai",
+            private val B =
+                """{"_id":"b2","name":"Kim Loại","origin_name":"Metal Gear","slug":"kim-loai",
                 |"poster_url":"https://img.ophim.com/kim-loai.jpg","thumb_url":"http://img.ophim.com/kim-loai-thumb.jpg",
                 |"year":2022,"type":"series","quality":"HD","lang":"Vietsub","episode_total":"12",
                 |"episode_current":"Full","status":"completed","director":["Jaden Smith"],"actor":["A","B"],
                 |"category":[{"name":"Khoa Học","slug":"khoa-hoc"}],"country":[{"name":"Hàn Quốc","slug":"han-quoc"}],
-                |"modified":{"time":"2026-09-20T00:00:00.000Z"},"view":900}""".trimMargin()
+                |"modified":{"time":"2026-09-20T00:00:00.000Z"},"view":900}
+                """.trimMargin()
 
-            private val A_DETAIL = """{"_id":"a1","name":"Người Nhện","origin_name":"Spider-Man","slug":"nguoi-nhan",
+            private val A_DETAIL =
+                """{"_id":"a1","name":"Người Nhện","origin_name":"Spider-Man","slug":"nguoi-nhan",
                 |"poster_url":"//img.ophim.com/nguoi-nhan.jpg","thumb_url":"https://img.ophim.com/nguoi-nhan-thumb.jpg",
                 |"year":2023,"type":"series","quality":"FHD","lang":"Vietsub","episode_total":"24",
                 |"episode_current":"Tập 2/24","status":"ongoing","content":"<p>Người Nhện chiến đấu với tội phạm.</p>&nbsp;",
@@ -571,15 +607,18 @@ class OphimSourceRunnerIntegrationTest {
                 |{"server_name":"Trailer","server_data":[
                 |{"name":"Trailer","slug":"trailer-1","filename":"trailer.mp4","link_embed":"https://embed.ophim.com/trailer","link_m3u8":"https://cdn.ophim.com/nguoi-nhan/trailer.mp4"}
                 |]}
-                |]}""".trimMargin()
+                |]}
+                """.trimMargin()
 
-            private val B_DETAIL = """{"_id":"b2","name":"Kim Loại","origin_name":"Metal Gear","slug":"kim-loai",
+            private val B_DETAIL =
+                """{"_id":"b2","name":"Kim Loại","origin_name":"Metal Gear","slug":"kim-loai",
                 |"poster_url":"https://img.ophim.com/kim-loai.jpg","thumb_url":"http://img.ophim.com/kim-loai-thumb.jpg",
                 |"year":2022,"type":"series","quality":"HD","lang":"Vietsub","episode_total":"12",
                 |"episode_current":"Full","status":"completed","content":"Phim khoa học viễn tưởng&hellip;",
                 |"director":["Jaden Smith"],"actor":["A","B"],
                 |"category":[{"name":"Khoa Học","slug":"khoa-hoc"}],"country":[{"name":"Hàn Quốc","slug":"han-quoc"}],
-                |"modified":{"time":"2026-09-20T00:00:00.000Z"},"view":900,"episodes":[]}""".trimMargin()
+                |"modified":{"time":"2026-09-20T00:00:00.000Z"},"view":900,"episodes":[]}
+                """.trimMargin()
         }
     }
 }

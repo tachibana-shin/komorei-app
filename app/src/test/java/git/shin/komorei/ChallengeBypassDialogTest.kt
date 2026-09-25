@@ -20,7 +20,6 @@ import org.robolectric.annotation.Config
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class ChallengeBypassDialogTest {
-
     @get:Rule val composeTestRule = createComposeRule()
 
     @Test

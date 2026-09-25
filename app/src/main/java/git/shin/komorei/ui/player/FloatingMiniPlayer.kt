@@ -39,12 +39,12 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import androidx.media3.ui.compose.SURFACE_TYPE_TEXTURE_VIEW
-import androidx.media3.ui.compose.material3.Player as ComposePlayer
 import coil.compose.AsyncImage
 import git.shin.komorei.R
 import git.shin.komorei.ui.tv.tvFocus
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import androidx.media3.ui.compose.material3.Player as ComposePlayer
 
 /**
  * Collapsed floating mini player (YouTube-style PiP, rendered in-app — not system PiP).
@@ -75,7 +75,7 @@ fun FloatingMiniPlayer(
     onPlayPauseToggle: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
-    bottomInsetPx: Float = 0f
+    bottomInsetPx: Float = 0f,
 ) {
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
@@ -91,52 +91,53 @@ fun FloatingMiniPlayer(
         // Bubble top-left (px). A single Animatable<Offset> tracks 1:1 with the finger
         // and springs to the nearest corner on release. Initialized at the remembered
         // corner, clamped above the bottom toolbar.
-        val resting = Offset(
-            initialPosition.x.coerceIn(0f, maxW - width),
-            initialPosition.y.coerceIn(0f, maxH - height - bottomInsetPx)
-        )
-        val position = remember {
-            Animatable(resting, Offset.VectorConverter)
-        }
+        val resting =
+            Offset(
+                initialPosition.x.coerceIn(0f, maxW - width),
+                initialPosition.y.coerceIn(0f, maxH - height - bottomInsetPx),
+            )
+        val position =
+            remember {
+                Animatable(resting, Offset.VectorConverter)
+            }
 
         Box(
-            modifier = Modifier
-                .offset { IntOffset(position.value.x.roundToInt(), position.value.y.roundToInt()) }
-                .size(
-                    with(density) { width.toDp() },
-                    with(density) { height.toDp() }
-                )
-                .shadow(12.dp, cornerRadius)
-                .clip(cornerRadius)
-                .background(Color.Black)
-                .pointerInput(Unit, maxW, maxH, width, height, bottomInsetPx) {
-                    detectDragGestures(
-                        onDragStart = {
-                            scope.launch { position.stop() }
-                        },
-                        onDragEnd = {
-                            // Snap to the nearest screen corner, springing the bubble home.
-                            val target = geo.nearestCorner(position.value)
-                            val spec = spring<Offset>(dampingRatio = 0.7f, stiffness = Spring.StiffnessMediumLow)
+            modifier =
+                Modifier
+                    .offset { IntOffset(position.value.x.roundToInt(), position.value.y.roundToInt()) }
+                    .size(
+                        with(density) { width.toDp() },
+                        with(density) { height.toDp() },
+                    ).shadow(12.dp, cornerRadius)
+                    .clip(cornerRadius)
+                    .background(Color.Black)
+                    .pointerInput(Unit, maxW, maxH, width, height, bottomInsetPx) {
+                        detectDragGestures(
+                            onDragStart = {
+                                scope.launch { position.stop() }
+                            },
+                            onDragEnd = {
+                                // Snap to the nearest screen corner, springing the bubble home.
+                                val target = geo.nearestCorner(position.value)
+                                val spec = spring<Offset>(dampingRatio = 0.7f, stiffness = Spring.StiffnessMediumLow)
+                                scope.launch {
+                                    position.animateTo(target, spec)
+                                    onPositionChange(position.value)
+                                }
+                            },
+                        ) { change, dragAmount ->
+                            change.consume()
                             scope.launch {
-                                position.animateTo(target, spec)
+                                position.snapTo(
+                                    Offset(
+                                        (position.value.x + dragAmount.x).coerceIn(0f, maxW - width),
+                                        (position.value.y + dragAmount.y).coerceIn(0f, maxH - height - bottomInsetPx),
+                                    ),
+                                )
                                 onPositionChange(position.value)
                             }
                         }
-                    ) { change, dragAmount ->
-                        change.consume()
-                        scope.launch {
-                            position.snapTo(
-                                Offset(
-                                    (position.value.x + dragAmount.x).coerceIn(0f, maxW - width),
-                                    (position.value.y + dragAmount.y).coerceIn(0f, maxH - height - bottomInsetPx)
-                                )
-                            )
-                            onPositionChange(position.value)
-                        }
-                    }
-                }
-                .testTag("mini_player")
+                    }.testTag("mini_player"),
         ) {
             // Poster behind the video surface — visible until the first frame draws.
             // Clipped to the same rounded corners as the bubble.
@@ -144,7 +145,7 @@ fun FloatingMiniPlayer(
                 model = posterUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.matchParentSize().clip(cornerRadius)
+                modifier = Modifier.matchParentSize().clip(cornerRadius),
             )
 
             if (player != null) {
@@ -152,60 +153,64 @@ fun FloatingMiniPlayer(
                     player = player,
                     showControls = false, // the floating bubble has its own minimal controls
                     surfaceType = SURFACE_TYPE_TEXTURE_VIEW,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
 
             // Tap anywhere outside the buttons to expand back to the full player
             Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    // TV focus highlight (no-op on phones) — the whole bubble is
-                    // one D-pad target; ring-only (scale 1.0) so the bubble never
-                    // grows past its clipped corners.
-                    .tvFocus(shape = cornerRadius, scale = 1.0f, borderColor = Color.White)
-                    .clickable(onClick = onExpand)
+                modifier =
+                    Modifier
+                        .matchParentSize()
+                        // TV focus highlight (no-op on phones) — the whole bubble is
+                        // one D-pad target; ring-only (scale 1.0) so the bubble never
+                        // grows past its clipped corners.
+                        .tvFocus(shape = cornerRadius, scale = 1.0f, borderColor = Color.White)
+                        .clickable(onClick = onExpand),
             )
 
             // Minimal controls overlaid on the corners: play/pause top-left, close
             // top-right — small translucent circles, tucked in with 8dp margins.
             IconButton(
                 onClick = onPlayPauseToggle,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    // TV focus highlight (no-op on phones) — the button overlays
-                    // the video but is NOT an ancestor of its TextureView, so a
-                    // graphicsLayer here cannot black out playback.
-                    .tvFocus(shape = CircleShape, scale = 1.15f, borderColor = Color.White)
-                    .padding(8.dp)
-                    .size(32.dp)
-                    .background(Color.Black.copy(alpha = 0.55f), CircleShape)
-                    .testTag("mini_player_play_pause")
+                modifier =
+                    Modifier
+                        .align(Alignment.TopStart)
+                        // TV focus highlight (no-op on phones) — the button overlays
+                        // the video but is NOT an ancestor of its TextureView, so a
+                        // graphicsLayer here cannot black out playback.
+                        .tvFocus(shape = CircleShape, scale = 1.15f, borderColor = Color.White)
+                        .padding(8.dp)
+                        .size(32.dp)
+                        .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+                        .testTag("mini_player_play_pause"),
             ) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = stringResource(
-                        if (isPlaying) R.string.cd_pause else R.string.cd_play
-                    ),
+                    contentDescription =
+                        stringResource(
+                            if (isPlaying) R.string.cd_pause else R.string.cd_play,
+                        ),
                     tint = Color.White,
-                    modifier = Modifier.size(17.dp)
+                    modifier = Modifier.size(17.dp),
                 )
             }
             IconButton(
                 onClick = onClose,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .tvFocus(shape = CircleShape, scale = 1.15f, borderColor = Color.White)
-                    .padding(8.dp)
-                    .size(32.dp)
-                    .background(Color.Black.copy(alpha = 0.55f), CircleShape)
-                    .testTag("mini_player_close")
+                modifier =
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .tvFocus(shape = CircleShape, scale = 1.15f, borderColor = Color.White)
+                        .padding(8.dp)
+                        .size(32.dp)
+                        .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+                        .testTag("mini_player_close"),
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = stringResource(R.string.cd_close_player),
                     tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(16.dp),
                 )
             }
         }

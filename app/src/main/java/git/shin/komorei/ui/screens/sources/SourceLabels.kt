@@ -20,10 +20,14 @@ fun sourceLanguageLabel(languages: List<String>): String {
 
 /** Subtitle line for a source row: "v1.0.0 · Tiếng Việt". */
 @Composable
-fun sourceVersionSubtitle(version: String, languages: List<String>): String = buildString {
-    append(stringResource(R.string.sources_version_format, version))
-    if (languages.isNotEmpty()) {
-        append(" · ")
-        append(sourceLanguageLabel(languages))
+fun sourceVersionSubtitle(
+    version: String,
+    languages: List<String>,
+): String =
+    buildString {
+        append(stringResource(R.string.sources_version_format, version))
+        if (languages.isNotEmpty()) {
+            append(" · ")
+            append(sourceLanguageLabel(languages))
+        }
     }
-}

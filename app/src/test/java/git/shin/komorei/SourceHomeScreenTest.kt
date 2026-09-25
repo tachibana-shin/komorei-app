@@ -1,8 +1,12 @@
 package git.shin.komorei
 
 import android.content.Context
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
+import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.SourceStateStore
 import git.shin.komorei.sdk.KrxHostImpl
@@ -22,10 +26,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.junit4.v2.createComposeRule
 import java.io.File
 
 /**
@@ -40,26 +40,27 @@ import java.io.File
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class SourceHomeScreenTest {
-
     @get:Rule val composeTestRule = createComposeRule()
 
     private lateinit var repository: AnimeRepository
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     companion object {
-        private val fakeKrx: String = System.getProperty("komorei.test.fakeKrx")
-            ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
+        private val fakeKrx: String =
+            System.getProperty("komorei.test.fakeKrx")
+                ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
     }
 
     @Before
-    fun setUp() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val host = KrxHostImpl(context)
-        val registry = KrxSourceRegistry(context, host)
-        registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
-        repository = AnimeRepository(registry)
-        Dispatchers.setMain(mainDispatcher)
-    }
+    fun setUp() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val host = KrxHostImpl(context)
+            val registry = KrxSourceRegistry(context, host)
+            registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
+            repository = AnimeRepository(registry)
+            Dispatchers.setMain(mainDispatcher)
+        }
 
     @After
     fun tearDown() {
@@ -89,7 +90,8 @@ class SourceHomeScreenTest {
             )
         }
         // Source home screen renders with back button
-        composeTestRule.onNodeWithTag("source_home_menu")
+        composeTestRule
+            .onNodeWithTag("source_home_menu")
             .performClick()
     }
 
@@ -108,7 +110,8 @@ class SourceHomeScreenTest {
             )
         }
         // Source home screen renders the search button
-        composeTestRule.onNodeWithTag("source_home_menu")
+        composeTestRule
+            .onNodeWithTag("source_home_menu")
             .performClick()
     }
 
@@ -127,7 +130,8 @@ class SourceHomeScreenTest {
             )
         }
         // Screen renders — verify key elements exist
-        composeTestRule.onNodeWithTag("source_home_menu")
+        composeTestRule
+            .onNodeWithTag("source_home_menu")
             .performClick()
     }
 
@@ -146,7 +150,8 @@ class SourceHomeScreenTest {
             )
         }
         // Screen should still render without crashing
-        composeTestRule.onNodeWithTag("source_home_menu")
+        composeTestRule
+            .onNodeWithTag("source_home_menu")
             .performClick()
     }
 }

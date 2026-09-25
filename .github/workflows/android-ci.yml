@@ -44,6 +44,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      - name: Lint runner crate
+        # --manifest-path WITHOUT --all on purpose: `komorei` is a path
+        # dependency into the separate komorei-sdk checkout, and --all would
+        # reach across the repo boundary and reformat/lint a repo that has its
+        # own CI for exactly that.
+        run: |
+          cargo fmt --manifest-path runner/Cargo.toml -- --check
+          cargo clippy --manifest-path runner/Cargo.toml --all-targets --all-features -- -D warnings
+
       - name: Build SDK example fixture
         run: |
           cargo install --path komorei-sdk/crates/cli --locked
@@ -130,6 +139,12 @@ jobs:
 
       - name: Grant Gradle wrapper permission
         run: chmod +x gradlew
+
+      - name: Kotlin style (ktlint)
+        # Style gate for the Kotlin half of the tree, mirroring the runner
+        # crate's `cargo fmt` above. Rules live in .editorconfig; run
+        # `./gradlew ktlintFormat` locally to fix.
+        run: ./gradlew ktlintCheck
 
       - name: Kotlin unit tests
         run: ./gradlew :app:testDebugUnitTest

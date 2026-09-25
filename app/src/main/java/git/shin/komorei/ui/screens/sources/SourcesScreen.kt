@@ -64,7 +64,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import git.shin.komorei.R
-import git.shin.komorei.model.Source
 import git.shin.komorei.ui.components.SourceIcon
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
@@ -112,17 +111,19 @@ fun SourcesScreen(
     val installed = sources.filter { it.pinnedIndex < 0 && it.updateAvailableVersion == null }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
-            .testTag("sources_screen")
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding()
+                .testTag("sources_screen"),
     ) {
         // Header
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -134,21 +135,23 @@ fun SourcesScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = stringResource(
-                        R.string.sources_header_count_format,
-                        sources.size,
-                        sources.count { it.enabled },
-                    ),
+                    text =
+                        stringResource(
+                            R.string.sources_header_count_format,
+                            sources.size,
+                            sources.count { it.enabled },
+                        ),
                     color = TextSecondary,
                     fontSize = 12.sp,
                 )
             }
             IconButton(
                 onClick = { viewModel.checkForUpdates() },
-                modifier = Modifier
-                    // TV focus highlight (no-op on phones).
-                    .tvFocus(shape = CircleShape, scale = 1.15f)
-                    .testTag("sources_refresh_button"),
+                modifier =
+                    Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .testTag("sources_refresh_button"),
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Refresh,
@@ -159,10 +162,11 @@ fun SourcesScreen(
             }
             IconButton(
                 onClick = { showAddSheet = true },
-                modifier = Modifier
-                    // TV focus highlight (no-op on phones).
-                    .tvFocus(shape = CircleShape, scale = 1.15f)
-                    .testTag("sources_add_source_button"),
+                modifier =
+                    Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .testTag("sources_add_source_button"),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
@@ -175,23 +179,25 @@ fun SourcesScreen(
         // Search — compact pill (BasicTextField in a 40dp rounded box, not the
         // 56dp M3 OutlinedTextField which looked oversized)
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .height(40.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(CardDark)
-                .border(1.dp, CardBorderDark, RoundedCornerShape(20.dp))
-                .testTag("sources_search_input"),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .height(40.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(CardDark)
+                    .border(1.dp, CardBorderDark, RoundedCornerShape(20.dp))
+                    .testTag("sources_search_input"),
         ) {
             Icon(
                 imageVector = Icons.Filled.Search,
                 contentDescription = stringResource(R.string.sources_search_cd),
                 tint = if (searchQuery.isNotBlank()) AnimeRed else TextMuted,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 12.dp)
-                    .size(18.dp),
+                modifier =
+                    Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(start = 12.dp)
+                        .size(18.dp),
             )
             BasicTextField(
                 value = searchQuery,
@@ -201,9 +207,10 @@ fun SourcesScreen(
                 cursorBrush = SolidColor(AnimeRed),
                 decorationBox = { innerTextField ->
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(start = 38.dp, end = 38.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(start = 38.dp, end = 38.dp),
                         contentAlignment = Alignment.CenterStart,
                     ) {
                         if (searchQuery.isEmpty()) {
@@ -218,20 +225,22 @@ fun SourcesScreen(
                         innerTextField()
                     }
                 },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("sources_search_input_field"),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .testTag("sources_search_input_field"),
             )
             if (searchQuery.isNotEmpty()) {
                 IconButton(
                     onClick = { viewModel.setSearchQuery("") },
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        // TV focus highlight (no-op on phones).
-                        .tvFocus(shape = CircleShape, scale = 1.15f)
-                        .padding(end = 4.dp)
-                        .size(32.dp)
-                        .testTag("sources_search_clear"),
+                    modifier =
+                        Modifier
+                            .align(Alignment.CenterEnd)
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = CircleShape, scale = 1.15f)
+                            .padding(end = 4.dp)
+                            .size(32.dp)
+                            .testTag("sources_search_clear"),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Clear,
@@ -379,37 +388,40 @@ private fun SourceRow(
 
     val subtitle = sourceVersionSubtitle(item.source.version, item.source.languages)
     val badgeColor = remember(item.source.badgeColorHex) { Color(item.source.badgeColorHex) }
-    val enabledLabel = if (item.enabled) {
-        stringResource(R.string.sources_action_disable)
-    } else {
-        stringResource(R.string.sources_action_enable)
-    }
-    val pinnedLabel = if (item.pinnedIndex >= 0) {
-        stringResource(R.string.sources_action_unpin)
-    } else {
-        stringResource(R.string.sources_action_pin)
-    }
+    val enabledLabel =
+        if (item.enabled) {
+            stringResource(R.string.sources_action_disable)
+        } else {
+            stringResource(R.string.sources_action_enable)
+        }
+    val pinnedLabel =
+        if (item.pinnedIndex >= 0) {
+            stringResource(R.string.sources_action_unpin)
+        } else {
+            stringResource(R.string.sources_action_pin)
+        }
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .alpha(if (item.enabled) 1f else 0.45f)
-            // TV focus highlight (no-op on phones) — ring around the whole row.
-            .tvFocus(shape = RoundedCornerShape(14.dp), scale = 1.02f)
-            .combinedClickable(
-                // Tap opens the source's home screen (Aidoku NewSourceViewController).
-                onClick = onOpen,
-                onLongClick = { menuExpanded = true },
-            )
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .testTag("source_row_${item.source.id}"),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .alpha(if (item.enabled) 1f else 0.45f)
+                // TV focus highlight (no-op on phones) — ring around the whole row.
+                .tvFocus(shape = RoundedCornerShape(14.dp), scale = 1.02f)
+                .combinedClickable(
+                    // Tap opens the source's home screen (Aidoku NewSourceViewController).
+                    onClick = onOpen,
+                    onLongClick = { menuExpanded = true },
+                ).padding(horizontal = 16.dp, vertical = 8.dp)
+                .testTag("source_row_${item.source.id}"),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(badgeColor.copy(alpha = 0.15f)),
+                modifier =
+                    Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(badgeColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center,
             ) {
                 SourceIcon(
@@ -436,10 +448,11 @@ private fun SourceRow(
                     if (item.source.contentRating >= 2) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(AnimeRed)
-                                .padding(horizontal = 4.dp, vertical = 1.dp),
+                            modifier =
+                                Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(AnimeRed)
+                                    .padding(horizontal = 4.dp, vertical = 1.dp),
                         ) {
                             Text(
                                 text = stringResource(R.string.sources_badge_nsfw),
@@ -519,13 +532,14 @@ private fun SourceRow(
 @Composable
 private fun UpdatePill(onClick: () -> Unit) {
     Box(
-        modifier = Modifier
-            // TV focus highlight (no-op on phones).
-            .tvFocus(shape = RoundedCornerShape(100), scale = 1.08f, borderWidth = 2.dp)
-            .clip(RoundedCornerShape(100))
-            .background(AnimeRed)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+        modifier =
+            Modifier
+                // TV focus highlight (no-op on phones).
+                .tvFocus(shape = RoundedCornerShape(100), scale = 1.08f, borderWidth = 2.dp)
+                .clip(RoundedCornerShape(100))
+                .background(AnimeRed)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -541,9 +555,10 @@ private fun UpdatePill(onClick: () -> Unit) {
 @Composable
 private fun EmptyState(onAdd: () -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 72.dp, start = 32.dp, end = 32.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 72.dp, start = 32.dp, end = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
@@ -569,13 +584,14 @@ private fun EmptyState(onAdd: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(20.dp))
         Box(
-            modifier = Modifier
-                // TV focus highlight (no-op on phones).
-                .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
-                .clip(RoundedCornerShape(100))
-                .background(AnimeRed)
-                .clickable(onClick = onAdd)
-                .padding(horizontal = 20.dp, vertical = 10.dp),
+            modifier =
+                Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
+                    .clip(RoundedCornerShape(100))
+                    .background(AnimeRed)
+                    .clickable(onClick = onAdd)
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
         ) {
             Text(
                 text = stringResource(R.string.sources_add_cd),

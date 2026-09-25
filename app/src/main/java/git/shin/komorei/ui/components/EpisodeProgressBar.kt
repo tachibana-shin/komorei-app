@@ -19,21 +19,23 @@ fun EpisodeProgressBar(
     progress: Float, // 0.0 to 1.0
     modifier: Modifier = Modifier,
     color: Color = AnimeRed,
-    backgroundColor: Color = Color.Gray.copy(alpha = 0.3f)
+    backgroundColor: Color = Color.Gray.copy(alpha = 0.3f),
 ) {
     if (progress <= 0f) return
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(2.dp)
-            .background(backgroundColor)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(backgroundColor),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth(progress.coerceIn(0f, 1f))
-                .fillMaxHeight()
-                .background(color)
+            modifier =
+                Modifier
+                    .fillMaxWidth(progress.coerceIn(0f, 1f))
+                    .fillMaxHeight()
+                    .background(color),
         )
     }
 }

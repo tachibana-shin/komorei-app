@@ -23,7 +23,7 @@ data class MiniPlayerGeometry(
     val cornerBottomLeft: Offset,
     val cornerBottomRight: Offset,
     /** Safe-area clearance below the bottom corners (the app's bottom toolbar, px). */
-    val bottomInsetPx: Float
+    val bottomInsetPx: Float,
 ) {
     /**
      * Where the bubble appears right after the sheet video exits the bottom of the
@@ -32,21 +32,23 @@ data class MiniPlayerGeometry(
      * what makes the collapse feel like "player và mini player là một".
      */
     val bottomCenterStart: Offset
-        get() = Offset(
-            (cornerBottomLeft.x + cornerBottomRight.x) / 2f,
-            cornerBottomLeft.y
-        )
+        get() =
+            Offset(
+                (cornerBottomLeft.x + cornerBottomRight.x) / 2f,
+                cornerBottomLeft.y,
+            )
 
     /** The corner anchor whose CENTER is closest to the bubble's [topLeft] corner. */
     fun nearestCorner(topLeft: Offset): Offset {
         val cx = topLeft.x + width / 2f
         val cy = topLeft.y + height / 2f
-        val anchors = listOf(
-            cornerTopLeft to Offset(cornerTopLeft.x + width / 2f, cornerTopLeft.y + height / 2f),
-            cornerTopRight to Offset(cornerTopRight.x + width / 2f, cornerTopRight.y + height / 2f),
-            cornerBottomLeft to Offset(cornerBottomLeft.x + width / 2f, cornerBottomLeft.y + height / 2f),
-            cornerBottomRight to Offset(cornerBottomRight.x + width / 2f, cornerBottomRight.y + height / 2f)
-        )
+        val anchors =
+            listOf(
+                cornerTopLeft to Offset(cornerTopLeft.x + width / 2f, cornerTopLeft.y + height / 2f),
+                cornerTopRight to Offset(cornerTopRight.x + width / 2f, cornerTopRight.y + height / 2f),
+                cornerBottomLeft to Offset(cornerBottomLeft.x + width / 2f, cornerBottomLeft.y + height / 2f),
+                cornerBottomRight to Offset(cornerBottomRight.x + width / 2f, cornerBottomRight.y + height / 2f),
+            )
         var best = cornerBottomRight
         var bestDist = Float.MAX_VALUE
         for ((anchor, center) in anchors) {
@@ -67,14 +69,15 @@ fun computeMiniPlayerGeometry(
     maxWidthPx: Float,
     maxHeightPx: Float,
     density: Density,
-    bottomInsetPx: Float = 0f
+    bottomInsetPx: Float = 0f,
 ): MiniPlayerGeometry {
     val marginPx = with(density) { 12.dp.toPx() }
     val minWidthPx = with(density) { 150.dp.toPx() }
     val maxWidthPxCap = with(density) { 300.dp.toPx() }
-    val width = (maxWidthPx * 0.5f)
-        .coerceIn(minWidthPx, maxWidthPxCap)
-        .coerceAtMost(maxWidthPx - marginPx * 2f)
+    val width =
+        (maxWidthPx * 0.5f)
+            .coerceIn(minWidthPx, maxWidthPxCap)
+            .coerceAtMost(maxWidthPx - marginPx * 2f)
     val height = width * 9f / 16f
     // Bottom corners sit above the toolbar (bottomInsetPx) plus the usual edge margin.
     val bottomMarginPx = marginPx + bottomInsetPx
@@ -85,6 +88,6 @@ fun computeMiniPlayerGeometry(
         cornerTopRight = Offset(maxWidthPx - width - marginPx, marginPx),
         cornerBottomLeft = Offset(marginPx, maxHeightPx - height - bottomMarginPx),
         cornerBottomRight = Offset(maxWidthPx - width - marginPx, maxHeightPx - height - bottomMarginPx),
-        bottomInsetPx = bottomInsetPx
+        bottomInsetPx = bottomInsetPx,
     )
 }

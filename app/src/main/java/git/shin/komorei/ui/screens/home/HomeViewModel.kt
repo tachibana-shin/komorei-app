@@ -8,11 +8,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import git.shin.komorei.R
 import git.shin.komorei.data.AnimeRepository
+import git.shin.komorei.data.SourceStateStore
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.HomeComponent
 import git.shin.komorei.model.Listing
 import git.shin.komorei.model.Source
-import git.shin.komorei.data.SourceStateStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -65,7 +65,6 @@ class HomeViewModel @Inject constructor(
     private val stateStore: SourceStateStore,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-
     /**
      * When this VM backs the per-source home screen (`Screen.SourceHome`), the
      * route's `sourceId` nav arg scopes it to ONE source: [init] only loads that
@@ -77,21 +76,23 @@ class HomeViewModel @Inject constructor(
     private val sourceScopeId: String? = savedStateHandle.get<String>("sourceId")
 
     /** The scoped [Source] for the source home screen; null on the Home tab. */
-    val source: StateFlow<Source?> = repository.sourcesFlow
-        .map { list -> sourceScopeId?.let { id -> list.firstOrNull { it.id == id } } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    val source: StateFlow<Source?> =
+        repository.sourcesFlow
+            .map { list -> sourceScopeId?.let { id -> list.firstOrNull { it.id == id } } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**
      * The source tabs shown on Home: the "all" aggregator plus every
      * **enabled** source. Reactive — disabling/enabling a source or installing
      * a new one updates the tab bar (and the pager re-keys the pages) live.
      */
-    val sources: StateFlow<List<Source>> = combine(
-        repository.sourcesFlow,
-        stateStore.disabled,
-    ) { all, disabled ->
-        all.filter { it.isAggregator || it.id !in disabled }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), repository.sources)
+    val sources: StateFlow<List<Source>> =
+        combine(
+            repository.sourcesFlow,
+            stateStore.disabled,
+        ) { all, disabled ->
+            all.filter { it.isAggregator || it.id !in disabled }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), repository.sources)
 
     private val _sourceDataMap = MutableStateFlow<Map<String, SourceHomeData>>(emptyMap())
     val sourceDataMap: StateFlow<Map<String, SourceHomeData>> = _sourceDataMap.asStateFlow()
@@ -108,9 +109,10 @@ class HomeViewModel @Inject constructor(
         // for removed/disabled ones, so the pager never references stale sources.
         // On the source home screen only the scoped source is ever loaded.
         viewModelScope.launch {
-            val flow = sourceScopeId
-                ?.let { id -> sources.map { list -> list.filter { it.id == id } } }
-                ?: sources
+            val flow =
+                sourceScopeId
+                    ?.let { id -> sources.map { list -> list.filter { it.id == id } } }
+                    ?: sources
             flow.collect { list ->
                 val known = _sourceDataMap.value.keys
                 list.filter { it.id !in known }.forEach { loadSourceData(it.id) }
@@ -123,9 +125,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun getSourceName(sourceId: String): String {
-        return repository.getSourceName(sourceId)
-    }
+    fun getSourceName(sourceId: String): String = repository.getSourceName(sourceId)
 
     fun loadSourceData(sourceId: String) {
         viewModelScope.launch {
@@ -136,19 +136,25 @@ class HomeViewModel @Inject constructor(
             runCatching {
                 val home = repository.getHome(sourceId)
                 _sourceDataMap.update { map ->
-                    map + (sourceId to SourceHomeData(
-                        home = home,
-                        isLoading = false,
-                        error = null,
-                    ))
+                    map + (
+                        sourceId to
+                            SourceHomeData(
+                                home = home,
+                                isLoading = false,
+                                error = null,
+                            )
+                    )
                 }
             }.onFailure { e ->
                 _sourceDataMap.update { map ->
                     val existing = map[sourceId] ?: SourceHomeData()
-                    map + (sourceId to existing.copy(
-                        isLoading = false,
-                        error = e.message ?: appContext.getString(R.string.error_load_data)
-                    ))
+                    map + (
+                        sourceId to
+                            existing.copy(
+                                isLoading = false,
+                                error = e.message ?: appContext.getString(R.string.error_load_data),
+                            )
+                    )
                 }
             }
         }
@@ -172,13 +178,15 @@ class HomeViewModel @Inject constructor(
             runCatching { repository.getHome(sourceId) }
                 .onSuccess { home ->
                     _sourceDataMap.update { it + (sourceId to SourceHomeData(home = home)) }
-                }
-                .onFailure { e ->
+                }.onFailure { e ->
                     _sourceDataMap.update { map ->
                         val existing = map[sourceId] ?: SourceHomeData()
-                        map + (sourceId to existing.copy(
-                            error = e.message ?: appContext.getString(R.string.error_load_data),
-                        ))
+                        map + (
+                            sourceId to
+                                existing.copy(
+                                    error = e.message ?: appContext.getString(R.string.error_load_data),
+                                )
+                        )
                     }
                 }
 
@@ -188,14 +196,16 @@ class HomeViewModel @Inject constructor(
                 .onSuccess { lists ->
                     _listingStateMap.update { map ->
                         val existing = map[sourceId] ?: SourceListingState()
-                        map + (sourceId to existing.copy(
-                            listings = lists,
-                            listingsLoading = false,
-                            selectedIndex = existing.selectedIndex.coerceAtMost(lists.size),
-                        ))
+                        map + (
+                            sourceId to
+                                existing.copy(
+                                    listings = lists,
+                                    listingsLoading = false,
+                                    selectedIndex = existing.selectedIndex.coerceAtMost(lists.size),
+                                )
+                        )
                     }
-                }
-                .onFailure {
+                }.onFailure {
                     // Chips simply stay as they are on failure (next load retries).
                 }
 
@@ -210,24 +220,31 @@ class HomeViewModel @Inject constructor(
                             _listingStateMap.update { map ->
                                 val existing = map[sourceId] ?: return@update map
                                 if (existing.selectedIndex != selected) return@update map
-                                map + (sourceId to existing.copy(
-                                    page = ListingPageState(
-                                        items = result.entries,
-                                        hasNextPage = result.hasNextPage,
-                                        loadedPage = 1,
-                                    ),
-                                ))
+                                map + (
+                                    sourceId to
+                                        existing.copy(
+                                            page =
+                                                ListingPageState(
+                                                    items = result.entries,
+                                                    hasNextPage = result.hasNextPage,
+                                                    loadedPage = 1,
+                                                ),
+                                        )
+                                )
                             }
-                        }
-                        .onFailure {
+                        }.onFailure {
                             _listingStateMap.update { map ->
                                 val existing = map[sourceId] ?: return@update map
                                 if (existing.selectedIndex != selected) return@update map
-                                map + (sourceId to existing.copy(
-                                    page = existing.page.copy(
-                                        error = appContext.getString(R.string.error_load_data),
-                                    ),
-                                ))
+                                map + (
+                                    sourceId to
+                                        existing.copy(
+                                            page =
+                                                existing.page.copy(
+                                                    error = appContext.getString(R.string.error_load_data),
+                                                ),
+                                        )
+                                )
                             }
                         }
                 }
@@ -253,15 +270,17 @@ class HomeViewModel @Inject constructor(
                 .onSuccess { lists ->
                     _listingStateMap.update { map ->
                         val existing = map[sourceId] ?: SourceListingState()
-                        map + (sourceId to existing.copy(
-                            listings = lists,
-                            listingsLoading = false,
-                            // Drop an index that no longer points at a listing.
-                            selectedIndex = existing.selectedIndex.coerceAtMost(lists.size),
-                        ))
+                        map + (
+                            sourceId to
+                                existing.copy(
+                                    listings = lists,
+                                    listingsLoading = false,
+                                    // Drop an index that no longer points at a listing.
+                                    selectedIndex = existing.selectedIndex.coerceAtMost(lists.size),
+                                )
+                        )
                     }
-                }
-                .onFailure {
+                }.onFailure {
                     // Chips simply stay hidden on failure (next load retries).
                     _listingStateMap.update { map ->
                         val existing = map[sourceId] ?: SourceListingState()
@@ -276,7 +295,10 @@ class HomeViewModel @Inject constructor(
      * the page content below to that listing (Aidoku listing header behavior).
      * Selecting a listing always (re)loads it — superseding any in-flight load.
      */
-    fun selectListing(sourceId: String, selectedIndex: Int) {
+    fun selectListing(
+        sourceId: String,
+        selectedIndex: Int,
+    ) {
         val state = _listingStateMap.value[sourceId] ?: return
         if (selectedIndex < 0 || selectedIndex > state.listings.size) return
         if (state.selectedIndex == selectedIndex) return
@@ -296,7 +318,11 @@ class HomeViewModel @Inject constructor(
      * switches chips before they land, and a new chip supersedes an in-flight
      * load instead of being swallowed by its `isLoading` flag.
      */
-    fun loadListingPage(sourceId: String, reset: Boolean, supersede: Boolean = false) {
+    fun loadListingPage(
+        sourceId: String,
+        reset: Boolean,
+        supersede: Boolean = false,
+    ) {
         val state = _listingStateMap.value[sourceId] ?: return
         val listing = state.listings.getOrNull(state.selectedIndex - 1) ?: return
         val page = state.page
@@ -307,14 +333,18 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _listingStateMap.update { map ->
                 val existing = map[sourceId] ?: return@update map
-                map + (sourceId to existing.copy(
-                    page = if (reset) {
-                        // New listing: clear the previous listing's items + progress.
-                        ListingPageState(isLoading = true)
-                    } else {
-                        existing.page.copy(isLoadingMore = true, error = null)
-                    },
-                ))
+                map + (
+                    sourceId to
+                        existing.copy(
+                            page =
+                                if (reset) {
+                                    // New listing: clear the previous listing's items + progress.
+                                    ListingPageState(isLoading = true)
+                                } else {
+                                    existing.page.copy(isLoadingMore = true, error = null)
+                                },
+                        )
+                )
             }
             val nextPage = if (reset) 1 else page.loadedPage + 1
             runCatching { repository.getListing(sourceId, listing, nextPage) }
@@ -323,27 +353,35 @@ class HomeViewModel @Inject constructor(
                         val existing = map[sourceId] ?: return@update map
                         // The user switched chips while this load was in flight.
                         if (existing.selectedIndex != targetIndex) return@update map
-                        map + (sourceId to existing.copy(
-                            page = ListingPageState(
-                                items = (if (reset) result.entries else existing.page.items + result.entries)
-                                    .distinctBy { it.id },
-                                hasNextPage = result.hasNextPage,
-                                loadedPage = nextPage,
-                            ),
-                        ))
+                        map + (
+                            sourceId to
+                                existing.copy(
+                                    page =
+                                        ListingPageState(
+                                            items =
+                                                (if (reset) result.entries else existing.page.items + result.entries)
+                                                    .distinctBy { it.id },
+                                            hasNextPage = result.hasNextPage,
+                                            loadedPage = nextPage,
+                                        ),
+                                )
+                        )
                     }
-                }
-                .onFailure {
+                }.onFailure {
                     _listingStateMap.update { map ->
                         val existing = map[sourceId] ?: return@update map
                         if (existing.selectedIndex != targetIndex) return@update map
-                        map + (sourceId to existing.copy(
-                            page = existing.page.copy(
-                                isLoading = false,
-                                isLoadingMore = false,
-                                error = appContext.getString(R.string.error_load_data),
-                            ),
-                        ))
+                        map + (
+                            sourceId to
+                                existing.copy(
+                                    page =
+                                        existing.page.copy(
+                                            isLoading = false,
+                                            isLoadingMore = false,
+                                            error = appContext.getString(R.string.error_load_data),
+                                        ),
+                                )
+                        )
                     }
                 }
         }

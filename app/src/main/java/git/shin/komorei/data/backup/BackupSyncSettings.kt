@@ -10,7 +10,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /** User-selectable cadence for the optional WorkManager Drive sync. */
-enum class BackupSyncInterval(val hours: Long) {
+enum class BackupSyncInterval(
+    val hours: Long,
+) {
     SIX_HOURS(6),
     TWELVE_HOURS(12),
     DAILY(24),
@@ -57,7 +59,8 @@ class BackupSyncSettingsStore @Inject constructor(
     }
 
     fun setBackupOptions(options: BackupOptions) {
-        prefs.edit()
+        prefs
+            .edit()
             .putBoolean(KEY_LIBRARY, options.includeLibrary)
             .putBoolean(KEY_HISTORY, options.includeHistory)
             .putBoolean(KEY_SOURCE_STATE, options.includeSourceState)
@@ -68,17 +71,22 @@ class BackupSyncSettingsStore @Inject constructor(
         _settings.value = _settings.value.copy(backupOptions = options)
     }
 
-    fun markSuccess(remoteModifiedTime: String?, syncedAt: Long = System.currentTimeMillis()) {
-        prefs.edit()
+    fun markSuccess(
+        remoteModifiedTime: String?,
+        syncedAt: Long = System.currentTimeMillis(),
+    ) {
+        prefs
+            .edit()
             .putLong(KEY_LAST_SYNC, syncedAt)
             .putString(KEY_LAST_REMOTE_MODIFIED, remoteModifiedTime)
             .remove(KEY_ERROR)
             .apply()
-        _settings.value = _settings.value.copy(
-            lastSyncAt = syncedAt,
-            lastRemoteModifiedTime = remoteModifiedTime,
-            lastError = null,
-        )
+        _settings.value =
+            _settings.value.copy(
+                lastSyncAt = syncedAt,
+                lastRemoteModifiedTime = remoteModifiedTime,
+                lastError = null,
+            )
     }
 
     fun markError(error: BackupSyncError) {
@@ -86,24 +94,30 @@ class BackupSyncSettingsStore @Inject constructor(
         _settings.value = _settings.value.copy(lastError = error)
     }
 
-    private fun read(): BackupSyncSettings = BackupSyncSettings(
-        enabled = prefs.getBoolean(KEY_ENABLED, false),
-        interval = prefs.getString(KEY_INTERVAL, null)
-            ?.let { name -> BackupSyncInterval.entries.firstOrNull { it.name == name } }
-            ?: BackupSyncInterval.DAILY,
-        lastSyncAt = prefs.getLong(KEY_LAST_SYNC, 0L).takeIf { it > 0L },
-        lastRemoteModifiedTime = prefs.getString(KEY_LAST_REMOTE_MODIFIED, null),
-        lastError = prefs.getString(KEY_ERROR, null)
-            ?.let { name -> BackupSyncError.entries.firstOrNull { it.name == name } },
-        backupOptions = BackupOptions(
-            includeLibrary = prefs.getBoolean(KEY_LIBRARY, true),
-            includeHistory = prefs.getBoolean(KEY_HISTORY, true),
-            includeSourceState = prefs.getBoolean(KEY_SOURCE_STATE, true),
-            includeSourceDefaults = prefs.getBoolean(KEY_SOURCE_DEFAULTS, false),
-            includeSearchHistory = prefs.getBoolean(KEY_SEARCH_HISTORY, false),
-            includeUserSources = prefs.getBoolean(KEY_USER_SOURCES, false),
-        ),
-    )
+    private fun read(): BackupSyncSettings =
+        BackupSyncSettings(
+            enabled = prefs.getBoolean(KEY_ENABLED, false),
+            interval =
+                prefs
+                    .getString(KEY_INTERVAL, null)
+                    ?.let { name -> BackupSyncInterval.entries.firstOrNull { it.name == name } }
+                    ?: BackupSyncInterval.DAILY,
+            lastSyncAt = prefs.getLong(KEY_LAST_SYNC, 0L).takeIf { it > 0L },
+            lastRemoteModifiedTime = prefs.getString(KEY_LAST_REMOTE_MODIFIED, null),
+            lastError =
+                prefs
+                    .getString(KEY_ERROR, null)
+                    ?.let { name -> BackupSyncError.entries.firstOrNull { it.name == name } },
+            backupOptions =
+                BackupOptions(
+                    includeLibrary = prefs.getBoolean(KEY_LIBRARY, true),
+                    includeHistory = prefs.getBoolean(KEY_HISTORY, true),
+                    includeSourceState = prefs.getBoolean(KEY_SOURCE_STATE, true),
+                    includeSourceDefaults = prefs.getBoolean(KEY_SOURCE_DEFAULTS, false),
+                    includeSearchHistory = prefs.getBoolean(KEY_SEARCH_HISTORY, false),
+                    includeUserSources = prefs.getBoolean(KEY_USER_SOURCES, false),
+                ),
+        )
 
     private companion object {
         const val PREFS_NAME = "backup_sync"

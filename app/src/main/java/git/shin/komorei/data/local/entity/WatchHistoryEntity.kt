@@ -4,7 +4,7 @@ import androidx.room.Entity
 
 @Entity(
     tableName = "watch_history",
-    primaryKeys = ["animeId", "sourceId", "episodeId"]
+    primaryKeys = ["animeId", "sourceId", "episodeId"],
 )
 data class WatchHistoryEntity(
     val animeId: String,
@@ -14,5 +14,5 @@ data class WatchHistoryEntity(
     val episodeTitle: String,
     val lastWatchedAt: Long,
     val progressMs: Long,
-    val durationMs: Long
+    val durationMs: Long,
 )

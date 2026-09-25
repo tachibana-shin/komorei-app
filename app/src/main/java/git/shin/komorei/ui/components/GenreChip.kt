@@ -41,54 +41,55 @@ fun GenreGridCard(
     genre: Genre,
     isSelected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val accentColor = Color(genre.accentColorHex)
-    val backgroundBrush = if (isSelected) {
-        Brush.horizontalGradient(
-            colors = listOf(AnimeRed, accentColor)
-        )
-    } else {
-        Brush.horizontalGradient(
-            colors = listOf(CardDark, CardDark.copy(alpha = 0.85f))
-        )
-    }
+    val backgroundBrush =
+        if (isSelected) {
+            Brush.horizontalGradient(
+                colors = listOf(AnimeRed, accentColor),
+            )
+        } else {
+            Brush.horizontalGradient(
+                colors = listOf(CardDark, CardDark.copy(alpha = 0.85f)),
+            )
+        }
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(72.dp)
-            // TV focus highlight (no-op on phones); small scale keeps the
-            // chunked genre grid from visually overlapping neighbors.
-            .tvFocus(shape = RoundedCornerShape(14.dp), scale = 1.03f)
-            .clip(RoundedCornerShape(14.dp))
-            .background(backgroundBrush)
-            .border(
-                width = if (isSelected) 1.5.dp else 1.dp,
-                color = if (isSelected) Color.White.copy(alpha = 0.7f) else CardBorderDark,
-                shape = RoundedCornerShape(14.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(12.dp)
-            .testTag("genre_${genre.id}")
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(72.dp)
+                // TV focus highlight (no-op on phones); small scale keeps the
+                // chunked genre grid from visually overlapping neighbors.
+                .tvFocus(shape = RoundedCornerShape(14.dp), scale = 1.03f)
+                .clip(RoundedCornerShape(14.dp))
+                .background(backgroundBrush)
+                .border(
+                    width = if (isSelected) 1.5.dp else 1.dp,
+                    color = if (isSelected) Color.White.copy(alpha = 0.7f) else CardBorderDark,
+                    shape = RoundedCornerShape(14.dp),
+                ).clickable(onClick = onClick)
+                .padding(12.dp)
+                .testTag("genre_${genre.id}"),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column {
                 Text(
                     text = genre.name,
                     color = TextPrimary,
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = stringResource(R.string.anime_count_format, genre.count),
                     color = if (isSelected) Color.White.copy(alpha = 0.85f) else TextMuted,
-                    fontSize = 11.sp
+                    fontSize = 11.sp,
                 )
             }
 
@@ -97,7 +98,7 @@ fun GenreGridCard(
                 imageVector = AppIcons.getGenreIcon(genre.id),
                 contentDescription = genre.name,
                 tint = if (isSelected) Color.White else accentColor,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(28.dp),
             )
         }
     }
@@ -108,35 +109,36 @@ fun GenreChipCompact(
     genre: Genre,
     isSelected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val chipBackground = if (isSelected) AnimeRed else CardDark
     val borderColor = if (isSelected) AnimeRed else CardBorderDark
 
     Row(
-        modifier = modifier
-            // TV focus highlight (no-op on phones) — pill ring.
-            .tvFocus(shape = RoundedCornerShape(20.dp), scale = 1.08f)
-            .clip(RoundedCornerShape(20.dp))
-            .background(chipBackground)
-            .border(1.dp, borderColor, RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp)
-            .testTag("genre_chip_${genre.id}"),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            modifier
+                // TV focus highlight (no-op on phones) — pill ring.
+                .tvFocus(shape = RoundedCornerShape(20.dp), scale = 1.08f)
+                .clip(RoundedCornerShape(20.dp))
+                .background(chipBackground)
+                .border(1.dp, borderColor, RoundedCornerShape(20.dp))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 7.dp)
+                .testTag("genre_chip_${genre.id}"),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = AppIcons.getGenreIcon(genre.id),
             contentDescription = genre.name,
             tint = if (isSelected) Color.White else AnimeRed,
-            modifier = Modifier.size(15.dp)
+            modifier = Modifier.size(15.dp),
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = genre.name,
             color = if (isSelected) Color.White else TextPrimary,
             fontSize = 12.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
         )
     }
 }

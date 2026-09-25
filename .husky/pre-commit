@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+# Komorei — local quality gate, run by husky before every commit.
+#
+# Deliberately FAST and non-destructive. `cargo fmt` rewrites, but nothing here
+# builds or runs tests: the heavyweight gates (ktlintCheck over the whole
+# project, cargo clippy, the full Robolectric suite) live in .github/workflows/
+# android-ci.yml, and a pre-commit hook that takes 15 minutes is a hook people
+# learn to bypass with --no-verify.
+#
+#   fix locally : bun run lint:fix
+#   full gate   : bun run lint  (this)  +  bun run lint:ci
+
+# Kotlin style — only the staged files, so it stays quick on a big commit.
+bun run lint:ktlint
+
+# Rust formatting for the wasm runner crate. Note the missing `--all`:
+# `komorei` is a path dependency into the separate komorei-sdk checkout, and
+# `--all` would reach across that repo boundary and demand reformatting of a
+# repository this one does not own.
+bun run lint:rust
+
+# Refuse obviously-conflicting markers so a botched rebase is caught here
+# rather than by a confusing merge conflict later.
+if git diff --cached --name-only | grep -qE '^(<<<<<<<|=======|>>>>>>>)'; then
+    echo "✗ conflict markers staged — resolve the merge first" >&2
+    exit 1
+fi

@@ -59,14 +59,14 @@ import java.util.concurrent.CopyOnWriteArrayList
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class NguonphimeSourceRunnerIntegrationTest {
-
     private lateinit var host: KrxHostImpl
     private lateinit var runner: git.shin.komorei.sdk.runner.KomoreiRunner
     private lateinit var fixture: FixtureServer
 
     companion object {
-        private val nguonphimeKrx: String = System.getProperty("komorei.test.nguonphimeKrx")
-            ?: error("missing -Dkomorei.test.nguonphimeKrx (set by app/build.gradle.kts)")
+        private val nguonphimeKrx: String =
+            System.getProperty("komorei.test.nguonphimeKrx")
+                ?: error("missing -Dkomorei.test.nguonphimeKrx (set by app/build.gradle.kts)")
     }
 
     @Before
@@ -82,9 +82,11 @@ class NguonphimeSourceRunnerIntegrationTest {
         // plays that role so the NP Checker Set-Cookie survives into the source's
         // retry request (faithful end-to-end bounce). OkHttp 5 removed the
         // bundled JavaNetCookieJar, hence the small local CookieJar.
-        val client = OkHttpClient.Builder()
-            .cookieJar(MemoryCookieJar())
-            .build()
+        val client =
+            OkHttpClient
+                .Builder()
+                .cookieJar(MemoryCookieJar())
+                .build()
         host = KrxHostImpl(context, okHttpClient = client)
         host.defaultsSet("base_url", HostDefaultValue.String(fixture.baseUrl))
         runner = KrxManager.load(host, File(nguonphimeKrx).readBytes())
@@ -160,10 +162,12 @@ class NguonphimeSourceRunnerIntegrationTest {
 
     @Test
     fun `genre filter routes to a category page`() {
-        val result = runner.search(
-            null, 2,
-            listOf(FilterValue.MultiSelect("genre", listOf("Kinh Dị"), emptyList())),
-        )
+        val result =
+            runner.search(
+                null,
+                2,
+                listOf(FilterValue.MultiSelect("genre", listOf("Kinh Dị"), emptyList())),
+            )
         assertEquals("/phim-kinh-di-c9.html?page=2", fixture.lastRequest())
         assertEquals(1, result.entries.size)
         assertEquals("kim-loai-f55555", result.entries.single().key)
@@ -173,9 +177,10 @@ class NguonphimeSourceRunnerIntegrationTest {
 
     @Test
     fun `anime update fills details status and the two servers`() {
-        val lite = runner.search(null, 1, emptyList()).entries.single {
-            it.key == "lan-huong-nhu-co-against-the-current-f83892"
-        }
+        val lite =
+            runner.search(null, 1, emptyList()).entries.single {
+                it.key == "lan-huong-nhu-co-against-the-current-f83892"
+            }
         val full = runner.animeUpdate(lite, needsDetails = true, needsChapters = false)
 
         assertEquals("Lan Hương Như Cố", full.title)
@@ -196,12 +201,14 @@ class NguonphimeSourceRunnerIntegrationTest {
 
     @Test
     fun `chapters come from the watch page with playable urls`() {
-        val full = runner.animeUpdate(
-            runner.search(null, 1, emptyList()).entries.single {
-                it.key == "lan-huong-nhu-co-against-the-current-f83892"
-            },
-            needsDetails = false, needsChapters = true,
-        )
+        val full =
+            runner.animeUpdate(
+                runner.search(null, 1, emptyList()).entries.single {
+                    it.key == "lan-huong-nhu-co-against-the-current-f83892"
+                },
+                needsDetails = false,
+                needsChapters = true,
+            )
         val eps = full.episodes!!
         assertEquals(listOf("1-e1006847", "2-e1006848", "24-e1007951"), eps.map { it.key })
         assertEquals(listOf("1", "2", "24"), eps.map { it.episodeNumber })
@@ -258,20 +265,31 @@ class NguonphimeSourceRunnerIntegrationTest {
         assertEquals("https://nguonphime.site", text.default)
         assertEquals("https://nguonphime.site", text.placeholder)
 
-        val genre = runner.filters().associateBy { it.id }.getValue("genre").kind as FilterKind.MultiSelect
+        val genre =
+            runner
+                .filters()
+                .associateBy { it.id }
+                .getValue("genre")
+                .kind as FilterKind.MultiSelect
         assertTrue(genre.isGenre)
         assertTrue(genre.options.contains("Kinh Dị"))
         assertTrue(genre.options.contains("Hành Động"))
-        val country = runner.filters().associateBy { it.id }.getValue("country").kind as FilterKind.MultiSelect
+        val country =
+            runner
+                .filters()
+                .associateBy { it.id }
+                .getValue("country")
+                .kind as FilterKind.MultiSelect
         assertTrue(country.options.contains("Hàn Quốc"))
         assertTrue(country.options.contains("Mỹ"))
     }
 
     @Test
     fun `deep link resolves watch and detail paths, migration keeps identity`() {
-        val anim = runner.deepLink(
-            "${fixture.baseUrl}/xem-phim/lan-huong-nhu-co-against-the-current-f83892-24-e1007951.html",
-        )
+        val anim =
+            runner.deepLink(
+                "${fixture.baseUrl}/xem-phim/lan-huong-nhu-co-against-the-current-f83892-24-e1007951.html",
+            )
         assertTrue(anim is DeepLinkResult.Anime)
         assertEquals("lan-huong-nhu-co-against-the-current-f83892", (anim as DeepLinkResult.Anime).key)
 
@@ -287,40 +305,56 @@ class NguonphimeSourceRunnerIntegrationTest {
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
-    private fun updateWithChapters(): Anime = runner.animeUpdate(
-        runner.search(null, 1, emptyList()).entries.single {
-            it.key == "lan-huong-nhu-co-against-the-current-f83892"
-        },
-        needsDetails = true, needsChapters = true,
-    )
+    private fun updateWithChapters(): Anime =
+        runner.animeUpdate(
+            runner.search(null, 1, emptyList()).entries.single {
+                it.key == "lan-huong-nhu-co-against-the-current-f83892"
+            },
+            needsDetails = true,
+            needsChapters = true,
+        )
 
     // ── fixture server (speaks the nguonphime.site HTML protocol) ───────────
 
     private class FixtureServer : Closeable {
         private val server = ServerSocket(0, 64, InetAddress.getByName("127.0.0.1"))
+
         @Volatile private var closed = false
         val requests = CopyOnWriteArrayList<String>()
         val posts = CopyOnWriteArrayList<Post>()
+
         @Volatile var bounces = 0
 
         val baseUrl: String get() = "http://127.0.0.1:${server.localPort}"
 
-        class Post(val target: String, val action: String, val origin: String?, val referer: String?)
+        class Post(
+            val target: String,
+            val action: String,
+            val origin: String?,
+            val referer: String?,
+        )
 
         init {
-            Thread({ acceptLoop() }, "nguonphime-fixture").apply { isDaemon = true; start() }
+            Thread({ acceptLoop() }, "nguonphime-fixture").apply {
+                isDaemon = true
+                start()
+            }
         }
 
         fun lastRequest(): String = requests.lastOrNull() ?: ""
 
         private fun acceptLoop() {
             while (!closed) {
-                val sock = try {
-                    server.accept()
-                } catch (e: IOException) {
-                    break
+                val sock =
+                    try {
+                        server.accept()
+                    } catch (e: IOException) {
+                        break
+                    }
+                Thread({ handle(sock) }, "nguonphime-fixture-handler").apply {
+                    isDaemon = true
+                    start()
                 }
-                Thread({ handle(sock) }, "nguonphime-fixture-handler").apply { isDaemon = true; start() }
             }
         }
 
@@ -344,26 +378,28 @@ class NguonphimeSourceRunnerIntegrationTest {
                     var action: String? = null
                     if (method == "POST") {
                         val len = headers["content-length"]?.toIntOrNull() ?: 0
-                        val body = if (len > 0) {
-                            val chars = CharArray(len)
-                            var total = 0
-                            while (total < len) {
-                                val r = input.read(chars, total, len - total)
-                                if (r < 0) break
-                                total += r
+                        val body =
+                            if (len > 0) {
+                                val chars = CharArray(len)
+                                var total = 0
+                                while (total < len) {
+                                    val r = input.read(chars, total, len - total)
+                                    if (r < 0) break
+                                    total += r
+                                }
+                                String(chars)
+                            } else {
+                                ""
                             }
-                            String(chars)
-                        } else {
-                            ""
-                        }
-                        action = when {
-                            body.contains("\"action\":\"issue\"") -> "issue"
-                            body.contains("\"action\":\"bootstrap\"") -> "bootstrap"
-                            body.contains("indexL=1") && body.contains("fid=") -> "ngc"
-                            body.contains("fid=") -> "pai"
-                            body.contains("q=") -> "search"
-                            else -> "unknown"
-                        }
+                        action =
+                            when {
+                                body.contains("\"action\":\"issue\"") -> "issue"
+                                body.contains("\"action\":\"bootstrap\"") -> "bootstrap"
+                                body.contains("indexL=1") && body.contains("fid=") -> "ngc"
+                                body.contains("fid=") -> "pai"
+                                body.contains("q=") -> "search"
+                                else -> "unknown"
+                            }
                         posts += Post(target, action ?: "unknown", headers["origin"], headers["referer"])
                     }
                     requests += target
@@ -379,9 +415,10 @@ class NguonphimeSourceRunnerIntegrationTest {
                         }
                         bounces++
                         respond(
-                            s, 302,
+                            s,
+                            302,
                             mapOf(
-                                "Location" to "/site/site/embed/?url=${target}",
+                                "Location" to "/site/site/embed/?url=$target",
                                 "Set-Cookie" to "PHPSESSID=fixture-session; path=/; httponly",
                             ),
                             "",
@@ -401,38 +438,53 @@ class NguonphimeSourceRunnerIntegrationTest {
             }
         }
 
-        private fun respond(sock: Socket, status: Int, headers: Map<String, String>, body: String) {
+        private fun respond(
+            sock: Socket,
+            status: Int,
+            headers: Map<String, String>,
+            body: String,
+        ) {
             val bytes = body.toByteArray(Charsets.UTF_8)
             val reason = if (status == 302) "Found" else "OK"
-            val hdrs = buildString {
-                append("HTTP/1.1 $status $reason\r\n")
-                headers.forEach { (k, v) -> append("$k: $v\r\n") }
-                append("Content-Length: ${bytes.size}\r\n")
-                append("Connection: close\r\n")
-                append("\r\n")
-            }
+            val hdrs =
+                buildString {
+                    append("HTTP/1.1 $status $reason\r\n")
+                    headers.forEach { (k, v) -> append("$k: $v\r\n") }
+                    append("Content-Length: ${bytes.size}\r\n")
+                    append("Connection: close\r\n")
+                    append("\r\n")
+                }
             val out = sock.getOutputStream()
             out.write(hdrs.toByteArray(Charsets.US_ASCII))
             if (bytes.isNotEmpty()) out.write(bytes)
             out.flush()
         }
 
-        private fun route(target: String, method: String, action: String?): Triple<Int, String, String> {
+        private fun route(
+            target: String,
+            method: String,
+            action: String?,
+        ): Triple<Int, String, String> {
             val path = target.substringBefore('?')
             return when {
                 method == "POST" && path == "/tim-kiem-a.html" -> Triple(200, "application/json", searchJson)
-                method == "POST" && path.contains("/xem-phim/") -> when (action) {
-                    "ngc" -> Triple(200, "application/json", ngcIframeJson)
-                    else -> Triple(200, "application/json", paiIframeJson)
-                }
-                method == "POST" && path.contains("/embed.php") -> when (action) {
-                    "issue" -> Triple(200, "application/json", issueJson(target))
-                    else -> Triple(200, "application/json", bootstrapJson(target))
-                }
+                method == "POST" && path.contains("/xem-phim/") ->
+                    when (action) {
+                        "ngc" -> Triple(200, "application/json", ngcIframeJson)
+                        else -> Triple(200, "application/json", paiIframeJson)
+                    }
+                method == "POST" && path.contains("/embed.php") ->
+                    when (action) {
+                        "issue" -> Triple(200, "application/json", issueJson(target))
+                        else -> Triple(200, "application/json", bootstrapJson(target))
+                    }
                 path == "/" -> Triple(200, "text/html", "<html><body>warmup</body></html>")
                 path == "/tuy-chon/phim-moi.html" ->
-                    if (target.contains("page=2")) Triple(200, "text/html", listPage("", pager2))
-                    else Triple(200, "text/html", listPage(cardA + cardB, pager1))
+                    if (target.contains("page=2")) {
+                        Triple(200, "text/html", listPage("", pager2))
+                    } else {
+                        Triple(200, "text/html", listPage(cardA + cardB, pager1))
+                    }
                 path == "/tuy-chon/phim-bo.html" -> Triple(200, "text/html", listPage(cardA, pagerOnly1))
                 path == "/tuy-chon/phim-le.html" -> Triple(200, "text/html", listPage(cardB, pagerOnly1))
                 path == "/phim-kinh-di-c9.html" -> Triple(200, "text/html", listPage(cardB, pagerOnly1))
@@ -447,8 +499,10 @@ class NguonphimeSourceRunnerIntegrationTest {
 
         // ── page fragments ──────────────────────────────────────────────────
 
-        private fun listPage(cards: String, pager: String) =
-            "<!DOCTYPE html><html><body><div class=\"grid-movie\">$cards</div>$pager</body></html>"
+        private fun listPage(
+            cards: String,
+            pager: String,
+        ) = "<!DOCTYPE html><html><body><div class=\"grid-movie\">$cards</div>$pager</body></html>"
 
         private val pager1 =
             """<ul id="yw0" class="Pager"><li class="page"><a href="?page=1">1</a></li><li class="page"><a href="?page=2">2</a></li></ul>"""
@@ -457,7 +511,8 @@ class NguonphimeSourceRunnerIntegrationTest {
         private val pagerOnly1 =
             """<ul id="yw0" class="Pager"><li class="page"><a href="?page=1">1</a></li></ul>"""
 
-        private val cardA = """
+        private val cardA =
+            """
             <div class="item-file-index border-item clearfix">
               <div class="img-item-file-index">
                 <a href="/lan-huong-nhu-co-against-the-current-f83892.html" title="Lan Hương Như Cố">
@@ -474,9 +529,10 @@ class NguonphimeSourceRunnerIntegrationTest {
                 </p></div>
               </div>
             </div>
-        """.trimIndent()
+            """.trimIndent()
 
-        private val cardB = """
+        private val cardB =
+            """
             <div class="item-file-index border-item clearfix">
               <div class="img-item-file-index">
                 <a href="/kim-loai-f55555.html" title="Kim Loại">
@@ -493,9 +549,10 @@ class NguonphimeSourceRunnerIntegrationTest {
                 </p></div>
               </div>
             </div>
-        """.trimIndent()
+            """.trimIndent()
 
-        private val detailHtml = """
+        private val detailHtml =
+            """
             <!DOCTYPE html><html><body>
             <h1 class="title-2">Lan Hương Như Cố</h1>
             <p class="subname">Against The Current</p>
@@ -516,9 +573,10 @@ class NguonphimeSourceRunnerIntegrationTest {
             </div>
             <div class="film-desc"><div class="detail-film-desc">Thẩm Gia Lan, trưởng tôn nữ của Thẩm đại học sĩ…</div></div>
             </body></html>
-        """.trimIndent()
+            """.trimIndent()
 
-        private val watchHtml = """
+        private val watchHtml =
+            """
             <!DOCTYPE html><html><body>
             <div class="film-episodes"><div class="listTap"><ul>
               <li><a id="eid1006847" class="episodeLink" href="/xem-phim/lan-huong-nhu-co-against-the-current-f83892-1-e1006847.html">1</a></li>
@@ -526,7 +584,7 @@ class NguonphimeSourceRunnerIntegrationTest {
               <li><a id="eid1007951" class="episodeLink" href="/xem-phim/lan-huong-nhu-co-against-the-current-f83892-24-e1007951.html">24</a></li>
             </ul></div></div>
             </body></html>
-        """.trimIndent()
+            """.trimIndent()
 
         /**
          * The live-search XHR reply — mirrors the LIVE site's shape: country/
@@ -569,25 +627,28 @@ class NguonphimeSourceRunnerIntegrationTest {
             """.trimIndent()
         }
 
-        private val checkerHtml = """
+        private val checkerHtml =
+            """
             <!DOCTYPE html><html><head><title>NP Checker</title></head>
             <body><script type="text/javascript">
             setTimeout(function() { window.location.href = "/"; },1000);
             </script>
             Chào mừng bạn đến với chúng tôi, chúc bạn luôn xem phim vui vẻ nhé! Xin vui lòng chờ trong giây lát để chuyển trang!</body></html>
-        """.trimIndent()
+            """.trimIndent()
 
         private fun bootstrapJson(target: String) =
             """{"video":"abc123","nonce":"n1",
             |"bootstrap":"eyJhbGciOiJIUzI1NiJ9.fake-signature",
             |"api":"$baseUrl${target.substringBefore('?')}?${target.substringAfter('?', "")}",
             |"turnstileEnabled":false,"turnstileSiteKey":"0xfake","ads":{"enabled":false},
-            |"server":{"country":"VN"},"sharedCache":false}""".trimMargin()
+            |"server":{"country":"VN"},"sharedCache":false}
+            """.trimMargin()
 
         private fun issueJson(target: String): String {
             val hash = target.substringAfter("hash=").substringBefore('&')
             return """{"playlist":"$baseUrl/signed/$hash.m3u8","playlistFormat":"hls",
-                |"issuedAt":1790017945,"expiresAt":1790032345}""".trimMargin()
+                |"issuedAt":1790017945,"expiresAt":1790032345}
+                """.trimMargin()
         }
 
         override fun close() {
@@ -610,10 +671,12 @@ private class MemoryCookieJar : CookieJar {
     private val store = CopyOnWriteArrayList<Cookie>()
 
     @Synchronized
-    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+    override fun saveFromResponse(
+        url: HttpUrl,
+        cookies: List<Cookie>,
+    ) {
         store.addAll(cookies)
     }
 
-    override fun loadForRequest(url: HttpUrl): List<Cookie> =
-        store.filter { it.matches(url) }
+    override fun loadForRequest(url: HttpUrl): List<Cookie> = store.filter { it.matches(url) }
 }

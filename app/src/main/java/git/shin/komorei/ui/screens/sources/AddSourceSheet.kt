@@ -66,7 +66,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
 import git.shin.komorei.data.ExternalSourceInfo
-import git.shin.komorei.data.compareVersions
 import git.shin.komorei.ui.components.ExternalSourceIcon
 import git.shin.komorei.ui.components.ShimmerLoadingRow
 import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
@@ -126,48 +125,53 @@ fun AddSourceSheet(
         viewModel.refreshAllRepos()
     }
 
-    val importLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri: Uri? ->
-        uri?.let {
-            runCatching {
-                val bytes = context.contentResolver.openInputStream(it)?.use { stream -> stream.readBytes() }
-                if (bytes != null) viewModel.importKrx(bytes)
+    val importLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument(),
+        ) { uri: Uri? ->
+            uri?.let {
+                runCatching {
+                    val bytes = context.contentResolver.openInputStream(it)?.use { stream -> stream.readBytes() }
+                    if (bytes != null) viewModel.importKrx(bytes)
+                }
             }
         }
-    }
 
     // Merged, deduped catalog across every loaded repo (Aidoku's allExternalSources).
     val catalog = remember(repos, repoStates) { buildExternalCatalog(repos, repoStates) }
 
     // Distinct language tags offered by the current catalog for the filter menu
     // (multi-language first, then alphabetical — Aidoku brings local/multi up).
-    val availableLanguages = remember(catalog.sources) {
-        catalog.sources.flatMap { it.languages }
-            .filter { it.isNotBlank() }
-            .distinct()
-            .sortedWith(compareBy({ it != "multi" }, { it }))
-    }
+    val availableLanguages =
+        remember(catalog.sources) {
+            catalog.sources
+                .flatMap { it.languages }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .sortedWith(compareBy({ it != "multi" }, { it }))
+        }
 
     // Installed sources are NOT stripped from the list (they stay visible,
     // marked "Đã cài"); only the search text and the language filter narrow it.
     val queryTrimmed = query.trim()
     val queryLower = queryTrimmed.lowercase()
-    val visibleSources = remember(catalog.sources, selectedLanguages, queryLower) {
-        val byLanguage = filterByLanguages(catalog.sources, selectedLanguages)
-        if (queryLower.isEmpty()) {
-            byLanguage
-        } else {
-            byLanguage.filter { info ->
-                info.name.lowercase().contains(queryLower) || info.id.lowercase().contains(queryLower)
+    val visibleSources =
+        remember(catalog.sources, selectedLanguages, queryLower) {
+            val byLanguage = filterByLanguages(catalog.sources, selectedLanguages)
+            if (queryLower.isEmpty()) {
+                byLanguage
+            } else {
+                byLanguage.filter { info ->
+                    info.name.lowercase().contains(queryLower) || info.id.lowercase().contains(queryLower)
+                }
             }
         }
-    }
     // Installed rows whose advertised version is newer are pulled up into their
     // own "Cập nhật" section (Update pill) above the regular catalog.
-    val (updateSources, otherSources) = remember(visibleSources, installedVersions) {
-        partitionUpdates(visibleSources, installedVersions)
-    }
+    val (updateSources, otherSources) =
+        remember(visibleSources, installedVersions) {
+            partitionUpdates(visibleSources, installedVersions)
+        }
 
     // The sheet grows with its content up to ~92% of the screen height (an
     // Aidoku-style pageSheet); the list column scrolls once it outgrows that.
@@ -184,16 +188,18 @@ fun AddSourceSheet(
         containerColor = SurfaceDark,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = sheetMaxHeight)
-                .testTag("add_source_sheet"),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = sheetMaxHeight)
+                    .testTag("add_source_sheet"),
         ) {
             // Header
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -215,10 +221,11 @@ fun AddSourceSheet(
                 // IMPORT_SOURCE folded into the top bar.
                 IconButton(
                     onClick = { importLauncher.launch(arrayOf("*/*")) },
-                    modifier = Modifier
-                        // TV focus highlight (no-op on phones).
-                        .tvFocus(shape = CircleShape, scale = 1.15f)
-                        .testTag("import_source_button"),
+                    modifier =
+                        Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = CircleShape, scale = 1.15f)
+                            .testTag("import_source_button"),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.CreateNewFolder,
@@ -230,10 +237,11 @@ fun AddSourceSheet(
                     Box {
                         IconButton(
                             onClick = { showLanguageFilter = true },
-                            modifier = Modifier
-                                // TV focus highlight (no-op on phones).
-                                .tvFocus(shape = CircleShape, scale = 1.15f)
-                                .testTag("add_source_filter_button"),
+                            modifier =
+                                Modifier
+                                    // TV focus highlight (no-op on phones).
+                                    .tvFocus(shape = CircleShape, scale = 1.15f)
+                                    .testTag("add_source_filter_button"),
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.FilterList,
@@ -269,10 +277,11 @@ fun AddSourceSheet(
                                     selectedLanguages = emptySet()
                                     showLanguageFilter = false
                                 },
-                                modifier = Modifier
-                                    // TV focus highlight (no-op on phones).
-                                    .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
-                                    .testTag("add_source_filter_all"),
+                                modifier =
+                                    Modifier
+                                        // TV focus highlight (no-op on phones).
+                                        .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                                        .testTag("add_source_filter_all"),
                             )
                             HorizontalDivider(color = CardBorderDark)
                             availableLanguages.forEach { code ->
@@ -301,9 +310,10 @@ fun AddSourceSheet(
                                         selectedLanguages =
                                             if (selected) selectedLanguages - code else selectedLanguages + code
                                     },
-                                    modifier = Modifier
-                                        .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
-                                        .testTag("add_source_filter_lang_$code"),
+                                    modifier =
+                                        Modifier
+                                            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                                            .testTag("add_source_filter_lang_$code"),
                                 )
                             }
                         }
@@ -352,9 +362,10 @@ fun AddSourceSheet(
                     !catalog.hasRepos -> {
                         item(key = "no_repos") {
                             Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
                             ) {
                                 Text(
                                     text = stringResource(R.string.sources_repos_empty),
@@ -364,14 +375,15 @@ fun AddSourceSheet(
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Box(
-                                    modifier = Modifier
-                                        // TV focus highlight (no-op on phones).
-                                        .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
-                                        .clip(RoundedCornerShape(100))
-                                        .background(AnimeRed)
-                                        .clickable { showAddRepoDialog = true }
-                                        .padding(horizontal = 14.dp, vertical = 6.dp)
-                                        .testTag("no_repos_add_button"),
+                                    modifier =
+                                        Modifier
+                                            // TV focus highlight (no-op on phones).
+                                            .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
+                                            .clip(RoundedCornerShape(100))
+                                            .background(AnimeRed)
+                                            .clickable { showAddRepoDialog = true }
+                                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                                            .testTag("no_repos_add_button"),
                                 ) {
                                     Text(
                                         text = stringResource(R.string.sources_repos_add),
@@ -474,13 +486,14 @@ fun AddSourceSheet(
                 // (Aidoku keeps source lists out of the add-source flow).
                 item(key = "add_repo") {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            // TV focus highlight (no-op on phones) — full-width row.
-                            .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.0f)
-                            .clickable { showAddRepoDialog = true }
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
-                            .testTag("add_repo_button"),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                // TV focus highlight (no-op on phones) — full-width row.
+                                .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.0f)
+                                .clickable { showAddRepoDialog = true }
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                                .testTag("add_repo_button"),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
@@ -500,11 +513,12 @@ fun AddSourceSheet(
                 }
                 item(key = "manage_repos") {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onOpenRepos() }
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
-                            .testTag("manage_repos_button"),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { onOpenRepos() }
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                                .testTag("manage_repos_button"),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
@@ -545,23 +559,25 @@ private fun AddSourceSearchBar(
     onQueryChange: (String) -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .height(40.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(CardDark)
-            .border(1.dp, CardBorderDark, RoundedCornerShape(20.dp))
-            .testTag("add_source_search_input"),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .height(40.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(CardDark)
+                .border(1.dp, CardBorderDark, RoundedCornerShape(20.dp))
+                .testTag("add_source_search_input"),
     ) {
         Icon(
             imageVector = Icons.Filled.Search,
             contentDescription = stringResource(R.string.sources_search_cd),
             tint = if (query.isNotBlank()) AnimeRed else TextMuted,
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = 12.dp)
-                .size(18.dp),
+            modifier =
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 12.dp)
+                    .size(18.dp),
         )
         BasicTextField(
             value = query,
@@ -571,9 +587,10 @@ private fun AddSourceSearchBar(
             cursorBrush = SolidColor(AnimeRed),
             decorationBox = { innerTextField ->
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(start = 38.dp, end = 38.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(start = 38.dp, end = 38.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     if (query.isEmpty()) {
@@ -588,20 +605,22 @@ private fun AddSourceSearchBar(
                     innerTextField()
                 }
             },
-            modifier = Modifier
-                .fillMaxSize()
-                .testTag("add_source_search_input_field"),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .testTag("add_source_search_input_field"),
         )
         if (query.isNotEmpty()) {
             IconButton(
                 onClick = { onQueryChange("") },
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    // TV focus highlight (no-op on phones).
-                    .tvFocus(shape = CircleShape, scale = 1.15f)
-                    .padding(end = 4.dp)
-                    .size(32.dp)
-                    .testTag("add_source_search_clear"),
+                modifier =
+                    Modifier
+                        .align(Alignment.CenterEnd)
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .padding(end = 4.dp)
+                        .size(32.dp)
+                        .testTag("add_source_search_clear"),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Clear,
@@ -649,9 +668,10 @@ private fun EmptyMessage(text: String) {
 @Composable
 private fun FailedNotice(onRetry: () -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -672,13 +692,14 @@ private fun FailedNotice(onRetry: () -> Unit) {
             color = AnimeRed,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier
-                // TV focus highlight (no-op on phones).
-                .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
-                .clip(RoundedCornerShape(100))
-                .clickable(onClick = onRetry)
-                .padding(horizontal = 10.dp, vertical = 4.dp)
-                .testTag("external_retry_button"),
+            modifier =
+                Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
+                    .clip(RoundedCornerShape(100))
+                    .clickable(onClick = onRetry)
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .testTag("external_retry_button"),
         )
     }
 }
@@ -693,16 +714,18 @@ private fun ExternalSourceRow(
     onUpdate: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(CardDark),
+            modifier =
+                Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(CardDark),
             contentAlignment = Alignment.Center,
         ) {
             ExternalSourceIcon(
@@ -733,10 +756,11 @@ private fun ExternalSourceRow(
                 if (info.contentRating >= 2) {
                     Spacer(modifier = Modifier.width(4.dp))
                     Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(AnimeRed)
-                            .padding(horizontal = 4.dp, vertical = 1.dp),
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(AnimeRed)
+                                .padding(horizontal = 4.dp, vertical = 1.dp),
                     ) {
                         Text(
                             text = stringResource(R.string.sources_badge_nsfw),
@@ -781,14 +805,15 @@ private fun ExternalSourceRow(
                 // Newer advertised version — "Cập nhật" pill (same as the
                 // Sources tab's Updates section).
                 Box(
-                    modifier = Modifier
-                        // TV focus highlight (no-op on phones).
-                        .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
-                        .clip(RoundedCornerShape(100))
-                        .background(AnimeRed)
-                        .clickable(onClick = onUpdate)
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
-                        .testTag("source_row_update_${info.id}"),
+                    modifier =
+                        Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
+                            .clip(RoundedCornerShape(100))
+                            .background(AnimeRed)
+                            .clickable(onClick = onUpdate)
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                            .testTag("source_row_update_${info.id}"),
                 ) {
                     Text(
                         text = stringResource(R.string.sources_action_update),
@@ -802,11 +827,12 @@ private fun ExternalSourceRow(
             installed -> {
                 // Already on-device row — kept visible, marked instead of hidden.
                 Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(100))
-                        .background(CardDark)
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                        .testTag("source_row_installed_${info.id}"),
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(100))
+                            .background(CardDark)
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .testTag("source_row_installed_${info.id}"),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -827,13 +853,14 @@ private fun ExternalSourceRow(
             }
             else -> {
                 Box(
-                    modifier = Modifier
-                        // TV focus highlight (no-op on phones).
-                        .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
-                        .clip(RoundedCornerShape(100))
-                        .background(AnimeRed)
-                        .clickable(onClick = onGet)
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                    modifier =
+                        Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
+                            .clip(RoundedCornerShape(100))
+                            .background(AnimeRed)
+                            .clickable(onClick = onGet)
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
                 ) {
                     Text(
                         text = stringResource(R.string.sources_external_get),
@@ -864,9 +891,10 @@ fun AddRepoDialog(
                     value = url,
                     onValueChange = { url = it },
                     hint = stringResource(R.string.sources_repos_add_hint),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("add_repo_url_input"),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .testTag("add_repo_url_input"),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(

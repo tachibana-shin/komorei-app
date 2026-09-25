@@ -23,7 +23,11 @@ class BackupSyncSettingsTest {
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        context.getSharedPreferences("backup_sync", Context.MODE_PRIVATE).edit().clear().commit()
+        context
+            .getSharedPreferences("backup_sync", Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .commit()
         store = BackupSyncSettingsStore(context)
     }
 

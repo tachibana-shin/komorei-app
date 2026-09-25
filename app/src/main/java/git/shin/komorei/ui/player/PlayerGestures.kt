@@ -33,9 +33,9 @@ fun Modifier.playerGestures(
     onFastForwardStart: () -> Unit,
     onFastForwardEnd: () -> Unit,
     onPointerDownChange: ((Boolean) -> Unit)? = null,
-    onPointerMove: (() -> Unit)? = null
-): Modifier {
-    return this
+    onPointerMove: (() -> Unit)? = null,
+): Modifier =
+    this
         .pointerInput(Unit) {
             coroutineScope {
                 // Track pointer state so the caller can keep controls visible while touching.
@@ -55,11 +55,12 @@ fun Modifier.playerGestures(
                 detectTapGestures(
                     onTap = { onToggleControls() },
                     onDoubleTap = { offset ->
-                        val delta = if (offset.x < size.width / 2f) {
-                            -SEEK_INCREMENT_MS
-                        } else {
-                            SEEK_INCREMENT_MS
-                        }
+                        val delta =
+                            if (offset.x < size.width / 2f) {
+                                -SEEK_INCREMENT_MS
+                            } else {
+                                SEEK_INCREMENT_MS
+                            }
                         val xFraction = (offset.x / size.width).coerceIn(0f, 1f)
                         onSeekBy(delta, xFraction)
                     },
@@ -78,8 +79,7 @@ fun Modifier.playerGestures(
                         } finally {
                             onFastForwardEnd()
                         }
-                    }
+                    },
                 )
             }
         }
-}

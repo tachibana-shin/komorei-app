@@ -86,24 +86,27 @@ fun SourceReposScreen(
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
-            .testTag("source_repos_screen"),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding()
+                .testTag("source_repos_screen"),
     ) {
         // Top bar
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
                 onClick = onBack,
-                modifier = Modifier
-                    // TV focus highlight (no-op on phones).
-                    .tvFocus(shape = CircleShape, scale = 1.15f)
+                modifier =
+                    Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -120,10 +123,11 @@ fun SourceReposScreen(
             )
             IconButton(
                 onClick = { showAddRepoDialog = true },
-                modifier = Modifier
-                    // TV focus highlight (no-op on phones).
-                    .tvFocus(shape = CircleShape, scale = 1.15f)
-                    .testTag("add_repo_button"),
+                modifier =
+                    Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .testTag("add_repo_button"),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
@@ -179,17 +183,19 @@ private fun RepoManageRow(
     onRetry: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-            .testTag("repo_manage_row_$url"),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .testTag("repo_manage_row_$url"),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(if (state is RepoSectionState.Unavailable) TextMuted.copy(alpha = 0.15f) else AnimeRed.copy(alpha = 0.15f)),
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (state is RepoSectionState.Unavailable) TextMuted.copy(alpha = 0.15f) else AnimeRed.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -240,12 +246,13 @@ private fun RepoManageRow(
                     color = AnimeRed,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        // TV focus highlight (no-op on phones).
-                        .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
-                        .clip(RoundedCornerShape(100))
-                        .clickable(onClick = onRetry)
-                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    modifier =
+                        Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
+                            .clip(RoundedCornerShape(100))
+                            .clickable(onClick = onRetry)
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
                 )
             }
             null, is RepoSectionState.Loading -> {
@@ -258,10 +265,11 @@ private fun RepoManageRow(
         }
         IconButton(
             onClick = onRemove,
-            modifier = Modifier
-                // TV focus highlight (no-op on phones).
-                .tvFocus(shape = CircleShape, scale = 1.15f)
-                .testTag("remove_repo_$url"),
+            modifier =
+                Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = CircleShape, scale = 1.15f)
+                    .testTag("remove_repo_$url"),
         ) {
             Icon(
                 imageVector = Icons.Filled.Delete,
@@ -276,9 +284,10 @@ private fun RepoManageRow(
 @Composable
 private fun EmptyRepos(onAdd: () -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 64.dp, start = 32.dp, end = 32.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 64.dp, start = 32.dp, end = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
@@ -297,13 +306,14 @@ private fun EmptyRepos(onAdd: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(20.dp))
         Box(
-            modifier = Modifier
-                // TV focus highlight (no-op on phones).
-                .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
-                .clip(RoundedCornerShape(100))
-                .background(AnimeRed)
-                .clickable(onClick = onAdd)
-                .padding(horizontal = 20.dp, vertical = 10.dp),
+            modifier =
+                Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = RoundedCornerShape(100), scale = 1.06f)
+                    .clip(RoundedCornerShape(100))
+                    .background(AnimeRed)
+                    .clickable(onClick = onAdd)
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
         ) {
             Text(
                 text = stringResource(R.string.sources_repos_add),

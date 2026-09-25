@@ -1,18 +1,18 @@
 package git.shin.komorei
 
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import git.shin.komorei.ui.components.search.DiscoverFilterHeaderRow
+import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import git.shin.komorei.model.ContentRatingFilter
 import git.shin.komorei.model.Source
+import git.shin.komorei.ui.components.search.DiscoverFilterHeaderRow
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
-import androidx.compose.ui.test.junit4.v2.createComposeRule
 
 /**
  * Compose UI tests for [DiscoverFilterHeaderRow].
@@ -25,12 +25,12 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class DiscoverFilterHeaderRowTest {
-
     @get:Rule val composeTestRule = createComposeRule()
 
-    private val sources = listOf(
-        Source(id = "source.a", name = "Source A", baseUrl = "https://a.com", languages = listOf("vi")),
-    )
+    private val sources =
+        listOf(
+            Source(id = "source.a", name = "Source A", baseUrl = "https://a.com", languages = listOf("vi")),
+        )
 
     @Test
     fun headerRendersFilterSheetButton() {
@@ -46,7 +46,8 @@ class DiscoverFilterHeaderRowTest {
             )
         }
         // FilterSheetButton is the aggregate filter entry
-        composeTestRule.onNodeWithTag("filter_sheet_button")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_button")
             .performClick()
     }
 
@@ -64,13 +65,16 @@ class DiscoverFilterHeaderRowTest {
             )
         }
         // Rating pill
-        composeTestRule.onNodeWithTag("filter_rating_pill")
+        composeTestRule
+            .onNodeWithTag("filter_rating_pill")
             .performClick()
         // Language pill
-        composeTestRule.onNodeWithTag("filter_language_pill")
+        composeTestRule
+            .onNodeWithTag("filter_language_pill")
             .performClick()
         // Sources pill
-        composeTestRule.onNodeWithTag("filter_sources_pill")
+        composeTestRule
+            .onNodeWithTag("filter_sources_pill")
             .performClick()
     }
 
@@ -88,7 +92,8 @@ class DiscoverFilterHeaderRowTest {
             )
         }
         // Sources pill with badge
-        composeTestRule.onNodeWithTag("filter_sources_pill")
+        composeTestRule
+            .onNodeWithTag("filter_sources_pill")
             .performClick()
     }
 
@@ -105,7 +110,8 @@ class DiscoverFilterHeaderRowTest {
                 onSourcesChange = {},
             )
         }
-        composeTestRule.onNodeWithTag("filter_sheet_button")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_button")
             .performClick()
     }
 
@@ -123,9 +129,21 @@ class DiscoverFilterHeaderRowTest {
             )
         }
         // sources (2 selected) sorts ahead of rating (1); language stays last
-        val sourcesLeft = composeTestRule.onNodeWithTag("filter_sources_pill").fetchSemanticsNode().boundsInRoot.left
-        val ratingLeft = composeTestRule.onNodeWithTag("filter_rating_pill").fetchSemanticsNode().boundsInRoot.left
-        val languageLeft = composeTestRule.onNodeWithTag("filter_language_pill").fetchSemanticsNode().boundsInRoot.left
+        val sourcesLeft =
+            composeTestRule
+                .onNodeWithTag("filter_sources_pill")
+                .fetchSemanticsNode()
+                .boundsInRoot.left
+        val ratingLeft =
+            composeTestRule
+                .onNodeWithTag("filter_rating_pill")
+                .fetchSemanticsNode()
+                .boundsInRoot.left
+        val languageLeft =
+            composeTestRule
+                .onNodeWithTag("filter_language_pill")
+                .fetchSemanticsNode()
+                .boundsInRoot.left
         assertTrue("sources pill should sort before rating", sourcesLeft < ratingLeft)
         assertTrue("rating pill should sort before language", ratingLeft < languageLeft)
     }

@@ -2,9 +2,9 @@ package git.shin.komorei
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
-import git.shin.komorei.ui.theme.MyApplicationTheme
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
+import git.shin.komorei.ui.theme.MyApplicationTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -16,17 +16,16 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 class GreetingScreenshotTest {
+    @get:Rule val composeTestRule = createComposeRule()
 
-  @get:Rule val composeTestRule = createComposeRule()
+    @Test
+    fun greeting_screenshot() {
+        composeTestRule.setContent {
+            MyApplicationTheme {
+                androidx.compose.material3.Text("Komorei Anime Streaming")
+            }
+        }
 
-  @Test
-  fun greeting_screenshot() {
-    composeTestRule.setContent {
-      MyApplicationTheme {
-        androidx.compose.material3.Text("Komorei Anime Streaming")
-      }
+        composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/greeting.png")
     }
-
-    composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/greeting.png")
-  }
 }

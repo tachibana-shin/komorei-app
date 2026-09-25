@@ -39,34 +39,34 @@ fun SectionHeader(
         // target (clip+clickable sit OUTSIDE the padding so the ripple covers
         // the full strip) and a chevron floats at the right end — no "Xem tất
         // cả" label. Without a link the header is inert and trailing-empty.
-        modifier = modifier
-            .fillMaxWidth()
-            .let { m ->
-                if (onSeeAll != null) {
-                    m
-                        // TV focus highlight (no-op on phones) — full-width strip.
-                        .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
-                        .clip(RoundedCornerShape(6.dp))
-                        .clickable(onClick = onSeeAll)
-                } else {
-                    m
-                }
-            }
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .let { m ->
+                    if (onSeeAll != null) {
+                        m
+                            // TV focus highlight (no-op on phones) — full-width strip.
+                            .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable(onClick = onSeeAll)
+                    } else {
+                        m
+                    }
+                }.padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon ?: AppIcons.getCategoryIcon(title),
             contentDescription = title,
             tint = AnimeRed,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(18.dp),
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = title,
             color = TextPrimary,
             fontSize = 17.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
         )
 
         if (rightContent != null) {
@@ -79,7 +79,7 @@ fun SectionHeader(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = stringResource(R.string.section_see_all),
                 tint = AnimeRed,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(18.dp),
             )
         }
     }

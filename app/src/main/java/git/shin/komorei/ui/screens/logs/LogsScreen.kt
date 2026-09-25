@@ -16,10 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,7 +30,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -92,9 +90,10 @@ fun LogsScreen(
     var shareError by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
-    val visible = remember(entries, levelFilter) {
-        filterEntries(entries, levelFilter)
-    }
+    val visible =
+        remember(entries, levelFilter) {
+            filterEntries(entries, levelFilter)
+        }
 
     // Aidoku's view streams new entries in live; follow the tail while the
     // user has not scrolled away from the bottom.
@@ -105,24 +104,27 @@ fun LogsScreen(
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
-            .testTag("logs_screen")
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding()
+                .testTag("logs_screen"),
     ) {
         // ── Top bar: back / title / share + clear ───────────────────────────
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
                 onClick = onBack,
-                modifier = Modifier
-                    .tvFocus(shape = CircleShape, scale = 1.15f)
-                    .testTag("logs_back"),
+                modifier =
+                    Modifier
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .testTag("logs_back"),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -145,9 +147,10 @@ fun LogsScreen(
             }
             IconButton(
                 onClick = { shareError = !shareLog(context) },
-                modifier = Modifier
-                    .tvFocus(shape = CircleShape, scale = 1.15f)
-                    .testTag("logs_share"),
+                modifier =
+                    Modifier
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .testTag("logs_share"),
             ) {
                 Icon(
                     imageVector = Icons.Default.Share,
@@ -157,9 +160,10 @@ fun LogsScreen(
             }
             IconButton(
                 onClick = { LogStore.clear() },
-                modifier = Modifier
-                    .tvFocus(shape = CircleShape, scale = 1.15f)
-                    .testTag("logs_clear"),
+                modifier =
+                    Modifier
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .testTag("logs_clear"),
             ) {
                 Icon(
                     imageVector = Icons.Default.DeleteSweep,
@@ -174,20 +178,22 @@ fun LogsScreen(
                 text = stringResource(R.string.logs_share_failed),
                 color = AnimeRed,
                 fontSize = 12.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(AnimeRed.copy(alpha = 0.12f))
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .testTag("logs_share_error"),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(AnimeRed.copy(alpha = 0.12f))
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .testTag("logs_share_error"),
             )
         }
 
         // ── Level filter chips (Aidoku colours its badges; here they filter) ─
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -216,9 +222,10 @@ fun LogsScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = stringResource(
-                        if (entries.isEmpty()) R.string.logs_empty else R.string.logs_empty_filtered
-                    ),
+                    text =
+                        stringResource(
+                            if (entries.isEmpty()) R.string.logs_empty else R.string.logs_empty_filtered,
+                        ),
                     color = TextMuted,
                     fontSize = 14.sp,
                     modifier = Modifier.testTag("logs_empty"),
@@ -227,9 +234,10 @@ fun LogsScreen(
         } else {
             LazyColumn(
                 state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("logs_list"),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .testTag("logs_list"),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
@@ -241,10 +249,11 @@ fun LogsScreen(
 
         // ── Follow-tail toggle ──────────────────────────────────────────────
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(CardDark)
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(CardDark)
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -255,14 +264,16 @@ fun LogsScreen(
             )
             TextButton(
                 onClick = { followTail = !followTail },
-                modifier = Modifier
-                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
-                    .testTag("logs_follow"),
+                modifier =
+                    Modifier
+                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
+                        .testTag("logs_follow"),
             ) {
                 Text(
-                    text = stringResource(
-                        if (followTail) R.string.logs_following else R.string.logs_follow
-                    ),
+                    text =
+                        stringResource(
+                            if (followTail) R.string.logs_following else R.string.logs_follow,
+                        ),
                     color = if (followTail) AnimeBlue else TextMuted,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
@@ -274,12 +285,16 @@ fun LogsScreen(
 
 /** One log line: coloured level badge, optional source tag, monospace body. */
 @Composable
-private fun LogRow(entry: LogEntry, modifier: Modifier = Modifier) {
+private fun LogRow(
+    entry: LogEntry,
+    modifier: Modifier = Modifier,
+) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(CardDark.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
-            .padding(horizontal = 8.dp, vertical = 5.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .background(CardDark.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
+                .padding(horizontal = 8.dp, vertical = 5.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Text(
@@ -337,47 +352,55 @@ private fun LogLevelChip(
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
         lineHeight = 14.sp,
-        modifier = Modifier
-            // TV focus highlight (no-op on phones) — a small chip scales cleanly.
-            .tvFocus(shape = shape, scale = 1.08f)
-            .clip(shape)
-            .background(if (selected) accent else accent.copy(alpha = 0.14f))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 4.dp)
-            .testTag(testTag),
+        modifier =
+            Modifier
+                // TV focus highlight (no-op on phones) — a small chip scales cleanly.
+                .tvFocus(shape = shape, scale = 1.08f)
+                .clip(shape)
+                .background(if (selected) accent else accent.copy(alpha = 0.14f))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 10.dp, vertical = 4.dp)
+                .testTag(testTag),
     )
 }
 
 /** Aidoku's badge palette: blue info, yellow warn, red error, neutral debug. */
 @Composable
-private fun levelColor(level: LogLevel): Color = when (level) {
-    LogLevel.DEFAULT -> TextSecondary
-    LogLevel.DEBUG -> TextSecondary
-    LogLevel.INFO -> AnimeBlue
-    LogLevel.WARN -> Color(0xFFFFC107)
-    LogLevel.ERROR -> AnimeRed
-}
+private fun levelColor(level: LogLevel): Color =
+    when (level) {
+        LogLevel.DEFAULT -> TextSecondary
+        LogLevel.DEBUG -> TextSecondary
+        LogLevel.INFO -> AnimeBlue
+        LogLevel.WARN -> Color(0xFFFFC107)
+        LogLevel.ERROR -> AnimeRed
+    }
 
-private fun filterEntries(entries: List<LogEntry>, level: LogLevel?): List<LogEntry> =
-    if (level == null) entries else entries.filter { it.level == level }
+private fun filterEntries(
+    entries: List<LogEntry>,
+    level: LogLevel?,
+): List<LogEntry> = if (level == null) entries else entries.filter { it.level == level }
 
 private fun timeFormat(timestamp: Long): String =
-    java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
+    java.text
+        .SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
         .format(java.util.Date(timestamp))
 
 /**
  * Writes the buffer to a cache file and fires an ACTION_SEND chooser.
  * Returns false when the write or the chooser could not start.
  */
-private fun shareLog(context: android.content.Context): Boolean = runCatching {
-    val file = LogStore.exportTo(File(context.cacheDir, "logs"))
-        ?: return false
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    val send = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_STREAM, uri)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-    context.startActivity(Intent.createChooser(send, context.getString(R.string.logs_share)))
-    true
-}.getOrDefault(false)
+private fun shareLog(context: android.content.Context): Boolean =
+    runCatching {
+        val file =
+            LogStore.exportTo(File(context.cacheDir, "logs"))
+                ?: return false
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val send =
+            Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        context.startActivity(Intent.createChooser(send, context.getString(R.string.logs_share)))
+        true
+    }.getOrDefault(false)

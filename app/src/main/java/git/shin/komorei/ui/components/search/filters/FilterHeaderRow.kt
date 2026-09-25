@@ -40,19 +40,20 @@ fun FilterHeaderRow(
 ) {
     // Applied (red) pills come first, the most-selected furthest front;
     // inactive pills keep the source's original filter order (stable sort).
-    val headerFilters = filters
-        .filter { it.isHeaderEligible() }
-        .sortedWith { a, b ->
-            val aCount = filterValueSelectCount(a.id, enabledFilters)
-            val bCount = filterValueSelectCount(b.id, enabledFilters)
-            val aApplied = aCount > 0
-            val bApplied = bCount > 0
-            when {
-                aApplied != bApplied -> if (aApplied) -1 else 1
-                aCount != bCount -> bCount.compareTo(aCount)
-                else -> 0
+    val headerFilters =
+        filters
+            .filter { it.isHeaderEligible() }
+            .sortedWith { a, b ->
+                val aCount = filterValueSelectCount(a.id, enabledFilters)
+                val bCount = filterValueSelectCount(b.id, enabledFilters)
+                val aApplied = aCount > 0
+                val bApplied = bCount > 0
+                when {
+                    aApplied != bApplied -> if (aApplied) -1 else 1
+                    aCount != bCount -> bCount.compareTo(aCount)
+                    else -> 0
+                }
             }
-        }
 
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
@@ -70,30 +71,34 @@ fun FilterHeaderRow(
             // active-first reordering is smooth instead of a hard jump.
             val itemModifier = Modifier.animateItem()
             when (val kind = filter.kind) {
-                is FilterKind.Sort -> SortFilterPill(
-                    filter = filter,
-                    enabled = enabledFilters,
-                    onChange = onFilterValueChange,
-                    modifier = itemModifier,
-                )
-                is FilterKind.Select -> SelectFilterPill(
-                    filter = filter,
-                    enabled = enabledFilters,
-                    onChange = onFilterValueChange,
-                    modifier = itemModifier,
-                )
-                is FilterKind.MultiSelect -> MultiSelectFilterPill(
-                    filter = filter,
-                    enabled = enabledFilters,
-                    onChange = onFilterValueChange,
-                    modifier = itemModifier,
-                )
-                is FilterKind.Check -> CheckFilterPill(
-                    filter = filter,
-                    enabled = enabledFilters,
-                    onChange = onFilterValueChange,
-                    modifier = itemModifier,
-                )
+                is FilterKind.Sort ->
+                    SortFilterPill(
+                        filter = filter,
+                        enabled = enabledFilters,
+                        onChange = onFilterValueChange,
+                        modifier = itemModifier,
+                    )
+                is FilterKind.Select ->
+                    SelectFilterPill(
+                        filter = filter,
+                        enabled = enabledFilters,
+                        onChange = onFilterValueChange,
+                        modifier = itemModifier,
+                    )
+                is FilterKind.MultiSelect ->
+                    MultiSelectFilterPill(
+                        filter = filter,
+                        enabled = enabledFilters,
+                        onChange = onFilterValueChange,
+                        modifier = itemModifier,
+                    )
+                is FilterKind.Check ->
+                    CheckFilterPill(
+                        filter = filter,
+                        enabled = enabledFilters,
+                        onChange = onFilterValueChange,
+                        modifier = itemModifier,
+                    )
                 else -> Unit
             }
         }

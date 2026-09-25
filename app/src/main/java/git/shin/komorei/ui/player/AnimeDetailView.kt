@@ -15,11 +15,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -80,8 +80,8 @@ import git.shin.komorei.ui.components.Badge
 import git.shin.komorei.ui.components.DetailPillButton
 import git.shin.komorei.ui.components.EpisodeProgressBar
 import git.shin.komorei.ui.components.MetadataDetailRow
-import git.shin.komorei.ui.components.ServerOptionChip
 import git.shin.komorei.ui.components.SectionHeader
+import git.shin.komorei.ui.components.ServerOptionChip
 import git.shin.komorei.ui.components.animeGridColumnCount
 import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
 import git.shin.komorei.ui.player.components.EpisodesBottomSheet
@@ -123,7 +123,7 @@ fun AnimeDetailView(
     onAnimeSelected: (Anime) -> Unit,
     onNavigateToCategory: (List<FilterValue>) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: AnimeDetailViewModel = hiltViewModel()
+    viewModel: AnimeDetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isBookmarked by viewModel.isBookmarked.collectAsState()
@@ -150,11 +150,12 @@ fun AnimeDetailView(
 
     // Row state/key for the currently-viewed season's episode strip, shared by the LazyRow
     // below and the hoisted follow-active auto-scroll. Each season keeps its own row state.
-    val detailRowKey = if (uiState.selectedVirtualSeasonId != null) {
-        "row:${uiState.selectedVirtualSeasonId}"
-    } else {
-        "row:${uiState.selectedSeason?.animeId ?: displayAnime.id}"
-    }
+    val detailRowKey =
+        if (uiState.selectedVirtualSeasonId != null) {
+            "row:${uiState.selectedVirtualSeasonId}"
+        } else {
+            "row:${uiState.selectedSeason?.animeId ?: displayAnime.id}"
+        }
     val detailRowState = detailEpisodeRowStates.getOrPut(detailRowKey) { LazyListState() }
 
     // Follow-the-playing-episode auto-scroll for the episode strip. Hoisted ABOVE the
@@ -174,7 +175,7 @@ fun AnimeDetailView(
             Triple(
                 eps.indexOfFirst { it.id == currentEpisode.id },
                 detailRowState.layoutInfo.totalItemsCount,
-                uiState.isLoadingEpisodes
+                uiState.isLoadingEpisodes,
             )
         }.first { (index, count, loading) -> index >= 0 && !loading && count > index }
         val target = uiState.currentSeasonEpisodes.indexOfFirst { it.id == currentEpisode.id }
@@ -183,41 +184,45 @@ fun AnimeDetailView(
         }
     }
 
-    val realSeasons = displayAnime.seasons.ifEmpty {
-        listOf(AnimeSeason(displayAnime.id, stringResource(R.string.season_fallback_full)))
-    }
+    val realSeasons =
+        displayAnime.seasons.ifEmpty {
+            listOf(AnimeSeason(displayAnime.id, stringResource(R.string.season_fallback_full)))
+        }
     // A huge real season (e.g. Conan, 1000+ episodes) is expanded in the picker into
     // 50-episode "virtual seasons" (same animeId, distinct id), so its single chip is
     // replaced by the chunk chips while the other real seasons stay as they are.
-    val effectiveSeasons = if (uiState.virtualSeasons.isEmpty()) {
-        realSeasons
-    } else {
-        val parentId = uiState.selectedSeason?.animeId ?: displayAnime.id
-        realSeasons.flatMap { season ->
-            if (season.animeId == parentId) uiState.virtualSeasons else listOf(season)
+    val effectiveSeasons =
+        if (uiState.virtualSeasons.isEmpty()) {
+            realSeasons
+        } else {
+            val parentId = uiState.selectedSeason?.animeId ?: displayAnime.id
+            realSeasons.flatMap { season ->
+                if (season.animeId == parentId) uiState.virtualSeasons else listOf(season)
+            }
         }
-    }
 
     val descSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LazyColumn(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(BackgroundDark)
-            .testTag("anime_detail_view"),
-        contentPadding = PaddingValues(bottom = 40.dp)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .background(BackgroundDark)
+                .testTag("anime_detail_view"),
+        contentPadding = PaddingValues(bottom = 40.dp),
     ) {
         item {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showDescriptionSheet = true }
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { showDescriptionSheet = true }
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
                         text = displayAnime.title,
@@ -225,13 +230,13 @@ fun AnimeDetailView(
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         lineHeight = 22.sp,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = stringResource(R.string.cd_introduction),
                         tint = TextMuted,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                 }
 
@@ -245,27 +250,29 @@ fun AnimeDetailView(
                     // mép trái, thẳng với số lượt xem.
                     displayAnime.nextEpisodeAirInfo?.let { info ->
                         Text(
-                            text = buildAnnotatedString {
-                                withStyle(SpanStyle(color = TextGrey)) {
-                                    append(stringResource(R.string.views_count, formatNumber(displayAnime.views)))
-                                    append(" • ")
-                                }
-                                withStyle(SpanStyle(color = Accent)) {
-                                    append(info)
-                                }
-                            },
+                            text =
+                                buildAnnotatedString {
+                                    withStyle(SpanStyle(color = TextGrey)) {
+                                        append(stringResource(R.string.views_count, formatNumber(displayAnime.views)))
+                                        append(" • ")
+                                    }
+                                    withStyle(SpanStyle(color = Accent)) {
+                                        append(info)
+                                    }
+                                },
                             fontSize = 14.sp,
-                            style = NoPaddingTextStyle
+                            style = NoPaddingTextStyle,
                         )
                     } ?: run {
                         Text(
-                            text = stringResource(
-                                R.string.views_count,
-                                formatNumber(displayAnime.views)
-                            ),
+                            text =
+                                stringResource(
+                                    R.string.views_count,
+                                    formatNumber(displayAnime.views),
+                                ),
                             color = TextGrey,
                             fontSize = 14.sp,
-                            style = NoPaddingTextStyle
+                            style = NoPaddingTextStyle,
                         )
                     }
                 }
@@ -276,31 +283,49 @@ fun AnimeDetailView(
                     if (displayAnime.authors.isNotEmpty()) {
                         Text(
                             text = stringResource(R.string.author_label) + " " + displayAnime.authors.first().name,
-                            color = if (displayAnime.authors.first().filters.isNotEmpty()) AnimeGreen else TextSecondary,
+                            color =
+                                if (displayAnime.authors
+                                        .first()
+                                        .filters
+                                        .isNotEmpty()
+                                ) {
+                                    AnimeGreen
+                                } else {
+                                    TextSecondary
+                                },
                             fontSize = 14.sp,
-                            modifier = Modifier
-                                // TV focus highlight (no-op on phones).
-                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
-                                .clickable(enabled = displayAnime.authors.first().filters.isNotEmpty()) {
-                                    onNavigateToCategory(displayAnime.authors.first().filters)
-                                }
+                            modifier =
+                                Modifier
+                                    // TV focus highlight (no-op on phones).
+                                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                    .clickable(
+                                        enabled =
+                                            displayAnime.authors
+                                                .first()
+                                                .filters
+                                                .isNotEmpty(),
+                                    ) {
+                                        onNavigateToCategory(displayAnime.authors.first().filters)
+                                    },
                         )
                         Text(text = " | ", color = TextGrey, fontSize = 14.sp)
                     }
 
                     Text(
-                        text = stringResource(
-                            R.string.studio_prefix,
-                            displayAnime.studio?.name ?: stringResource(R.string.unknown)
-                        ),
+                        text =
+                            stringResource(
+                                R.string.studio_prefix,
+                                displayAnime.studio?.name ?: stringResource(R.string.unknown),
+                            ),
                         color = if (displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) AnimeGreen else TextSecondary,
                         fontSize = 14.sp,
-                        modifier = Modifier
-                            // TV focus highlight (no-op on phones).
-                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
-                            .clickable(enabled = displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) {
-                                displayAnime.studio?.let { onNavigateToCategory(it.filters) }
-                            }
+                        modifier =
+                            Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                .clickable(enabled = displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) {
+                                    displayAnime.studio?.let { onNavigateToCategory(it.filters) }
+                                },
                     )
                 }
 
@@ -309,7 +334,7 @@ fun AnimeDetailView(
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     displayAnime.qualityTag?.let {
                         Text(
@@ -318,29 +343,32 @@ fun AnimeDetailView(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             style = NoPaddingTextStyle,
-                            modifier = Modifier
-                                .background(
-                                    Color(0xFF00C853).copy(alpha = .85f),
-                                    RoundedCornerShape(4.dp)
-                                )
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier =
+                                Modifier
+                                    .background(
+                                        Color(0xFF00C853).copy(alpha = .85f),
+                                        RoundedCornerShape(4.dp),
+                                    ).padding(horizontal = 6.dp, vertical = 2.dp),
                         )
                     }
                     displayAnime.releaseYear?.let {
                         Badge(
                             text = it.name,
                             textStyle = NoPaddingTextStyle,
-                            modifier = Modifier
-                                // TV focus highlight (no-op on phones).
-                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
-                                .clickable { onNavigateToCategory(it.filters) })
+                            modifier =
+                                Modifier
+                                    // TV focus highlight (no-op on phones).
+                                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                    .clickable { onNavigateToCategory(it.filters) },
+                        )
                     }
                     if (!displayAnime.currentEpisode.isNullOrEmpty()) {
                         Badge(
-                            text = stringResource(
-                                R.string.updated_to_episode,
-                                displayAnime.currentEpisode
-                            ),
+                            text =
+                                stringResource(
+                                    R.string.updated_to_episode,
+                                    displayAnime.currentEpisode,
+                                ),
                             textStyle = NoPaddingTextStyle,
                         )
                     }
@@ -350,12 +378,13 @@ fun AnimeDetailView(
                             color = if (country.filters.isNotEmpty()) AnimeGreen else TextSecondary,
                             fontSize = 14.sp,
                             style = NoPaddingTextStyle,
-                            modifier = Modifier
-                                // TV focus highlight (no-op on phones).
-                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
-                                .clickable(enabled = country.filters.isNotEmpty()) {
-                                    onNavigateToCategory(country.filters)
-                                }
+                            modifier =
+                                Modifier
+                                    // TV focus highlight (no-op on phones).
+                                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                    .clickable(enabled = country.filters.isNotEmpty()) {
+                                        onNavigateToCategory(country.filters)
+                                    },
                         )
                     }
                 }
@@ -365,20 +394,20 @@ fun AnimeDetailView(
                 // Rating info (Stars + Rating Count + SeasonOf Link)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 2.dp)
+                    modifier = Modifier.padding(top = 2.dp),
                 ) {
                     Text(
                         text = String.format("%.1f", displayAnime.rating ?: 0f),
                         color = TextPrimary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        style = NoPaddingTextStyle
+                        style = NoPaddingTextStyle,
                     )
                     Icon(
                         Icons.Default.Star,
                         null,
                         tint = GoldRating,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(14.dp),
                     )
 
                     displayAnime.ratingCount?.let {
@@ -387,7 +416,7 @@ fun AnimeDetailView(
                             text = stringResource(R.string.rating_count, formatNumber(it)),
                             color = TextGrey,
                             fontSize = 14.sp,
-                            style = NoPaddingTextStyle
+                            style = NoPaddingTextStyle,
                         )
                     }
 
@@ -396,7 +425,7 @@ fun AnimeDetailView(
                             text = " | ",
                             color = TextGrey,
                             fontSize = 14.sp,
-                            style = NoPaddingTextStyle
+                            style = NoPaddingTextStyle,
                         )
 
                         Text(
@@ -404,12 +433,13 @@ fun AnimeDetailView(
                             color = if (it.filters.isNotEmpty()) AnimeGreen else TextPrimary,
                             fontSize = 14.sp,
                             style = NoPaddingTextStyle,
-                            modifier = Modifier
-                                // TV focus highlight (no-op on phones).
-                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
-                                .clickable(enabled = it.filters.isNotEmpty()) {
-                                    onNavigateToCategory(it.filters)
-                                }
+                            modifier =
+                                Modifier
+                                    // TV focus highlight (no-op on phones).
+                                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                    .clickable(enabled = it.filters.isNotEmpty()) {
+                                        onNavigateToCategory(it.filters)
+                                    },
                         )
                     }
                 }
@@ -423,12 +453,13 @@ fun AnimeDetailView(
                             color = if (genre.filters.isNotEmpty()) AnimeGreen else TextSecondary,
                             fontSize = 14.sp,
                             style = SmallTextStyle,
-                            modifier = Modifier
-                                // TV focus highlight (no-op on phones).
-                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
-                                .clickable(enabled = genre.filters.isNotEmpty()) {
-                                    onNavigateToCategory(genre.filters)
-                                }
+                            modifier =
+                                Modifier
+                                    // TV focus highlight (no-op on phones).
+                                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                    .clickable(enabled = genre.filters.isNotEmpty()) {
+                                        onNavigateToCategory(genre.filters)
+                                    },
                         )
                     }
                 }
@@ -437,20 +468,26 @@ fun AnimeDetailView(
 
         item {
             LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier =
+                    Modifier
+                        .fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item {
                     DetailPillButton(
                         icon = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkAdd,
-                        label = if (isBookmarked) stringResource(R.string.following_anime) else stringResource(
-                            R.string.follow_anime
-                        ),
+                        label =
+                            if (isBookmarked) {
+                                stringResource(R.string.following_anime)
+                            } else {
+                                stringResource(
+                                    R.string.follow_anime,
+                                )
+                            },
                         isActive = isBookmarked,
                         onClick = { viewModel.toggleBookmark() },
-                        tag = "bookmark"
+                        tag = "bookmark",
                     )
                 }
                 item {
@@ -459,7 +496,7 @@ fun AnimeDetailView(
                         label = stringResource(R.string.description_title),
                         isActive = false,
                         onClick = { showDescriptionSheet = true },
-                        tag = "summary"
+                        tag = "summary",
                     )
                 }
                 item {
@@ -468,7 +505,7 @@ fun AnimeDetailView(
                         label = stringResource(R.string.report_anime),
                         isActive = false,
                         onClick = { },
-                        tag = "report"
+                        tag = "report",
                     )
                 }
             }
@@ -476,15 +513,16 @@ fun AnimeDetailView(
 
         item {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp),
             ) {
                 Text(
                     text = stringResource(R.string.streaming_server_header),
                     color = TextPrimary,
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -494,97 +532,104 @@ fun AnimeDetailView(
                     // Skeleton uses the SAME padding + 12sp label as ServerOptionChip so the
                     // swap doesn't jump vertically (a fixed 30dp box is ~8dp shorter than the
                     // real chip, whose line box is 24sp + 7dp x2 padding).
-                    isLoadingStreams -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        repeat(serverSkeletonCount(displayAnime.sourceId)) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(CardDark.copy(alpha = 0.5f))
-                                    .padding(horizontal = 14.dp, vertical = 7.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.placeholder_loading),
-                                    color = Color.Transparent,
-                                    fontSize = 12.sp,
-                                    // Invisible measurement text — keep TalkBack quiet about it.
-                                    modifier = Modifier.clearAndSetSemantics { }
+                    isLoadingStreams ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            repeat(serverSkeletonCount(displayAnime.sourceId)) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(CardDark.copy(alpha = 0.5f))
+                                            .padding(horizontal = 14.dp, vertical = 7.dp),
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.placeholder_loading),
+                                        color = Color.Transparent,
+                                        fontSize = 12.sp,
+                                        // Invisible measurement text — keep TalkBack quiet about it.
+                                        modifier = Modifier.clearAndSetSemantics { },
+                                    )
+                                }
+                            }
+                        }
+                    streamError != null ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = streamError,
+                                color = TextGrey,
+                                fontSize = 12.sp,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                text = stringResource(R.string.action_retry),
+                                color = AnimeRed,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier =
+                                    Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .clickable { onRetryStreams() }
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                            )
+                        }
+                    else ->
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            streams.forEach { stream ->
+                                ServerOptionChip(
+                                    name = stream.name,
+                                    isSelected = stream.id == selectedStreamId,
+                                    onClick = { onStreamSelected(stream) },
                                 )
                             }
                         }
-                    }
-                    streamError != null -> Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = streamError,
-                            color = TextGrey,
-                            fontSize = 12.sp,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            text = stringResource(R.string.action_retry),
-                            color = AnimeRed,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .clickable { onRetryStreams() }
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                    else -> FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        streams.forEach { stream ->
-                            ServerOptionChip(
-                                name = stream.name,
-                                isSelected = stream.id == selectedStreamId,
-                                onClick = { onStreamSelected(stream) }
-                            )
-                        }
-                    }
                 }
             }
         }
 
         item {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        // TV focus highlight (no-op on phones) — the "episodes
-                        // header" acts as a see-all target on the detail page.
-                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.02f)
-                        .clickable { showEpisodesSheet = true }
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            // TV focus highlight (no-op on phones) — the "episodes
+                            // header" acts as a see-all target on the detail page.
+                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.02f)
+                            .clickable { showEpisodesSheet = true }
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = stringResource(R.string.episodes_header, displayAnime.episodeCount),
                         color = TextPrimary,
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = stringResource(R.string.section_see_all),
                             color = AnimeRed,
-                            fontSize = 12.sp
+                            fontSize = 12.sp,
                         )
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                             contentDescription = null,
                             tint = AnimeRed,
-                            modifier = Modifier.size(11.dp)
+                            modifier = Modifier.size(11.dp),
                         )
                     }
                 }
@@ -593,27 +638,29 @@ fun AnimeDetailView(
                     state = detailRowState,
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     if (uiState.isLoadingEpisodes) {
                         items(5) {
                             Box(
-                                modifier = Modifier
-                                    .size(width = 46.dp, height = 34.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(CardDark.copy(alpha = 0.5f))
+                                modifier =
+                                    Modifier
+                                        .size(width = 46.dp, height = 34.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(CardDark.copy(alpha = 0.5f)),
                             )
                         }
                     } else if (uiState.episodeError != null) {
                         // Season load failed — keep the row visible with the error + retry.
                         item {
                             Row(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(CardDark.copy(alpha = 0.3f))
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                modifier =
+                                    Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(CardDark.copy(alpha = 0.3f))
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 Text(
                                     text = uiState.episodeError ?: "",
@@ -621,17 +668,18 @@ fun AnimeDetailView(
                                     fontSize = 12.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.widthIn(max = 220.dp)
+                                    modifier = Modifier.widthIn(max = 220.dp),
                                 )
                                 Text(
                                     text = stringResource(R.string.action_retry),
                                     color = AnimeRed,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .clickable { viewModel.retryEpisodes() }
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    modifier =
+                                        Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .clickable { viewModel.retryEpisodes() }
+                                            .padding(horizontal = 6.dp, vertical = 2.dp),
                                 )
                             }
                         }
@@ -640,18 +688,19 @@ fun AnimeDetailView(
                         // collapsing; span the full width and center the message.
                         item {
                             Box(
-                                modifier = Modifier
-                                    .fillParentMaxWidth()
-                                    .height(34.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(CardDark.copy(alpha = 0.3f)),
-                                contentAlignment = Alignment.Center
+                                modifier =
+                                    Modifier
+                                        .fillParentMaxWidth()
+                                        .height(34.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(CardDark.copy(alpha = 0.3f)),
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Text(
                                     text = stringResource(R.string.episodes_empty),
                                     color = TextMuted,
                                     fontSize = 12.sp,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 )
                             }
                         }
@@ -661,24 +710,24 @@ fun AnimeDetailView(
                             val history = watchHistory.find { it.episodeId == ep.id }
 
                             Box(
-                                modifier = Modifier
-                                    .size(width = 46.dp, height = 34.dp)
-                                    // TV focus highlight (no-op on phones).
-                                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f, borderWidth = 2.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSelected) AnimeRedContainer else CardDark)
-                                    .border(
-                                        width = if (isSelected) 1.5.dp else 1.dp,
-                                        color = if (isSelected) AnimeRed else CardBorderDark,
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                    .clickable { onEpisodeSelected(ep) },
-                                contentAlignment = Alignment.Center
+                                modifier =
+                                    Modifier
+                                        .size(width = 46.dp, height = 34.dp)
+                                        // TV focus highlight (no-op on phones).
+                                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f, borderWidth = 2.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (isSelected) AnimeRedContainer else CardDark)
+                                        .border(
+                                            width = if (isSelected) 1.5.dp else 1.dp,
+                                            color = if (isSelected) AnimeRed else CardBorderDark,
+                                            shape = RoundedCornerShape(8.dp),
+                                        ).clickable { onEpisodeSelected(ep) },
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Box(
                                         modifier = Modifier.weight(1f),
-                                        contentAlignment = Alignment.Center
+                                        contentAlignment = Alignment.Center,
                                     ) {
 //                                        if (isSelected) {
 //                                            Icon(
@@ -691,16 +740,17 @@ fun AnimeDetailView(
                                         Text(
                                             text = ep.episodeNumber,
                                             color = TextPrimary,
-                                            fontSize = 12.sp
+                                            fontSize = 12.sp,
                                         )
 //                                        }
                                     }
                                     history?.let {
                                         EpisodeProgressBar(
                                             progress = it.progressFraction,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(start = 4.dp, end = 4.dp, bottom = 2.dp)
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(start = 4.dp, end = 4.dp, bottom = 2.dp),
                                         )
                                     }
                                 }
@@ -712,17 +762,18 @@ fun AnimeDetailView(
                 if (effectiveSeasons.size > 1) {
                     Spacer(modifier = Modifier.height(10.dp))
                     val seasonsRowState = rememberLazyListState()
-                    val activeSeasonIndex = effectiveSeasons.indexOfFirst { season ->
-                        if (uiState.selectedVirtualSeasonId != null) {
-                            season.id == uiState.selectedVirtualSeasonId
-                        } else {
-                            season.animeId == uiState.selectedSeason?.animeId
+                    val activeSeasonIndex =
+                        effectiveSeasons.indexOfFirst { season ->
+                            if (uiState.selectedVirtualSeasonId != null) {
+                                season.id == uiState.selectedVirtualSeasonId
+                            } else {
+                                season.animeId == uiState.selectedSeason?.animeId
+                            }
                         }
-                    }
                     LaunchedEffect(
                         uiState.selectedSeason?.animeId,
                         uiState.selectedVirtualSeasonId,
-                        effectiveSeasons.size
+                        effectiveSeasons.size,
                     ) {
                         seasonsRowState.animateScrollToItemCentered(activeSeasonIndex)
                     }
@@ -730,31 +781,32 @@ fun AnimeDetailView(
                         state = seasonsRowState,
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         items(effectiveSeasons) { season ->
-                            val isSeasonSelected = if (uiState.selectedVirtualSeasonId != null) {
-                                season.id == uiState.selectedVirtualSeasonId
-                            } else {
-                                season.animeId == uiState.selectedSeason?.animeId
-                            }
+                            val isSeasonSelected =
+                                if (uiState.selectedVirtualSeasonId != null) {
+                                    season.id == uiState.selectedVirtualSeasonId
+                                } else {
+                                    season.animeId == uiState.selectedSeason?.animeId
+                                }
                             Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(if (isSeasonSelected) AnimeRedContainer else CardDark)
-                                    .border(
-                                        width = 1.dp,
-                                        color = if (isSeasonSelected) AnimeRed else CardBorderDark,
-                                        shape = RoundedCornerShape(6.dp)
-                                    )
-                                    .clickable { viewModel.selectSeason(season) }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                                modifier =
+                                    Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isSeasonSelected) AnimeRedContainer else CardDark)
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (isSeasonSelected) AnimeRed else CardBorderDark,
+                                            shape = RoundedCornerShape(6.dp),
+                                        ).clickable { viewModel.selectSeason(season) }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
                             ) {
                                 Text(
                                     text = season.title,
                                     color = if (isSeasonSelected) AnimeRed else TextSecondary,
                                     fontSize = 12.sp,
-                                    fontWeight = if (isSeasonSelected) FontWeight.Bold else FontWeight.Medium
+                                    fontWeight = if (isSeasonSelected) FontWeight.Bold else FontWeight.Medium,
                                 )
                             }
                         }
@@ -765,32 +817,33 @@ fun AnimeDetailView(
 
         item {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(SurfaceDark)
-                    .border(1.dp, CardBorderDark, RoundedCornerShape(10.dp))
-                    .clickable { showCommentsSheet = true }
-                    .padding(12.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(SurfaceDark)
+                        .border(1.dp, CardBorderDark, RoundedCornerShape(10.dp))
+                        .clickable { showCommentsSheet = true }
+                        .padding(12.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = stringResource(R.string.comments_title),
                             color = TextPrimary,
                             fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "821",
                             color = TextMuted,
-                            fontSize = 12.sp
+                            fontSize = 12.sp,
                         )
                     }
 
@@ -798,7 +851,7 @@ fun AnimeDetailView(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                         contentDescription = stringResource(R.string.cd_view_comments),
                         tint = TextMuted,
-                        modifier = Modifier.size(13.dp)
+                        modifier = Modifier.size(13.dp),
                     )
                 }
 
@@ -806,17 +859,18 @@ fun AnimeDetailView(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(AnimeRedContainer),
-                        contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(AnimeRedContainer),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = "K",
                             color = AnimeRed,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -825,7 +879,7 @@ fun AnimeDetailView(
                         color = TextSecondary,
                         fontSize = 12.sp,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -845,22 +899,24 @@ fun AnimeDetailView(
                     val cellWidth = (maxWidth - 12.dp * (columns - 1)) / columns
                     SectionHeader(title = stringResource(R.string.related_anime_header))
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
                     ) {
                         rows.forEachIndexed { index, rowAnimes ->
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = if (index < rows.lastIndex) 14.dp else 0.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = if (index < rows.lastIndex) 14.dp else 0.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 rowAnimes.forEach { anime ->
                                     AnimeCard(
                                         anime = anime,
                                         onClick = { onAnimeSelected(anime) },
-                                        cardWidth = cellWidth
+                                        cardWidth = cellWidth,
                                     )
                                 }
                                 // Keep an incomplete last row left-aligned.
@@ -893,7 +949,7 @@ fun AnimeDetailView(
                 onEpisodeSelected(ep)
                 showEpisodesSheet = false
             },
-            onDismiss = { showEpisodesSheet = false }
+            onDismiss = { showEpisodesSheet = false },
         )
     }
 
@@ -906,45 +962,48 @@ fun AnimeDetailView(
             contentColor = TextPrimary,
             dragHandle = {
                 Box(
-                    modifier = Modifier
-                        .padding(top = 10.dp, bottom = 6.dp)
-                        .size(width = 36.dp, height = 4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(CardBorderDark)
+                    modifier =
+                        Modifier
+                            .padding(top = 10.dp, bottom = 6.dp)
+                            .size(width = 36.dp, height = 4.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(CardBorderDark),
                 )
-            }
+            },
         ) {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp)
-                    .padding(bottom = navBarBottom + 24.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp)
+                        .padding(bottom = navBarBottom + 24.dp),
             ) {
                 item {
                     // Header Bar
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text = stringResource(R.string.info_summary_title),
                             color = TextPrimary,
                             fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
                         IconButton(
                             onClick = { showDescriptionSheet = false },
-                            modifier = Modifier
-                                // TV focus highlight (no-op on phones).
-                                .tvFocus(shape = CircleShape, scale = 1.15f)
-                                .size(32.dp)
+                            modifier =
+                                Modifier
+                                    // TV focus highlight (no-op on phones).
+                                    .tvFocus(shape = CircleShape, scale = 1.15f)
+                                    .size(32.dp),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = stringResource(R.string.cd_close),
                                 tint = TextSecondary,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                     }
@@ -954,45 +1013,47 @@ fun AnimeDetailView(
                     // Anime Header with Vertical Poster & Core details
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Top
+                        verticalAlignment = Alignment.Top,
                     ) {
                         // Vertical Poster (0.7f ~ 2:3 ratio)
                         Box(
-                            modifier = Modifier
-                                .width(96.dp)
-                                .aspectRatio(0.7f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(CardDark)
-                                .border(1.dp, CardBorderDark, RoundedCornerShape(8.dp))
+                            modifier =
+                                Modifier
+                                    .width(96.dp)
+                                    .aspectRatio(0.7f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(CardDark)
+                                    .border(1.dp, CardBorderDark, RoundedCornerShape(8.dp)),
                         ) {
                             AsyncImage(
                                 model = displayAnime.posterUrl,
                                 contentDescription = displayAnime.title,
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize(),
                             )
                             // Rating Badge
                             Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .padding(4.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(Color(0xCC000000))
-                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                                modifier =
+                                    Modifier
+                                        .align(Alignment.BottomStart)
+                                        .padding(4.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(Color(0xCC000000))
+                                        .padding(horizontal = 4.dp, vertical = 2.dp),
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         imageVector = Icons.Default.Star,
                                         contentDescription = null,
                                         tint = GoldRating,
-                                        modifier = Modifier.size(10.dp)
+                                        modifier = Modifier.size(10.dp),
                                     )
                                     Spacer(modifier = Modifier.width(2.dp))
                                     Text(
                                         text = String.format("%.1f", displayAnime.rating ?: 0f),
                                         color = TextPrimary,
                                         fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
                                     )
                                 }
                             }
@@ -1007,14 +1068,14 @@ fun AnimeDetailView(
                                 color = TextPrimary,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                lineHeight = 20.sp
+                                lineHeight = 20.sp,
                             )
                             Spacer(modifier = Modifier.height(3.dp))
                             Text(
                                 text = displayAnime.originalTitle,
                                 color = TextMuted,
                                 fontSize = 12.sp,
-                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                             )
 
                             Spacer(modifier = Modifier.height(8.dp))
@@ -1022,19 +1083,20 @@ fun AnimeDetailView(
                             Text(
                                 text = "${stringResource(R.string.metadata_year)} ${displayAnime.releaseYear?.name ?: ""} • Studio: ${displayAnime.studio?.name ?: ""}",
                                 color = TextSecondary,
-                                fontSize = 12.sp
+                                fontSize = 12.sp,
                             )
 
                             Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
-                                text = stringResource(
-                                    R.string.views_format,
-                                    formatNumber(displayAnime.views)
-                                ),
+                                text =
+                                    stringResource(
+                                        R.string.views_format,
+                                        formatNumber(displayAnime.views),
+                                    ),
                                 color = AnimeRed,
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
                             )
 
                             displayAnime.nextEpisodeAirInfo?.let { text ->
@@ -1044,7 +1106,7 @@ fun AnimeDetailView(
                                     color = NeonCyan,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
-                                    lineHeight = 15.sp
+                                    lineHeight = 15.sp,
                                 )
                             }
                         }
@@ -1058,14 +1120,14 @@ fun AnimeDetailView(
                         text = stringResource(R.string.plot_summary_title),
                         color = TextPrimary,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = displayAnime.description,
                         color = TextSecondary,
                         fontSize = 13.sp,
-                        lineHeight = 20.sp
+                        lineHeight = 20.sp,
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -1079,30 +1141,30 @@ fun AnimeDetailView(
                             AnimeStatus.ONGOING -> stringResource(R.string.status_ongoing)
                             AnimeStatus.COMPLETED -> stringResource(R.string.status_completed)
                             else -> stringResource(R.string.unknown)
-                        }
+                        },
                     )
                     MetadataDetailRow(
                         stringResource(R.string.metadata_episodes),
-                        displayAnime.currentEpisode ?: stringResource(R.string.episode_range_unknown)
+                        displayAnime.currentEpisode ?: stringResource(R.string.episode_range_unknown),
                     )
                     MetadataDetailRow(
                         stringResource(R.string.metadata_seasons),
-                        stringResource(R.string.metadata_seasons_count, realSeasons.size)
+                        stringResource(R.string.metadata_seasons_count, realSeasons.size),
                     )
                     displayAnime.seasonOf?.let {
                         MetadataDetailRow(stringResource(R.string.metadata_belongs_to_series), it.name)
                     }
                     MetadataDetailRow(
                         stringResource(R.string.metadata_year),
-                        displayAnime.releaseYear?.name ?: stringResource(R.string.unknown)
+                        displayAnime.releaseYear?.name ?: stringResource(R.string.unknown),
                     )
                     MetadataDetailRow(
                         stringResource(R.string.metadata_country),
-                        displayAnime.countries.joinToString(", ") { it.name }
+                        displayAnime.countries.joinToString(", ") { it.name },
                     )
                     MetadataDetailRow(
                         stringResource(R.string.metadata_genres),
-                        displayAnime.genres.joinToString(", ") { it.name }
+                        displayAnime.genres.joinToString(", ") { it.name },
                     )
                 }
             }
@@ -1114,9 +1176,10 @@ fun AnimeDetailView(
  * Mirrors `AnimeRepository.getStreamList()` so the server-list loading skeleton shows the
  * same number of chips the source will actually return (avoids a layout shift on swap).
  */
-private fun serverSkeletonCount(sourceId: String): Int = when (sourceId) {
-    "gogoanime" -> 2
-    "hidive" -> 1
-    "vuighe" -> 2
-    else -> 3 // animevietsub
-}
+private fun serverSkeletonCount(sourceId: String): Int =
+    when (sourceId) {
+        "gogoanime" -> 2
+        "hidive" -> 1
+        "vuighe" -> 2
+        else -> 3 // animevietsub
+    }

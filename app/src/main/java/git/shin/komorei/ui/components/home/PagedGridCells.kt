@@ -21,11 +21,12 @@ internal val PAGED_CELL_WIDTH_MAX = 180.dp
  * of two over-wide rows on a tablet.
  */
 @Composable
-internal fun BoxWithConstraintsScope.pagedGridColumns(): Int = when {
-    maxWidth < 600.dp -> 2
-    maxWidth < 1200.dp -> 3
-    else -> 4
-}
+internal fun BoxWithConstraintsScope.pagedGridColumns(): Int =
+    when {
+        maxWidth < 600.dp -> 2
+        maxWidth < 1200.dp -> 3
+        else -> 4
+    }
 
 /**
  * Fixed width of one paged cell: the measured container divided by

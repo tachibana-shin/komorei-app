@@ -24,24 +24,26 @@ import org.robolectric.annotation.Config
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class FilterHeaderRowTest {
-
     @get:Rule val composeTestRule = createComposeRule()
 
-    private val sort = Filter(
-        id = "sort",
-        title = "Sort",
-        kind = FilterKind.Sort(options = listOf("New")),
-    )
-    private val genre = Filter(
-        id = "genre",
-        title = "Genre",
-        kind = FilterKind.Select(options = listOf("A", "B"), usesTagStyle = true),
-    )
-    private val country = Filter(
-        id = "country",
-        title = "Country",
-        kind = FilterKind.MultiSelect(options = listOf("VN", "US", "JP"), usesTagStyle = true),
-    )
+    private val sort =
+        Filter(
+            id = "sort",
+            title = "Sort",
+            kind = FilterKind.Sort(options = listOf("New")),
+        )
+    private val genre =
+        Filter(
+            id = "genre",
+            title = "Genre",
+            kind = FilterKind.Select(options = listOf("A", "B"), usesTagStyle = true),
+        )
+    private val country =
+        Filter(
+            id = "country",
+            title = "Country",
+            kind = FilterKind.MultiSelect(options = listOf("VN", "US", "JP"), usesTagStyle = true),
+        )
 
     private fun setRow(enabled: List<FilterValue>) {
         composeTestRule.setContent {
@@ -55,15 +57,19 @@ class FilterHeaderRowTest {
     }
 
     private fun leftOf(tag: String): Float =
-        composeTestRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot.left
+        composeTestRule
+            .onNodeWithTag(tag)
+            .fetchSemanticsNode()
+            .boundsInRoot.left
 
     @Test
     fun appliedPillsSortToFrontBySelectedCount() {
         setRow(
-            enabled = listOf(
-                FilterValue.Select("genre", "A"),
-                FilterValue.MultiSelect("country", included = listOf("VN", "US", "JP"), excluded = listOf("SG")),
-            ),
+            enabled =
+                listOf(
+                    FilterValue.Select("genre", "A"),
+                    FilterValue.MultiSelect("country", included = listOf("VN", "US", "JP"), excluded = listOf("SG")),
+                ),
         )
         // country (4 selected) before genre (1), both before the inactive sort
         assertTrue(leftOf("filter_pill_Country") < leftOf("filter_pill_Genre"))

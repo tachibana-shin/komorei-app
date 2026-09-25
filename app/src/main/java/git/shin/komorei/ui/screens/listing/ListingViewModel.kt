@@ -42,7 +42,6 @@ class ListingViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val repository: AnimeRepository,
 ) : ViewModel() {
-
     private companion object {
         const val ARG_SOURCE_ID = "sourceId"
         const val ARG_LISTING = "listingArg"
@@ -52,12 +51,13 @@ class ListingViewModel @Inject constructor(
     val sourceId: String = savedStateHandle.get<String>(ARG_SOURCE_ID).orEmpty()
 
     /** The listing to page through (falls back to a generic one on a bad route). */
-    val listing: Listing = ListingArgCodec.decode(savedStateHandle.get<String>(ARG_LISTING))
-        ?: Listing(
-            id = "latest",
-            name = appContext.getString(R.string.listing_default_title),
-            kind = ListingKind.LIST,
-        )
+    val listing: Listing =
+        ListingArgCodec.decode(savedStateHandle.get<String>(ARG_LISTING))
+            ?: Listing(
+                id = "latest",
+                name = appContext.getString(R.string.listing_default_title),
+                kind = ListingKind.LIST,
+            )
 
     val listingName: String get() = listing.name
     val sourceName: String get() = repository.getSourceName(sourceId)
@@ -87,15 +87,19 @@ class ListingViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { current ->
-                if (reset) current.copy(isLoading = true, error = null)
-                else current.copy(isLoadingMore = true)
+                if (reset) {
+                    current.copy(isLoading = true, error = null)
+                } else {
+                    current.copy(isLoadingMore = true)
+                }
             }
             try {
                 val page = repository.getListing(sourceId, listing, loadedPage + 1)
                 _uiState.update { current ->
                     ListingUiState(
-                        items = (if (reset) page.entries else current.items + page.entries)
-                            .distinctBy { it.id },
+                        items =
+                            (if (reset) page.entries else current.items + page.entries)
+                                .distinctBy { it.id },
                         hasNextPage = page.hasNextPage,
                     )
                 }

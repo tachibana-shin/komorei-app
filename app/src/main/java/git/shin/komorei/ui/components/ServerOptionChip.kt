@@ -24,27 +24,27 @@ import git.shin.komorei.ui.tv.tvFocus
 fun ServerOptionChip(
     name: String,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            // TV focus highlight (no-op on phones).
-            .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.05f)
-            .clip(RoundedCornerShape(6.dp))
-            .background(if (isSelected) AnimeRedContainer else CardDark)
-            .border(
-                1.dp,
-                if (isSelected) AnimeRed else CardBorderDark,
-                RoundedCornerShape(6.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 7.dp)
+        modifier =
+            Modifier
+                // TV focus highlight (no-op on phones).
+                .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.05f)
+                .clip(RoundedCornerShape(6.dp))
+                .background(if (isSelected) AnimeRedContainer else CardDark)
+                .border(
+                    1.dp,
+                    if (isSelected) AnimeRed else CardBorderDark,
+                    RoundedCornerShape(6.dp),
+                ).clickable(onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 7.dp),
     ) {
         Text(
             text = name,
             color = if (isSelected) AnimeRed else TextSecondary,
             fontSize = 12.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
         )
     }
 }

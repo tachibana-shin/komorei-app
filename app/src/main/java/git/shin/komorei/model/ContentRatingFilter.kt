@@ -7,7 +7,9 @@ package git.shin.komorei.model
  * [repositoryValue] is what `AnimeRepository.searchMultiSource` receives:
  * `null` = no rating restriction, `0` = safe-only, `1` = 18+-only.
  */
-enum class ContentRatingFilter(val repositoryValue: Int?) {
+enum class ContentRatingFilter(
+    val repositoryValue: Int?,
+) {
     ALL(null),
     SAFE(0),
     NSFW(1),

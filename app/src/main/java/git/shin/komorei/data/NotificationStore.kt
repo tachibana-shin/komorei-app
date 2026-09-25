@@ -31,9 +31,10 @@ class NotificationStore @Inject constructor(
         get() = _notifications.value.count { !it.isRead }
 
     fun markRead(id: String) {
-        _notifications.value = _notifications.value.map { notification ->
-            if (notification.id == id) notification.copy(isRead = true) else notification
-        }
+        _notifications.value =
+            _notifications.value.map { notification ->
+                if (notification.id == id) notification.copy(isRead = true) else notification
+            }
     }
 
     fun markAllRead() {
@@ -49,46 +50,47 @@ class NotificationStore @Inject constructor(
         _notifications.value = seed()
     }
 
-    private fun seed(): List<AppNotification> = listOf(
-        AppNotification(
-            id = "n1",
-            type = NotificationType.NEW_EPISODE,
-            title = context.getString(R.string.notification_new_episode_title),
-            body = context.getString(R.string.notification_new_episode_body),
-            minutesAgo = 8,
-            isRead = false,
-        ),
-        AppNotification(
-            id = "n2",
-            type = NotificationType.NEW_EPISODE,
-            title = context.getString(R.string.notification_new_episode_title),
-            body = context.getString(R.string.notification_new_episode_body_2),
-            minutesAgo = 95,
-            isRead = false,
-        ),
-        AppNotification(
-            id = "n3",
-            type = NotificationType.SOURCE_UPDATE,
-            title = context.getString(R.string.notification_source_update_title),
-            body = context.getString(R.string.notification_source_update_body),
-            minutesAgo = 480,
-            isRead = false,
-        ),
-        AppNotification(
-            id = "n4",
-            type = NotificationType.SYSTEM,
-            title = context.getString(R.string.notification_system_title),
-            body = context.getString(R.string.notification_system_body),
-            minutesAgo = 1_500,
-            isRead = true,
-        ),
-        AppNotification(
-            id = "n5",
-            type = NotificationType.NEW_EPISODE,
-            title = context.getString(R.string.notification_new_episode_title),
-            body = context.getString(R.string.notification_new_episode_body_3),
-            minutesAgo = 4_320,
-            isRead = true,
-        ),
-    )
+    private fun seed(): List<AppNotification> =
+        listOf(
+            AppNotification(
+                id = "n1",
+                type = NotificationType.NEW_EPISODE,
+                title = context.getString(R.string.notification_new_episode_title),
+                body = context.getString(R.string.notification_new_episode_body),
+                minutesAgo = 8,
+                isRead = false,
+            ),
+            AppNotification(
+                id = "n2",
+                type = NotificationType.NEW_EPISODE,
+                title = context.getString(R.string.notification_new_episode_title),
+                body = context.getString(R.string.notification_new_episode_body_2),
+                minutesAgo = 95,
+                isRead = false,
+            ),
+            AppNotification(
+                id = "n3",
+                type = NotificationType.SOURCE_UPDATE,
+                title = context.getString(R.string.notification_source_update_title),
+                body = context.getString(R.string.notification_source_update_body),
+                minutesAgo = 480,
+                isRead = false,
+            ),
+            AppNotification(
+                id = "n4",
+                type = NotificationType.SYSTEM,
+                title = context.getString(R.string.notification_system_title),
+                body = context.getString(R.string.notification_system_body),
+                minutesAgo = 1_500,
+                isRead = true,
+            ),
+            AppNotification(
+                id = "n5",
+                type = NotificationType.NEW_EPISODE,
+                title = context.getString(R.string.notification_new_episode_title),
+                body = context.getString(R.string.notification_new_episode_body_3),
+                minutesAgo = 4_320,
+                isRead = true,
+            ),
+        )
 }

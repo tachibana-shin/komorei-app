@@ -39,7 +39,6 @@ import org.robolectric.annotation.Config
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class BackupScreenTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -50,9 +49,11 @@ class BackupScreenTest {
     fun setUp() {
         Dispatchers.setMain(mainDispatcher)
         val context = ApplicationProvider.getApplicationContext<Context>()
-        database = Room.inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java)
-            .allowMainThreadQueries()
-            .build()
+        database =
+            Room
+                .inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java)
+                .allowMainThreadQueries()
+                .build()
     }
 
     @After
@@ -84,16 +85,17 @@ class BackupScreenTest {
     private fun newViewModel(): BackupViewModel {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val host = KrxHostImpl(context)
-        val repository = BackupRepository(
-            context = context,
-            database = database,
-            animeDao = database.animeDao(),
-            defaultsDao = database.krxDefaultsDao(),
-            sourceStateStore = SourceStateStore(context),
-            searchHistoryStore = SearchHistoryStore(context),
-            sourceRegistry = KrxSourceRegistry(context, host),
-            codec = BackupCodec(),
-        )
+        val repository =
+            BackupRepository(
+                context = context,
+                database = database,
+                animeDao = database.animeDao(),
+                defaultsDao = database.krxDefaultsDao(),
+                sourceStateStore = SourceStateStore(context),
+                searchHistoryStore = SearchHistoryStore(context),
+                sourceRegistry = KrxSourceRegistry(context, host),
+                codec = BackupCodec(),
+            )
         val syncSettings = BackupSyncSettingsStore(context)
         val scheduler = BackupSyncScheduler(context, syncSettings)
         return BackupViewModel(repository, EmptyDriveApi, syncSettings, scheduler)
@@ -101,11 +103,16 @@ class BackupScreenTest {
 
     private object EmptyDriveApi : DriveBackupApi {
         override suspend fun findBackup(accessToken: String): RemoteDriveFile? = null
+
         override suspend fun uploadBackup(
             accessToken: String,
             bytes: ByteArray,
             existingId: String?,
         ): RemoteDriveFile = error("not used")
-        override suspend fun downloadBackup(accessToken: String, fileId: String): ByteArray? = null
+
+        override suspend fun downloadBackup(
+            accessToken: String,
+            fileId: String,
+        ): ByteArray? = null
     }
 }

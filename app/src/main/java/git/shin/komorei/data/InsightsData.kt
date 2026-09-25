@@ -114,13 +114,14 @@ data class InsightsData(
             }
 
             val (currentStreak, longestStreak) = streakLengths(byDay.keys, today, timeZone)
-            val years = byMonth.keys
-                .map { it.first }
-                .distinct()
-                .sortedDescending()
-                .map { year ->
-                    YearlyMonth(year, (1..12).map { month -> byMonth[year to month] ?: 0 })
-                }
+            val years =
+                byMonth.keys
+                    .map { it.first }
+                    .distinct()
+                    .sortedDescending()
+                    .map { year ->
+                        YearlyMonth(year, (1..12).map { month -> byMonth[year to month] ?: 0 })
+                    }
 
             val nowCalendar = calendar(timeZone).apply { timeInMillis = now }
             val currentYear = nowCalendar.get(Calendar.YEAR)
@@ -132,26 +133,27 @@ data class InsightsData(
                 longestStreak = longestStreak,
                 heatmap = Heatmap(range.startDay, heatmapValues),
                 years = years,
-                stats = listOf(
-                    SmallStat(
-                        total = rows.size,
-                        thisMonth = byMonth[currentMonth] ?: 0,
-                        thisYear = rows.count { yearOf(it.lastWatchedAt, timeZone) == currentYear },
-                        kind = SmallStat.Kind.EPISODES,
+                stats =
+                    listOf(
+                        SmallStat(
+                            total = rows.size,
+                            thisMonth = byMonth[currentMonth] ?: 0,
+                            thisYear = rows.count { yearOf(it.lastWatchedAt, timeZone) == currentYear },
+                            kind = SmallStat.Kind.EPISODES,
+                        ),
+                        SmallStat(
+                            total = allSeries.size,
+                            thisMonth = seriesByMonth[currentMonth]?.size ?: 0,
+                            thisYear = seriesByYear[currentYear]?.size ?: 0,
+                            kind = SmallStat.Kind.SERIES,
+                        ),
+                        SmallStat(
+                            total = (totalHoursMs / HOUR_MS).toInt(),
+                            thisMonth = ((hoursByMonth[currentMonth] ?: 0L) / HOUR_MS).toInt(),
+                            thisYear = ((hoursByYear[currentYear] ?: 0L) / HOUR_MS).toInt(),
+                            kind = SmallStat.Kind.HOURS,
+                        ),
                     ),
-                    SmallStat(
-                        total = allSeries.size,
-                        thisMonth = seriesByMonth[currentMonth]?.size ?: 0,
-                        thisYear = seriesByYear[currentYear]?.size ?: 0,
-                        kind = SmallStat.Kind.SERIES,
-                    ),
-                    SmallStat(
-                        total = (totalHoursMs / HOUR_MS).toInt(),
-                        thisMonth = ((hoursByMonth[currentMonth] ?: 0L) / HOUR_MS).toInt(),
-                        thisYear = ((hoursByYear[currentYear] ?: 0L) / HOUR_MS).toInt(),
-                        kind = SmallStat.Kind.HOURS,
-                    ),
-                ),
             )
         }
 
@@ -165,8 +167,10 @@ data class InsightsData(
             var previousMonth: Int? = null
             for (week in 0 until heatmap.weeks) {
                 val day = addDays(heatmap.startDayStartOfDay, week * 7, timeZone)
-                val month = calendar(timeZone).apply { timeInMillis = day }
-                    .get(Calendar.MONTH)
+                val month =
+                    calendar(timeZone)
+                        .apply { timeInMillis = day }
+                        .get(Calendar.MONTH)
                 if (month != previousMonth) {
                     // Adjacent one-week month labels are too cramped to read;
                     // Aidoku drops the earlier label in the same situation.
@@ -183,15 +187,23 @@ data class InsightsData(
         /** Short month label used by the heatmap and yearly chart. */
         fun monthLabel(monthIndex: Int): String {
             val symbols = DateFormatSymbols(Locale.getDefault()).shortMonths
-            val label = symbols.getOrNull(monthIndex.coerceIn(0, 11))
-                ?.takeIf { it.isNotBlank() }
-                .orEmpty()
+            val label =
+                symbols
+                    .getOrNull(monthIndex.coerceIn(0, 11))
+                    ?.takeIf { it.isNotBlank() }
+                    .orEmpty()
             return label.take(1)
         }
 
-        private data class HeatmapRange(val startDay: Long, val totalDays: Int)
+        private data class HeatmapRange(
+            val startDay: Long,
+            val totalDays: Int,
+        )
 
-        private fun heatmapRange(today: Long, timeZone: TimeZone): HeatmapRange {
+        private fun heatmapRange(
+            today: Long,
+            timeZone: TimeZone,
+        ): HeatmapRange {
             val earliest = addDays(today, -364, timeZone)
             val calendar = calendar(timeZone).apply { timeInMillis = earliest }
             val back = (calendar.get(Calendar.DAY_OF_WEEK) - calendar.firstDayOfWeek + 7) % 7
@@ -220,25 +232,35 @@ data class InsightsData(
             return if (longest >= 2) current to longest else 0 to 0
         }
 
-        private fun calendar(timeZone: TimeZone): Calendar =
-            Calendar.getInstance(timeZone).apply { isLenient = false }
+        private fun calendar(timeZone: TimeZone): Calendar = Calendar.getInstance(timeZone).apply { isLenient = false }
 
-        private fun startOfDay(timestamp: Long, timeZone: TimeZone): Long =
-            calendar(timeZone).apply {
-                timeInMillis = timestamp
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.timeInMillis
+        private fun startOfDay(
+            timestamp: Long,
+            timeZone: TimeZone,
+        ): Long =
+            calendar(timeZone)
+                .apply {
+                    timeInMillis = timestamp
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis
 
-        private fun yearOf(timestamp: Long, timeZone: TimeZone): Int =
-            calendar(timeZone).apply { timeInMillis = timestamp }.get(Calendar.YEAR)
+        private fun yearOf(
+            timestamp: Long,
+            timeZone: TimeZone,
+        ): Int = calendar(timeZone).apply { timeInMillis = timestamp }.get(Calendar.YEAR)
 
-        private fun addDays(timestamp: Long, days: Int, timeZone: TimeZone): Long =
-            calendar(timeZone).apply {
-                timeInMillis = timestamp
-                add(Calendar.DAY_OF_YEAR, days)
-            }.timeInMillis
+        private fun addDays(
+            timestamp: Long,
+            days: Int,
+            timeZone: TimeZone,
+        ): Long =
+            calendar(timeZone)
+                .apply {
+                    timeInMillis = timestamp
+                    add(Calendar.DAY_OF_YEAR, days)
+                }.timeInMillis
     }
 }

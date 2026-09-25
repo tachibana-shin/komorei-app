@@ -60,53 +60,59 @@ fun SearchResultsGrid(
 ) {
     when {
         // First-page load failure with nothing to show yet.
-        state.error != null && state.items.isEmpty() -> Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = stringResource(R.string.source_search_error),
-                    color = AnimeRed,
-                    fontSize = 14.sp,
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Surface(
-                    onClick = onRetry,
-                    color = AnimeRedContainer,
-                    shape = RoundedCornerShape(20.dp),
-                ) {
+        state.error != null && state.items.isEmpty() ->
+            Box(
+                modifier = modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = stringResource(R.string.action_retry),
+                        text = stringResource(R.string.source_search_error),
                         color = AnimeRed,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        fontSize = 14.sp,
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        onClick = onRetry,
+                        color = AnimeRedContainer,
+                        shape = RoundedCornerShape(20.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.action_retry),
+                            color = AnimeRed,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        )
+                    }
                 }
             }
-        }
 
-        state.isLoading && state.items.isEmpty() -> ListingGridSkeleton(
-            modifier = modifier.fillMaxSize(),
-        )
-
-        state.items.isEmpty() -> Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(R.string.no_results_title),
-                color = TextMuted,
-                fontSize = 14.sp,
+        state.isLoading && state.items.isEmpty() ->
+            ListingGridSkeleton(
+                modifier = modifier.fillMaxSize(),
             )
-        }
+
+        state.items.isEmpty() ->
+            Box(
+                modifier = modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.no_results_title),
+                    color = TextMuted,
+                    fontSize = 14.sp,
+                )
+            }
 
         else -> {
             val gridState = rememberLazyGridState()
             LaunchedEffect(gridState) {
-                snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
-                    .distinctUntilChanged()
+                snapshotFlow {
+                    gridState.layoutInfo.visibleItemsInfo
+                        .lastOrNull()
+                        ?.index ?: 0
+                }.distinctUntilChanged()
                     .collect { lastIndex ->
                         val total = gridState.layoutInfo.totalItemsCount
                         if (total > 0 && lastIndex >= total - 6) onLoadMore()
@@ -122,12 +128,13 @@ fun SearchResultsGrid(
                     LazyVerticalGrid(
                         columns = columns,
                         state = gridState,
-                        contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            top = 8.dp,
-                            bottom = 24.dp,
-                        ),
+                        contentPadding =
+                            PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 8.dp,
+                                bottom = 24.dp,
+                            ),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxSize().testTag("source_search_grid"),

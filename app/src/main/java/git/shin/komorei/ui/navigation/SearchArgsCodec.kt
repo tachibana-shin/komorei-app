@@ -19,10 +19,11 @@ import git.shin.komorei.model.FilterValueJsonAdapter
  * strings so the ViewModel round-trips them without a second decode.
  */
 object SearchArgsCodec {
-
-    private val moshi = Moshi.Builder()
-        .add(FilterValue::class.java, FilterValueJsonAdapter())
-        .build()
+    private val moshi =
+        Moshi
+            .Builder()
+            .add(FilterValue::class.java, FilterValueJsonAdapter())
+            .build()
     private val filtersAdapter: JsonAdapter<List<FilterValue>> =
         moshi.adapter(Types.newParameterizedType(List::class.java, FilterValue::class.java))
 
@@ -42,7 +43,8 @@ object SearchArgsCodec {
      * decoded the query argument.
      */
     fun fromJson(raw: String?): List<FilterValue> =
-        raw?.takeIf { it.isNotBlank() }
+        raw
+            ?.takeIf { it.isNotBlank() }
             ?.let { runCatching { filtersAdapter.fromJson(Uri.decode(it)) }.getOrNull() }
             ?: emptyList()
 }

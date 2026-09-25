@@ -9,8 +9,14 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
  * [git.shin.komorei.data.deeplink.DeepLinkResolver].
  */
 sealed interface ExternalDeepLinkRequest {
-    data class AddRepository(val url: String) : ExternalDeepLinkRequest
-    data class InstallSource(val url: String) : ExternalDeepLinkRequest
+    data class AddRepository(
+        val url: String,
+    ) : ExternalDeepLinkRequest
+
+    data class InstallSource(
+        val url: String,
+    ) : ExternalDeepLinkRequest
+
     data object Invalid : ExternalDeepLinkRequest
 }
 
@@ -27,23 +33,25 @@ sealed interface ExternalDeepLinkRequest {
  * Local paths, other custom schemes and malformed nested URLs are rejected.
  */
 object ExternalDeepLinkParser {
-    private val repositoryHosts = setOf(
-        "addsourcelist",
-        "add-source-list",
-        "addrepository",
-        "add-repository",
-        "addrepo",
-        "add-repo",
-        "repo",
-        "repository",
-    )
-    private val sourceHosts = setOf(
-        "addsource",
-        "add-source",
-        "installsource",
-        "install-source",
-        "install",
-    )
+    private val repositoryHosts =
+        setOf(
+            "addsourcelist",
+            "add-source-list",
+            "addrepository",
+            "add-repository",
+            "addrepo",
+            "add-repo",
+            "repo",
+            "repository",
+        )
+    private val sourceHosts =
+        setOf(
+            "addsource",
+            "add-source",
+            "installsource",
+            "install-source",
+            "install",
+        )
 
     fun parse(uri: Uri): ExternalDeepLinkRequest? {
         if (!uri.scheme.equals("komorei", ignoreCase = true)) return null
@@ -66,8 +74,9 @@ object ExternalDeepLinkParser {
     private fun String?.toRequest(
         factory: (String) -> ExternalDeepLinkRequest,
     ): ExternalDeepLinkRequest {
-        val normalized = this?.trim()?.toHttpUrlOrNull()?.toString()
-            ?: return ExternalDeepLinkRequest.Invalid
+        val normalized =
+            this?.trim()?.toHttpUrlOrNull()?.toString()
+                ?: return ExternalDeepLinkRequest.Invalid
         return factory(normalized)
     }
 }

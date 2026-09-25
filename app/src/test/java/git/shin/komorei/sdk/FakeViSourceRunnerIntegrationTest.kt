@@ -6,9 +6,9 @@ import git.shin.komorei.sdk.runner.DeepLinkResult
 import git.shin.komorei.sdk.runner.FilterKind
 import git.shin.komorei.sdk.runner.FilterValue
 import git.shin.komorei.sdk.runner.HostDefaultValue
+import git.shin.komorei.sdk.runner.LinkValue
 import git.shin.komorei.sdk.runner.Listing
 import git.shin.komorei.sdk.runner.ListingKind
-import git.shin.komorei.sdk.runner.LinkValue
 import git.shin.komorei.sdk.runner.StreamType
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -37,13 +37,13 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class FakeViSourceRunnerIntegrationTest {
-
     private lateinit var host: KrxHostImpl
     private lateinit var runner: git.shin.komorei.sdk.runner.KomoreiRunner
 
     companion object {
-        private val fakeKrx: String = System.getProperty("komorei.test.fakeKrx")
-            ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
+        private val fakeKrx: String =
+            System.getProperty("komorei.test.fakeKrx")
+                ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
     }
 
     @Before
@@ -97,42 +97,57 @@ class FakeViSourceRunnerIntegrationTest {
     @Test
     fun `genre and status filters narrow the catalog`() {
         // genre MultiSelect → only entries containing the genre
-        val action = runner.search(
-            null, 1,
-            listOf(FilterValue.MultiSelect("genres", listOf("Hành Động"), emptyList())),
-        ).entries
+        val action =
+            runner
+                .search(
+                    null,
+                    1,
+                    listOf(FilterValue.MultiSelect("genres", listOf("Hành Động"), emptyList())),
+                ).entries
         assertTrue(action.isNotEmpty())
         assertTrue(action.all { it.genres.any { g -> g.name == "Hành Động" } })
 
         // status Select → only Completed or Ongoing
-        val done = runner.search(
-            null, 1,
-            listOf(FilterValue.Select("status", "Hoàn thành")),
-        ).entries
+        val done =
+            runner
+                .search(
+                    null,
+                    1,
+                    listOf(FilterValue.Select("status", "Hoàn thành")),
+                ).entries
         assertTrue(done.isNotEmpty())
         assertTrue(done.all { it.status == AnimeStatus.COMPLETED })
 
-        val ongoing = runner.search(
-            null, 1,
-            listOf(FilterValue.Select("status", "Đang phát")),
-        ).entries
+        val ongoing =
+            runner
+                .search(
+                    null,
+                    1,
+                    listOf(FilterValue.Select("status", "Đang phát")),
+                ).entries
         assertEquals(4, ongoing.size)
         assertTrue(ongoing.all { it.status == AnimeStatus.ONGOING })
     }
 
     @Test
     fun `sort filter reorders by rating or views`() {
-        val byRating = runner.search(
-            null, 1,
-            listOf(FilterValue.Sort("sort", 0, ascending = false)),
-        ).entries
+        val byRating =
+            runner
+                .search(
+                    null,
+                    1,
+                    listOf(FilterValue.Sort("sort", 0, ascending = false)),
+                ).entries
         val ratings = byRating.map { it.rating!! }
         assertEquals(ratings.sortedDescending(), ratings)
 
-        val byViews = runner.search(
-            null, 1,
-            listOf(FilterValue.Sort("sort", 1, ascending = false)),
-        ).entries
+        val byViews =
+            runner
+                .search(
+                    null,
+                    1,
+                    listOf(FilterValue.Sort("sort", 1, ascending = false)),
+                ).entries
         val views = byViews.map { it.views }
         assertEquals(views.sortedDescending(), views)
     }
@@ -360,8 +375,20 @@ class FakeViSourceRunnerIntegrationTest {
         assertEquals(12, genreChips.v1.size)
         assertTrue(genreChips.v1.all { it.values != null })
         assertEquals(
-            listOf("Hành Động", "Chuyển Sinh", "Phiêu Lưu", "Harem", "Shounen", "Lãng Mạn",
-                "Siêu Nhiên", "Học Đường", "Hài Hước", "Bí Ẩn", "Giả Tưởng", "Mecha"),
+            listOf(
+                "Hành Động",
+                "Chuyển Sinh",
+                "Phiêu Lưu",
+                "Harem",
+                "Shounen",
+                "Lãng Mạn",
+                "Siêu Nhiên",
+                "Học Đường",
+                "Hài Hước",
+                "Bí Ẩn",
+                "Giả Tưởng",
+                "Mecha",
+            ),
             genreChips.v1.map { it.title },
         )
 
@@ -434,7 +461,12 @@ class FakeViSourceRunnerIntegrationTest {
 
     @Test
     fun `mappings convert fake source records to app models`() {
-        val lite = runner.search("Frieren", 1, emptyList()).entries.single().toAppModel()
+        val lite =
+            runner
+                .search("Frieren", 1, emptyList())
+                .entries
+                .single()
+                .toAppModel()
         assertEquals("frieren_journey", lite.id)
         assertEquals("Frieren: Pháp Sư Tiễn Táng", lite.title)
         assertTrue(lite.posterUrl.startsWith("https://images.unsplash.com/"))
@@ -450,9 +482,10 @@ class FakeViSourceRunnerIntegrationTest {
         assertEquals("Madhouse", full.studio?.name)
         assertEquals(git.shin.komorei.model.AnimeStatus.COMPLETED, full.status)
 
-        val modelStream = runner
-            .stream(bindingFull, bindingFull.episodes!!.first(), runner.streamList(bindingFull, bindingFull.episodes!!.first())[0])
-            .toAppModel()
+        val modelStream =
+            runner
+                .stream(bindingFull, bindingFull.episodes!!.first(), runner.streamList(bindingFull, bindingFull.episodes!!.first())[0])
+                .toAppModel()
         assertEquals(git.shin.komorei.model.StreamType.HLS, modelStream.type)
         assertEquals("https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", modelStream.url)
         assertTrue(modelStream.isContent)

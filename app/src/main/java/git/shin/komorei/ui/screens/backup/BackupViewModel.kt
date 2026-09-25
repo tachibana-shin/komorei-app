@@ -69,29 +69,39 @@ class BackupViewModel @Inject constructor(
         syncScheduler.runNow()
     }
 
-    fun createBackup(name: String?, options: BackupOptions) = runBusy(R.string.backup_created) {
+    fun createBackup(
+        name: String?,
+        options: BackupOptions,
+    ) = runBusy(R.string.backup_created) {
         repository.createLocalBackup(name, options)
     }
 
-    fun importUri(uri: android.net.Uri) = runBusy(R.string.backup_imported) {
-        repository.importUri(uri)
-    }
+    fun importUri(uri: android.net.Uri) =
+        runBusy(R.string.backup_imported) {
+            repository.importUri(uri)
+        }
 
-    fun importDriveBackup(bytes: ByteArray) = runBusy(R.string.backup_downloaded) {
-        repository.importBytes(bytes, "drive")
-    }
+    fun importDriveBackup(bytes: ByteArray) =
+        runBusy(R.string.backup_downloaded) {
+            repository.importBytes(bytes, "drive")
+        }
 
-    fun exportUri(fileName: String, uri: android.net.Uri) = runBusy(R.string.backup_exported) {
+    fun exportUri(
+        fileName: String,
+        uri: android.net.Uri,
+    ) = runBusy(R.string.backup_exported) {
         repository.exportToUri(fileName, uri)
     }
 
-    fun deleteBackup(fileName: String) = runBusy(R.string.backup_deleted) {
-        repository.delete(fileName)
-    }
+    fun deleteBackup(fileName: String) =
+        runBusy(R.string.backup_deleted) {
+            repository.delete(fileName)
+        }
 
-    fun restoreBackup(fileName: String) = runBusy(R.string.backup_restored) {
-        repository.restore(fileName)
-    }
+    fun restoreBackup(fileName: String) =
+        runBusy(R.string.backup_restored) {
+            repository.restore(fileName)
+        }
 
     fun markDriveConnected() {
         _state.value = _state.value.copy(driveConnected = true)
@@ -102,41 +112,53 @@ class BackupViewModel @Inject constructor(
     }
 
     /** Uploads a fresh local snapshot, replacing the appDataFolder file if present. */
-    fun uploadToDrive(accessToken: String, options: BackupOptions = BackupOptions()) = runBusy(
+    fun uploadToDrive(
+        accessToken: String,
+        options: BackupOptions = BackupOptions(),
+    ) = runBusy(
         R.string.backup_drive_uploaded,
     ) {
         val local = repository.createLocalBackup("drive", options)
         val bytes = repository.readBytes(local.fileName)
         val existing = driveApi.findBackup(accessToken)
-        val remote = try {
-            driveApi.uploadBackup(accessToken, bytes, existing?.id)
-        } catch (error: DriveApiException) {
-            if (existing == null || error.statusCode != 404) throw error
-            // A stale file id can be deleted from another device; recreate it.
-            driveApi.uploadBackup(accessToken, bytes, existingId = null)
-        }
+        val remote =
+            try {
+                driveApi.uploadBackup(accessToken, bytes, existing?.id)
+            } catch (error: DriveApiException) {
+                if (existing == null || error.statusCode != 404) throw error
+                // A stale file id can be deleted from another device; recreate it.
+                driveApi.uploadBackup(accessToken, bytes, existingId = null)
+            }
         syncSettingsStore.setBackupOptions(options)
         syncSettingsStore.markSuccess(remote.modifiedTime)
-        _state.value = _state.value.copy(
-            driveConnected = true,
-            lastDriveSyncAt = System.currentTimeMillis(),
-        )
+        _state.value =
+            _state.value.copy(
+                driveConnected = true,
+                lastDriveSyncAt = System.currentTimeMillis(),
+            )
     }
 
     /** Downloads the remote file into the local list; it is never restored implicitly. */
-    fun downloadFromDrive(accessToken: String) = runBusy(R.string.backup_downloaded) {
-        val remote = driveApi.findBackup(accessToken)
-            ?: throw DriveBackupNotFoundException()
-        val bytes = driveApi.downloadBackup(accessToken, remote.id)
-            ?: throw DriveBackupNotFoundException()
-        repository.importBytes(bytes, "drive")
-        _state.value = _state.value.copy(
-            driveConnected = true,
-            lastDriveSyncAt = System.currentTimeMillis(),
-        )
-    }
+    fun downloadFromDrive(accessToken: String) =
+        runBusy(R.string.backup_downloaded) {
+            val remote =
+                driveApi.findBackup(accessToken)
+                    ?: throw DriveBackupNotFoundException()
+            val bytes =
+                driveApi.downloadBackup(accessToken, remote.id)
+                    ?: throw DriveBackupNotFoundException()
+            repository.importBytes(bytes, "drive")
+            _state.value =
+                _state.value.copy(
+                    driveConnected = true,
+                    lastDriveSyncAt = System.currentTimeMillis(),
+                )
+        }
 
-    private fun <T> runBusy(message: Int, block: suspend () -> T) {
+    private fun <T> runBusy(
+        message: Int,
+        block: suspend () -> T,
+    ) {
         viewModelScope.launch {
             _state.value = _state.value.copy(busy = true)
             try {

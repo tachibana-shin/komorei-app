@@ -11,18 +11,22 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
-class BackupFormatException(message: String, cause: Throwable? = null) :
-    IllegalArgumentException(message, cause)
+class BackupFormatException(
+    message: String,
+    cause: Throwable? = null,
+) : IllegalArgumentException(message, cause)
 
 /** Versioned JSON codec for Komorei backup payloads. */
 @Singleton
 class BackupCodec @Inject constructor() {
-    private val moshi: Moshi = Moshi.Builder()
-        // Anime contains CategoryLink -> FilterValue, which is polymorphic and
-        // therefore cannot use Moshi's reflective adapter without these two.
-        .add(FilterKind::class.java, FilterKindJsonAdapter())
-        .add(FilterValue::class.java, FilterValueJsonAdapter())
-        .build()
+    private val moshi: Moshi =
+        Moshi
+            .Builder()
+            // Anime contains CategoryLink -> FilterValue, which is polymorphic and
+            // therefore cannot use Moshi's reflective adapter without these two.
+            .add(FilterKind::class.java, FilterKindJsonAdapter())
+            .add(FilterValue::class.java, FilterValueJsonAdapter())
+            .build()
 
     private val adapter: JsonAdapter<BackupPayload> =
         moshi.adapter(BackupPayload::class.java)
@@ -30,20 +34,20 @@ class BackupCodec @Inject constructor() {
     fun encode(payload: BackupPayload): String = adapter.indent("  ").toJson(payload)
 
     fun decode(json: String): BackupPayload {
-        val payload = try {
-            adapter.fromJson(json)
-        } catch (error: JsonDataException) {
-            throw BackupFormatException("Malformed Komorei backup", error)
-        } catch (error: IOException) {
-            throw BackupFormatException("Could not read Komorei backup", error)
-        } ?: throw BackupFormatException("Empty Komorei backup")
+        val payload =
+            try {
+                adapter.fromJson(json)
+            } catch (error: JsonDataException) {
+                throw BackupFormatException("Malformed Komorei backup", error)
+            } catch (error: IOException) {
+                throw BackupFormatException("Could not read Komorei backup", error)
+            } ?: throw BackupFormatException("Empty Komorei backup")
 
         validate(payload)
         return payload
     }
 
-    fun decode(bytes: ByteArray): BackupPayload =
-        decode(bytes.toString(Charsets.UTF_8))
+    fun decode(bytes: ByteArray): BackupPayload = decode(bytes.toString(Charsets.UTF_8))
 
     private fun validate(payload: BackupPayload) {
         if (payload.format != BackupFormat.NAME) {

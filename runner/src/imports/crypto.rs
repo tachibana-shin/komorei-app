@@ -18,7 +18,9 @@ pub fn register(linker: &mut Linker<RunnerData>) {
 	linker.func_wrap("crypto", "sha1", sha1).unwrap();
 	linker.func_wrap("crypto", "sha256", sha256).unwrap();
 	linker.func_wrap("crypto", "hmac_sha1", hmac_sha1).unwrap();
-	linker.func_wrap("crypto", "hmac_sha256", hmac_sha256).unwrap();
+	linker
+		.func_wrap("crypto", "hmac_sha256", hmac_sha256)
+		.unwrap();
 }
 
 fn md5(mut caller: Caller<'_, RunnerData>, ptr: u32, len: u32) -> i32 {
@@ -73,7 +75,10 @@ fn hmac_sha256(mut caller: Caller<'_, RunnerData>, p: u32, l: u32, kp: u32, kl: 
 }
 
 fn store_hex(caller: &mut Caller<'_, RunnerData>, bytes: &[u8]) -> i32 {
-	caller.data_mut().store.store_raw(to_hex(bytes).into_bytes())
+	caller
+		.data_mut()
+		.store
+		.store_raw(to_hex(bytes).into_bytes())
 }
 
 fn to_hex(bytes: &[u8]) -> String {

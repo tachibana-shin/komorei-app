@@ -5,7 +5,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.model.Listing
-import git.shin.komorei.model.Source
 import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
 import git.shin.komorei.ui.navigation.ListingArgCodec
@@ -17,7 +16,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -37,31 +35,35 @@ import java.io.File
 @Config(sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class ListingViewModelTest {
-
     private lateinit var repository: AnimeRepository
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     companion object {
-        private val fakeKrx: String = System.getProperty("komorei.test.fakeKrx")
-            ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
+        private val fakeKrx: String =
+            System.getProperty("komorei.test.fakeKrx")
+                ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
     }
 
     @Before
-    fun setUp() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val host = KrxHostImpl(context)
-        val registry = KrxSourceRegistry(context, host)
-        registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
-        repository = AnimeRepository(registry)
-        Dispatchers.setMain(mainDispatcher)
-    }
+    fun setUp() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val host = KrxHostImpl(context)
+            val registry = KrxSourceRegistry(context, host)
+            registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
+            repository = AnimeRepository(registry)
+            Dispatchers.setMain(mainDispatcher)
+        }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
     }
 
-    private fun newViewModel(sourceId: String = "vi.fake-source", listing: Listing = Listing(id = "test-listing", name = "Test Listing")): ListingViewModel =
+    private fun newViewModel(
+        sourceId: String = "vi.fake-source",
+        listing: Listing = Listing(id = "test-listing", name = "Test Listing"),
+    ): ListingViewModel =
         ListingViewModel(
             SavedStateHandle(mapOf("sourceId" to sourceId, "listing" to ListingArgCodec.encode(listing))),
             ApplicationProvider.getApplicationContext(),

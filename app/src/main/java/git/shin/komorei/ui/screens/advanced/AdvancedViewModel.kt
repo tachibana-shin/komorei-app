@@ -37,7 +37,6 @@ class AdvancedViewModel @Inject constructor(
     private val repository: AnimeRepository,
     private val imageLoader: ImageLoader,
 ) : ViewModel() {
-
     private val _messages = Channel<Int>(Channel.BUFFERED)
 
     /** One-shot string-resource ids to surface as a Toast. */

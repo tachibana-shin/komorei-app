@@ -69,126 +69,144 @@ fun DiscoverFilterHeaderRow(
     val languageOptions = remember(languages, allLanguagesLabel) { listOf(allLanguagesLabel) + languages.map { it.uppercase() } }
     val languageIds = remember(languages) { listOf(ALL_LANGUAGE) + languages }
 
-    val ratingOptions = listOf(
-        stringResource(R.string.discover_rating_all),
-        stringResource(R.string.discover_rating_safe),
-        stringResource(R.string.discover_rating_nsfw),
-    )
+    val ratingOptions =
+        listOf(
+            stringResource(R.string.discover_rating_all),
+            stringResource(R.string.discover_rating_safe),
+            stringResource(R.string.discover_rating_nsfw),
+        )
     val ratingIds = listOf(RATING_ALL, RATING_SAFE, RATING_NSFW)
 
     // The three global filters as hand-built Filter instances for the aggregate
     // sheet. Defaults mirror the immediate-commit pills: rating/language default
     // to "all", the sources multi-select defaults to ALL ids selected (emptying
     // the selection is "all sources" — the value is dropped when it matches).
-    val allFilters = listOf(
-        Filter(
-            id = FILTER_RATING,
-            title = ratingTitle,
-            kind = FilterKind.Select(
-                options = ratingOptions,
-                ids = ratingIds,
-                usesTagStyle = true,
-                default = RATING_ALL,
+    val allFilters =
+        listOf(
+            Filter(
+                id = FILTER_RATING,
+                title = ratingTitle,
+                kind =
+                    FilterKind.Select(
+                        options = ratingOptions,
+                        ids = ratingIds,
+                        usesTagStyle = true,
+                        default = RATING_ALL,
+                    ),
             ),
-        ),
-        Filter(
-            id = FILTER_LANGUAGE,
-            title = languageTitle,
-            kind = FilterKind.Select(
-                options = languageOptions,
-                ids = languageIds,
-                usesTagStyle = true,
-                default = ALL_LANGUAGE,
+            Filter(
+                id = FILTER_LANGUAGE,
+                title = languageTitle,
+                kind =
+                    FilterKind.Select(
+                        options = languageOptions,
+                        ids = languageIds,
+                        usesTagStyle = true,
+                        default = ALL_LANGUAGE,
+                    ),
             ),
-        ),
-        Filter(
-            id = FILTER_SOURCES,
-            title = sourceTitle,
-            kind = FilterKind.MultiSelect(
-                options = sources.map { it.name },
-                ids = sources.map { it.id },
-                usesTagStyle = true,
-                canExclude = false,
-                defaultIncluded = sources.map { it.id },
+            Filter(
+                id = FILTER_SOURCES,
+                title = sourceTitle,
+                kind =
+                    FilterKind.MultiSelect(
+                        options = sources.map { it.name },
+                        ids = sources.map { it.id },
+                        usesTagStyle = true,
+                        canExclude = false,
+                        defaultIncluded = sources.map { it.id },
+                    ),
             ),
-        ),
-    )
+        )
 
     // Applied (red) pills sort to the front — the sources multi-select jumps
     // ahead of rating/language the more sources are chosen, while inactive
     // pills keep the curated rating → language → sources order.
-    val pillsInOrder = listOf(
-        "rating" to if (contentRating != ContentRatingFilter.ALL) 1 else 0,
-        "language" to if (language != null) 1 else 0,
-        "sources" to includedSourceIds.size,
-    ).sortedWith { a, b ->
-        val aApplied = a.second > 0
-        val bApplied = b.second > 0
-        when {
-            aApplied != bApplied -> if (aApplied) -1 else 1
-            a.second != b.second -> b.second.compareTo(a.second)
-            else -> 0
+    val pillsInOrder =
+        listOf(
+            "rating" to if (contentRating != ContentRatingFilter.ALL) 1 else 0,
+            "language" to if (language != null) 1 else 0,
+            "sources" to includedSourceIds.size,
+        ).sortedWith { a, b ->
+            val aApplied = a.second > 0
+            val bApplied = b.second > 0
+            when {
+                aApplied != bApplied -> if (aApplied) -1 else 1
+                a.second != b.second -> b.second.compareTo(a.second)
+                else -> 0
+            }
         }
-    }
 
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(bottom = 12.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
     ) {
         item(key = "_sheet") {
             FilterSheetButton(
-                enabledCount = activeFilterCount(
-                    discoverEnabledValues(contentRating, language, includedSourceIds),
-                ),
+                enabledCount =
+                    activeFilterCount(
+                        discoverEnabledValues(contentRating, language, includedSourceIds),
+                    ),
                 onClick = { showAll = true },
                 modifier = Modifier.testTag("filter_sheet_button"),
             )
         }
         items(pillsInOrder, key = { it.first }) { (key, _) ->
             when (key) {
-                "rating" -> FilterPill(
-                    name = when (contentRating) {
-                        ContentRatingFilter.ALL -> ratingTitle
-                        ContentRatingFilter.SAFE -> stringResource(
-                            R.string.discover_filter_value_format,
-                            ratingTitle,
-                            stringResource(R.string.discover_rating_safe),
-                        )
-                        ContentRatingFilter.NSFW -> stringResource(
-                            R.string.discover_filter_value_format,
-                            ratingTitle,
-                            stringResource(R.string.discover_rating_nsfw),
-                        )
-                    },
-                    active = contentRating != ContentRatingFilter.ALL,
-                    onClick = { showRating = true },
-                    testTag = "filter_rating_pill",
-                    // Springs the pill between LazyRow slots on reorder.
-                    modifier = Modifier.animateItem(),
-                )
-                "language" -> FilterPill(
-                    name = if (language == null) languageTitle
-                    else stringResource(
-                        R.string.discover_filter_value_format,
-                        languageTitle,
-                        language.uppercase(),
-                    ),
-                    active = language != null,
-                    onClick = { showLanguage = true },
-                    testTag = "filter_language_pill",
-                    modifier = Modifier.animateItem(),
-                )
-                "sources" -> FilterPill(
-                    name = sourceTitle,
-                    active = includedSourceIds.isNotEmpty(),
-                    badgeCount = includedSourceIds.size,
-                    onClick = { showSources = true },
-                    testTag = "filter_sources_pill",
-                    modifier = Modifier.animateItem(),
-                )
+                "rating" ->
+                    FilterPill(
+                        name =
+                            when (contentRating) {
+                                ContentRatingFilter.ALL -> ratingTitle
+                                ContentRatingFilter.SAFE ->
+                                    stringResource(
+                                        R.string.discover_filter_value_format,
+                                        ratingTitle,
+                                        stringResource(R.string.discover_rating_safe),
+                                    )
+                                ContentRatingFilter.NSFW ->
+                                    stringResource(
+                                        R.string.discover_filter_value_format,
+                                        ratingTitle,
+                                        stringResource(R.string.discover_rating_nsfw),
+                                    )
+                            },
+                        active = contentRating != ContentRatingFilter.ALL,
+                        onClick = { showRating = true },
+                        testTag = "filter_rating_pill",
+                        // Springs the pill between LazyRow slots on reorder.
+                        modifier = Modifier.animateItem(),
+                    )
+                "language" ->
+                    FilterPill(
+                        name =
+                            if (language == null) {
+                                languageTitle
+                            } else {
+                                stringResource(
+                                    R.string.discover_filter_value_format,
+                                    languageTitle,
+                                    language.uppercase(),
+                                )
+                            },
+                        active = language != null,
+                        onClick = { showLanguage = true },
+                        testTag = "filter_language_pill",
+                        modifier = Modifier.animateItem(),
+                    )
+                "sources" ->
+                    FilterPill(
+                        name = sourceTitle,
+                        active = includedSourceIds.isNotEmpty(),
+                        badgeCount = includedSourceIds.size,
+                        onClick = { showSources = true },
+                        testTag = "filter_sources_pill",
+                        modifier = Modifier.animateItem(),
+                    )
                 else -> Unit
             }
         }
@@ -213,16 +231,18 @@ fun DiscoverFilterHeaderRow(
             onReset = { onContentRatingChange(ContentRatingFilter.ALL) },
         ) {
             SelectFilterGroup(
-                kind = FilterKind.Select(
-                    options = ratingOptions,
-                    ids = listOf(RATING_ALL, RATING_SAFE, RATING_NSFW),
-                    usesTagStyle = true,
-                ),
-                selected = when (contentRating) {
-                    ContentRatingFilter.ALL -> RATING_ALL
-                    ContentRatingFilter.SAFE -> RATING_SAFE
-                    ContentRatingFilter.NSFW -> RATING_NSFW
-                },
+                kind =
+                    FilterKind.Select(
+                        options = ratingOptions,
+                        ids = listOf(RATING_ALL, RATING_SAFE, RATING_NSFW),
+                        usesTagStyle = true,
+                    ),
+                selected =
+                    when (contentRating) {
+                        ContentRatingFilter.ALL -> RATING_ALL
+                        ContentRatingFilter.SAFE -> RATING_SAFE
+                        ContentRatingFilter.NSFW -> RATING_NSFW
+                    },
                 onSelect = { value ->
                     onContentRatingChange(
                         when (value) {
@@ -244,11 +264,12 @@ fun DiscoverFilterHeaderRow(
             onReset = { onLanguageChange(null) },
         ) {
             SelectFilterGroup(
-                kind = FilterKind.Select(
-                    options = languageOptions,
-                    ids = languageIds,
-                    usesTagStyle = true,
-                ),
+                kind =
+                    FilterKind.Select(
+                        options = languageOptions,
+                        ids = languageIds,
+                        usesTagStyle = true,
+                    ),
                 selected = language ?: ALL_LANGUAGE,
                 onSelect = { value ->
                     onLanguageChange(value.takeIf { it != ALL_LANGUAGE })
@@ -265,16 +286,21 @@ fun DiscoverFilterHeaderRow(
             onReset = { onSourcesChange(emptySet()) },
         ) {
             MultiSelectFilterGroup(
-                kind = FilterKind.MultiSelect(
-                    options = sources.map { it.name },
-                    ids = sources.map { it.id },
-                    usesTagStyle = true,
-                    canExclude = false,
-                ),
+                kind =
+                    FilterKind.MultiSelect(
+                        options = sources.map { it.name },
+                        ids = sources.map { it.id },
+                        usesTagStyle = true,
+                        canExclude = false,
+                    ),
                 // Empty selection means "all sources" → render every source as
                 // selected in the sheet so the default state reads correctly.
-                included = if (includedSourceIds.isEmpty()) sources.map { it.id }
-                else includedSourceIds.toList(),
+                included =
+                    if (includedSourceIds.isEmpty()) {
+                        sources.map { it.id }
+                    } else {
+                        includedSourceIds.toList()
+                    },
                 excluded = emptyList(),
                 onToggle = { newIncluded, _ ->
                     onSourcesChange(newIncluded.toSet())
@@ -292,21 +318,23 @@ private fun discoverEnabledValues(
     contentRating: ContentRatingFilter,
     language: String?,
     includedSourceIds: Set<String>,
-): List<FilterValue> = buildList {
-    if (contentRating != ContentRatingFilter.ALL) {
-        add(FilterValue.Select(FILTER_RATING, ratingFilterId(contentRating)))
+): List<FilterValue> =
+    buildList {
+        if (contentRating != ContentRatingFilter.ALL) {
+            add(FilterValue.Select(FILTER_RATING, ratingFilterId(contentRating)))
+        }
+        if (language != null) add(FilterValue.Select(FILTER_LANGUAGE, language))
+        if (includedSourceIds.isNotEmpty()) {
+            add(FilterValue.MultiSelect(FILTER_SOURCES, includedSourceIds.toList(), emptyList()))
+        }
     }
-    if (language != null) add(FilterValue.Select(FILTER_LANGUAGE, language))
-    if (includedSourceIds.isNotEmpty()) {
-        add(FilterValue.MultiSelect(FILTER_SOURCES, includedSourceIds.toList(), emptyList()))
-    }
-}
 
-private fun ratingFilterId(rating: ContentRatingFilter): String = when (rating) {
-    ContentRatingFilter.ALL -> RATING_ALL
-    ContentRatingFilter.SAFE -> RATING_SAFE
-    ContentRatingFilter.NSFW -> RATING_NSFW
-}
+private fun ratingFilterId(rating: ContentRatingFilter): String =
+    when (rating) {
+        ContentRatingFilter.ALL -> RATING_ALL
+        ContentRatingFilter.SAFE -> RATING_SAFE
+        ContentRatingFilter.NSFW -> RATING_NSFW
+    }
 
 /** Applies the aggregate sheet's committed values back to the three callbacks. */
 private fun applyDiscoverFilterValues(
@@ -320,17 +348,21 @@ private fun applyDiscoverFilterValues(
     var sourceIds = emptySet<String>()
     for (value in values) {
         when (value) {
-            is FilterValue.Select -> when (value.id) {
-                FILTER_RATING -> rating = when (value.value) {
-                    RATING_SAFE -> ContentRatingFilter.SAFE
-                    RATING_NSFW -> ContentRatingFilter.NSFW
-                    else -> ContentRatingFilter.ALL
+            is FilterValue.Select ->
+                when (value.id) {
+                    FILTER_RATING ->
+                        rating =
+                            when (value.value) {
+                                RATING_SAFE -> ContentRatingFilter.SAFE
+                                RATING_NSFW -> ContentRatingFilter.NSFW
+                                else -> ContentRatingFilter.ALL
+                            }
+                    FILTER_LANGUAGE -> language = value.value
                 }
-                FILTER_LANGUAGE -> language = value.value
-            }
-            is FilterValue.MultiSelect -> if (value.id == FILTER_SOURCES) {
-                sourceIds = value.included.toSet()
-            }
+            is FilterValue.MultiSelect ->
+                if (value.id == FILTER_SOURCES) {
+                    sourceIds = value.included.toSet()
+                }
             else -> Unit
         }
     }

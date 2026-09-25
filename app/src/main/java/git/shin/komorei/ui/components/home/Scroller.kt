@@ -39,14 +39,14 @@ fun ScrollerRow(
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             items(items = animes, key = { it.id }) { anime ->
                 AnimeCard(
                     anime = anime,
                     onClick = { onAnimeClick(anime) },
                     modifier = Modifier.width(110.dp),
-                    getSourceName = getSourceName
+                    getSourceName = getSourceName,
                 )
             }
         }

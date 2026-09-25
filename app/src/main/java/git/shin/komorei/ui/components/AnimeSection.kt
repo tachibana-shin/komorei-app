@@ -27,17 +27,18 @@ fun AnimeSection(
     isGrid: Boolean = false,
     icon: ImageVector? = null,
     rightContent: (@Composable () -> Unit)? = null,
-    getSourceName: (String) -> String = { it }
+    getSourceName: (String) -> String = { it },
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(if (!isGrid) Modifier.padding(vertical = 10.dp) else Modifier)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .then(if (!isGrid) Modifier.padding(vertical = 10.dp) else Modifier),
     ) {
         SectionHeader(
             title = title,
             icon = icon,
-            rightContent = rightContent
+            rightContent = rightContent,
         )
 
         if (isGrid) {
@@ -50,13 +51,13 @@ fun AnimeSection(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     items(items = animeList, key = { it.id }) { anime ->
                         AnimeCard(
                             anime = anime,
                             onClick = { onAnimeClick(anime) },
-                            getSourceName = getSourceName
+                            getSourceName = getSourceName,
                         )
                     }
                 }
@@ -66,14 +67,14 @@ fun AnimeSection(
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 items(items = animeList, key = { it.id }) { anime ->
                     AnimeCard(
                         anime = anime,
                         onClick = { onAnimeClick(anime) },
                         modifier = Modifier.width(110.dp),
-                        getSourceName = getSourceName
+                        getSourceName = getSourceName,
                     )
                 }
             }

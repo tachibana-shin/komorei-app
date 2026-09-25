@@ -41,24 +41,24 @@ import git.shin.komorei.ui.deeplink.DeepLinkAction
 import git.shin.komorei.ui.deeplink.DeepLinkViewModel
 import git.shin.komorei.ui.navigation.Screen
 import git.shin.komorei.ui.navigation.mainTabs
-import git.shin.komorei.ui.player.PlayerViewModel
 import git.shin.komorei.ui.player.PlayerSheetValue
+import git.shin.komorei.ui.player.PlayerViewModel
 import git.shin.komorei.ui.player.VideoPlayerSheet
+import git.shin.komorei.ui.screens.about.AboutScreen
+import git.shin.komorei.ui.screens.advanced.AdvancedScreen
+import git.shin.komorei.ui.screens.backup.BackupScreen
 import git.shin.komorei.ui.screens.home.HomeScreen
 import git.shin.komorei.ui.screens.home.HomeViewModel
+import git.shin.komorei.ui.screens.insights.InsightsScreen
 import git.shin.komorei.ui.screens.library.LibraryScreen
 import git.shin.komorei.ui.screens.listing.ListingScreen
+import git.shin.komorei.ui.screens.logs.LogsScreen
 import git.shin.komorei.ui.screens.notifications.NotificationsScreen
 import git.shin.komorei.ui.screens.search.SearchDiscoveryScreen
 import git.shin.komorei.ui.screens.search.SourceSearchScreen
 import git.shin.komorei.ui.screens.settings.SettingsScreen
-import git.shin.komorei.ui.screens.source.SourceHomeScreen
-import git.shin.komorei.ui.screens.advanced.AdvancedScreen
-import git.shin.komorei.ui.screens.about.AboutScreen
-import git.shin.komorei.ui.screens.backup.BackupScreen
-import git.shin.komorei.ui.screens.insights.InsightsScreen
-import git.shin.komorei.ui.screens.logs.LogsScreen
 import git.shin.komorei.ui.screens.source.SourceBrowserScreen
+import git.shin.komorei.ui.screens.source.SourceHomeScreen
 import git.shin.komorei.ui.screens.source.SourceSettingsScreen
 import git.shin.komorei.ui.screens.sources.SourceReposScreen
 import git.shin.komorei.ui.screens.sources.SourcesScreen
@@ -80,7 +80,7 @@ fun MainScreen(
     // the start destination. The remaining routes are only composed once the
     // user navigates to them and keep their own `hiltViewModel()` defaults.
     homeViewModel: HomeViewModel = hiltViewModel(),
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Home.route
@@ -113,9 +113,12 @@ fun MainScreen(
     // raised above this in MiniPlayerGeometry. 0 on wide screens (rail on the left).
     var bottomBarHeightDp by remember { mutableStateOf(0.dp) }
 
-    BoxWithConstraints(modifier = Modifier
-        .fillMaxSize()
-        .background(BackgroundDark)) {
+    BoxWithConstraints(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(BackgroundDark),
+    ) {
         val isWideScreen = maxWidth > 600.dp
         val isPlayerExpanded = playbackState.sheetValue == PlayerSheetValue.EXPANDED
         val isFullscreen = playbackState.isFullscreen
@@ -171,7 +174,7 @@ fun MainScreen(
                                 },
                                 onOpenSourceSearch = { sourceId, query ->
                                     navController.navigate(
-                                        Screen.SourceSearch.createRoute(sourceId, query, emptyList())
+                                        Screen.SourceSearch.createRoute(sourceId, query, emptyList()),
                                     )
                                 },
                             )
@@ -188,7 +191,7 @@ fun MainScreen(
                             // Settings (and the other top-level tabs) from it.
                             visible = !isPlayerExpanded && !isFullscreen && !isListingRoute && !isSourceReposRoute && !isSourceSettingsRoute && !isSourceSearchRoute && !isNotificationsRoute && !isSettingsSubPageRoute,
                             enter = slideInVertically(initialOffsetY = { it }),
-                            exit = slideOutVertically(targetOffsetY = { it })
+                            exit = slideOutVertically(targetOffsetY = { it }),
                         ) {
                             MainBottomNavigation(
                                 tabs = mainTabs,
@@ -206,7 +209,7 @@ fun MainScreen(
                         }
                     },
                     contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 ) { innerPadding ->
                     val actualBottomNavHeight = innerPadding.calculateBottomPadding()
                     bottomBarHeightDp = actualBottomNavHeight
@@ -215,9 +218,10 @@ fun MainScreen(
                         // Screen contents padded so last list items are never cut off behind the bottom bar
                         // (the collapsed floating mini player is an overlay — content scrolls under it)
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(bottom = if (isFullscreen) 0.dp else actualBottomNavHeight)
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(bottom = if (isFullscreen) 0.dp else actualBottomNavHeight),
                         ) {
                             MainNavigationHost(
                                 navController = navController,
@@ -231,7 +235,7 @@ fun MainScreen(
                                 },
                                 onOpenSourceSearch = { sourceId, query ->
                                     navController.navigate(
-                                        Screen.SourceSearch.createRoute(sourceId, query, emptyList())
+                                        Screen.SourceSearch.createRoute(sourceId, query, emptyList()),
                                     )
                                 },
                             )
@@ -249,7 +253,7 @@ fun MainScreen(
                         // navController.navigate(...)
                     },
                     // Mini player corners sit above the bottom toolbar (0 on wide screens).
-                    bottomToolbarPadding = bottomBarHeightDp
+                    bottomToolbarPadding = bottomBarHeightDp,
                 )
             }
 
@@ -281,12 +285,12 @@ fun MainNavigationHost(
     onOpenListing: (sourceId: String, listing: git.shin.komorei.model.Listing) -> Unit = { _, _ -> },
     onOpenSearch: (sourceId: String) -> Unit = {},
     onOpenSourceSearch: (sourceId: String, query: String) -> Unit = { _, _ -> },
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     NavHost(
         navController = navController,
         startDestination = Screen.Home.route,
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize(),
     ) {
         composable(Screen.Home.route) {
             HomeScreen(
@@ -316,9 +320,10 @@ fun MainNavigationHost(
         }
         composable(
             route = Screen.SourceHome.route,
-            arguments = listOf(
-                navArgument("sourceId") { type = NavType.StringType },
-            ),
+            arguments =
+                listOf(
+                    navArgument("sourceId") { type = NavType.StringType },
+                ),
         ) { entry ->
             SourceHomeScreen(
                 sourceId = entry.arguments?.getString("sourceId").orEmpty(),
@@ -333,11 +338,18 @@ fun MainNavigationHost(
         }
         composable(
             route = Screen.SourceSearch.route,
-            arguments = listOf(
-                navArgument("sourceId") { type = NavType.StringType },
-                navArgument("query") { type = NavType.StringType; defaultValue = "" },
-                navArgument("filters") { type = NavType.StringType; defaultValue = "" },
-            ),
+            arguments =
+                listOf(
+                    navArgument("sourceId") { type = NavType.StringType },
+                    navArgument("query") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                    navArgument("filters") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                ),
         ) { entry ->
             SourceSearchScreen(
                 sourceId = entry.arguments?.getString("sourceId").orEmpty(),
@@ -347,9 +359,10 @@ fun MainNavigationHost(
         }
         composable(
             route = Screen.SourceSettings.route,
-            arguments = listOf(
-                navArgument("sourceId") { type = NavType.StringType },
-            ),
+            arguments =
+                listOf(
+                    navArgument("sourceId") { type = NavType.StringType },
+                ),
         ) { entry ->
             SourceSettingsScreen(
                 onBack = { navController.popBackStack() },
@@ -361,10 +374,11 @@ fun MainNavigationHost(
         }
         composable(
             route = Screen.SourceBrowser.route,
-            arguments = listOf(
-                navArgument("sourceId") { type = NavType.StringType },
-                navArgument("url") { type = NavType.StringType },
-            ),
+            arguments =
+                listOf(
+                    navArgument("sourceId") { type = NavType.StringType },
+                    navArgument("url") { type = NavType.StringType },
+                ),
         ) { entry ->
             SourceBrowserScreen(
                 initialUrl = entry.arguments?.getString("url").orEmpty(),
@@ -406,10 +420,11 @@ fun MainNavigationHost(
         }
         composable(
             route = Screen.Listing.route,
-            arguments = listOf(
-                navArgument("sourceId") { type = NavType.StringType },
-                navArgument("listingArg") { type = NavType.StringType },
-            ),
+            arguments =
+                listOf(
+                    navArgument("sourceId") { type = NavType.StringType },
+                    navArgument("listingArg") { type = NavType.StringType },
+                ),
         ) {
             ListingScreen(
                 onAnimeClick = onAnimeSelect,

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -54,7 +53,6 @@ import git.shin.komorei.ui.components.SourceIcon
 import git.shin.komorei.ui.components.SourceTabBar
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
-import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
 import git.shin.komorei.ui.tv.TvInitialFocus
 import git.shin.komorei.ui.tv.tvFocus
@@ -80,56 +78,63 @@ fun HomeScreen(
     val sourceTabFocusRequester = remember { FocusRequester() }
     TvInitialFocus(sourceTabFocusRequester)
 
-    val sourcePagerState = rememberPagerState(
-        initialPage = 0,
-        pageCount = { sources.size }
-    )
+    val sourcePagerState =
+        rememberPagerState(
+            initialPage = 0,
+            pageCount = { sources.size },
+        )
     val currentSourceIndex = sourcePagerState.currentPage
     val activeSource = sources.getOrNull(currentSourceIndex) ?: return
 
     // YouTube-style collapsible header & sticky tabbar state
     var isHeaderVisible by remember { mutableStateOf(true) }
 
-    val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < -15f) {
-                    // Scrolling DOWN -> Hide top header logo, keep source tabbar sticky
-                    isHeaderVisible = false
-                } else if (available.y > 15f) {
-                    // Scrolling UP -> Reveal top header logo smoothly
-                    isHeaderVisible = true
+    val nestedScrollConnection =
+        remember {
+            object : NestedScrollConnection {
+                override fun onPreScroll(
+                    available: Offset,
+                    source: NestedScrollSource,
+                ): Offset {
+                    if (available.y < -15f) {
+                        // Scrolling DOWN -> Hide top header logo, keep source tabbar sticky
+                        isHeaderVisible = false
+                    } else if (available.y > 15f) {
+                        // Scrolling UP -> Reveal top header logo smoothly
+                        isHeaderVisible = true
+                    }
+                    return Offset.Zero
                 }
-                return Offset.Zero
             }
         }
-    }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
-            .nestedScroll(nestedScrollConnection)
-            .testTag("home_screen")
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding()
+                .nestedScroll(nestedScrollConnection)
+                .testTag("home_screen"),
     ) {
         // Collapsible Top Brand Row (Collapses on scroll down like YouTube)
         AnimatedVisibility(
             visible = isHeaderVisible,
             enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+            exit = shrinkVertically() + fadeOut(),
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     imageVector = Icons.Default.LocalFireDepartment,
                     contentDescription = stringResource(R.string.cd_app_logo),
                     tint = AnimeRed,
-                    modifier = Modifier.size(26.dp)
+                    modifier = Modifier.size(26.dp),
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
@@ -137,14 +142,14 @@ fun HomeScreen(
                     color = TextPrimary,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.5.sp,
                 )
                 Text(
                     text = stringResource(R.string.brand_rei),
                     color = AnimeRed,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.5.sp,
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -152,12 +157,12 @@ fun HomeScreen(
                 // Active Source indicator badge with Icon widget
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .background(
-                            color = AnimeRed.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(6.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                    modifier =
+                        Modifier
+                            .background(
+                                color = AnimeRed.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(6.dp),
+                            ).padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
                     SourceIcon(
                         source = activeSource,
@@ -171,7 +176,7 @@ fun HomeScreen(
                         text = activeSource.name,
                         color = AnimeRed,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                 }
 
@@ -180,17 +185,18 @@ fun HomeScreen(
                 // Notification inbox (moved off the bottom bar into the Home header)
                 IconButton(
                     onClick = onOpenNotifications,
-                    modifier = Modifier
-                        // TV focus highlight (no-op on phones).
-                        .tvFocus(shape = CircleShape, scale = 1.15f)
-                        .size(32.dp)
-                        .testTag("home_notifications_button"),
+                    modifier =
+                        Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = CircleShape, scale = 1.15f)
+                            .size(32.dp)
+                            .testTag("home_notifications_button"),
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.NotificationsNone,
                         contentDescription = stringResource(R.string.notifications_title),
                         tint = TextPrimary,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(22.dp),
                     )
                 }
             }
@@ -205,16 +211,17 @@ fun HomeScreen(
                 coroutineScope.launch {
                     sourcePagerState.animateScrollToPage(index)
                 }
-            }
+            },
         )
 
         // HORIZONTAL PAGER: Vuốt ngang chuyển nguồn
         HorizontalPager(
             state = sourcePagerState,
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .testTag("home_source_pager")
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .testTag("home_source_pager"),
         ) { pageIndex ->
             val source = sources[pageIndex]
             val sourceData = sourceDataMap[source.id] ?: SourceHomeData(isLoading = true)

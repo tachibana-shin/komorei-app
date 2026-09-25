@@ -6,7 +6,7 @@ import com.squareup.moshi.JsonClass
 data class StreamInfo(
     val id: String,
     val name: String,
-    val quality: String
+    val quality: String,
 )
 
 /**
@@ -16,7 +16,7 @@ data class StreamInfo(
 @JsonClass(generateAdapter = true)
 data class RangeLong(
     val startMs: Long,
-    val endMs: Long
+    val endMs: Long,
 )
 
 /**
@@ -33,7 +33,7 @@ data class StreamData(
     val isContent: Boolean = false,
     val subtitles: List<SubtitleInfo> = emptyList(),
     val intro: RangeLong? = null,
-    val outro: RangeLong? = null
+    val outro: RangeLong? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -45,9 +45,12 @@ data class SubtitleInfo(
     // (media3 1.11) carries no per-subtitle header API, so subtitle requests ride the
     // shared data source factory which already applies [StreamData.headers]; kept for
     // sources that resolve subtitles through their own channel.
-    val headers: Map<String, String> = emptyMap()
+    val headers: Map<String, String> = emptyMap(),
 )
 
 enum class StreamType {
-    HLS, MP4, DASH, OTHER
+    HLS,
+    MP4,
+    DASH,
+    OTHER,
 }

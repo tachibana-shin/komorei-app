@@ -13,8 +13,14 @@ import git.shin.komorei.model.Source
  */
 sealed interface SourceSearchEvent {
     /** A source that loaded and ran its search (results may still be empty). */
-    data class Completed(val source: Source, val results: List<Anime>) : SourceSearchEvent
+    data class Completed(
+        val source: Source,
+        val results: List<Anime>,
+    ) : SourceSearchEvent
 
     /** A source that could not be loaded / ran (message carries the reason). */
-    data class Failed(val source: Source, val message: String) : SourceSearchEvent
+    data class Failed(
+        val source: Source,
+        val message: String,
+    ) : SourceSearchEvent
 }

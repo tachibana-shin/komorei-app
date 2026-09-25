@@ -59,24 +59,23 @@ fun SortFilterGroup(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
-                modifier = Modifier
-                    // TV focus highlight (no-op on phones).
-                    .tvFocus(shape = shape, scale = 1.06f)
-                    .clip(shape)
-                    .background(if (selected) AnimeRed else SurfaceDark)
-                    .border(
-                        width = 1.dp,
-                        color = if (selected) AnimeRed else CardBorderDark,
-                        shape = shape,
-                    )
-                    .clickable {
-                        if (selected && kind.canAscend) {
-                            onOptionChange(index, !ascending)
-                        } else {
-                            onOptionChange(index, false)
-                        }
-                    }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                modifier =
+                    Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = shape, scale = 1.06f)
+                        .clip(shape)
+                        .background(if (selected) AnimeRed else SurfaceDark)
+                        .border(
+                            width = 1.dp,
+                            color = if (selected) AnimeRed else CardBorderDark,
+                            shape = shape,
+                        ).clickable {
+                            if (selected && kind.canAscend) {
+                                onOptionChange(index, !ascending)
+                            } else {
+                                onOptionChange(index, false)
+                            }
+                        }.padding(horizontal = 12.dp, vertical = 8.dp),
             ) {
                 Text(
                     text = option,
@@ -88,11 +87,12 @@ fun SortFilterGroup(
                 )
                 if (selected && kind.canAscend) {
                     Icon(
-                        imageVector = if (ascending) {
-                            Icons.Filled.KeyboardArrowUp
-                        } else {
-                            Icons.Filled.KeyboardArrowDown
-                        },
+                        imageVector =
+                            if (ascending) {
+                                Icons.Filled.KeyboardArrowUp
+                            } else {
+                                Icons.Filled.KeyboardArrowDown
+                            },
                         contentDescription = stringResource(if (ascending) R.string.filter_sort_asc_cd else R.string.filter_sort_desc_cd),
                         tint = Color.White,
                         modifier = Modifier.size(16.dp),

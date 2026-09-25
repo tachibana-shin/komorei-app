@@ -1,15 +1,15 @@
 package git.shin.komorei
 
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import git.shin.komorei.ui.components.search.filters.FilterPill
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
-import androidx.compose.ui.test.junit4.v2.createComposeRule
 
 /**
  * Compose UI tests for [FilterPill] — verifies the layout-shift fix.
@@ -22,7 +22,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class FilterPillTest {
-
     @get:Rule val composeTestRule = createComposeRule()
 
     @Test
@@ -38,7 +37,8 @@ class FilterPillTest {
             )
         }
         // Pill renders with zero badge
-        composeTestRule.onNodeWithTag("filter_pill_test")
+        composeTestRule
+            .onNodeWithTag("filter_pill_test")
             .performClick()
     }
 
@@ -53,7 +53,8 @@ class FilterPillTest {
                 testTag = "filter_pill_test",
             )
         }
-        composeTestRule.onNodeWithTag("filter_pill_test")
+        composeTestRule
+            .onNodeWithTag("filter_pill_test")
             .performClick()
     }
 
@@ -69,7 +70,8 @@ class FilterPillTest {
             )
         }
         // Verify pill renders even when badge count is 0
-        composeTestRule.onNodeWithTag("filter_pill_test")
+        composeTestRule
+            .onNodeWithTag("filter_pill_test")
             .performClick()
     }
 
@@ -84,7 +86,8 @@ class FilterPillTest {
                 testTag = "filter_pill_test",
             )
         }
-        composeTestRule.onNodeWithTag("filter_pill_test")
+        composeTestRule
+            .onNodeWithTag("filter_pill_test")
             .performClick()
     }
 
@@ -101,7 +104,8 @@ class FilterPillTest {
                 testTag = "filter_pill_test",
             )
         }
-        composeTestRule.onNodeWithTag("filter_pill_test")
+        composeTestRule
+            .onNodeWithTag("filter_pill_test")
             .performClick()
     }
 }

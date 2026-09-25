@@ -1,18 +1,18 @@
 package git.shin.komorei
 
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import git.shin.komorei.ui.components.search.filters.FilterListSheet
+import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import git.shin.komorei.model.Filter
 import git.shin.komorei.model.FilterKind
+import git.shin.komorei.ui.components.search.filters.FilterListSheet
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
-import androidx.compose.ui.test.junit4.v2.createComposeRule
 
 /**
  * Compose UI tests for the filter bottom sheet chrome.
@@ -27,7 +27,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class FilterBottomSheetTest {
-
     @get:Rule val composeTestRule = createComposeRule()
 
     // ── aggregate sheet: no Apply/Cancel footer ────────
@@ -36,22 +35,25 @@ class FilterBottomSheetTest {
     fun aggregateSheetHasNoApplyButton() {
         composeTestRule.setContent {
             FilterListSheet(
-                filters = listOf(
-                    Filter(
-                        id = "status",
-                        title = "Trạng thái",
-                        kind = FilterKind.Select(
-                            options = listOf("Tất cả", "Đăng phát", "Hoàn thành"),
+                filters =
+                    listOf(
+                        Filter(
+                            id = "status",
+                            title = "Trạng thái",
+                            kind =
+                                FilterKind.Select(
+                                    options = listOf("Tất cả", "Đăng phát", "Hoàn thành"),
+                                ),
                         ),
                     ),
-                ),
                 initialEnabled = emptyList(),
                 onApply = {},
                 onDismiss = {},
             )
         }
         // Apply button must NOT exist — reset button proves sheet rendered correctly
-        composeTestRule.onNodeWithTag("filter_reset_button")
+        composeTestRule
+            .onNodeWithTag("filter_reset_button")
             .performClick()
     }
 
@@ -66,7 +68,8 @@ class FilterBottomSheetTest {
             )
         }
         // Cancel button must NOT exist — reset button proves sheet rendered
-        composeTestRule.onNodeWithTag("filter_reset_button")
+        composeTestRule
+            .onNodeWithTag("filter_reset_button")
             .performClick()
     }
 
@@ -74,21 +77,24 @@ class FilterBottomSheetTest {
     fun aggregateSheetHasResetButton() {
         composeTestRule.setContent {
             FilterListSheet(
-                filters = listOf(
-                    Filter(
-                        id = "status",
-                        title = "Trạng thái",
-                        kind = FilterKind.Select(
-                            options = listOf("Tất cả", "Đăng phát", "Hoàn thành"),
+                filters =
+                    listOf(
+                        Filter(
+                            id = "status",
+                            title = "Trạng thái",
+                            kind =
+                                FilterKind.Select(
+                                    options = listOf("Tất cả", "Đăng phát", "Hoàn thành"),
+                                ),
                         ),
                     ),
-                ),
                 initialEnabled = emptyList(),
                 onApply = {},
                 onDismiss = {},
             )
         }
-        composeTestRule.onNodeWithTag("filter_reset_button")
+        composeTestRule
+            .onNodeWithTag("filter_reset_button")
             .performClick()
     }
 
@@ -96,21 +102,24 @@ class FilterBottomSheetTest {
     fun aggregateSheetHasCloseButton() {
         composeTestRule.setContent {
             FilterListSheet(
-                filters = listOf(
-                    Filter(
-                        id = "status",
-                        title = "Trạng thái",
-                        kind = FilterKind.Select(
-                            options = listOf("Tất cả", "Đăng phát", "Hoàn thành"),
+                filters =
+                    listOf(
+                        Filter(
+                            id = "status",
+                            title = "Trạng thái",
+                            kind =
+                                FilterKind.Select(
+                                    options = listOf("Tất cả", "Đăng phát", "Hoàn thành"),
+                                ),
                         ),
                     ),
-                ),
                 initialEnabled = emptyList(),
                 onApply = {},
                 onDismiss = {},
             )
         }
-        composeTestRule.onNodeWithTag("filter_sheet_close")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_close")
             .performClick()
     }
 
@@ -118,21 +127,24 @@ class FilterBottomSheetTest {
     fun aggregateSheetHasTitle() {
         composeTestRule.setContent {
             FilterListSheet(
-                filters = listOf(
-                    Filter(
-                        id = "status",
-                        title = "Trạng thái",
-                        kind = FilterKind.Select(
-                            options = listOf("Tất cả", "Đăng phát", "Hoàn thành"),
+                filters =
+                    listOf(
+                        Filter(
+                            id = "status",
+                            title = "Trạng thái",
+                            kind =
+                                FilterKind.Select(
+                                    options = listOf("Tất cả", "Đăng phát", "Hoàn thành"),
+                                ),
                         ),
                     ),
-                ),
                 initialEnabled = emptyList(),
                 onApply = {},
                 onDismiss = {},
             )
         }
-        composeTestRule.onNodeWithTag("filter_sheet_title")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_title")
             .performClick()
     }
 }

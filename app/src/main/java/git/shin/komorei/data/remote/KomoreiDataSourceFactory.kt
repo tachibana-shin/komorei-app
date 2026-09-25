@@ -23,9 +23,8 @@ import javax.inject.Singleton
 @Singleton
 class KomoreiDataSourceFactory @Inject constructor(
     private val okHttpClient: OkHttpClient,
-    private val userAgent: String
+    private val userAgent: String,
 ) : HttpDataSource.Factory {
-
     private val defaultRequestProperties = mutableMapOf<String, String>()
 
     @Volatile
@@ -44,7 +43,7 @@ class KomoreiDataSourceFactory @Inject constructor(
     fun configure(
         streamData: StreamData?,
         urlInterceptor: SegmentUrlInterceptor? = null,
-        dataInterceptor: SegmentDataInterceptor? = null
+        dataInterceptor: SegmentDataInterceptor? = null,
     ) {
         this.streamData = streamData
         this.urlInterceptor = urlInterceptor
@@ -54,7 +53,7 @@ class KomoreiDataSourceFactory @Inject constructor(
     }
 
     override fun setDefaultRequestProperties(
-        defaultRequestProperties: Map<String, String>
+        defaultRequestProperties: Map<String, String>,
     ): HttpDataSource.Factory {
         this.defaultRequestProperties.clear()
         this.defaultRequestProperties.putAll(defaultRequestProperties)
@@ -62,10 +61,12 @@ class KomoreiDataSourceFactory @Inject constructor(
     }
 
     override fun createDataSource(): HttpDataSource {
-        val base = OkHttpDataSource.Factory(okHttpClient)
-            .setUserAgent(userAgent)
-            .setDefaultRequestProperties(defaultRequestProperties.toMap())
-            .createDataSource()
+        val base =
+            OkHttpDataSource
+                .Factory(okHttpClient)
+                .setUserAgent(userAgent)
+                .setDefaultRequestProperties(defaultRequestProperties.toMap())
+                .createDataSource()
 
         val urlInter = urlInterceptor
         val dataInter = dataInterceptor

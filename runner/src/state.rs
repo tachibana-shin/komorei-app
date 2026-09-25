@@ -48,7 +48,10 @@ impl GlobalStore {
 		rid
 	}
 
-	pub fn store_encoded<T: serde::Serialize>(&mut self, value: &T) -> Result<Rid, postcard::Error> {
+	pub fn store_encoded<T: serde::Serialize>(
+		&mut self,
+		value: &T,
+	) -> Result<Rid, postcard::Error> {
 		let encoded = postcard::to_allocvec(value)?;
 		Ok(self.store(StoreItem::Encoded(encoded)))
 	}

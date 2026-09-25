@@ -30,8 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
 import git.shin.komorei.model.FilterKind
-import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.AnimeGreen
+import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextPrimary
@@ -78,24 +78,23 @@ fun MultiSelectFilterGroup(
                     lineHeight = 14.sp,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
-                    modifier = Modifier
-                        // TV focus highlight (no-op on phones).
-                        .tvFocus(shape = shape, scale = 1.06f)
-                        .clip(shape)
-                        .background(
-                            when {
-                                isIncluded -> AnimeRed
-                                isExcluded -> AnimeGreen
-                                else -> SurfaceDark
-                            }
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = if (isIncluded || isExcluded) Color.Transparent else CardBorderDark,
-                            shape = shape,
-                        )
-                        .clickable { toggle(value) }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    modifier =
+                        Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = shape, scale = 1.06f)
+                            .clip(shape)
+                            .background(
+                                when {
+                                    isIncluded -> AnimeRed
+                                    isExcluded -> AnimeGreen
+                                    else -> SurfaceDark
+                                },
+                            ).border(
+                                width = 1.dp,
+                                color = if (isIncluded || isExcluded) Color.Transparent else CardBorderDark,
+                                shape = shape,
+                            ).clickable { toggle(value) }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                 )
             }
         }
@@ -108,40 +107,44 @@ fun MultiSelectFilterGroup(
                 val value = values[index]
                 val isIncluded = value in included
                 val isExcluded = value in excluded
-                val stateColor = when {
-                    isIncluded -> AnimeRed
-                    isExcluded -> AnimeGreen
-                    else -> SurfaceDark
-                }
+                val stateColor =
+                    when {
+                        isIncluded -> AnimeRed
+                        isExcluded -> AnimeGreen
+                        else -> SurfaceDark
+                    }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        // TV focus highlight (no-op on phones) — full-width row, ring only.
-                        .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable { toggle(value) }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            // TV focus highlight (no-op on phones) — full-width row, ring only.
+                            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { toggle(value) }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier
-                            .size(width = 26.dp, height = 26.dp)
-                            .clip(RoundedCornerShape(7.dp))
-                            .background(stateColor)
-                            .border(
-                                width = 1.dp,
-                                color = if (isIncluded || isExcluded) Color.Transparent else CardBorderDark,
-                                shape = RoundedCornerShape(7.dp),
-                            ),
+                        modifier =
+                            Modifier
+                                .size(width = 26.dp, height = 26.dp)
+                                .clip(RoundedCornerShape(7.dp))
+                                .background(stateColor)
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isIncluded || isExcluded) Color.Transparent else CardBorderDark,
+                                    shape = RoundedCornerShape(7.dp),
+                                ),
                     ) {
                         if (isIncluded || isExcluded) {
                             Icon(
                                 imageVector = if (isIncluded) Icons.Default.Check else Icons.Default.Close,
-                                contentDescription = stringResource(
-                                    if (isIncluded) R.string.filter_included_cd else R.string.filter_excluded_cd
-                                ),
+                                contentDescription =
+                                    stringResource(
+                                        if (isIncluded) R.string.filter_included_cd else R.string.filter_excluded_cd,
+                                    ),
                                 tint = Color.White,
                                 modifier = Modifier.size(14.dp),
                             )

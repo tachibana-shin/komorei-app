@@ -74,34 +74,37 @@ fun CompactInput(
     val shape = RoundedCornerShape(20.dp)
     val focusSource = interactionSource ?: remember { MutableInteractionSource() }
     val focused by focusSource.collectIsFocusedAsState()
-    val borderColor = when {
-        isError -> AnimeRed
-        focused -> AnimeRed
-        else -> CardBorderDark
-    }
+    val borderColor =
+        when {
+            isError -> AnimeRed
+            focused -> AnimeRed
+            else -> CardBorderDark
+        }
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 40.dp)
-            .clip(shape)
-            .background(CardDark)
-            .border(1.dp, borderColor, shape),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .heightIn(min = 40.dp)
+                .clip(shape)
+                .background(CardDark)
+                .border(1.dp, borderColor, shape),
         contentAlignment = Alignment.CenterStart,
     ) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = if (focusRequester != null) {
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 9.dp)
-                    .focusRequester(focusRequester)
-            } else {
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 9.dp)
-            },
+            modifier =
+                if (focusRequester != null) {
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 9.dp)
+                        .focusRequester(focusRequester)
+                } else {
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 9.dp)
+                },
             singleLine = true,
             textStyle = TextStyle(color = TextPrimary, fontSize = 14.sp),
             cursorBrush = SolidColor(cursorColor),
@@ -139,14 +142,15 @@ fun CompactInput(
                             Icons.Filled.Clear,
                             contentDescription = null,
                             tint = TextMuted,
-                            modifier = Modifier
-                                // TV focus highlight (no-op on phones). The pill itself
-                                // already signals focus via its red border; this only
-                                // covers the clear button as a separate D-pad target.
-                                .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.15f)
-                                .size(18.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .clickable { onValueChange("") },
+                            modifier =
+                                Modifier
+                                    // TV focus highlight (no-op on phones). The pill itself
+                                    // already signals focus via its red border; this only
+                                    // covers the clear button as a separate D-pad target.
+                                    .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.15f)
+                                    .size(18.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable { onValueChange("") },
                         )
                     }
                 }

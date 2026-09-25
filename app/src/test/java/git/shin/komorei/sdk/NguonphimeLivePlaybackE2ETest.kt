@@ -14,10 +14,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.junit.Assume.assumeTrue
 import org.robolectric.annotation.Config
 import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
@@ -45,20 +45,22 @@ import java.util.concurrent.TimeUnit
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class NguonphimeLivePlaybackE2ETest {
-
-    private val http = OkHttpClient.Builder()
-        .cookieJar(LiveCookieJar())
-        .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .followRedirects(true)
-        .build()
+    private val http =
+        OkHttpClient
+            .Builder()
+            .cookieJar(LiveCookieJar())
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .followRedirects(true)
+            .build()
 
     companion object {
         /** A real media segment is far larger than this; below it, it is a stub. */
         private const val MIN_SEGMENT_BYTES = 4096
 
-        private val nguonphimeKrx: String = System.getProperty("komorei.test.nguonphimeKrx")
-            ?: error("missing -Dkomorei.test.nguonphimeKrx (set by app/build.gradle.kts)")
+        private val nguonphimeKrx: String =
+            System.getProperty("komorei.test.nguonphimeKrx")
+                ?: error("missing -Dkomorei.test.nguonphimeKrx (set by app/build.gradle.kts)")
     }
 
     @Test
@@ -113,43 +115,45 @@ class NguonphimeLivePlaybackE2ETest {
         // The source resolves each server's stream while LISTING them, so a
         // site-side refusal surfaces from `streamList` itself, not only from the
         // per-server `stream` call below — tolerate it in both places.
-        val servers = try {
-            runner.streamList(full, episode)
-        } catch (e: git.shin.komorei.sdk.runner.RunnerException.Source) {
-            if (isSiteSideRefusal(e.message)) {
-                // NGC is granted server-side and refused from this network; the
-                // listing itself could not complete. The fixture-backed suite
-                // covers the same flow offline, so record and stop here.
-                println("LIVE_E2E verdict: SITE REFUSED THE WHOLE LISTING — ${e.message}")
-                return
+        val servers =
+            try {
+                runner.streamList(full, episode)
+            } catch (e: git.shin.komorei.sdk.runner.RunnerException.Source) {
+                if (isSiteSideRefusal(e.message)) {
+                    // NGC is granted server-side and refused from this network; the
+                    // listing itself could not complete. The fixture-backed suite
+                    // covers the same flow offline, so record and stop here.
+                    println("LIVE_E2E verdict: SITE REFUSED THE WHOLE LISTING — ${e.message}")
+                    return
+                }
+                throw e
             }
-            throw e
-        }
         val pai = servers.firstOrNull { it.key.equals("PAI", true) }
         val ngc = servers.firstOrNull { it.key.equals("NGC", true) }
         assertNotNull("site must expose the PAI server", pai)
 
         for (server in listOfNotNull(pai, ngc)) {
-            val data = try {
-                runner.stream(full, episode, server)
-            } catch (e: git.shin.komorei.sdk.runner.RunnerException.Source) {
-                if (isSiteSideRefusal(e.message)) {
-                    // The site refuses to hand over a stream from this network.
-                    // NGC is known to do that (its CDN grants per IP/geo — see
-                    // above), but the wording is not PAI-specific: a refusal
-                    // here is a live-site/geo outcome, not a source defect, and
-                    // NguonphimeSourceRunnerIntegrationTest covers the same
-                    // pipeline offline. The live site's wording also changes as
-                    // its CDN is re-tuned, so match the refusal vocabulary
-                    // rather than one exact sentence.
-                    println(
-                        "LIVE_E2E ${server.key} verdict: SERVER REFUSED " +
-                            "(site-side grant / geo) — ${e.message}",
-                    )
-                    continue
+            val data =
+                try {
+                    runner.stream(full, episode, server)
+                } catch (e: git.shin.komorei.sdk.runner.RunnerException.Source) {
+                    if (isSiteSideRefusal(e.message)) {
+                        // The site refuses to hand over a stream from this network.
+                        // NGC is known to do that (its CDN grants per IP/geo — see
+                        // above), but the wording is not PAI-specific: a refusal
+                        // here is a live-site/geo outcome, not a source defect, and
+                        // NguonphimeSourceRunnerIntegrationTest covers the same
+                        // pipeline offline. The live site's wording also changes as
+                        // its CDN is re-tuned, so match the refusal vocabulary
+                        // rather than one exact sentence.
+                        println(
+                            "LIVE_E2E ${server.key} verdict: SERVER REFUSED " +
+                                "(site-side grant / geo) — ${e.message}",
+                        )
+                        continue
+                    }
+                    throw e
                 }
-                throw e
-            }
             assertFalse("${server.key}: isContent should be false", data.isContent)
             assertTrue("${server.key}: empty stream url", data.url.isNotBlank())
             println(
@@ -162,7 +166,10 @@ class NguonphimeLivePlaybackE2ETest {
     }
 
     /** Walk the pager until the listing yields a real card. */
-    private fun firstNonEmptyAnime(runner: KomoreiRunnerFacade, listing: Listing): Anime {
+    private fun firstNonEmptyAnime(
+        runner: KomoreiRunnerFacade,
+        listing: Listing,
+    ): Anime {
         var page = 1
         while (page <= 5) {
             val result: AnimePageResult = runner.animeList(listing, page)
@@ -187,16 +194,22 @@ class NguonphimeLivePlaybackE2ETest {
      * pipeline is asserted end-to-end offline by
      * NguonphimeSourceRunnerIntegrationTest.
      */
-    private fun verifyPlayableHls(data: StreamData, label: String): String {
-        val master = fetch(data.url, data.headers)
-            .also { assertTrue("$label: master started with #EXTM3U\n${it.take(200)}", it.startsWith("#EXTM3U")) }
+    private fun verifyPlayableHls(
+        data: StreamData,
+        label: String,
+    ): String {
+        val master =
+            fetch(data.url, data.headers)
+                .also { assertTrue("$label: master started with #EXTM3U\n${it.take(200)}", it.startsWith("#EXTM3U")) }
 
         val mediaUrl = firstVariantUri(master)?.let { absolutize(data.url, it) } ?: data.url
-        val media = fetch(mediaUrl, data.headers)
-            .also { assertTrue("$label: media playlist missing #EXTM3U", it.startsWith("#EXTM3U")) }
+        val media =
+            fetch(mediaUrl, data.headers)
+                .also { assertTrue("$label: media playlist missing #EXTM3U", it.startsWith("#EXTM3U")) }
 
-        val segmentUri = firstSegmentUri(media)
-            ?: error("$label: no #EXTINF segment found in media playlist")
+        val segmentUri =
+            firstSegmentUri(media)
+                ?: error("$label: no #EXTINF segment found in media playlist")
         val segmentUrl = absolutize(mediaUrl, segmentUri)
 
         val (status, bytes) = fetchWithStatus(segmentUrl, data.headers)
@@ -207,13 +220,19 @@ class NguonphimeLivePlaybackE2ETest {
         return "master+media+segments ok — first segment ${bytes.size} bytes ($status)"
     }
 
-    private fun fetch(url: String, headers: Map<String, String>): String {
+    private fun fetch(
+        url: String,
+        headers: Map<String, String>,
+    ): String {
         val (status, bytes) = fetchWithStatus(url, headers)
         assertTrue("GET $url -> $status", status in 200..299)
         return bytes.toString(Charsets.UTF_8).removePrefix("\uFEFF")
     }
 
-    private fun fetchWithStatus(url: String, headers: Map<String, String>): Pair<Int, ByteArray> {
+    private fun fetchWithStatus(
+        url: String,
+        headers: Map<String, String>,
+    ): Pair<Int, ByteArray> {
         val req = okhttp3.Request.Builder().url(url)
         headers.forEach { (k, v) -> req.header(k, v) }
         http.newCall(req.build()).execute().use { resp ->
@@ -259,7 +278,10 @@ class NguonphimeLivePlaybackE2ETest {
         return null
     }
 
-    private fun absolutize(base: String, ref: String): String {
+    private fun absolutize(
+        base: String,
+        ref: String,
+    ): String {
         if (ref.startsWith("http://") || ref.startsWith("https://")) return ref
         val slash = base.lastIndexOf('/')
         val dir = if (slash >= 0) base.substring(0, slash + 1) else "$base/"
@@ -285,12 +307,14 @@ private class LiveCookieJar : CookieJar {
     private val store = CopyOnWriteArrayList<Cookie>()
 
     @Synchronized
-    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+    override fun saveFromResponse(
+        url: HttpUrl,
+        cookies: List<Cookie>,
+    ) {
         store.addAll(cookies)
     }
 
-    override fun loadForRequest(url: HttpUrl): List<Cookie> =
-        store.filter { it.matches(url) }
+    override fun loadForRequest(url: HttpUrl): List<Cookie> = store.filter { it.matches(url) }
 }
 
 /**
@@ -310,9 +334,13 @@ private fun isSiteSideRefusal(message: String?): Boolean {
  * an offline/CI-blocked run.
  */
 private fun assumeReachable(url: String) {
-    val reachable = runCatching {
-        java.net.URL(url).openStream().use { it.read() }
-        true
-    }.getOrDefault(false)
+    val reachable =
+        runCatching {
+            java.net
+                .URL(url)
+                .openStream()
+                .use { it.read() }
+            true
+        }.getOrDefault(false)
     assumeTrue("skipping network-dependent test: $url is unreachable", reachable)
 }

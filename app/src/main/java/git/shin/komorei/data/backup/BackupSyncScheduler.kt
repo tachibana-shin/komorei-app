@@ -2,8 +2,8 @@ package git.shin.komorei.data.backup
 
 import android.content.Context
 import androidx.work.BackoffPolicy
-import androidx.work.Constraints
 import androidx.work.Configuration
+import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
@@ -49,10 +49,11 @@ class BackupSyncScheduler @Inject constructor(
     /** Trigger an early run after the user enables sync or taps Sync now. */
     fun runNow() {
         if (!settingsStore.settings.value.enabled) return
-        val request = OneTimeWorkRequestBuilder<BackupSyncWorker>()
-            .setConstraints(constraints())
-            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
-            .build()
+        val request =
+            OneTimeWorkRequestBuilder<BackupSyncWorker>()
+                .setConstraints(constraints())
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
+                .build()
         workManager().enqueueUniqueWork(
             ONE_TIME_WORK_NAME,
             ExistingWorkPolicy.REPLACE,
@@ -61,13 +62,13 @@ class BackupSyncScheduler @Inject constructor(
     }
 
     private fun schedule(interval: BackupSyncInterval) {
-        val request = PeriodicWorkRequestBuilder<BackupSyncWorker>(
-            interval.hours,
-            TimeUnit.HOURS,
-        )
-            .setConstraints(constraints())
-            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
-            .build()
+        val request =
+            PeriodicWorkRequestBuilder<BackupSyncWorker>(
+                interval.hours,
+                TimeUnit.HOURS,
+            ).setConstraints(constraints())
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
+                .build()
         workManager().enqueueUniquePeriodicWork(
             PERIODIC_WORK_NAME,
             ExistingPeriodicWorkPolicy.UPDATE,
@@ -81,33 +82,36 @@ class BackupSyncScheduler @Inject constructor(
     }
 
     private fun cancelIfInitialized() {
-        val workManager = try {
-            WorkManager.getInstance(context)
-        } catch (_: IllegalStateException) {
-            return
-        }
+        val workManager =
+            try {
+                WorkManager.getInstance(context)
+            } catch (_: IllegalStateException) {
+                return
+            }
         workManager.cancelUniqueWork(PERIODIC_WORK_NAME)
         workManager.cancelUniqueWork(ONE_TIME_WORK_NAME)
     }
 
-    private fun workManager(): WorkManager {
-        return try {
+    private fun workManager(): WorkManager =
+        try {
             WorkManager.getInstance(context)
         } catch (_: IllegalStateException) {
             WorkManager.initialize(
                 context,
-                Configuration.Builder()
+                Configuration
+                    .Builder()
                     .setMinimumLoggingLevel(android.util.Log.INFO)
                     .build(),
             )
             WorkManager.getInstance(context)
         }
-    }
 
-    private fun constraints() = Constraints.Builder()
-        .setRequiredNetworkType(NetworkType.CONNECTED)
-        .setRequiresBatteryNotLow(true)
-        .build()
+    private fun constraints() =
+        Constraints
+            .Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .setRequiresBatteryNotLow(true)
+            .build()
 
     companion object {
         const val PERIODIC_WORK_NAME = "komorei-drive-sync-periodic"

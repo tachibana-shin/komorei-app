@@ -46,24 +46,26 @@ import git.shin.komorei.ui.theme.TextPrimary
 fun LibraryScreen(
     onAnimeClick: (Anime) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: LibraryViewModel = hiltViewModel()
+    viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     var selectedSubTab by remember { mutableIntStateOf(0) }
     val followingTitle = stringResource(R.string.library_tab_following)
     val historyTitle = stringResource(R.string.library_tab_history)
-    val tabTitles = remember(followingTitle, historyTitle) {
-        listOf(followingTitle, historyTitle)
-    }
+    val tabTitles =
+        remember(followingTitle, historyTitle) {
+            listOf(followingTitle, historyTitle)
+        }
 
     val bookmarkedAnimes by viewModel.bookmarkedAnimes.collectAsState()
     val historyAnimes by viewModel.historyAnimes.collectAsState()
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
-            .testTag("library_screen")
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding()
+                .testTag("library_screen"),
     ) {
         // Title Bar
         Text(
@@ -71,13 +73,13 @@ fun LibraryScreen(
             color = TextPrimary,
             fontSize = 22.sp,
             fontWeight = FontWeight.Black,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
         )
         Text(
             text = stringResource(R.string.library_tab_following) + " & " + stringResource(R.string.library_tab_history),
             color = TextMuted,
             fontSize = 12.sp,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp),
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -91,13 +93,14 @@ fun LibraryScreen(
                 TabRowDefaults.SecondaryIndicator(
                     modifier = Modifier.tabIndicatorOffset(selectedTabIndex = selectedSubTab, matchContentSize = true),
                     color = AnimeRed,
-                    height = 3.dp
+                    height = 3.dp,
                 )
             },
             divider = {},
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
         ) {
             tabTitles.forEachIndexed { index, title ->
                 val isSelected = selectedSubTab == index
@@ -110,18 +113,18 @@ fun LibraryScreen(
                                 imageVector = if (index == 0) Icons.Default.Bookmark else Icons.Default.History,
                                 contentDescription = title,
                                 tint = if (isSelected) AnimeRed else TextMuted,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(16.dp),
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = title,
                                 color = if (isSelected) AnimeRed else TextMuted,
                                 fontSize = 14.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                             )
                         }
                     },
-                    modifier = Modifier.testTag("library_subtab_$index")
+                    modifier = Modifier.testTag("library_subtab_$index"),
                 )
             }
         }
@@ -133,39 +136,42 @@ fun LibraryScreen(
         if (displayList.isEmpty()) {
             // Empty State
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         imageVector = if (selectedSubTab == 0) Icons.Default.Bookmark else Icons.Default.History,
                         contentDescription = null,
                         tint = TextMuted.copy(alpha = 0.4f),
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier.size(64.dp),
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = if (selectedSubTab == 0) {
-                            stringResource(R.string.empty_following_title)
-                        } else {
-                            stringResource(R.string.empty_history_title)
-                        },
+                        text =
+                            if (selectedSubTab == 0) {
+                                stringResource(R.string.empty_following_title)
+                            } else {
+                                stringResource(R.string.empty_history_title)
+                            },
                         color = TextPrimary,
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = if (selectedSubTab == 0) {
-                            stringResource(R.string.empty_following_subtitle)
-                        } else {
-                            stringResource(R.string.empty_history_subtitle)
-                        },
+                        text =
+                            if (selectedSubTab == 0) {
+                                stringResource(R.string.empty_following_subtitle)
+                            } else {
+                                stringResource(R.string.empty_history_subtitle)
+                            },
                         color = TextMuted,
                         fontSize = 12.sp,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     )
                 }
             }
@@ -180,22 +186,24 @@ fun LibraryScreen(
                 rightContent = {
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(
-                        modifier = Modifier
-                            .background(
-                                color = TextMuted.copy(alpha = 0.15f),
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
-                            )
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                        modifier =
+                            Modifier
+                                .background(
+                                    color = TextMuted.copy(alpha = 0.15f),
+                                    shape =
+                                        androidx.compose.foundation.shape
+                                            .RoundedCornerShape(4.dp),
+                                ).padding(horizontal = 6.dp, vertical = 2.dp),
                     ) {
                         Text(
                             text = "${displayList.size}",
                             color = TextMuted,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
                     }
                 },
-                modifier = Modifier.padding(bottom = 114.dp)
+                modifier = Modifier.padding(bottom = 114.dp),
             )
         }
     }

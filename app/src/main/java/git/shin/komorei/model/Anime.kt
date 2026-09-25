@@ -5,15 +5,16 @@ import com.squareup.moshi.JsonClass
 /**
  * Global status of an anime series.
  */
-enum class AnimeStatus(val value: String) {
+enum class AnimeStatus(
+    val value: String,
+) {
     ONGOING("ongoing"),
     COMPLETED("completed"),
-    UNKNOWN("unknown");
+    UNKNOWN("unknown"),
+    ;
 
     companion object {
-        fun fromString(value: String): AnimeStatus {
-            return entries.find { it.value == value.lowercase() } ?: UNKNOWN
-        }
+        fun fromString(value: String): AnimeStatus = entries.find { it.value == value.lowercase() } ?: UNKNOWN
     }
 }
 
@@ -26,7 +27,7 @@ data class AnimeSeason(
     val animeId: String,
     val title: String,
     /** Unique identity. Defaults to [animeId]; virtual 50-episode seasons override it. */
-    val id: String = animeId
+    val id: String = animeId,
 )
 
 /**
@@ -35,7 +36,7 @@ data class AnimeSeason(
 @JsonClass(generateAdapter = true)
 data class CategoryLink(
     val name: String,
-    val filters: List<FilterValue> = emptyList()
+    val filters: List<FilterValue> = emptyList(),
 )
 
 /**
@@ -67,5 +68,5 @@ data class Anime(
     val isFeatured: Boolean = false,
     val views: Int = 0,
     val nextEpisodeAirInfo: String? = null,
-    val qualityTag: String? = "FHD"
+    val qualityTag: String? = "FHD",
 )

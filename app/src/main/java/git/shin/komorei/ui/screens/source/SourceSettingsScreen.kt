@@ -1,5 +1,6 @@
 package git.shin.komorei.ui.screens.source
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,19 +25,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import git.shin.komorei.ui.components.search.CompactInput
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -61,12 +57,13 @@ import git.shin.komorei.model.Source
 import git.shin.komorei.model.SourceSetting
 import git.shin.komorei.model.SourceSettingValue
 import git.shin.komorei.ui.components.AppIcons
+import git.shin.komorei.ui.components.search.CompactInput
 import git.shin.komorei.ui.components.shimmerEffect
 import git.shin.komorei.ui.theme.AnimeBlue
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
-import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.CardBorderDark
+import git.shin.komorei.ui.theme.CardDark
 import git.shin.komorei.ui.theme.SurfaceVariantDark
 import git.shin.komorei.ui.theme.TextMuted
 import git.shin.komorei.ui.theme.TextPrimary
@@ -93,24 +90,27 @@ fun SourceSettingsScreen(
     // previous destination behind it, so the sheet's scrim only dims the app's
     // empty background. All other source sub-pages are full-screen.
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
-            .navigationBarsPadding(),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding()
+                .navigationBarsPadding(),
     ) {
         // ── Top bar: back + source name ─────────────────────────────────
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 6.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
                 onClick = onBack,
-                modifier = Modifier
-                    // TV focus highlight (no-op on phones).
-                    .tvFocus(shape = CircleShape, scale = 1.15f),
+                modifier =
+                    Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = CircleShape, scale = 1.15f),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -145,10 +145,11 @@ fun SourceSettingsScreen(
                 var migrateConfirm by remember { mutableStateOf(false) }
 
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     // Source info card
@@ -169,9 +170,10 @@ fun SourceSettingsScreen(
                             uiState.selectedLanguages.ifEmpty { source.languages }
                         ActionRow(
                             label = stringResource(R.string.source_settings_language),
-                            subtitle = effectiveLanguages
-                                .joinToString(", ") { it.uppercase() }
-                                .ifEmpty { null },
+                            subtitle =
+                                effectiveLanguages
+                                    .joinToString(", ") { it.uppercase() }
+                                    .ifEmpty { null },
                             onClick = { languageDialog = true },
                         )
                     }
@@ -182,18 +184,19 @@ fun SourceSettingsScreen(
                             // One-shot action button — not a dialog: send its
                             // `notification` straight to the source.
                             viewModel.runSetting(setting)
-                        } else if (setting.value is SourceSettingValue.Login
-                            || setting.value is SourceSettingValue.Link
+                        } else if (setting.value is SourceSettingValue.Login ||
+                            setting.value is SourceSettingValue.Link
                         ) {
                             // Sign-in / website link — open the real browser so
                             // the user can log in; cookies land in the shared
                             // CookieManager that backs WebViewCookieJar, so no
                             // plumbing is needed for media requests.
-                            val url = when (val v = setting.value) {
-                                is SourceSettingValue.Login -> v.url
-                                is SourceSettingValue.Link -> v.url
-                                else -> null
-                            }
+                            val url =
+                                when (val v = setting.value) {
+                                    is SourceSettingValue.Login -> v.url
+                                    is SourceSettingValue.Link -> v.url
+                                    else -> null
+                                }
                             url?.let(onOpenBrowser)
                         } else {
                             dialogSetting = setting
@@ -276,42 +279,75 @@ fun SourceSettingsScreen(
                 dialogSetting?.let { setting ->
                     when (val v = setting.value) {
                         is SourceSettingValue.Toggle -> dialogSetting = null
-                        is SourceSettingValue.Select -> SelectDialog(
-                            title = setting.title, options = v.values, titles = v.titles,
-                            current = v.default,
-                            onSelect = { viewModel.selectSetting(setting.key, it); dialogSetting = null },
-                            onDismiss = { dialogSetting = null },
-                        )
-                        is SourceSettingValue.Picker -> SelectDialog(
-                            title = setting.title, options = v.values, titles = v.titles,
-                            current = v.default,
-                            onSelect = { viewModel.selectSetting(setting.key, it); dialogSetting = null },
-                            onDismiss = { dialogSetting = null },
-                        )
-                        is SourceSettingValue.Segment -> SegmentDialog(
-                            title = setting.title, options = v.options, currentIndex = v.default,
-                            onSelect = { viewModel.selectSegment(setting.key, it); dialogSetting = null },
-                            onDismiss = { dialogSetting = null },
-                        )
-                        is SourceSettingValue.MultiSelect -> MultiSelectDialog(
-                            title = setting.title, options = v.values, titles = v.titles,
-                            current = v.default.orEmpty(),
-                            onToggle = { viewModel.toggleMultiSelect(setting.key, it, v.default.orEmpty()) },
-                            onDismiss = { dialogSetting = null },
-                        )
-                        is SourceSettingValue.Stepper -> StepperDialog(
-                            title = setting.title,
-                            value = v.default ?: v.minimumValue,
-                            min = v.minimumValue, max = v.maximumValue, step = v.stepValue,
-                            onConfirm = { viewModel.setStepper(setting.key, it); dialogSetting = null },
-                            onDismiss = { dialogSetting = null },
-                        )
-                        is SourceSettingValue.Text -> TextDialog(
-                            title = setting.title, placeholder = v.placeholder,
-                            value = dialogText, onValueChange = { dialogText = it },
-                            onConfirm = { viewModel.setText(setting.key, dialogText); dialogSetting = null },
-                            onDismiss = { dialogSetting = null },
-                        )
+                        is SourceSettingValue.Select ->
+                            SelectDialog(
+                                title = setting.title,
+                                options = v.values,
+                                titles = v.titles,
+                                current = v.default,
+                                onSelect = {
+                                    viewModel.selectSetting(setting.key, it)
+                                    dialogSetting = null
+                                },
+                                onDismiss = { dialogSetting = null },
+                            )
+                        is SourceSettingValue.Picker ->
+                            SelectDialog(
+                                title = setting.title,
+                                options = v.values,
+                                titles = v.titles,
+                                current = v.default,
+                                onSelect = {
+                                    viewModel.selectSetting(setting.key, it)
+                                    dialogSetting = null
+                                },
+                                onDismiss = { dialogSetting = null },
+                            )
+                        is SourceSettingValue.Segment ->
+                            SegmentDialog(
+                                title = setting.title,
+                                options = v.options,
+                                currentIndex = v.default,
+                                onSelect = {
+                                    viewModel.selectSegment(setting.key, it)
+                                    dialogSetting = null
+                                },
+                                onDismiss = { dialogSetting = null },
+                            )
+                        is SourceSettingValue.MultiSelect ->
+                            MultiSelectDialog(
+                                title = setting.title,
+                                options = v.values,
+                                titles = v.titles,
+                                current = v.default.orEmpty(),
+                                onToggle = { viewModel.toggleMultiSelect(setting.key, it, v.default.orEmpty()) },
+                                onDismiss = { dialogSetting = null },
+                            )
+                        is SourceSettingValue.Stepper ->
+                            StepperDialog(
+                                title = setting.title,
+                                value = v.default ?: v.minimumValue,
+                                min = v.minimumValue,
+                                max = v.maximumValue,
+                                step = v.stepValue,
+                                onConfirm = {
+                                    viewModel.setStepper(setting.key, it)
+                                    dialogSetting = null
+                                },
+                                onDismiss = { dialogSetting = null },
+                            )
+                        is SourceSettingValue.Text ->
+                            TextDialog(
+                                title = setting.title,
+                                placeholder = v.placeholder,
+                                value = dialogText,
+                                onValueChange = { dialogText = it },
+                                onConfirm = {
+                                    viewModel.setText(setting.key, dialogText)
+                                    dialogSetting = null
+                                },
+                                onDismiss = { dialogSetting = null },
+                            )
                         else -> dialogSetting = null
                     }
                 }
@@ -342,7 +378,8 @@ fun SourceSettingsScreen(
                         title = {
                             Text(
                                 stringResource(R.string.source_settings_reset_settings),
-                                color = TextPrimary, fontSize = 16.sp,
+                                color = TextPrimary,
+                                fontSize = 16.sp,
                             )
                         },
                         text = {
@@ -351,7 +388,8 @@ fun SourceSettingsScreen(
                                     R.string.source_settings_reset_confirm,
                                     uiState.source?.name.orEmpty(),
                                 ),
-                                color = TextSecondary, fontSize = 14.sp,
+                                color = TextSecondary,
+                                fontSize = 14.sp,
                             )
                         },
                         confirmButton = {
@@ -385,7 +423,8 @@ fun SourceSettingsScreen(
                         title = {
                             Text(
                                 stringResource(R.string.source_settings_migrate_confirm),
-                                color = TextPrimary, fontSize = 16.sp,
+                                color = TextPrimary,
+                                fontSize = 16.sp,
                             )
                         },
                         text = {
@@ -394,7 +433,8 @@ fun SourceSettingsScreen(
                                     R.string.source_settings_migrate_confirm_message,
                                     uiState.source?.name.orEmpty(),
                                 ),
-                                color = TextSecondary, fontSize = 14.sp,
+                                color = TextSecondary,
+                                fontSize = 14.sp,
                             )
                         },
                         confirmButton = {
@@ -442,36 +482,44 @@ private fun SettingRow(
     }
 }
 
-private fun SourceSettingValue.rowSubtitle(): String? = when (this) {
-    is SourceSettingValue.Group -> null
-    is SourceSettingValue.Page -> null
-    is SourceSettingValue.Toggle -> null
-    is SourceSettingValue.Select -> default
-    is SourceSettingValue.MultiSelect -> default?.takeIf { it.isNotEmpty() }?.joinToString(", ")
-    is SourceSettingValue.Stepper -> default?.let { String.format("%.1f", it) }
-    is SourceSettingValue.Segment -> default?.let { options.getOrNull(it) }
-    is SourceSettingValue.Text -> default?.ifEmpty { null }
-    is SourceSettingValue.EditableList -> default?.joinToString(", ")
-    is SourceSettingValue.Picker -> default
-    is SourceSettingValue.Link -> url
-    is SourceSettingValue.Login -> null
-    is SourceSettingValue.Button -> null
-}
+private fun SourceSettingValue.rowSubtitle(): String? =
+    when (this) {
+        is SourceSettingValue.Group -> null
+        is SourceSettingValue.Page -> null
+        is SourceSettingValue.Toggle -> null
+        is SourceSettingValue.Select -> default
+        is SourceSettingValue.MultiSelect -> default?.takeIf { it.isNotEmpty() }?.joinToString(", ")
+        is SourceSettingValue.Stepper -> default?.let { String.format("%.1f", it) }
+        is SourceSettingValue.Segment -> default?.let { options.getOrNull(it) }
+        is SourceSettingValue.Text -> default?.ifEmpty { null }
+        is SourceSettingValue.EditableList -> default?.joinToString(", ")
+        is SourceSettingValue.Picker -> default
+        is SourceSettingValue.Link -> url
+        is SourceSettingValue.Login -> null
+        is SourceSettingValue.Button -> null
+    }
 
-private fun SourceSettingValue.toggleDefault(): Boolean = when (this) {
-    is SourceSettingValue.Toggle -> default
-    else -> false
-}
+private fun SourceSettingValue.toggleDefault(): Boolean =
+    when (this) {
+        is SourceSettingValue.Toggle -> default
+        else -> false
+    }
 
 @Composable
-private fun ToggleRow(title: String, subtitle: String?, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun ToggleRow(
+    title: String,
+    subtitle: String?,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(CardDark)
-            .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(CardDark)
+                .clickable { onCheckedChange(!checked) }
+                .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -484,13 +532,14 @@ private fun ToggleRow(title: String, subtitle: String?, checked: Boolean, onChec
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = TextPrimary,
-                checkedTrackColor = AnimeBlue,
-                uncheckedThumbColor = TextSecondary,
-                uncheckedTrackColor = SurfaceVariantDark,
-                uncheckedBorderColor = CardBorderDark,
-            ),
+            colors =
+                SwitchDefaults.colors(
+                    checkedThumbColor = TextPrimary,
+                    checkedTrackColor = AnimeBlue,
+                    uncheckedThumbColor = TextSecondary,
+                    uncheckedTrackColor = SurfaceVariantDark,
+                    uncheckedBorderColor = CardBorderDark,
+                ),
         )
     }
 }
@@ -503,14 +552,15 @@ private fun ActionRow(
     onClick: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            // TV focus highlight (no-op on phones) — full-width row, ring only.
-            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (isAccent) AnimeRed else CardDark)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                // TV focus highlight (no-op on phones) — full-width row, ring only.
+                .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                .clip(RoundedCornerShape(10.dp))
+                .background(if (isAccent) AnimeRed else CardDark)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Column {
             Text(label, color = if (isAccent) TextPrimary else AnimeRed, fontSize = 14.sp, lineHeight = 18.sp)
@@ -522,16 +572,21 @@ private fun ActionRow(
 }
 
 @Composable
-private fun ClickableRow(title: String, subtitle: String?, onClick: () -> Unit) {
+private fun ClickableRow(
+    title: String,
+    subtitle: String?,
+    onClick: () -> Unit,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            // TV focus highlight (no-op on phones) — full-width row, ring only.
-            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
-            .clip(RoundedCornerShape(10.dp))
-            .background(CardDark)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                // TV focus highlight (no-op on phones) — full-width row, ring only.
+                .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f)
+                .clip(RoundedCornerShape(10.dp))
+                .background(CardDark)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -549,9 +604,17 @@ private fun ClickableRow(title: String, subtitle: String?, onClick: () -> Unit) 
 // ══════════════════════════════════════════════════════════════════════════════
 
 @Composable
-private fun SelectDialog(title: String, options: List<String>, titles: List<String>?, current: String?, onSelect: (String) -> Unit, onDismiss: () -> Unit) {
+private fun SelectDialog(
+    title: String,
+    options: List<String>,
+    titles: List<String>?,
+    current: String?,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
     AlertDialog(
-        onDismissRequest = onDismiss, containerColor = CardDark,
+        onDismissRequest = onDismiss,
+        containerColor = CardDark,
         title = { Text(title, color = TextPrimary, fontSize = 16.sp) },
         text = {
             Column {
@@ -562,11 +625,14 @@ private fun SelectDialog(title: String, options: List<String>, titles: List<Stri
                         text = "${if (sel) "● " else "  "}$display",
                         color = if (sel) AnimeRed else TextPrimary,
                         fontSize = 14.sp,
-                        modifier = Modifier
-                            // TV focus highlight (no-op on phones) — dialog option row.
-                            .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
-                            .fillMaxWidth().clip(RoundedCornerShape(6.dp))
-                            .clickable { onSelect(option) }.padding(vertical = 8.dp, horizontal = 4.dp),
+                        modifier =
+                            Modifier
+                                // TV focus highlight (no-op on phones) — dialog option row.
+                                .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { onSelect(option) }
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
                     )
                 }
             }
@@ -576,9 +642,16 @@ private fun SelectDialog(title: String, options: List<String>, titles: List<Stri
 }
 
 @Composable
-private fun SegmentDialog(title: String, options: List<String>, currentIndex: Int?, onSelect: (Int) -> Unit, onDismiss: () -> Unit) {
+private fun SegmentDialog(
+    title: String,
+    options: List<String>,
+    currentIndex: Int?,
+    onSelect: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
     AlertDialog(
-        onDismissRequest = onDismiss, containerColor = CardDark,
+        onDismissRequest = onDismiss,
+        containerColor = CardDark,
         title = { Text(title, color = TextPrimary, fontSize = 16.sp) },
         text = {
             Column {
@@ -588,11 +661,14 @@ private fun SegmentDialog(title: String, options: List<String>, currentIndex: In
                         text = "${if (sel) "● " else "  "}$option",
                         color = if (sel) AnimeRed else TextPrimary,
                         fontSize = 14.sp,
-                        modifier = Modifier
-                            // TV focus highlight (no-op on phones) — dialog option row.
-                            .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
-                            .fillMaxWidth().clip(RoundedCornerShape(6.dp))
-                            .clickable { onSelect(idx) }.padding(vertical = 8.dp, horizontal = 4.dp),
+                        modifier =
+                            Modifier
+                                // TV focus highlight (no-op on phones) — dialog option row.
+                                .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { onSelect(idx) }
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
                     )
                 }
             }
@@ -602,10 +678,18 @@ private fun SegmentDialog(title: String, options: List<String>, currentIndex: In
 }
 
 @Composable
-private fun MultiSelectDialog(title: String, options: List<String>, titles: List<String>?, current: List<String>, onToggle: (String) -> Unit, onDismiss: () -> Unit) {
+private fun MultiSelectDialog(
+    title: String,
+    options: List<String>,
+    titles: List<String>?,
+    current: List<String>,
+    onToggle: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val selected = remember { mutableStateOf(current.toMutableSet()) }
     AlertDialog(
-        onDismissRequest = onDismiss, containerColor = CardDark,
+        onDismissRequest = onDismiss,
+        containerColor = CardDark,
         title = { Text(title, color = TextPrimary, fontSize = 16.sp) },
         text = {
             Column {
@@ -613,12 +697,14 @@ private fun MultiSelectDialog(title: String, options: List<String>, titles: List
                     val display = titles?.getOrNull(idx) ?: option
                     val checked = option in selected.value
                     Row(
-                        modifier = Modifier
-                            // TV focus highlight (no-op on phones) — dialog option row.
-                            .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
-                            .fillMaxWidth().clip(RoundedCornerShape(6.dp))
-                            .clickable { if (checked) selected.value.remove(option) else selected.value.add(option) }
-                            .padding(vertical = 8.dp, horizontal = 4.dp),
+                        modifier =
+                            Modifier
+                                // TV focus highlight (no-op on phones) — dialog option row.
+                                .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { if (checked) selected.value.remove(option) else selected.value.add(option) }
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(if (checked) "☑" else "☐", color = if (checked) AnimeRed else TextSecondary, fontSize = 14.sp)
@@ -628,7 +714,12 @@ private fun MultiSelectDialog(title: String, options: List<String>, titles: List
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onToggle(selected.value.firstOrNull() ?: ""); onDismiss() }, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) { Text(stringResource(R.string.source_settings_done), color = AnimeRed) } },
+        confirmButton = {
+            TextButton(onClick = {
+                onToggle(selected.value.firstOrNull() ?: "")
+                onDismiss()
+            }, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) { Text(stringResource(R.string.source_settings_done), color = AnimeRed) }
+        },
         dismissButton = { TextButton(onClick = onDismiss, modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)) { Text(stringResource(R.string.source_settings_cancel), color = TextSecondary) } },
     )
 }
@@ -639,10 +730,17 @@ private fun MultiSelectDialog(title: String, options: List<String>, titles: List
  * the FULL selection on Done to `{sourceId}.languages`.
  */
 @Composable
-private fun LanguageDialog(title: String, options: List<String>, current: List<String>, onConfirm: (List<String>) -> Unit, onDismiss: () -> Unit) {
+private fun LanguageDialog(
+    title: String,
+    options: List<String>,
+    current: List<String>,
+    onConfirm: (List<String>) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val selected = remember { mutableStateOf(current.toMutableSet()) }
     AlertDialog(
-        onDismissRequest = onDismiss, containerColor = CardDark,
+        onDismissRequest = onDismiss,
+        containerColor = CardDark,
         title = { Text(title, color = TextPrimary, fontSize = 16.sp) },
         text = {
             Column {
@@ -652,13 +750,14 @@ private fun LanguageDialog(title: String, options: List<String>, current: List<S
                         selected.value = if (newChecked) (selected.value + option).toMutableSet() else (selected.value - option).toMutableSet()
                     }
                     Row(
-                        modifier = Modifier
-                            // TV focus highlight (no-op on phones) — dialog option row.
-                            .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable { toggle(!checked) }
-                            .padding(vertical = 8.dp, horizontal = 4.dp),
+                        modifier =
+                            Modifier
+                                // TV focus highlight (no-op on phones) — dialog option row.
+                                .tvFocus(shape = RoundedCornerShape(6.dp), scale = 1.0f)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { toggle(!checked) }
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(option.uppercase(), color = TextPrimary, fontSize = 14.sp, modifier = Modifier.weight(1f))
@@ -666,13 +765,14 @@ private fun LanguageDialog(title: String, options: List<String>, current: List<S
                         Switch(
                             checked = checked,
                             onCheckedChange = toggle,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = TextPrimary,
-                                checkedTrackColor = AnimeBlue,
-                                uncheckedThumbColor = TextSecondary,
-                                uncheckedTrackColor = SurfaceVariantDark,
-                                uncheckedBorderColor = CardBorderDark,
-                            ),
+                            colors =
+                                SwitchDefaults.colors(
+                                    checkedThumbColor = TextPrimary,
+                                    checkedTrackColor = AnimeBlue,
+                                    uncheckedThumbColor = TextSecondary,
+                                    uncheckedTrackColor = SurfaceVariantDark,
+                                    uncheckedBorderColor = CardBorderDark,
+                                ),
                         )
                     }
                 }
@@ -684,19 +784,30 @@ private fun LanguageDialog(title: String, options: List<String>, current: List<S
 }
 
 @Composable
-private fun StepperDialog(title: String, value: Double, min: Double, max: Double, step: Double?, onConfirm: (Double) -> Unit, onDismiss: () -> Unit) {
+private fun StepperDialog(
+    title: String,
+    value: Double,
+    min: Double,
+    max: Double,
+    step: Double?,
+    onConfirm: (Double) -> Unit,
+    onDismiss: () -> Unit,
+) {
     var currentValue by remember { mutableDoubleStateOf(value) }
     val steps = if (step != null) ((max - min) / step).toInt() - 1 else 20
     AlertDialog(
-        onDismissRequest = onDismiss, containerColor = CardDark,
+        onDismissRequest = onDismiss,
+        containerColor = CardDark,
         title = { Text(title, color = TextPrimary, fontSize = 16.sp) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(String.format("%.1f", currentValue), color = AnimeRed, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
                 Slider(
-                    value = currentValue.toFloat(), onValueChange = { currentValue = it.toDouble() },
-                    valueRange = min.toFloat()..max.toFloat(), steps = steps,
+                    value = currentValue.toFloat(),
+                    onValueChange = { currentValue = it.toDouble() },
+                    valueRange = min.toFloat()..max.toFloat(),
+                    steps = steps,
                     colors = SliderDefaults.colors(thumbColor = AnimeRed, activeTrackColor = AnimeRed),
                 )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -711,9 +822,17 @@ private fun StepperDialog(title: String, value: Double, min: Double, max: Double
 }
 
 @Composable
-private fun TextDialog(title: String, placeholder: String?, value: String, onValueChange: (String) -> Unit, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+private fun TextDialog(
+    title: String,
+    placeholder: String?,
+    value: String,
+    onValueChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     AlertDialog(
-        onDismissRequest = onDismiss, containerColor = CardDark,
+        onDismissRequest = onDismiss,
+        containerColor = CardDark,
         title = { Text(title, color = TextPrimary, fontSize = 16.sp) },
         text = {
             CompactInput(
@@ -732,25 +851,31 @@ private fun TextDialog(title: String, placeholder: String?, value: String, onVal
 // Helpers
 // ══════════════════════════════════════════════════════════════════════════════
 
-private fun extractTextDefault(setting: SourceSetting): String = when (val v = setting.value) {
-    is SourceSettingValue.Text -> v.default.orEmpty()
-    is SourceSettingValue.EditableList -> v.default?.firstOrNull().orEmpty()
-    else -> ""
-}
+private fun extractTextDefault(setting: SourceSetting): String =
+    when (val v = setting.value) {
+        is SourceSettingValue.Text -> v.default.orEmpty()
+        is SourceSettingValue.EditableList -> v.default?.firstOrNull().orEmpty()
+        else -> ""
+    }
 
 @Composable
 private fun SourceInfoCard(source: Source) {
     val badgeColor = remember(source.badgeColorHex) { Color(source.badgeColorHex) }
     Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-            .background(CardDark).padding(horizontal = 12.dp, vertical = 10.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(CardDark)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(42.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(badgeColor.copy(alpha = 0.15f)),
+            modifier =
+                Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(badgeColor.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -769,8 +894,11 @@ private fun SourceInfoCard(source: Source) {
         }
         if (source.contentRating != 0) {
             Box(
-                modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(SurfaceVariantDark)
-                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(SurfaceVariantDark)
+                        .padding(horizontal = 6.dp, vertical = 3.dp),
             ) {
                 Text("18+", color = AnimeRed, fontSize = 10.sp)
             }
@@ -786,9 +914,23 @@ private fun SettingsSkeleton() {
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Box(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(10.dp)).background(CardDark).shimmerEffect())
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(CardDark)
+                .shimmerEffect(),
+        )
         repeat(5) {
-            Box(Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(10.dp)).background(CardDark).shimmerEffect())
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(CardDark)
+                    .shimmerEffect(),
+            )
         }
     }
 }

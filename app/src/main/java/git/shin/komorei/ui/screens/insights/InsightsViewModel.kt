@@ -30,9 +30,10 @@ class InsightsViewModel @Inject constructor(
     /** Re-reads the watch history, for example after returning to the screen. */
     fun refresh() {
         viewModelScope.launch {
-            _data.value = withContext(Dispatchers.IO) {
-                libraryRepository.getInsights()
-            }
+            _data.value =
+                withContext(Dispatchers.IO) {
+                    libraryRepository.getInsights()
+                }
         }
     }
 }

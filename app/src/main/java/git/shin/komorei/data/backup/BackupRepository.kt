@@ -52,47 +52,56 @@ class BackupRepository @Inject constructor(
             createdAt = now,
             appVersion = BuildConfig.VERSION_NAME,
             appBuild = BuildConfig.VERSION_CODE,
-            anime = if (options.includeLibrary) {
-                animeDao.getAllAnimeEntities()
-                    .sortedWith(compareBy<AnimeEntity> { it.anime.sourceId }.thenBy { it.anime.id })
-                    .map { BackupAnime(it.anime, it.isBookmarked, it.bookmarkAddedAt) }
-            } else {
-                null
-            },
-            watchHistory = if (options.includeHistory) {
-                animeDao.getAllWatchHistory()
-                    .sortedWith(compareBy<WatchHistoryEntity> { it.sourceId }
-                        .thenBy { it.animeId }
-                        .thenBy { it.episodeId })
-                    .map { it.toBackup() }
-            } else {
-                null
-            },
-            sourceDefaults = if (options.includeSourceDefaults) {
-                defaultsDao.getAll().map { BackupSourceDefault(it.key, it.type, it.value) }
-            } else {
-                null
-            },
-            sourceState = if (options.includeSourceState) {
-                sourceStateStore.snapshot().toBackup()
-            } else {
-                null
-            },
-            searchHistory = if (options.includeSearchHistory) {
-                searchHistoryStore.snapshot()
-            } else {
-                null
-            },
-            userSources = if (options.includeUserSources) {
-                sourceRegistry.exportUserSources().map {
-                    BackupUserSource(
-                        id = it.id,
-                        data = Base64.encodeToString(it.bytes, Base64.NO_WRAP),
-                    )
-                }
-            } else {
-                null
-            },
+            anime =
+                if (options.includeLibrary) {
+                    animeDao
+                        .getAllAnimeEntities()
+                        .sortedWith(compareBy<AnimeEntity> { it.anime.sourceId }.thenBy { it.anime.id })
+                        .map { BackupAnime(it.anime, it.isBookmarked, it.bookmarkAddedAt) }
+                } else {
+                    null
+                },
+            watchHistory =
+                if (options.includeHistory) {
+                    animeDao
+                        .getAllWatchHistory()
+                        .sortedWith(
+                            compareBy<WatchHistoryEntity> { it.sourceId }
+                                .thenBy { it.animeId }
+                                .thenBy { it.episodeId },
+                        ).map { it.toBackup() }
+                } else {
+                    null
+                },
+            sourceDefaults =
+                if (options.includeSourceDefaults) {
+                    defaultsDao.getAll().map { BackupSourceDefault(it.key, it.type, it.value) }
+                } else {
+                    null
+                },
+            sourceState =
+                if (options.includeSourceState) {
+                    sourceStateStore.snapshot().toBackup()
+                } else {
+                    null
+                },
+            searchHistory =
+                if (options.includeSearchHistory) {
+                    searchHistoryStore.snapshot()
+                } else {
+                    null
+                },
+            userSources =
+                if (options.includeUserSources) {
+                    sourceRegistry.exportUserSources().map {
+                        BackupUserSource(
+                            id = it.id,
+                            data = Base64.encodeToString(it.bytes, Base64.NO_WRAP),
+                        )
+                    }
+                } else {
+                    null
+                },
         )
     }
 
@@ -107,23 +116,32 @@ class BackupRepository @Inject constructor(
     suspend fun createPayloadBytes(
         name: String? = null,
         options: BackupOptions = BackupOptions(),
-    ): ByteArray = codec.encode(
-        createPayload(options).copy(name = name?.trim()?.takeIf { it.isNotEmpty() }),
-    ).toByteArray(Charsets.UTF_8)
+    ): ByteArray =
+        codec
+            .encode(
+                createPayload(options).copy(name = name?.trim()?.takeIf { it.isNotEmpty() }),
+            ).toByteArray(Charsets.UTF_8)
 
     suspend fun importUri(uri: Uri): BackupFileInfo {
-        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            ?: throw BackupFormatException("Could not open the selected backup")
+        val bytes =
+            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                ?: throw BackupFormatException("Could not open the selected backup")
         val payload = codec.decode(bytes)
         return writePayload(payload)
     }
 
-    suspend fun importBytes(bytes: ByteArray, fallbackName: String? = null): BackupFileInfo {
+    suspend fun importBytes(
+        bytes: ByteArray,
+        fallbackName: String? = null,
+    ): BackupFileInfo {
         val payload = codec.decode(bytes)
         return writePayload(payload.copy(name = payload.name ?: fallbackName))
     }
 
-    suspend fun exportToUri(fileName: String, uri: Uri) {
+    suspend fun exportToUri(
+        fileName: String,
+        uri: Uri,
+    ) {
         val file = safeFile(fileName)
         context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
             output.write(file.readBytes())
@@ -132,22 +150,23 @@ class BackupRepository @Inject constructor(
 
     suspend fun readBytes(fileName: String): ByteArray = safeFile(fileName).readBytes()
 
-    suspend fun listLocalBackups(): List<BackupFileInfo> {
-        return directory.listFiles { file -> file.isFile && file.name.endsWith(FILE_EXTENSION) }
+    suspend fun listLocalBackups(): List<BackupFileInfo> =
+        directory
+            .listFiles { file -> file.isFile && file.name.endsWith(FILE_EXTENSION) }
             .orEmpty()
             .sortedByDescending { it.lastModified() }
             .map(::inspect)
-    }
 
     fun inspect(file: File): BackupFileInfo {
-        val fallback = BackupFileInfo(
-            fileName = file.name,
-            createdAt = file.lastModified(),
-            name = null,
-            sizeBytes = file.length(),
-            counts = BackupCounts(),
-            valid = false,
-        )
+        val fallback =
+            BackupFileInfo(
+                fileName = file.name,
+                createdAt = file.lastModified(),
+                name = null,
+                sizeBytes = file.length(),
+                counts = BackupCounts(),
+                valid = false,
+            )
         return runCatching {
             val payload = codec.decode(file.readBytes())
             BackupFileInfo(
@@ -171,47 +190,60 @@ class BackupRepository @Inject constructor(
         val payload = codec.decode(readBytes(fileName))
         // Decode/validate optional binary sections before the first DB mutation;
         // a truncated Base64 package must not leave a half-restored library.
-        val sourcePackages = payload.userSources?.map { source ->
-            source.toPackage() ?: throw BackupFormatException("Invalid source package data")
-        }
+        val sourcePackages =
+            payload.userSources?.map { source ->
+                source.toPackage() ?: throw BackupFormatException("Invalid source package data")
+            }
         val safetyName = "pre-restore-${timestamp()}"
-        createLocalBackup(safetyName, BackupOptions(
-            includeLibrary = true,
-            includeHistory = true,
-            includeSourceState = true,
-            includeSourceDefaults = true,
-            includeSearchHistory = true,
-            includeUserSources = true,
-        ))
+        createLocalBackup(
+            safetyName,
+            BackupOptions(
+                includeLibrary = true,
+                includeHistory = true,
+                includeSourceState = true,
+                includeSourceDefaults = true,
+                includeSearchHistory = true,
+                includeUserSources = true,
+            ),
+        )
 
         database.withTransaction {
             payload.anime?.let { rows ->
                 animeDao.deleteAllAnimeEntities()
-                rows.sortedWith(compareBy<BackupAnime> { it.anime.sourceId }
-                    .thenBy { it.anime.id })
-                    .chunked(ANIME_CHUNK_SIZE)
+                rows
+                    .sortedWith(
+                        compareBy<BackupAnime> { it.anime.sourceId }
+                            .thenBy { it.anime.id },
+                    ).chunked(ANIME_CHUNK_SIZE)
                     .forEach { chunk ->
-                        animeDao.upsertAnimes(chunk.map {
-                            AnimeEntity(it.anime, it.isBookmarked, it.bookmarkAddedAt)
-                        })
+                        animeDao.upsertAnimes(
+                            chunk.map {
+                                AnimeEntity(it.anime, it.isBookmarked, it.bookmarkAddedAt)
+                            },
+                        )
                     }
             }
             payload.watchHistory?.let { rows ->
                 animeDao.deleteAllWatchHistory()
-                rows.sortedWith(compareBy<BackupWatchHistory> { it.sourceId }
-                    .thenBy { it.animeId }
-                    .thenBy { it.episodeId })
-                    .chunked(HISTORY_CHUNK_SIZE)
+                rows
+                    .sortedWith(
+                        compareBy<BackupWatchHistory> { it.sourceId }
+                            .thenBy { it.animeId }
+                            .thenBy { it.episodeId },
+                    ).chunked(HISTORY_CHUNK_SIZE)
                     .forEach { chunk -> animeDao.upsertWatchHistoryBatch(chunk.map { it.toEntity() }) }
             }
             payload.sourceDefaults?.let { rows ->
                 defaultsDao.deleteAll()
-                rows.sortedBy { it.key }
+                rows
+                    .sortedBy { it.key }
                     .chunked(DEFAULTS_CHUNK_SIZE)
                     .forEach { chunk ->
-                        defaultsDao.upsertAll(chunk.map {
-                            KrxDefaultsEntity(it.key, it.type, it.value)
-                        })
+                        defaultsDao.upsertAll(
+                            chunk.map {
+                                KrxDefaultsEntity(it.key, it.type, it.value)
+                            },
+                        )
                     }
             }
         }
@@ -219,9 +251,11 @@ class BackupRepository @Inject constructor(
         payload.sourceState?.let { sourceStateStore.restore(it.toSnapshot()) }
         payload.searchHistory?.let(searchHistoryStore::restore)
 
-        val skippedSources = sourcePackages?.let { packages ->
-            sourceRegistry.importUserSources(packages)
-        }.orEmpty()
+        val skippedSources =
+            sourcePackages
+                ?.let { packages ->
+                    sourceRegistry.importUserSources(packages)
+                }.orEmpty()
 
         return BackupRestoreResult(
             restored = payload.counts(),
@@ -231,12 +265,13 @@ class BackupRepository @Inject constructor(
 
     private suspend fun writePayload(payload: BackupPayload): BackupFileInfo {
         val encoded = codec.encode(payload).toByteArray(Charsets.UTF_8)
-        val baseName = payload.name
-            ?.replace(Regex("[^A-Za-z0-9._-]+"), "_")
-            ?.trim('_', '.', '-')
-            ?.take(40)
-            ?.takeIf { it.isNotEmpty() }
-        val prefix = if (baseName == null) "komorei" else "komorei_${baseName}"
+        val baseName =
+            payload.name
+                ?.replace(Regex("[^A-Za-z0-9._-]+"), "_")
+                ?.trim('_', '.', '-')
+                ?.take(40)
+                ?.takeIf { it.isNotEmpty() }
+        val prefix = if (baseName == null) "komorei" else "komorei_$baseName"
         var file = File(directory, "${prefix}_${timestamp()}.$FILE_EXTENSION")
         var suffix = 1
         while (file.exists()) {
@@ -263,58 +298,64 @@ class BackupRepository @Inject constructor(
         return candidate
     }
 
-    private fun timestamp(): String =
-        SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+    private fun timestamp(): String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
 
-    private fun WatchHistoryEntity.toBackup() = BackupWatchHistory(
-        animeId = animeId,
-        sourceId = sourceId,
-        episodeId = episodeId,
-        episodeNumber = episodeNumber,
-        episodeTitle = episodeTitle,
-        lastWatchedAt = lastWatchedAt,
-        progressMs = progressMs,
-        durationMs = durationMs,
-    )
+    private fun WatchHistoryEntity.toBackup() =
+        BackupWatchHistory(
+            animeId = animeId,
+            sourceId = sourceId,
+            episodeId = episodeId,
+            episodeNumber = episodeNumber,
+            episodeTitle = episodeTitle,
+            lastWatchedAt = lastWatchedAt,
+            progressMs = progressMs,
+            durationMs = durationMs,
+        )
 
-    private fun BackupWatchHistory.toEntity() = WatchHistoryEntity(
-        animeId = animeId,
-        sourceId = sourceId,
-        episodeId = episodeId,
-        episodeNumber = episodeNumber,
-        episodeTitle = episodeTitle,
-        lastWatchedAt = lastWatchedAt,
-        progressMs = progressMs,
-        durationMs = durationMs,
-    )
+    private fun BackupWatchHistory.toEntity() =
+        WatchHistoryEntity(
+            animeId = animeId,
+            sourceId = sourceId,
+            episodeId = episodeId,
+            episodeNumber = episodeNumber,
+            episodeTitle = episodeTitle,
+            lastWatchedAt = lastWatchedAt,
+            progressMs = progressMs,
+            durationMs = durationMs,
+        )
 
-    private fun SourceStateSnapshot.toBackup() = BackupSourceState(
-        disabledSources = disabledSources,
-        pinnedSources = pinnedSources,
-        repositoryUrls = repositoryUrls,
-    )
+    private fun SourceStateSnapshot.toBackup() =
+        BackupSourceState(
+            disabledSources = disabledSources,
+            pinnedSources = pinnedSources,
+            repositoryUrls = repositoryUrls,
+        )
 
-    private fun BackupSourceState.toSnapshot() = SourceStateSnapshot(
-        disabledSources = disabledSources,
-        pinnedSources = pinnedSources,
-        repositoryUrls = repositoryUrls,
-    )
+    private fun BackupSourceState.toSnapshot() =
+        SourceStateSnapshot(
+            disabledSources = disabledSources,
+            pinnedSources = pinnedSources,
+            repositoryUrls = repositoryUrls,
+        )
 
-    private fun BackupUserSource.toPackage(): InstalledSourcePackage? = runCatching {
-        InstalledSourcePackage(id, Base64.decode(data, Base64.DEFAULT))
-    }.getOrNull()
+    private fun BackupUserSource.toPackage(): InstalledSourcePackage? =
+        runCatching {
+            InstalledSourcePackage(id, Base64.decode(data, Base64.DEFAULT))
+        }.getOrNull()
 
-    private fun BackupPayload.counts() = BackupCounts(
-        library = anime?.size ?: 0,
-        history = watchHistory?.size ?: 0,
-        sourceDefaults = sourceDefaults?.size ?: 0,
-        sources = userSources?.size ?: 0,
-    )
+    private fun BackupPayload.counts() =
+        BackupCounts(
+            library = anime?.size ?: 0,
+            history = watchHistory?.size ?: 0,
+            sourceDefaults = sourceDefaults?.size ?: 0,
+            sources = userSources?.size ?: 0,
+        )
 
     private companion object {
         const val TAG = "BackupRepository"
         const val DIRECTORY_NAME = "backups"
         const val FILE_EXTENSION = "kbackup"
+
         // Anime has many embedded columns; keep each INSERT well below
         // SQLite's 999 bind-parameter limit.
         const val ANIME_CHUNK_SIZE = 20

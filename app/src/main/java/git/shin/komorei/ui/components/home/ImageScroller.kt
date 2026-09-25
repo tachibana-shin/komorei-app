@@ -50,9 +50,10 @@ fun ImageScrollerRow(
     val listState: LazyListState = rememberLazyListState()
 
     LaunchedEffect(listState, links.size, autoScrollInterval) {
-        val intervalMs = (autoScrollInterval ?: 4f)
-            .coerceAtLeast(1.5f)
-            .let { (it * 1000).toLong() }
+        val intervalMs =
+            (autoScrollInterval ?: 4f)
+                .coerceAtLeast(1.5f)
+                .let { (it * 1000).toLong() }
         while (links.isNotEmpty()) {
             delay(intervalMs.milliseconds)
             val next = (listState.firstVisibleItemIndex.coerceAtLeast(0) + 1) % links.size
@@ -66,26 +67,27 @@ fun ImageScrollerRow(
         LazyRow(
             state = listState,
             contentPadding = PaddingValues(horizontal = 16.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             itemsIndexed(items = links, key = { _, link -> link.title + (link.imageUrl ?: "") }) { _, link ->
                 val anime = link.anime
                 Box(
-                    modifier = Modifier
-                        .padding(end = 12.dp)
-                        .width(itemWidth)
-                        .height(itemHeight)
-                        // TV focus highlight (no-op on phones) — same card recipe
-                        // as AnimeCard.
-                        .tvFocus(shape = RoundedCornerShape(14.dp), scale = 1.02f)
-                        .clip(RoundedCornerShape(14.dp))
-                        .clickable(enabled = anime != null) { if (anime != null) onAnimeClick(anime) }
+                    modifier =
+                        Modifier
+                            .padding(end = 12.dp)
+                            .width(itemWidth)
+                            .height(itemHeight)
+                            // TV focus highlight (no-op on phones) — same card recipe
+                            // as AnimeCard.
+                            .tvFocus(shape = RoundedCornerShape(14.dp), scale = 1.02f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable(enabled = anime != null) { if (anime != null) onAnimeClick(anime) },
                 ) {
                     AsyncImage(
                         model = link.imageUrl,
                         contentDescription = link.title,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
                     )
                     QualityTagBadge(qualityTag = link.anime?.qualityTag)
                 }

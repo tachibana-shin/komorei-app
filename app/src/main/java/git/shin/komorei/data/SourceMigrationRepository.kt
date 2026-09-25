@@ -32,7 +32,6 @@ class SourceMigrationRepository @Inject constructor(
     private val animeDao: AnimeDao,
     private val animeRepository: AnimeRepository,
 ) {
-
     /** Seam: maps an anime key to its current form (default: the source API). */
     internal var migrateAnimeKey: suspend (sourceId: String, key: String) -> String? =
         { sourceId, key -> animeRepository.migrateAnime(sourceId, key) }
@@ -74,25 +73,31 @@ class SourceMigrationRepository @Inject constructor(
 
         // ── build the plan ──────────────────────────────────────────────
         val deleteAnimeIds = animeRemap.keys.toList()
-        val insertAnimes: List<AnimeEntity> = animeRows
-            .filter { it.anime.id in animeRemap }
-            .map { row ->
-                val oldId = row.anime.id
-                row.copy(anime = row.anime.copy(id = animeRemap.getValue(oldId)))
-            }
+        val insertAnimes: List<AnimeEntity> =
+            animeRows
+                .filter { it.anime.id in animeRemap }
+                .map { row ->
+                    val oldId = row.anime.id
+                    row.copy(anime = row.anime.copy(id = animeRemap.getValue(oldId)))
+                }
 
         val deleteHistoryByAnime = deleteAnimeIds
         // Rows whose ANIME id stayed but whose EPISODE id moved are deleted
         // individually (the whole-anime delete would miss them).
-        val deleteHistoryEntries = historyRows.filter { row ->
-            row.animeId !in animeRemap && (row.animeId to row.episodeId) in episodeRemap
-        }
-        val insertHistory: List<WatchHistoryEntity> = historyRows.mapNotNull { row ->
-            val newAnimeId = animeRemap[row.animeId] ?: row.animeId
-            val newEpisodeId = episodeRemap[row.animeId to row.episodeId] ?: row.episodeId
-            if (newAnimeId == row.animeId && newEpisodeId == row.episodeId) null
-            else row.copy(animeId = newAnimeId, episodeId = newEpisodeId)
-        }
+        val deleteHistoryEntries =
+            historyRows.filter { row ->
+                row.animeId !in animeRemap && (row.animeId to row.episodeId) in episodeRemap
+            }
+        val insertHistory: List<WatchHistoryEntity> =
+            historyRows.mapNotNull { row ->
+                val newAnimeId = animeRemap[row.animeId] ?: row.animeId
+                val newEpisodeId = episodeRemap[row.animeId to row.episodeId] ?: row.episodeId
+                if (newAnimeId == row.animeId && newEpisodeId == row.episodeId) {
+                    null
+                } else {
+                    row.copy(animeId = newAnimeId, episodeId = newEpisodeId)
+                }
+            }
 
         animeDao.applyLibraryMigration(
             sourceId = sourceId,

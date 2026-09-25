@@ -58,7 +58,7 @@ import kotlin.time.Duration.Companion.milliseconds
 fun BannerCarousel(
     featuredList: List<Anime>,
     onAnimeClick: (Anime) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     if (featuredList.isEmpty()) return
 
@@ -75,75 +75,81 @@ fun BannerCarousel(
 
     Column(modifier = modifier.fillMaxWidth()) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(270.dp)
-                .padding(horizontal = 16.dp, vertical = 6.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .testTag("banner_carousel")
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(270.dp)
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .testTag("banner_carousel"),
         ) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             ) { page ->
                 val anime = featuredList[page]
 
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        // TV focus highlight (no-op on phones) around the whole
-                        // banner so a D-pad focus is visible; tiny scale so the
-                        // clipped pager edges stay put.
-                        .tvFocus(shape = RoundedCornerShape(18.dp), scale = 1.02f)
-                        .clickable { onAnimeClick(anime) }
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            // TV focus highlight (no-op on phones) around the whole
+                            // banner so a D-pad focus is visible; tiny scale so the
+                            // clipped pager edges stay put.
+                            .tvFocus(shape = RoundedCornerShape(18.dp), scale = 1.02f)
+                            .clickable { onAnimeClick(anime) },
                 ) {
                     // Banner Image
                     AsyncImage(
                         model = anime.bannerUrl,
                         contentDescription = anime.title,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
                     )
 
                     // Cinematic Gradient Overlays
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        Color(0x770A0D14),
-                                        Color(0xF50A0D14)
-                                    )
-                                )
-                            )
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors =
+                                            listOf(
+                                                Color.Transparent,
+                                                Color(0x770A0D14),
+                                                Color(0xF50A0D14),
+                                            ),
+                                    ),
+                                ),
                     )
 
                     // Top Badge: Trending Now
                     Box(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(12.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0x99000000))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier =
+                            Modifier
+                                .align(Alignment.TopStart)
+                                .padding(12.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0x99000000))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                     ) {
                         Text(
                             text = stringResource(R.string.badge_hot),
                             color = AnimeRed,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 1.sp
+                            letterSpacing = 1.sp,
                         )
                     }
 
                     // Content on bottom of banner
                     Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .fillMaxWidth()
-                            .padding(16.dp)
+                        modifier =
+                            Modifier
+                                .align(Alignment.BottomStart)
+                                .fillMaxWidth()
+                                .padding(16.dp),
                     ) {
                         Text(
                             text = anime.title,
@@ -151,26 +157,26 @@ fun BannerCarousel(
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Row(
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = null,
                                 tint = GoldRating,
-                                modifier = Modifier.size(13.dp)
+                                modifier = Modifier.size(13.dp),
                             )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
                                 text = String.format("%.2f", anime.rating),
                                 color = TextPrimary,
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
                             )
 
                             anime.qualityTag?.let {
@@ -181,12 +187,12 @@ fun BannerCarousel(
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     style = NoPaddingTextStyle,
-                                    modifier = Modifier
-                                        .background(
-                                            Color(0xFF00C853).copy(alpha = .85f),
-                                            RoundedCornerShape(4.dp)
-                                        )
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    modifier =
+                                        Modifier
+                                            .background(
+                                                Color(0xFF00C853).copy(alpha = .85f),
+                                                RoundedCornerShape(4.dp),
+                                            ).padding(horizontal = 6.dp, vertical = 2.dp),
                                 )
                             }
 
@@ -212,7 +218,7 @@ fun BannerCarousel(
                                 fontSize = 11.5.sp,
                                 lineHeight = 15.sp,
                                 maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
 
@@ -221,29 +227,32 @@ fun BannerCarousel(
                         // Quick Play Button
                         Button(
                             onClick = { onAnimeClick(anime) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AnimeRed,
-                                contentColor = Color.White
-                            ),
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = AnimeRed,
+                                    contentColor = Color.White,
+                                ),
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                horizontal = 14.dp,
-                                vertical = 6.dp
-                            ),
-                            modifier = Modifier
-                                .height(32.dp)
-                                .testTag("banner_play_${anime.id}")
+                            contentPadding =
+                                androidx.compose.foundation.layout.PaddingValues(
+                                    horizontal = 14.dp,
+                                    vertical = 6.dp,
+                                ),
+                            modifier =
+                                Modifier
+                                    .height(32.dp)
+                                    .testTag("banner_play_${anime.id}"),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
                                 contentDescription = stringResource(R.string.play_now),
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(16.dp),
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = stringResource(R.string.play_now),
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }
@@ -253,28 +262,30 @@ fun BannerCarousel(
 
         // Animated Dot Indicators below carousel
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 6.dp, bottom = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp, bottom = 4.dp),
             horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             repeat(featuredList.size) { index ->
                 val isSelected = pagerState.currentPage == index
                 val width by animateDpAsState(
                     targetValue = if (isSelected) 22.dp else 6.dp,
-                    label = "IndicatorWidth"
+                    label = "IndicatorWidth",
                 )
 
                 Box(
-                    modifier = Modifier
-                        .padding(horizontal = 3.dp)
-                        .height(6.dp)
-                        .width(width)
-                        .clip(CircleShape)
-                        .background(
-                            if (isSelected) AnimeRed else Color.White.copy(alpha = 0.25f)
-                        )
+                    modifier =
+                        Modifier
+                            .padding(horizontal = 3.dp)
+                            .height(6.dp)
+                            .width(width)
+                            .clip(CircleShape)
+                            .background(
+                                if (isSelected) AnimeRed else Color.White.copy(alpha = 0.25f),
+                            ),
                 )
             }
         }

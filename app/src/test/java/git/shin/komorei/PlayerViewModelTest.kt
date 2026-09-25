@@ -14,7 +14,6 @@ import git.shin.komorei.model.Episode
 import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
 import git.shin.komorei.ui.player.PlayerViewModel
-import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -33,6 +32,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 
 /**
  * Player resolution regression tests for [PlayerViewModel]:
@@ -48,7 +48,6 @@ import org.robolectric.annotation.Config
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class PlayerViewModelTest {
-
     private val mainDispatcher = StandardTestDispatcher()
     private lateinit var repository: AnimeRepository
     private lateinit var libraryRepository: LibraryRepository
@@ -57,54 +56,58 @@ class PlayerViewModelTest {
         private const val FAKE_SOURCE = "vi.fake-source"
         private const val CATALOG_KEY = "solo_leveling_s2"
 
-        private val fakeKrx: String = System.getProperty("komorei.test.fakeKrx")
-            ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
+        private val fakeKrx: String =
+            System.getProperty("komorei.test.fakeKrx")
+                ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
     }
 
     @Before
-    fun setUp() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val host = KrxHostImpl(context)
-        val registry = KrxSourceRegistry(context, host)
-        registry.loadKrx(FAKE_SOURCE, File(fakeKrx).readBytes())
-        repository = AnimeRepository(registry)
-        val db = Room.inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java).build()
-        libraryRepository = LibraryRepository(db.animeDao())
-        Dispatchers.setMain(mainDispatcher)
-    }
+    fun setUp() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val host = KrxHostImpl(context)
+            val registry = KrxSourceRegistry(context, host)
+            registry.loadKrx(FAKE_SOURCE, File(fakeKrx).readBytes())
+            repository = AnimeRepository(registry)
+            val db = Room.inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java).build()
+            libraryRepository = LibraryRepository(db.animeDao())
+            Dispatchers.setMain(mainDispatcher)
+        }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
     }
 
-    private fun newPlayerViewModel(): PlayerViewModel = PlayerViewModel(
-        ApplicationProvider.getApplicationContext(),
-        repository,
-        libraryRepository,
-        SavedStateHandle(),
-    )
+    private fun newPlayerViewModel(): PlayerViewModel =
+        PlayerViewModel(
+            ApplicationProvider.getApplicationContext(),
+            repository,
+            libraryRepository,
+            SavedStateHandle(),
+        )
 
     /** A valid Lite card (id + sourceId only) like the ones home/list/search return. */
-    private fun liteAnime(key: String): Anime = Anime(
-        id = key,
-        sourceId = FAKE_SOURCE,
-        title = key,
-        originalTitle = "",
-        posterUrl = "",
-        bannerUrl = "",
-        description = "",
-        episodeCount = 0,
-        currentEpisode = null,
-        rating = null,
-        ratingCount = null,
-        status = AnimeStatus.UNKNOWN,
-        releaseYear = null,
-        genres = emptyList(),
-        authors = emptyList(),
-        studio = null,
-        seasonOf = null,
-    )
+    private fun liteAnime(key: String): Anime =
+        Anime(
+            id = key,
+            sourceId = FAKE_SOURCE,
+            title = key,
+            originalTitle = "",
+            posterUrl = "",
+            bannerUrl = "",
+            description = "",
+            episodeCount = 0,
+            currentEpisode = null,
+            rating = null,
+            ratingCount = null,
+            status = AnimeStatus.UNKNOWN,
+            releaseYear = null,
+            genres = emptyList(),
+            authors = emptyList(),
+            studio = null,
+            seasonOf = null,
+        )
 
     /**
      * Waits for the openAnime stream pipeline to resolve. The runner round-trips
@@ -124,9 +127,9 @@ class PlayerViewModelTest {
     private fun TestScope.awaitStreamResolution(vm: PlayerViewModel) {
         vm.positionPoller?.cancel()
         val deadline = System.currentTimeMillis() + 10_000
-        while (vm.playbackState.value.streamData == null
-            && vm.playbackState.value.streamError == null
-            && System.currentTimeMillis() < deadline
+        while (vm.playbackState.value.streamData == null &&
+            vm.playbackState.value.streamError == null &&
+            System.currentTimeMillis() < deadline
         ) {
             advanceUntilIdle()
             Thread.sleep(20)
@@ -135,47 +138,56 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun openAnimeWithoutEpisodeResolvesFirstRealEpisodeAndStream() = runTest(mainDispatcher) {
-        val vm = newPlayerViewModel()
-        val lite = liteAnime(CATALOG_KEY)
-        val firstReal = repository.getAnimeUpdate(lite, needsDetails = true, needsChapters = true)
-            .episodes.first()
-        assertEquals("${CATALOG_KEY}_ep_1", firstReal.id)
+    fun openAnimeWithoutEpisodeResolvesFirstRealEpisodeAndStream() =
+        runTest(mainDispatcher) {
+            val vm = newPlayerViewModel()
+            val lite = liteAnime(CATALOG_KEY)
+            val firstReal =
+                repository
+                    .getAnimeUpdate(lite, needsDetails = true, needsChapters = true)
+                    .episodes
+                    .first()
+            assertEquals("${CATALOG_KEY}_ep_1", firstReal.id)
 
-        vm.openAnime(lite)
-        awaitStreamResolution(vm)
+            vm.openAnime(lite)
+            awaitStreamResolution(vm)
 
-        val state = vm.playbackState.value
-        assertEquals(firstReal.id, state.currentEpisode?.id)
-        assertEquals(firstReal.title, state.currentEpisode?.title)
-        assertNull(state.streamError)
-        assertNotNull(state.streamData)
-    }
+            val state = vm.playbackState.value
+            assertEquals(firstReal.id, state.currentEpisode?.id)
+            assertEquals(firstReal.title, state.currentEpisode?.title)
+            assertNull(state.streamError)
+            assertNotNull(state.streamData)
+        }
 
     @Test
-    fun openAnimeWithUnmatchedEpisodeFallsBackToFirstRealOne() = runTest(mainDispatcher) {
-        val vm = newPlayerViewModel()
-        val lite = liteAnime(CATALOG_KEY)
-        val firstReal = repository.getAnimeUpdate(lite, needsDetails = true, needsChapters = true)
-            .episodes.first()
-        // A key the source's episode list never contains (a stale deep link, or the
-        // "<animeId>_ep_1" placeholder openAnime builds when a Lite card arrives
-        // with no episodes) — must NOT be sent to get_stream.
-        val ghost = Episode(
-            id = "${CATALOG_KEY}__trailer",
-            animeId = lite.id,
-            sourceId = lite.sourceId,
-            episodeNumber = "TRAILER",
-            title = "Trailer",
-        )
+    fun openAnimeWithUnmatchedEpisodeFallsBackToFirstRealOne() =
+        runTest(mainDispatcher) {
+            val vm = newPlayerViewModel()
+            val lite = liteAnime(CATALOG_KEY)
+            val firstReal =
+                repository
+                    .getAnimeUpdate(lite, needsDetails = true, needsChapters = true)
+                    .episodes
+                    .first()
+            // A key the source's episode list never contains (a stale deep link, or the
+            // "<animeId>_ep_1" placeholder openAnime builds when a Lite card arrives
+            // with no episodes) — must NOT be sent to get_stream.
+            val ghost =
+                Episode(
+                    id = "${CATALOG_KEY}__trailer",
+                    animeId = lite.id,
+                    sourceId = lite.sourceId,
+                    episodeNumber = "TRAILER",
+                    title = "Trailer",
+                )
 
-        vm.openAnime(lite, ghost)
-        awaitStreamResolution(vm)
+            vm.openAnime(lite, ghost)
+            awaitStreamResolution(vm)
 
-        val state = vm.playbackState.value
-        assertEquals(firstReal.id, state.currentEpisode?.id)
-        assertEquals(firstReal.title, state.currentEpisode?.title)
-        assertNull(state.streamError)
-        assertNotNull(state.streamData)
-    }
+            val state = vm.playbackState.value
+            assertEquals(firstReal.id, state.currentEpisode?.id)
+            assertEquals(firstReal.title, state.currentEpisode?.title)
+            assertNull(state.streamError)
+            assertNotNull(state.streamData)
+        }
 }

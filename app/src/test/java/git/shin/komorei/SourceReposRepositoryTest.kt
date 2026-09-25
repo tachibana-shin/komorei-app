@@ -6,7 +6,6 @@ import org.junit.Test
 
 /** Pure JVM tests for comic repo manifest URL resolution. */
 class SourceReposRepositoryTest {
-
     @Test
     fun `absolute urls pass through untouched`() {
         assertEquals(

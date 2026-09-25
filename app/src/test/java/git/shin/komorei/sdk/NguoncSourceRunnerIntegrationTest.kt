@@ -26,13 +26,13 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.Closeable
+import java.io.File
 import java.io.IOException
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
-import java.io.File
 
 /**
  * The REAL Nguồn C source (`sources/sources/vi.nguonc` → `package.krx`) driven
@@ -57,14 +57,14 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class NguoncSourceRunnerIntegrationTest {
-
     private lateinit var host: KrxHostImpl
     private lateinit var runner: git.shin.komorei.sdk.runner.KomoreiRunner
     private lateinit var fixture: FixtureServer
 
     companion object {
-        private val nguoncKrx: String = System.getProperty("komorei.test.nguoncKrx")
-            ?: error("missing -Dkomorei.test.nguoncKrx (set by app/build.gradle.kts)")
+        private val nguoncKrx: String =
+            System.getProperty("komorei.test.nguoncKrx")
+                ?: error("missing -Dkomorei.test.nguoncKrx (set by app/build.gradle.kts)")
     }
 
     @Before
@@ -120,7 +120,8 @@ class NguoncSourceRunnerIntegrationTest {
     @Test
     fun `genre filter routes to the-loai with a catalog slug`() {
         runner.search(
-            null, 2,
+            null,
+            2,
             listOf(FilterValue.MultiSelect("genre", listOf("Kinh Dị"), emptyList())),
         )
         assertEquals("/api/films/the-loai/kinh-di?page=2", fixture.lastRequest())
@@ -232,10 +233,12 @@ class NguoncSourceRunnerIntegrationTest {
 
     @Test
     fun `stream list serves one StreamInfo per server with the detail quality`() {
-        val full = runner.animeUpdate(
-            runner.search("Người nhện", 1, emptyList()).entries.single { it.key == "nguoi-nhan" },
-            needsDetails = true, needsChapters = false,
-        )
+        val full =
+            runner.animeUpdate(
+                runner.search("Người nhện", 1, emptyList()).entries.single { it.key == "nguoi-nhan" },
+                needsDetails = true,
+                needsChapters = false,
+            )
         val servers = runner.streamList(full, ep("tap-1", "1"))
         assertEquals(listOf("Thuyết minh #1", "Vietsub #1"), servers.map { it.key })
         assertTrue(servers.all { it.quality == "FHD" })
@@ -243,10 +246,12 @@ class NguoncSourceRunnerIntegrationTest {
 
     @Test
     fun `stream walks bootstrap then issue to get the signed playlist with embed referer`() {
-        val full = runner.animeUpdate(
-            runner.search("Người nhện", 1, emptyList()).entries.single { it.key == "nguoi-nhan" },
-            needsDetails = true, needsChapters = false,
-        )
+        val full =
+            runner.animeUpdate(
+                runner.search("Người nhện", 1, emptyList()).entries.single { it.key == "nguoi-nhan" },
+                needsDetails = true,
+                needsChapters = false,
+            )
         val vietsub = runner.streamList(full, ep("tap-1", "1")).first { it.key == "Vietsub #1" }
 
         val data = runner.stream(full, ep("tap-1", "1"), vietsub)
@@ -273,10 +278,12 @@ class NguoncSourceRunnerIntegrationTest {
 
     @Test
     fun `stream bails with the source message when the episode is unknown`() {
-        val full = runner.animeUpdate(
-            runner.search("Người nhện", 1, emptyList()).entries.single { it.key == "nguoi-nhan" },
-            needsDetails = true, needsChapters = false,
-        )
+        val full =
+            runner.animeUpdate(
+                runner.search("Người nhện", 1, emptyList()).entries.single { it.key == "nguoi-nhan" },
+                needsDetails = true,
+                needsChapters = false,
+            )
         val vietsub = runner.streamList(full, ep("tap-1", "1")).first { it.key == "Vietsub #1" }
         try {
             runner.stream(full, ep("tap-999", "999"), vietsub)
@@ -380,35 +387,39 @@ class NguoncSourceRunnerIntegrationTest {
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
-    private fun stubAnime(key: String) = Anime(
-        key = key,
-        sourceId = "vi.nguonc",
-        title = key,
-        originalTitle = "",
-        cover = "",
-        banner = null,
-        description = null,
-        episodeCount = 0,
-        currentEpisode = null,
-        rating = null,
-        ratingCount = null,
-        status = AnimeStatus.UNKNOWN,
-        releaseYear = null,
-        genres = emptyList(),
-        authors = emptyList(),
-        studio = null,
-        seasonOf = null,
-        countries = emptyList(),
-        isFeatured = false,
-        views = 0,
-        nextEpisodeAirInfo = null,
-        qualityTag = null,
-        seasons = emptyList(),
-        episodes = null,
-        url = null,
-    )
+    private fun stubAnime(key: String) =
+        Anime(
+            key = key,
+            sourceId = "vi.nguonc",
+            title = key,
+            originalTitle = "",
+            cover = "",
+            banner = null,
+            description = null,
+            episodeCount = 0,
+            currentEpisode = null,
+            rating = null,
+            ratingCount = null,
+            status = AnimeStatus.UNKNOWN,
+            releaseYear = null,
+            genres = emptyList(),
+            authors = emptyList(),
+            studio = null,
+            seasonOf = null,
+            countries = emptyList(),
+            isFeatured = false,
+            views = 0,
+            nextEpisodeAirInfo = null,
+            qualityTag = null,
+            seasons = emptyList(),
+            episodes = null,
+            url = null,
+        )
 
-    private fun ep(key: String, number: String) = Episode(
+    private fun ep(
+        key: String,
+        number: String,
+    ) = Episode(
         key = key,
         episodeNumber = number,
         title = null,
@@ -425,28 +436,41 @@ class NguoncSourceRunnerIntegrationTest {
 
     private class FixtureServer : Closeable {
         private val server = ServerSocket(0, 64, InetAddress.getByName("127.0.0.1"))
+
         @Volatile private var closed = false
         val requests = CopyOnWriteArrayList<String>()
         val posts = CopyOnWriteArrayList<Post>()
 
         val baseUrl: String get() = "http://127.0.0.1:${server.localPort}"
 
-        class Post(val target: String, val action: String, val origin: String?, val referer: String?)
+        class Post(
+            val target: String,
+            val action: String,
+            val origin: String?,
+            val referer: String?,
+        )
 
         init {
-            Thread({ acceptLoop() }, "nguonc-fixture").apply { isDaemon = true; start() }
+            Thread({ acceptLoop() }, "nguonc-fixture").apply {
+                isDaemon = true
+                start()
+            }
         }
 
         fun lastRequest(): String = requests.lastOrNull() ?: ""
 
         private fun acceptLoop() {
             while (!closed) {
-                val sock = try {
-                    server.accept()
-                } catch (e: IOException) {
-                    break
+                val sock =
+                    try {
+                        server.accept()
+                    } catch (e: IOException) {
+                        break
+                    }
+                Thread({ handle(sock) }, "nguonc-fixture-handler").apply {
+                    isDaemon = true
+                    start()
                 }
-                Thread({ handle(sock) }, "nguonc-fixture-handler").apply { isDaemon = true; start() }
             }
         }
 
@@ -470,23 +494,25 @@ class NguoncSourceRunnerIntegrationTest {
                     var action: String? = null
                     if (method == "POST") {
                         val len = headers["content-length"]?.toIntOrNull() ?: 0
-                        val body = if (len > 0) {
-                            val chars = CharArray(len)
-                            var total = 0
-                            while (total < len) {
-                                val r = input.read(chars, total, len - total)
-                                if (r < 0) break
-                                total += r
+                        val body =
+                            if (len > 0) {
+                                val chars = CharArray(len)
+                                var total = 0
+                                while (total < len) {
+                                    val r = input.read(chars, total, len - total)
+                                    if (r < 0) break
+                                    total += r
+                                }
+                                String(chars)
+                            } else {
+                                ""
                             }
-                            String(chars)
-                        } else {
-                            ""
-                        }
-                        action = when {
-                            body.contains("\"action\":\"issue\"") -> "issue"
-                            body.contains("\"action\":\"bootstrap\"") -> "bootstrap"
-                            else -> "unknown"
-                        }
+                        action =
+                            when {
+                                body.contains("\"action\":\"issue\"") -> "issue"
+                                body.contains("\"action\":\"bootstrap\"") -> "bootstrap"
+                                else -> "unknown"
+                            }
                         posts += Post(target, action ?: "unknown", headers["origin"], headers["referer"])
                     }
                     requests += target
@@ -495,10 +521,12 @@ class NguoncSourceRunnerIntegrationTest {
                     val bytes = body.toByteArray(Charsets.UTF_8)
                     val out = s.getOutputStream()
                     out.write(
-                        ("HTTP/1.1 200 OK\r\n" +
-                            "Content-Type: application/json; charset=utf-8\r\n" +
-                            "Content-Length: ${bytes.size}\r\n" +
-                            "Connection: close\r\n\r\n").toByteArray(Charsets.US_ASCII),
+                        (
+                            "HTTP/1.1 200 OK\r\n" +
+                                "Content-Type: application/json; charset=utf-8\r\n" +
+                                "Content-Length: ${bytes.size}\r\n" +
+                                "Connection: close\r\n\r\n"
+                        ).toByteArray(Charsets.US_ASCII),
                     )
                     out.write(bytes)
                     out.flush()
@@ -508,7 +536,10 @@ class NguoncSourceRunnerIntegrationTest {
             }
         }
 
-        private fun route(target: String, action: String?): String {
+        private fun route(
+            target: String,
+            action: String?,
+        ): String {
             val path = target.substringBefore('?')
             return when (path) {
                 "/api/films/phim-moi-cap-nhat" ->
@@ -518,17 +549,23 @@ class NguoncSourceRunnerIntegrationTest {
                 "/api/films/search" -> list("[$A,$B]", "1", "1")
                 "/api/films/the-loai/kinh-di" -> list("[$B]", "1", "1")
                 "/api/film/nguoi-nhan" -> detail
-                "/embed.php" -> when (action) {
-                    "issue" -> issue(target)
-                    else -> bootstrap(target)
-                }
+                "/embed.php" ->
+                    when (action) {
+                        "issue" -> issue(target)
+                        else -> bootstrap(target)
+                    }
                 else -> list("[]", "1", "1")
             }
         }
 
-        private fun list(items: String, currentPage: String, totalPage: String) = """{"status":"success",
+        private fun list(
+            items: String,
+            currentPage: String,
+            totalPage: String,
+        ) = """{"status":"success",
             |"paginate":{"current_page":$currentPage,"total_page":$totalPage,"total_items":40,"items_per_page":10},
-            |"items":$items}""".trimMargin()
+            |"items":$items}
+            """.trimMargin()
 
         private val detail =
             """{"status":"success","movie":{
@@ -550,18 +587,22 @@ class NguoncSourceRunnerIntegrationTest {
             |{"server_name":"Vietsub #1","items":[
             |{"name":"1","slug":"tap-1","embed":"$baseUrl/embed.php?hash=abc123"},
             |{"name":"2","slug":"tap-2","embed":"$baseUrl/embed.php?hash=def456"}]}
-            |]}}""".trimMargin()
+            |]}}
+            """.trimMargin()
 
-        private fun bootstrap(target: String) = """{"video":"abc123","nonce":"n1",
+        private fun bootstrap(target: String) =
+            """{"video":"abc123","nonce":"n1",
             |"bootstrap":"eyJhbGciOiJIUzI1NiJ9.fake-signature",
             |"api":"$baseUrl${target.substringBefore('?')}?${target.substringAfter('?', "")}",
             |"turnstileEnabled":false,"turnstileSiteKey":"0xfake","ads":{"enabled":false},
-            |"server":{"country":"VN"},"sharedCache":false}""".trimMargin()
+            |"server":{"country":"VN"},"sharedCache":false}
+            """.trimMargin()
 
         private fun issue(target: String): String {
             val hash = target.substringAfter("hash=").substringBefore('&')
             return """{"playlist":"$baseUrl/signed/$hash.m3u8","playlistFormat":"hls",
-                |"issuedAt":1790017945,"expiresAt":1790032345}""".trimMargin()
+                |"issuedAt":1790017945,"expiresAt":1790032345}
+                """.trimMargin()
         }
 
         override fun close() {
@@ -573,17 +614,21 @@ class NguoncSourceRunnerIntegrationTest {
         }
 
         companion object {
-            private val A = """{"name":"Người Nhện","slug":"nguoi-nhan","original_name":"Spider-Man",
+            private val A =
+                """{"name":"Người Nhện","slug":"nguoi-nhan","original_name":"Spider-Man",
                 |"thumb_url":"http://x/t.jpg","poster_url":"http://x/p.jpg","description":"Mô tả phim.",
                 |"total_episodes":24,"current_episode":"Tập 2","time":"45 Phút/Tập","quality":"FHD",
                 |"language":"Vietsub + Thuyết Minh","director":"Jon Watts","casts":"Tom Holland",
-                |"modified":"2026-09-21T18:52:19.000000Z","year":"2026"}""".trimMargin()
+                |"modified":"2026-09-21T18:52:19.000000Z","year":"2026"}
+                """.trimMargin()
 
-            private val B = """{"name":"Kim Loại","slug":"kim-loai","original_name":"Metal Gear",
+            private val B =
+                """{"name":"Kim Loại","slug":"kim-loai","original_name":"Metal Gear",
                 |"thumb_url":"http://x/t2.jpg","poster_url":"http://x/p2.jpg","description":"Phim khoa học.",
                 |"total_episodes":12,"current_episode":"Full","time":"90 Phút","quality":"HD",
                 |"language":"Vietsub","director":"Jaden Smith","casts":"A B",
-                |"modified":"2026-09-20T00:00:00.000000Z","year":"2022"}""".trimMargin()
+                |"modified":"2026-09-20T00:00:00.000000Z","year":"2022"}
+                """.trimMargin()
         }
     }
 }

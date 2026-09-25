@@ -78,19 +78,19 @@ fun AnimeEpisodeListRow(
                 HorizontalPager(
                     state = rememberPagerState(pageCount = { pages.size }),
                     pageSpacing = 8.dp,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) { pageIndex ->
                     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                         pages[pageIndex].chunked(columns).forEachIndexed { rowIndex, rowItems ->
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
                                 rowItems.forEachIndexed { columnIndex, entry ->
                                     AnimeEpisodeListGridCell(
                                         entry = entry,
                                         onAnimeClick = onAnimeClick,
-                                        modifier = Modifier.width(cellWidth)
+                                        modifier = Modifier.width(cellWidth),
                                     )
                                 }
                                 // Keep an incomplete last row left-aligned.
@@ -107,7 +107,7 @@ fun AnimeEpisodeListRow(
                 entries.forEach { entry ->
                     AnimeEpisodeListRowCell(
                         entry = entry,
-                        onAnimeClick = onAnimeClick
+                        onAnimeClick = onAnimeClick,
                     )
                 }
             }
@@ -123,16 +123,18 @@ private fun AnimeEpisodeListRowCell(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onAnimeClick(entry.anime) }
-            .padding(vertical = 6.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onAnimeClick(entry.anime) }
+                .padding(vertical = 6.dp),
     ) {
         AnimeEpisodeThumb(entry = entry, modifier = Modifier.size(width = 66.dp, height = 92.dp))
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 12.dp)
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp),
         ) {
             Text(
                 text = entry.anime.title,
@@ -141,19 +143,20 @@ private fun AnimeEpisodeListRowCell(
                 fontWeight = FontWeight.Medium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                lineHeight = 18.sp
+                lineHeight = 18.sp,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = stringResource(
-                    R.string.home_episode_subtitle,
-                    entry.episode.episodeNumber,
-                    entry.episode.quality
-                ),
+                text =
+                    stringResource(
+                        R.string.home_episode_subtitle,
+                        entry.episode.episodeNumber,
+                        entry.episode.quality,
+                    ),
                 color = TextMuted,
                 fontSize = 13.sp,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
             entry.episode.dateUploaded?.let { timestamp ->
                 Spacer(modifier = Modifier.height(2.dp))
@@ -161,7 +164,7 @@ private fun AnimeEpisodeListRowCell(
                     text = formatTimeAgo(Instant.ofEpochMilli(timestamp)),
                     color = TextMuted,
                     fontSize = 12.sp,
-                    maxLines = 1
+                    maxLines = 1,
                 )
             }
         }
@@ -177,15 +180,17 @@ private fun AnimeEpisodeListGridCell(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .clickable { onAnimeClick(entry.anime) }
-            .padding(vertical = 6.dp)
+        modifier =
+            modifier
+                .clickable { onAnimeClick(entry.anime) }
+                .padding(vertical = 6.dp),
     ) {
         AnimeEpisodeThumb(entry = entry, modifier = Modifier.size(width = 52.dp, height = 74.dp))
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 8.dp)
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp),
         ) {
             Text(
                 text = entry.anime.title,
@@ -194,19 +199,20 @@ private fun AnimeEpisodeListGridCell(
                 fontWeight = FontWeight.Medium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                lineHeight = 16.sp
+                lineHeight = 16.sp,
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = stringResource(
-                    R.string.home_episode_subtitle,
-                    entry.episode.episodeNumber,
-                    entry.episode.quality
-                ),
+                text =
+                    stringResource(
+                        R.string.home_episode_subtitle,
+                        entry.episode.episodeNumber,
+                        entry.episode.quality,
+                    ),
                 color = TextMuted,
                 fontSize = 11.sp,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -214,13 +220,16 @@ private fun AnimeEpisodeListGridCell(
 
 /** The paired anime's poster thumbnail. */
 @Composable
-private fun AnimeEpisodeThumb(entry: AnimeWithEpisode, modifier: Modifier = Modifier) {
+private fun AnimeEpisodeThumb(
+    entry: AnimeWithEpisode,
+    modifier: Modifier = Modifier,
+) {
     Box(modifier = modifier.clip(RoundedCornerShape(10.dp))) {
         AsyncImage(
             model = entry.anime.posterUrl,
             contentDescription = entry.anime.title,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
         )
         QualityTagBadge(qualityTag = entry.anime.qualityTag, inset = 4.dp)
     }

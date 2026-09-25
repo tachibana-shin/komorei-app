@@ -25,12 +25,11 @@ import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.MyApplicationTheme
 import git.shin.komorei.ui.tv.LocalTvMode
 import git.shin.komorei.ui.tv.rememberIsTvMode
-import javax.inject.Inject
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
     @Inject
     lateinit var deepLinkManager: DeepLinkManager
 
@@ -44,7 +43,7 @@ class MainActivity : ComponentActivity() {
         // as white strips on both bars.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         handleIntent(intent)
         setContent {
@@ -55,7 +54,7 @@ class MainActivity : ComponentActivity() {
                 MyApplicationTheme {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
-                        color = BackgroundDark
+                        color = BackgroundDark,
                     ) {
                         MainScreen()
                     }
@@ -93,23 +92,25 @@ class MainActivity : ComponentActivity() {
 
     private fun handleExternalDeepLink(request: ExternalDeepLinkRequest) {
         lifecycleScope.launch {
-            val message = when (val result = externalDeepLinkHandler.handle(request)) {
-                is ExternalDeepLinkResult.RepositoryAdded -> getString(R.string.deeplink_repo_added)
-                ExternalDeepLinkResult.RepositoryAlreadyAdded -> getString(R.string.deeplink_repo_exists)
-                ExternalDeepLinkResult.RepositoryUnavailable -> getString(R.string.deeplink_repo_failed)
-                is ExternalDeepLinkResult.SourceInstalled -> getString(
-                    R.string.deeplink_source_installed,
-                    result.name,
-                )
-                is ExternalDeepLinkResult.SourceAlreadyInstalled -> getString(
-                    R.string.deeplink_source_exists,
-                    result.name,
-                )
-                ExternalDeepLinkResult.SourceInstallFailed -> getString(R.string.deeplink_source_failed)
-                ExternalDeepLinkResult.Invalid -> getString(R.string.deeplink_invalid)
-            }
+            val message =
+                when (val result = externalDeepLinkHandler.handle(request)) {
+                    is ExternalDeepLinkResult.RepositoryAdded -> getString(R.string.deeplink_repo_added)
+                    ExternalDeepLinkResult.RepositoryAlreadyAdded -> getString(R.string.deeplink_repo_exists)
+                    ExternalDeepLinkResult.RepositoryUnavailable -> getString(R.string.deeplink_repo_failed)
+                    is ExternalDeepLinkResult.SourceInstalled ->
+                        getString(
+                            R.string.deeplink_source_installed,
+                            result.name,
+                        )
+                    is ExternalDeepLinkResult.SourceAlreadyInstalled ->
+                        getString(
+                            R.string.deeplink_source_exists,
+                            result.name,
+                        )
+                    ExternalDeepLinkResult.SourceInstallFailed -> getString(R.string.deeplink_source_failed)
+                    ExternalDeepLinkResult.Invalid -> getString(R.string.deeplink_invalid)
+                }
             Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
         }
     }
 }
-

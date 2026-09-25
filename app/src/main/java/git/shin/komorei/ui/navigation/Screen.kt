@@ -2,10 +2,15 @@ package git.shin.komorei.ui.navigation
 
 import android.net.Uri
 
-sealed class Screen(val route: String) {
+sealed class Screen(
+    val route: String,
+) {
     data object Home : Screen("home")
+
     data object Search : Screen("search")
+
     data object Library : Screen("library")
+
     data object Player : Screen("player/{animeId}/{episodeId}?") {
         /**
          * Builds the player route. IDs are URL-encoded so ids that contain path
@@ -13,16 +18,17 @@ sealed class Screen(val route: String) {
          * instead of being split into extra path levels. Consumers must read the
          * argument with `arguments?.getString("animeId")` — Navigation decodes it.
          */
-        fun createRoute(animeId: String, episodeId: String? = null): String {
+        fun createRoute(
+            animeId: String,
+            episodeId: String? = null,
+        ): String {
             val base = Uri.encode(animeId)
             return if (episodeId != null) "player/$base/${Uri.encode(episodeId)}" else "player/$base"
         }
     }
 
     data object Category : Screen("category/{filters}") {
-        fun createRoute(filtersJson: String): String {
-            return "category/$filtersJson"
-        }
+        fun createRoute(filtersJson: String): String = "category/$filtersJson"
     }
 
     data object Listing : Screen("listing/{sourceId}/{listingArg}") {
@@ -32,9 +38,10 @@ sealed class Screen(val route: String) {
          * [git.shin.komorei.model.Listing] (see [ListingArgCodec]) so the
          * screen can open any source listing without re-resolving it.
          */
-        fun createRoute(sourceId: String, listing: git.shin.komorei.model.Listing): String {
-            return "listing/${Uri.encode(sourceId)}/${ListingArgCodec.encode(listing)}"
-        }
+        fun createRoute(
+            sourceId: String,
+            listing: git.shin.komorei.model.Listing,
+        ): String = "listing/${Uri.encode(sourceId)}/${ListingArgCodec.encode(listing)}"
     }
 
     data object Sources : Screen("sources")
@@ -112,7 +119,9 @@ sealed class Screen(val route: String) {
      * so every media request from that source automatically carries the session.
      */
     data object SourceBrowser : Screen("source_browser/{sourceId}/{url}") {
-        fun createRoute(sourceId: String, url: String): String =
-            "source_browser/${Uri.encode(sourceId)}/${Uri.encode(url)}"
+        fun createRoute(
+            sourceId: String,
+            url: String,
+        ): String = "source_browser/${Uri.encode(sourceId)}/${Uri.encode(url)}"
     }
 }

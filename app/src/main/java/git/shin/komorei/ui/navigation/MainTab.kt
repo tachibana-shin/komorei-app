@@ -31,40 +31,41 @@ data class MainTab(
 )
 
 /** Every top-level destination, in bottom-bar / rail order. */
-val mainTabs: List<MainTab> = listOf(
-    MainTab(
-        key = "home",
-        route = Screen.Home.route,
-        labelRes = R.string.tab_home,
-        selectedIcon = Icons.Filled.Home,
-        unselectedIcon = Icons.Outlined.Home,
-    ),
-    MainTab(
-        key = "sources",
-        route = Screen.Sources.route,
-        labelRes = R.string.tab_sources,
-        selectedIcon = Icons.Filled.Language,
-        unselectedIcon = Icons.Outlined.Language,
-    ),
-    MainTab(
-        key = "search",
-        route = Screen.Search.route,
-        labelRes = R.string.tab_search,
-        selectedIcon = Icons.Filled.Search,
-        unselectedIcon = Icons.Outlined.Search,
-    ),
-    MainTab(
-        key = "library",
-        route = Screen.Library.route,
-        labelRes = R.string.tab_library,
-        selectedIcon = Icons.Filled.Bookmark,
-        unselectedIcon = Icons.Outlined.BookmarkBorder,
-    ),
-    MainTab(
-        key = "settings",
-        route = Screen.Settings.route,
-        labelRes = R.string.tab_settings,
-        selectedIcon = Icons.Filled.Settings,
-        unselectedIcon = Icons.Outlined.Settings,
-    ),
-)
+val mainTabs: List<MainTab> =
+    listOf(
+        MainTab(
+            key = "home",
+            route = Screen.Home.route,
+            labelRes = R.string.tab_home,
+            selectedIcon = Icons.Filled.Home,
+            unselectedIcon = Icons.Outlined.Home,
+        ),
+        MainTab(
+            key = "sources",
+            route = Screen.Sources.route,
+            labelRes = R.string.tab_sources,
+            selectedIcon = Icons.Filled.Language,
+            unselectedIcon = Icons.Outlined.Language,
+        ),
+        MainTab(
+            key = "search",
+            route = Screen.Search.route,
+            labelRes = R.string.tab_search,
+            selectedIcon = Icons.Filled.Search,
+            unselectedIcon = Icons.Outlined.Search,
+        ),
+        MainTab(
+            key = "library",
+            route = Screen.Library.route,
+            labelRes = R.string.tab_library,
+            selectedIcon = Icons.Filled.Bookmark,
+            unselectedIcon = Icons.Outlined.BookmarkBorder,
+        ),
+        MainTab(
+            key = "settings",
+            route = Screen.Settings.route,
+            labelRes = R.string.tab_settings,
+            selectedIcon = Icons.Filled.Settings,
+            unselectedIcon = Icons.Outlined.Settings,
+        ),
+    )

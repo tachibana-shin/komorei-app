@@ -3,24 +3,15 @@ package git.shin.komorei.ui.components.search.filters
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import git.shin.komorei.ui.components.search.CompactInput
-import git.shin.komorei.R
 import git.shin.komorei.model.Filter
 import git.shin.komorei.model.FilterKind
-import git.shin.komorei.ui.theme.AnimeRed
-import git.shin.komorei.ui.theme.CardBorderDark
-import git.shin.komorei.ui.theme.CardDark
+import git.shin.komorei.ui.components.search.CompactInput
 import git.shin.komorei.ui.theme.TextMuted
-import git.shin.komorei.ui.theme.TextPrimary
 
 /**
  * A labeled text field for a `Text` filter (Aidoku `FilterListView`'s text

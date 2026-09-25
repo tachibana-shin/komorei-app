@@ -19,7 +19,6 @@ import java.util.Locale
  * buffer (and leaves it cleared) rather than asserting on shared state.
  */
 class LogStoreTest {
-
     @Before
     fun setUp() = LogStore.clear()
 

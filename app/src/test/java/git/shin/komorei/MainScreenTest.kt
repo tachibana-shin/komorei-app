@@ -59,7 +59,6 @@ import java.io.File
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class MainScreenTest {
-
     @get:Rule val composeTestRule = createComposeRule()
 
     private lateinit var repository: AnimeRepository
@@ -67,21 +66,23 @@ class MainScreenTest {
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     companion object {
-        private val fakeKrx: String = System.getProperty("komorei.test.fakeKrx")
-            ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
+        private val fakeKrx: String =
+            System.getProperty("komorei.test.fakeKrx")
+                ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
     }
 
     @Before
-    fun setUp() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val host = KrxHostImpl(context)
-        val registry = KrxSourceRegistry(context, host)
-        registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
-        repository = AnimeRepository(registry)
-        val db = Room.inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java).build()
-        libraryRepository = LibraryRepository(db.animeDao())
-        Dispatchers.setMain(mainDispatcher)
-    }
+    fun setUp() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val host = KrxHostImpl(context)
+            val registry = KrxSourceRegistry(context, host)
+            registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
+            repository = AnimeRepository(registry)
+            val db = Room.inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java).build()
+            libraryRepository = LibraryRepository(db.animeDao())
+            Dispatchers.setMain(mainDispatcher)
+        }
 
     @After
     fun tearDown() {
@@ -104,8 +105,7 @@ class MainScreenTest {
             SavedStateHandle(),
         )
 
-    private fun newDeepLinkViewModel(): DeepLinkViewModel =
-        DeepLinkViewModel(DeepLinkManager(), DeepLinkResolver(repository))
+    private fun newDeepLinkViewModel(): DeepLinkViewModel = DeepLinkViewModel(DeepLinkManager(), DeepLinkResolver(repository))
 
     @Test
     fun mainScreenRendersBottomNavigationWithEveryTab() {

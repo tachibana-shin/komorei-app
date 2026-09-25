@@ -9,7 +9,6 @@ import git.shin.komorei.data.local.entity.KrxDefaultsEntity
 /** Read/write access to the persisted Krx defaults (see [KrxDefaultsEntity]). */
 @Dao
 interface KrxDefaultsDao {
-
     @Query("SELECT * FROM krx_defaults WHERE `key` = :key")
     suspend fun get(key: String): KrxDefaultsEntity?
 

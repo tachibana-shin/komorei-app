@@ -13,7 +13,6 @@ import git.shin.komorei.model.Listing
  * deep links too: any source listing becomes a complete route.
  */
 object ListingArgCodec {
-
     private val moshi = Moshi.Builder().build()
     private val adapter = moshi.adapter(Listing::class.java)
 
@@ -21,6 +20,5 @@ object ListingArgCodec {
     fun encode(listing: Listing): String = Uri.encode(adapter.toJson(listing))
 
     /** Decodes the [Listing] back, or null when the argument is malformed. */
-    fun decode(encoded: String?): Listing? =
-        encoded?.let { runCatching { adapter.fromJson(Uri.decode(it)) }.getOrNull() }
+    fun decode(encoded: String?): Listing? = encoded?.let { runCatching { adapter.fromJson(Uri.decode(it)) }.getOrNull() }
 }

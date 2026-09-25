@@ -7,9 +7,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import git.shin.komorei.R
+import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.SearchHistoryStore
 import git.shin.komorei.data.SourceSearchEvent
-import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.ContentRatingFilter
 import git.shin.komorei.model.Genre
@@ -53,7 +53,6 @@ class SearchViewModel @Inject constructor(
     private val searchHistoryStore: SearchHistoryStore,
     savedStateHandle: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
-
     internal companion object {
         const val KEY_QUERY = "search_query"
         const val KEY_GENRE = "search_genre"
@@ -134,7 +133,11 @@ class SearchViewModel @Inject constructor(
         // One debounced pipeline: query, genre shortcut and the three global
         // filters all funnel into the same search call.
         combine(
-            _searchQuery, _selectedGenre, _contentRating, _language, _sourceFilter,
+            _searchQuery,
+            _selectedGenre,
+            _contentRating,
+            _language,
+            _sourceFilter,
         ) { query, genre, rating, language, sourceIds ->
             Params(query, genre?.id, rating, language, sourceIds)
         }
@@ -235,13 +238,14 @@ class SearchViewModel @Inject constructor(
 
     fun getSourceName(sourceId: String): String = repository.getSourceName(sourceId)
 
-    private fun currentParams() = Params(
-        query = _searchQuery.value,
-        genreId = _selectedGenre.value?.id,
-        rating = _contentRating.value,
-        language = _language.value,
-        sourceIds = _sourceFilter.value,
-    )
+    private fun currentParams() =
+        Params(
+            query = _searchQuery.value,
+            genreId = _selectedGenre.value?.id,
+            rating = _contentRating.value,
+            language = _language.value,
+            sourceIds = _sourceFilter.value,
+        )
 
     private fun executeSearch(params: Params) {
         if (!params.hasQueryOrGenre) {
@@ -254,75 +258,82 @@ class SearchViewModel @Inject constructor(
         addToSearchHistory()
 
         searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            val candidates = repository.candidateSourcesForSearch(
-                contentRating = params.rating.repositoryValue,
-                languages = params.language?.let { setOf(it) } ?: emptySet(),
-                sourceIds = params.sourceIds,
-            )
-            val resultsBySource = mutableMapOf<Source, List<Anime>>()
-            val sourceErrors = mutableMapOf<Source, String>()
-            val emptySources = mutableSetOf<Source>()
+        searchJob =
+            viewModelScope.launch {
+                val candidates =
+                    repository.candidateSourcesForSearch(
+                        contentRating = params.rating.repositoryValue,
+                        languages = params.language?.let { setOf(it) } ?: emptySet(),
+                        sourceIds = params.sourceIds,
+                    )
+                val resultsBySource = mutableMapOf<Source, List<Anime>>()
+                val sourceErrors = mutableMapOf<Source, String>()
+                val emptySources = mutableSetOf<Source>()
 
-            // Search started — every candidate source renders its own section
-            // immediately; pending ones show their own loading shimmer.
-            _searchUiState.value = SearchUiState.Searching(
-                candidateSources = candidates,
-                resultsBySource = resultsBySource,
-                sourceErrors = sourceErrors,
-                emptySources = emptySources,
-            )
-            try {
-                repository.searchMultiSourceStream(
-                    query = params.query,
-                    selectedGenreId = params.genreId,
-                    contentRating = params.rating.repositoryValue,
-                    languages = params.language?.let { setOf(it) } ?: emptySet(),
-                    sourceIds = params.sourceIds,
-                ).collect { event ->
-                    when (event) {
-                        is SourceSearchEvent.Completed -> {
-                            if (event.results.isNotEmpty()) {
-                                resultsBySource[event.source] = event.results
-                            } else {
-                                // Finished with zero matches — record it so the
-                                // section shows "không có kết quả" instead of
-                                // keeping its shimmer / disappearing entirely.
-                                emptySources.add(event.source)
-                            }
-                        }
-                        is SourceSearchEvent.Failed -> {
-                            sourceErrors[event.source] = event.message
-                        }
-                    }
-                    // Update each source's own section as its result lands —
-                    // the other sections are untouched and stay as they are.
-                    _searchUiState.value = SearchUiState.Searching(
+                // Search started — every candidate source renders its own section
+                // immediately; pending ones show their own loading shimmer.
+                _searchUiState.value =
+                    SearchUiState.Searching(
                         candidateSources = candidates,
                         resultsBySource = resultsBySource,
                         sourceErrors = sourceErrors,
                         emptySources = emptySources,
                     )
+                try {
+                    repository
+                        .searchMultiSourceStream(
+                            query = params.query,
+                            selectedGenreId = params.genreId,
+                            contentRating = params.rating.repositoryValue,
+                            languages = params.language?.let { setOf(it) } ?: emptySet(),
+                            sourceIds = params.sourceIds,
+                        ).collect { event ->
+                            when (event) {
+                                is SourceSearchEvent.Completed -> {
+                                    if (event.results.isNotEmpty()) {
+                                        resultsBySource[event.source] = event.results
+                                    } else {
+                                        // Finished with zero matches — record it so the
+                                        // section shows "không có kết quả" instead of
+                                        // keeping its shimmer / disappearing entirely.
+                                        emptySources.add(event.source)
+                                    }
+                                }
+                                is SourceSearchEvent.Failed -> {
+                                    sourceErrors[event.source] = event.message
+                                }
+                            }
+                            // Update each source's own section as its result lands —
+                            // the other sections are untouched and stay as they are.
+                            _searchUiState.value =
+                                SearchUiState.Searching(
+                                    candidateSources = candidates,
+                                    resultsBySource = resultsBySource,
+                                    sourceErrors = sourceErrors,
+                                    emptySources = emptySources,
+                                )
+                        }
+                    // All sources finished — terminal state with the totals.
+                    _searchUiState.value =
+                        SearchUiState.Success(
+                            resultsBySource = resultsBySource,
+                            totalCount = resultsBySource.values.sumOf { it.size },
+                            sourceErrors = sourceErrors,
+                            emptySources = emptySources,
+                        )
+                } catch (e: CancellationException) {
+                    // A newer search superseded this job (typing, filter change,
+                    // Hủy / clearSearch) or the VM scope died — cancellation is
+                    // NOT an error and must never surface as the Error state
+                    // (it previously leaked "StandaloneCoroutine was cancelled"
+                    // into the UI with a bogus Thử lại button).
+                    throw e
+                } catch (e: Exception) {
+                    _searchUiState.value =
+                        SearchUiState.Error(
+                            e.localizedMessage ?: appContext.getString(R.string.error_search),
+                        )
                 }
-                // All sources finished — terminal state with the totals.
-                _searchUiState.value = SearchUiState.Success(
-                    resultsBySource = resultsBySource,
-                    totalCount = resultsBySource.values.sumOf { it.size },
-                    sourceErrors = sourceErrors,
-                    emptySources = emptySources,
-                )
-            } catch (e: CancellationException) {
-                // A newer search superseded this job (typing, filter change,
-                // Hủy / clearSearch) or the VM scope died — cancellation is
-                // NOT an error and must never surface as the Error state
-                // (it previously leaked "StandaloneCoroutine was cancelled"
-                // into the UI with a bogus Thử lại button).
-                throw e
-            } catch (e: Exception) {
-                _searchUiState.value = SearchUiState.Error(
-                    e.localizedMessage ?: appContext.getString(R.string.error_search),
-                )
             }
-        }
     }
 }

@@ -37,7 +37,6 @@ class SettingsViewModel @Inject constructor(
     private val searchHistoryStore: SearchHistoryStore,
     private val updateManager: UpdateManager,
 ) : ViewModel() {
-
     private val _messages = Channel<Int>(Channel.BUFFERED)
 
     /** One-shot string-resource ids to surface as a Toast. */
@@ -51,7 +50,9 @@ class SettingsViewModel @Inject constructor(
     fun checkForUpdate() {
         if (_updateState.value is UpdateUiState.Checking ||
             _updateState.value is UpdateUiState.Downloading
-        ) return
+        ) {
+            return
+        }
 
         viewModelScope.launch {
             _updateState.value = UpdateUiState.Checking

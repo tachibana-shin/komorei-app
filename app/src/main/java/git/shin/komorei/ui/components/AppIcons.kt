@@ -18,8 +18,8 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.ui.graphics.vector.ImageVector
 
 object AppIcons {
-    fun getSourceIcon(sourceId: String): ImageVector {
-        return when (sourceId) {
+    fun getSourceIcon(sourceId: String): ImageVector =
+        when (sourceId) {
             "all" -> Icons.Default.Public
             "animevietsub" -> Icons.Default.Bolt
             "vuighe" -> Icons.Default.LocalFireDepartment
@@ -27,10 +27,9 @@ object AppIcons {
             "hidive" -> Icons.Default.Diamond
             else -> Icons.Default.Movie
         }
-    }
 
-    fun getGenreIcon(genreId: String): ImageVector {
-        return when (genreId) {
+    fun getGenreIcon(genreId: String): ImageVector =
+        when (genreId) {
             "action" -> Icons.Default.FlashOn
             "isekai" -> Icons.Default.AutoAwesome
             "romance" -> Icons.Default.Favorite
@@ -41,26 +40,27 @@ object AppIcons {
             "school" -> Icons.Default.School
             else -> Icons.Default.Movie
         }
-    }
 
-    fun getCategoryIcon(category: String): ImageVector {
-        return when {
-            category.contains("Thịnh hành", ignoreCase = true) || category.contains(
-                "Trending",
-                ignoreCase = true
-            ) -> Icons.Default.LocalFireDepartment
+    fun getCategoryIcon(category: String): ImageVector =
+        when {
+            category.contains("Thịnh hành", ignoreCase = true) ||
+                category.contains(
+                    "Trending",
+                    ignoreCase = true,
+                ) -> Icons.Default.LocalFireDepartment
 
-            category.contains("Mới", ignoreCase = true) || category.contains(
-                "New",
-                ignoreCase = true
-            ) -> Icons.Default.AutoAwesome
+            category.contains("Mới", ignoreCase = true) ||
+                category.contains(
+                    "New",
+                    ignoreCase = true,
+                ) -> Icons.Default.AutoAwesome
 
-            category.contains("Hành động", ignoreCase = true) || category.contains(
-                "Action",
-                ignoreCase = true
-            ) -> Icons.Default.FlashOn
+            category.contains("Hành động", ignoreCase = true) ||
+                category.contains(
+                    "Action",
+                    ignoreCase = true,
+                ) -> Icons.Default.FlashOn
 
             else -> Icons.Default.Movie
         }
-    }
 }

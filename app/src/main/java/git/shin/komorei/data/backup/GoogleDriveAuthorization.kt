@@ -11,10 +11,10 @@ import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.Scope
 import com.google.android.gms.tasks.Task
 import git.shin.komorei.BuildConfig
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * Foreground Drive authorization using Google's current AuthorizationClient.
@@ -43,7 +43,8 @@ object GoogleDriveAuthorization {
         val builder = request()
 
         runCatching {
-            Identity.getAuthorizationClient(activity)
+            Identity
+                .getAuthorizationClient(activity)
                 .authorize(builder)
                 .addOnSuccessListener { result ->
                     if (result.hasResolution()) {
@@ -58,8 +59,7 @@ object GoogleDriveAuthorization {
                     } else {
                         onResult(accessToken(result))
                     }
-                }
-                .addOnFailureListener { error -> onResult(Result.failure(error)) }
+                }.addOnFailureListener { error -> onResult(Result.failure(error)) }
         }.onFailure { error -> onResult(Result.failure(error)) }
     }
 
@@ -73,9 +73,11 @@ object GoogleDriveAuthorization {
             return Result.failure(BackgroundAuthorizationRequiredException())
         }
         return try {
-            val result = Identity.getAuthorizationClient(context)
-                .authorize(request())
-                .await()
+            val result =
+                Identity
+                    .getAuthorizationClient(context)
+                    .authorize(request())
+                    .await()
             if (result.hasResolution()) {
                 throw BackgroundAuthorizationRequiredException()
             }
@@ -97,28 +99,33 @@ object GoogleDriveAuthorization {
             return
         }
         runCatching {
-            val result = Identity.getAuthorizationClient(activity)
-                .getAuthorizationResultFromIntent(data)
+            val result =
+                Identity
+                    .getAuthorizationClient(activity)
+                    .getAuthorizationResultFromIntent(data)
             onResult(accessToken(result))
         }.onFailure { error -> onResult(Result.failure(error)) }
     }
 
-    private fun request() = AuthorizationRequest.builder()
-        .setRequestedScopes(listOf(Scope(SCOPE)))
-        .requestOfflineAccess(BuildConfig.DRIVE_WEB_CLIENT_ID)
-        .build()
+    private fun request() =
+        AuthorizationRequest
+            .builder()
+            .setRequestedScopes(listOf(Scope(SCOPE)))
+            .requestOfflineAccess(BuildConfig.DRIVE_WEB_CLIENT_ID)
+            .build()
 
-    private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { continuation ->
-        addOnSuccessListener { result ->
-            if (continuation.isActive) continuation.resume(result)
+    private suspend fun <T> Task<T>.await(): T =
+        suspendCancellableCoroutine { continuation ->
+            addOnSuccessListener { result ->
+                if (continuation.isActive) continuation.resume(result)
+            }
+            addOnFailureListener { error ->
+                if (continuation.isActive) continuation.resumeWithException(error)
+            }
+            addOnCanceledListener {
+                if (continuation.isActive) continuation.cancel()
+            }
         }
-        addOnFailureListener { error ->
-            if (continuation.isActive) continuation.resumeWithException(error)
-        }
-        addOnCanceledListener {
-            if (continuation.isActive) continuation.cancel()
-        }
-    }
 
     private fun accessToken(result: AuthorizationResult): Result<String> {
         val token = result.accessToken
@@ -130,6 +137,7 @@ object GoogleDriveAuthorization {
     }
 }
 
-class BackgroundAuthorizationRequiredException : IllegalStateException(
-    "Google Drive authorization requires the foreground",
-)
+class BackgroundAuthorizationRequiredException :
+    IllegalStateException(
+        "Google Drive authorization requires the foreground",
+    )

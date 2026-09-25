@@ -1,13 +1,13 @@
 package git.shin.komorei
 
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import git.shin.komorei.MainActivity
-import androidx.compose.ui.test.junit4.v2.createComposeRule
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,7 +29,6 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class DiscoverE2eTest {
-
     @get:Rule
     val activityRule = ActivityScenarioRule(MainActivity::class.java)
 
@@ -41,77 +40,96 @@ class DiscoverE2eTest {
     @Test
     fun discoverTab_UserJourney_IdleToSearchToSources() {
         // ── Step 1: App launches on Home tab ──
-        composeTestRule.onNodeWithTag("rail_tab_home")
+        composeTestRule
+            .onNodeWithTag("rail_tab_home")
             .performClick()
 
         // ── Step 2: Navigate to Search tab ──
-        composeTestRule.onNodeWithTag("rail_tab_search")
+        composeTestRule
+            .onNodeWithTag("rail_tab_search")
             .performClick()
 
         // ── Step 3: Verify idle with search history ──
-        composeTestRule.onNodeWithText("Chưa có lịch sử tìm kiếm")
+        composeTestRule
+            .onNodeWithText("Chưa có lịch sử tìm kiếm")
             .performClick()
 
         // ── Step 4: Open filter sheet → verify no Apply/Cancel ──
-        composeTestRule.onNodeWithTag("filter_sheet_button")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_button")
             .performClick()
 
         // Close the sheet
-        composeTestRule.onNodeWithTag("filter_sheet_close")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_close")
             .performClick()
 
         // ── Step 5: Still idle after closing sheet ──
-        composeTestRule.onNodeWithText("Chưa có lịch sử tìm kiếm")
+        composeTestRule
+            .onNodeWithText("Chưa có lịch sử tìm kiếm")
             .performClick()
 
         // ── Step 6: Type a keyword → search fires → results grid appears ──
-        composeTestRule.onNodeWithTag("search_input_field")
+        composeTestRule
+            .onNodeWithTag("search_input_field")
             .performClick()
-        composeTestRule.onNodeWithTag("search_input_field")
+        composeTestRule
+            .onNodeWithTag("search_input_field")
             .performTextInput("Frieren")
 
         // After debounce, search results sections should appear
-        composeTestRule.onNodeWithTag("search_results_list")
+        composeTestRule
+            .onNodeWithTag("search_results_list")
             .performClick()
 
         // ── Step 7: Navigate to Sources tab ──
-        composeTestRule.onNodeWithTag("rail_tab_sources")
+        composeTestRule
+            .onNodeWithTag("rail_tab_sources")
             .performClick()
 
-        composeTestRule.onNodeWithTag("sources_screen")
+        composeTestRule
+            .onNodeWithTag("sources_screen")
             .performClick()
-        composeTestRule.onNodeWithTag("source_row_vi.fake-source")
+        composeTestRule
+            .onNodeWithTag("source_row_vi.fake-source")
             .performClick()
 
         // ── Step 8: Return to Search → history restored ──
-        composeTestRule.onNodeWithTag("rail_tab_search")
+        composeTestRule
+            .onNodeWithTag("rail_tab_search")
             .performClick()
 
         // Search history entry for "Frieren" should appear
-        composeTestRule.onNodeWithText("Frieren")
+        composeTestRule
+            .onNodeWithText("Frieren")
             .performClick()
     }
 
     @Test
     fun discoverTab_FilterChangeDoesNotTriggerSearch() {
         // Open Search
-        composeTestRule.onNodeWithTag("rail_tab_search")
+        composeTestRule
+            .onNodeWithTag("rail_tab_search")
             .performClick()
 
         // Verify idle — search history prompt present
-        composeTestRule.onNodeWithText("Chưa có lịch sử tìm kiếm")
+        composeTestRule
+            .onNodeWithText("Chưa có lịch sử tìm kiếm")
             .performClick()
 
         // Open filter sheet
-        composeTestRule.onNodeWithTag("filter_sheet_button")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_button")
             .performClick()
 
         // Close without making a meaningful search change
-        composeTestRule.onNodeWithTag("filter_sheet_close")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_close")
             .performClick()
 
         // STILL idle — filter-only changes must NOT trigger search
-        composeTestRule.onNodeWithText("Chưa có lịch sử tìm kiếm")
+        composeTestRule
+            .onNodeWithText("Chưa có lịch sử tìm kiếm")
             .performClick()
     }
 
@@ -120,41 +138,54 @@ class DiscoverE2eTest {
     @Test
     fun discoverTab_FullRoundTrip_HomeToSearchToSourcesToLibrary() {
         // Start on Home
-        composeTestRule.onNodeWithTag("rail_tab_home")
+        composeTestRule
+            .onNodeWithTag("rail_tab_home")
             .performClick()
-        composeTestRule.onNodeWithTag("tab_home")
+        composeTestRule
+            .onNodeWithTag("tab_home")
             .performClick()
 
         // Go to Search
-        composeTestRule.onNodeWithTag("rail_tab_search")
+        composeTestRule
+            .onNodeWithTag("rail_tab_search")
             .performClick()
-        composeTestRule.onNodeWithTag("tab_search")
+        composeTestRule
+            .onNodeWithTag("tab_search")
             .performClick()
 
         // Verify search UI renders
-        composeTestRule.onNodeWithTag("search_input_field")
+        composeTestRule
+            .onNodeWithTag("search_input_field")
             .performClick()
 
         // Go to Sources
-        composeTestRule.onNodeWithTag("rail_tab_sources")
+        composeTestRule
+            .onNodeWithTag("rail_tab_sources")
             .performClick()
-        composeTestRule.onNodeWithTag("tab_sources")
+        composeTestRule
+            .onNodeWithTag("tab_sources")
             .performClick()
-        composeTestRule.onNodeWithTag("sources_screen")
+        composeTestRule
+            .onNodeWithTag("sources_screen")
             .performClick()
 
         // Go to Library
-        composeTestRule.onNodeWithTag("rail_tab_library")
+        composeTestRule
+            .onNodeWithTag("rail_tab_library")
             .performClick()
-        composeTestRule.onNodeWithTag("tab_library")
+        composeTestRule
+            .onNodeWithTag("tab_library")
             .performClick()
-        composeTestRule.onNodeWithTag("library_screen")
+        composeTestRule
+            .onNodeWithTag("library_screen")
             .performClick()
 
         // Return to Home
-        composeTestRule.onNodeWithTag("rail_tab_home")
+        composeTestRule
+            .onNodeWithTag("rail_tab_home")
             .performClick()
-        composeTestRule.onNodeWithTag("tab_home")
+        composeTestRule
+            .onNodeWithTag("tab_home")
             .performClick()
     }
 
@@ -162,35 +193,44 @@ class DiscoverE2eTest {
 
     @Test
     fun discoverTab_FilterSheetHasNoApplyOrCancel() {
-        composeTestRule.onNodeWithTag("rail_tab_search")
+        composeTestRule
+            .onNodeWithTag("rail_tab_search")
             .performClick()
 
         // Open filter sheet
-        composeTestRule.onNodeWithTag("filter_sheet_button")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_button")
             .performClick()
 
         // Verify Reset and Close exist (Apply/Cancel must NOT)
-        composeTestRule.onNodeWithTag("filter_reset_button")
+        composeTestRule
+            .onNodeWithTag("filter_reset_button")
             .performClick()
-        composeTestRule.onNodeWithTag("filter_sheet_close")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_close")
             .performClick()
     }
 
     @Test
     fun discoverTab_FilterSheetTitleAndAllButtonsPresent() {
-        composeTestRule.onNodeWithTag("rail_tab_search")
+        composeTestRule
+            .onNodeWithTag("rail_tab_search")
             .performClick()
 
         // Open filter sheet
-        composeTestRule.onNodeWithTag("filter_sheet_button")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_button")
             .performClick()
 
         // Verify all expected chrome elements
-        composeTestRule.onNodeWithTag("filter_sheet_title")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_title")
             .performClick()
-        composeTestRule.onNodeWithTag("filter_reset_button")
+        composeTestRule
+            .onNodeWithTag("filter_reset_button")
             .performClick()
-        composeTestRule.onNodeWithTag("filter_sheet_close")
+        composeTestRule
+            .onNodeWithTag("filter_sheet_close")
             .performClick()
     }
 
@@ -198,15 +238,19 @@ class DiscoverE2eTest {
 
     @Test
     fun discoverTab_HeaderPillsAreInteractive() {
-        composeTestRule.onNodeWithTag("rail_tab_search")
+        composeTestRule
+            .onNodeWithTag("rail_tab_search")
             .performClick()
 
         // All three filter pills should be present and clickable
-        composeTestRule.onNodeWithTag("filter_rating_pill")
+        composeTestRule
+            .onNodeWithTag("filter_rating_pill")
             .performClick()
-        composeTestRule.onNodeWithTag("filter_language_pill")
+        composeTestRule
+            .onNodeWithTag("filter_language_pill")
             .performClick()
-        composeTestRule.onNodeWithTag("filter_sources_pill")
+        composeTestRule
+            .onNodeWithTag("filter_sources_pill")
             .performClick()
     }
 
@@ -214,21 +258,26 @@ class DiscoverE2eTest {
 
     @Test
     fun discoverTab_TypingQueryShowsResults() {
-        composeTestRule.onNodeWithTag("rail_tab_search")
+        composeTestRule
+            .onNodeWithTag("rail_tab_search")
             .performClick()
 
         // Verify idle state — search history prompt
-        composeTestRule.onNodeWithText("Chưa có lịch sử tìm kiếm")
+        composeTestRule
+            .onNodeWithText("Chưa có lịch sử tìm kiếm")
             .performClick()
 
         // Type a query
-        composeTestRule.onNodeWithTag("search_input_field")
+        composeTestRule
+            .onNodeWithTag("search_input_field")
             .performClick()
-        composeTestRule.onNodeWithTag("search_input_field")
+        composeTestRule
+            .onNodeWithTag("search_input_field")
             .performTextInput("test")
 
         // Search results sections should eventually appear
-        composeTestRule.onNodeWithTag("search_results_list")
+        composeTestRule
+            .onNodeWithTag("search_results_list")
             .performClick()
     }
 
@@ -237,23 +286,29 @@ class DiscoverE2eTest {
     @Test
     fun discoverTab_NavigateToSourcesAndBack() {
         // Open Search
-        composeTestRule.onNodeWithTag("rail_tab_search")
+        composeTestRule
+            .onNodeWithTag("rail_tab_search")
             .performClick()
 
         // Go to Sources
-        composeTestRule.onNodeWithTag("rail_tab_sources")
+        composeTestRule
+            .onNodeWithTag("rail_tab_sources")
             .performClick()
-        composeTestRule.onNodeWithTag("sources_screen")
+        composeTestRule
+            .onNodeWithTag("sources_screen")
             .performClick()
-        composeTestRule.onNodeWithTag("source_row_vi.fake-source")
+        composeTestRule
+            .onNodeWithTag("source_row_vi.fake-source")
             .performClick()
 
         // Back to Search
-        composeTestRule.onNodeWithTag("rail_tab_search")
+        composeTestRule
+            .onNodeWithTag("rail_tab_search")
             .performClick()
 
         // Verify search rendered
-        composeTestRule.onNodeWithTag("search_input_field")
+        composeTestRule
+            .onNodeWithTag("search_input_field")
             .performClick()
     }
 
@@ -261,14 +316,18 @@ class DiscoverE2eTest {
 
     @Test
     fun discoverTab_LibraryTabRenders() {
-        composeTestRule.onNodeWithTag("rail_tab_library")
+        composeTestRule
+            .onNodeWithTag("rail_tab_library")
             .performClick()
 
-        composeTestRule.onNodeWithTag("library_screen")
+        composeTestRule
+            .onNodeWithTag("library_screen")
             .performClick()
-        composeTestRule.onNodeWithTag("library_subtab_0")
+        composeTestRule
+            .onNodeWithTag("library_subtab_0")
             .performClick()
-        composeTestRule.onNodeWithTag("library_subtab_1")
+        composeTestRule
+            .onNodeWithTag("library_subtab_1")
             .performClick()
     }
 }

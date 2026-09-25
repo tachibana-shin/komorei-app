@@ -46,7 +46,6 @@ class SourceSettingsViewModel @Inject constructor(
     private val migrationRepository: SourceMigrationRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-
     private val sourceId: String = savedStateHandle.get<String>("sourceId").orEmpty()
 
     /** One-shot user-facing messages (toasts), e.g. the migration result. */
@@ -97,8 +96,7 @@ class SourceSettingsViewModel @Inject constructor(
                             error = false,
                         )
                     }
-                }
-                .onFailure {
+                }.onFailure {
                     _uiState.update { it.copy(isLoading = false, error = true) }
                 }
         }
@@ -142,18 +140,26 @@ class SourceSettingsViewModel @Inject constructor(
     // ── writes (optimistic + silent reload) ──────────────────────────────
 
     /** Toggle a boolean setting. */
-    fun toggleSetting(key: String, currentValue: Boolean) {
+    fun toggleSetting(
+        key: String,
+        currentValue: Boolean,
+    ) {
         writeAndReload(key, HostDefaultValue.Bool(!currentValue)) { settings ->
             settings.map { s ->
                 if (s.key == key && s.value is SourceSettingValue.Toggle) {
                     s.copy(value = (s.value as SourceSettingValue.Toggle).copy(default = !currentValue))
-                } else s
+                } else {
+                    s
+                }
             }
         }
     }
 
     /** Select a single value (Select / Picker / Segment). */
-    fun selectSetting(key: String, value: String) {
+    fun selectSetting(
+        key: String,
+        value: String,
+    ) {
         writeAndReload(key, HostDefaultValue.String(value)) { settings ->
             settings.map { s ->
                 if (s.key == key) {
@@ -166,56 +172,80 @@ class SourceSettingsViewModel @Inject constructor(
                         }
                         else -> s
                     }
-                } else s
+                } else {
+                    s
+                }
             }
         }
     }
 
     /** Select a segment by index. */
-    fun selectSegment(key: String, index: Int) {
+    fun selectSegment(
+        key: String,
+        index: Int,
+    ) {
         writeAndReload(key, HostDefaultValue.Int(index)) { settings ->
             settings.map { s ->
                 if (s.key == key && s.value is SourceSettingValue.Segment) {
                     s.copy(value = (s.value as SourceSettingValue.Segment).copy(default = index))
-                } else s
+                } else {
+                    s
+                }
             }
         }
     }
 
     /** Toggle a value in a multi-select set. */
-    fun toggleMultiSelect(key: String, option: String, currentSelection: List<String>) {
-        val updated = if (option in currentSelection) {
-            currentSelection - option
-        } else {
-            currentSelection + option
-        }
+    fun toggleMultiSelect(
+        key: String,
+        option: String,
+        currentSelection: List<String>,
+    ) {
+        val updated =
+            if (option in currentSelection) {
+                currentSelection - option
+            } else {
+                currentSelection + option
+            }
         writeAndReload(key, HostDefaultValue.StringArray(updated)) { settings ->
             settings.map { s ->
                 if (s.key == key && s.value is SourceSettingValue.MultiSelect) {
                     s.copy(value = (s.value as SourceSettingValue.MultiSelect).copy(default = updated))
-                } else s
+                } else {
+                    s
+                }
             }
         }
     }
 
     /** Set a stepper value. */
-    fun setStepper(key: String, value: Double) {
+    fun setStepper(
+        key: String,
+        value: Double,
+    ) {
         writeAndReload(key, HostDefaultValue.Float(value.toFloat())) { settings ->
             settings.map { s ->
                 if (s.key == key && s.value is SourceSettingValue.Stepper) {
                     s.copy(value = (s.value as SourceSettingValue.Stepper).copy(default = value))
-                } else s
+                } else {
+                    s
+                }
             }
         }
     }
 
     /** Set a text field value. */
-    fun setText(key: String, value: String) {
+    fun setText(
+        key: String,
+        value: String,
+    ) {
         writeAndReload(key, HostDefaultValue.String(value)) { settings ->
             settings.map { s ->
                 if (s.key == key && s.value is SourceSettingValue.Text) {
                     s.copy(value = (s.value as SourceSettingValue.Text).copy(default = value))
-                } else s
+                } else {
+                    s
+                }
             }
         }
     }
@@ -229,7 +259,11 @@ class SourceSettingsViewModel @Inject constructor(
         // If the changed setting declares a `notification`, forward it to the
         // source's handle_notification after persisting (Aidoku calls
         // source.handleNotification for every setting change that has one).
-        val notification = _uiState.value.settings.orEmpty().findSetting(key)?.notification
+        val notification =
+            _uiState.value.settings
+                .orEmpty()
+                .findSetting(key)
+                ?.notification
 
         // Optimistic UI update first so the toggle/selection flips instantly.
         _uiState.update { state ->
@@ -245,7 +279,7 @@ class SourceSettingsViewModel @Inject constructor(
                 .onSuccess { settings ->
                     _uiState.update { it.copy(settings = settings) }
                 }
-                // On failure keep the optimistic value; the store is already written.
+            // On failure keep the optimistic value; the store is already written.
         }
     }
 
@@ -265,11 +299,14 @@ class SourceSettingsViewModel @Inject constructor(
     /** Finds a setting by [key] anywhere in the tree (groups/pages included). */
     private fun List<SourceSetting>.findSetting(key: String): SourceSetting? =
         firstNotNullOfOrNull { s ->
-            if (s.key == key) s
-            else when (val v = s.value) {
-                is SourceSettingValue.Group -> v.items.findSetting(key)
-                is SourceSettingValue.Page -> v.items.findSetting(key)
-                else -> null
+            if (s.key == key) {
+                s
+            } else {
+                when (val v = s.value) {
+                    is SourceSettingValue.Group -> v.items.findSetting(key)
+                    is SourceSettingValue.Page -> v.items.findSetting(key)
+                    else -> null
+                }
             }
         }
 
@@ -297,22 +334,24 @@ class SourceSettingsViewModel @Inject constructor(
      */
     fun migrateData() {
         viewModelScope.launch {
-            val report = runCatching { migrationRepository.migrateLibrary(sourceId) }.getOrNull()
-                ?: run {
-                    _messages.emit(appContext.getString(R.string.source_settings_migrate_failed))
-                    return@launch
+            val report =
+                runCatching { migrationRepository.migrateLibrary(sourceId) }.getOrNull()
+                    ?: run {
+                        _messages.emit(appContext.getString(R.string.source_settings_migrate_failed))
+                        return@launch
+                    }
+            val message =
+                if (report.migratedAnimes == 0 && report.migratedEpisodes == 0) {
+                    appContext.getString(R.string.source_settings_migrate_none)
+                } else {
+                    appContext.getString(
+                        R.string.source_settings_migrate_done,
+                        report.migratedAnimes,
+                        report.migratedEpisodes,
+                        report.examinedAnimes,
+                        report.examinedEpisodes,
+                    )
                 }
-            val message = if (report.migratedAnimes == 0 && report.migratedEpisodes == 0) {
-                appContext.getString(R.string.source_settings_migrate_none)
-            } else {
-                appContext.getString(
-                    R.string.source_settings_migrate_done,
-                    report.migratedAnimes,
-                    report.migratedEpisodes,
-                    report.examinedAnimes,
-                    report.examinedEpisodes,
-                )
-            }
             _messages.emit(message)
         }
     }

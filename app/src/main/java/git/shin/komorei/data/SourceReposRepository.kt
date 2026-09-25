@@ -40,7 +40,10 @@ data class RepoSourceList(
 
 /** Outcome of fetching a repo's source list. */
 sealed interface RepoLoadResult {
-    data class Success(val repo: RepoSourceList) : RepoLoadResult
+    data class Success(
+        val repo: RepoSourceList,
+    ) : RepoLoadResult
+
     data object Unavailable : RepoLoadResult
 }
 
@@ -57,16 +60,18 @@ sealed interface RepoLoadResult {
 class SourceReposRepository @Inject constructor(
     private val okHttp: OkHttpClient,
 ) {
-
     suspend fun fetchSourceList(url: String): RepoLoadResult {
         return try {
-            val text = withContext(Dispatchers.IO) {
-                okHttp.newCall(Request.Builder().url(url).build())
-                    .execute().use { response ->
-                        if (!response.isSuccessful) return@withContext null
-                        response.body.string()
-                    }
-            } ?: return RepoLoadResult.Unavailable
+            val text =
+                withContext(Dispatchers.IO) {
+                    okHttp
+                        .newCall(Request.Builder().url(url).build())
+                        .execute()
+                        .use { response ->
+                            if (!response.isSuccessful) return@withContext null
+                            response.body.string()
+                        }
+                } ?: return RepoLoadResult.Unavailable
             val repo = parseManifest(text) ?: return RepoLoadResult.Unavailable
             // Aidoku-style manifests advertise relative package/icon paths
             // (`sources/<id>-v<N>.krx`); resolve them against the repo URL.
@@ -78,28 +83,35 @@ class SourceReposRepository @Inject constructor(
 
     suspend fun downloadPackage(url: String): ByteArray? {
         return try {
-            val bytes = withContext(Dispatchers.IO) {
-                okHttp.newCall(Request.Builder().url(url).build())
-                    .execute().use { response ->
-                        if (!response.isSuccessful) return@withContext null
-                        response.body.bytes()
-                    }
-            }
+            val bytes =
+                withContext(Dispatchers.IO) {
+                    okHttp
+                        .newCall(Request.Builder().url(url).build())
+                        .execute()
+                        .use { response ->
+                            if (!response.isSuccessful) return@withContext null
+                            response.body.bytes()
+                        }
+                }
             if (bytes == null || bytes.isEmpty()) null else bytes
         } catch (e: Exception) {
             null
         }
     }
 
-    private fun parseManifest(text: String): RepoSourceList? {
-        return try {
+    private fun parseManifest(text: String): RepoSourceList? =
+        try {
             val root = JSONObject(text)
-            val name = root.optString("name").ifBlank {
-                root.optString("repoName").ifBlank { "Kho nguồn" }
-            }
-            val feedback = root.optString("fb").ifBlank {
-                root.optString("feedbackURL").ifBlank { root.optString("feedback").ifBlank { "" } }
-            }.takeIf { it.isNotBlank() }
+            val name =
+                root.optString("name").ifBlank {
+                    root.optString("repoName").ifBlank { "Kho nguồn" }
+                }
+            val feedback =
+                root
+                    .optString("fb")
+                    .ifBlank {
+                        root.optString("feedbackURL").ifBlank { root.optString("feedback").ifBlank { "" } }
+                    }.takeIf { it.isNotBlank() }
             val sourcesJson =
                 if (root.has("sources")) root.getJSONArray("sources") else JSONArray(text)
             RepoSourceList(
@@ -117,7 +129,6 @@ class SourceReposRepository @Inject constructor(
                 null
             }
         }
-    }
 
     private fun findRepoName(arr: JSONArray): String {
         // Best-effort: reuse the first source's name family when no manifest name.
@@ -131,14 +142,16 @@ class SourceReposRepository @Inject constructor(
      * convention) against the repo base URL so the downloads work regardless of
      * where the manifest is hosted.
      */
-    private fun RepoSourceList.withResolvedUrls(baseUrl: String): RepoSourceList = copy(
-        sources = sources.map { source ->
-            source.copy(
-                downloadURL = source.downloadURL?.let { absolutizeUrl(baseUrl, it) },
-                iconUrl = source.iconUrl?.let { absolutizeUrl(baseUrl, it) },
-            )
-        },
-    )
+    private fun RepoSourceList.withResolvedUrls(baseUrl: String): RepoSourceList =
+        copy(
+            sources =
+                sources.map { source ->
+                    source.copy(
+                        downloadURL = source.downloadURL?.let { absolutizeUrl(baseUrl, it) },
+                        iconUrl = source.iconUrl?.let { absolutizeUrl(baseUrl, it) },
+                    )
+                },
+        )
 
     private fun parseSources(arr: JSONArray): List<ExternalSourceInfo> {
         val out = mutableListOf<ExternalSourceInfo>()
@@ -147,17 +160,19 @@ class SourceReposRepository @Inject constructor(
             val id = obj.optString("id")
             val name = obj.optString("name")
             if (id.isBlank() || name.isBlank()) continue
-            out += ExternalSourceInfo(
-                id = id,
-                name = name,
-                version = obj.optString("version").ifBlank { "0.0.0" },
-                iconUrl = obj.optString("icon").ifBlank { obj.optString("iconURL").ifBlank { null } },
-                downloadURL = obj.optString("file").ifBlank {
-                    obj.optString("downloadURL").ifBlank { obj.optString("url").ifBlank { null } }
-                },
-                languages = parseLanguages(obj),
-                contentRating = if (obj.has("nsfw")) obj.optInt("nsfw") else obj.optInt("contentRating"),
-            )
+            out +=
+                ExternalSourceInfo(
+                    id = id,
+                    name = name,
+                    version = obj.optString("version").ifBlank { "0.0.0" },
+                    iconUrl = obj.optString("icon").ifBlank { obj.optString("iconURL").ifBlank { null } },
+                    downloadURL =
+                        obj.optString("file").ifBlank {
+                            obj.optString("downloadURL").ifBlank { obj.optString("url").ifBlank { null } }
+                        },
+                    languages = parseLanguages(obj),
+                    contentRating = if (obj.has("nsfw")) obj.optInt("nsfw") else obj.optInt("contentRating"),
+                )
         }
         return out
     }
@@ -183,26 +198,35 @@ class SourceReposRepository @Inject constructor(
  * `https://host/repo/sources/x.krx`. Returns [url] unchanged when [baseUrl] is
  * not a valid URL.
  */
-fun absolutizeUrl(baseUrl: String, url: String): String {
+fun absolutizeUrl(
+    baseUrl: String,
+    url: String,
+): String {
     if (url.startsWith("http://") || url.startsWith("https://")) return url
     val base = baseUrl.toHttpUrlOrNull() ?: return url
     val path = base.encodedPath
-    val directoryPath = when {
-        path.isEmpty() -> "/"
-        path.endsWith("/") -> path
-        else -> {
-            val last = path.substringAfterLast('/')
-            if (last.contains('.')) path.substringBeforeLast('/') + "/"
-            else path + "/"
+    val directoryPath =
+        when {
+            path.isEmpty() -> "/"
+            path.endsWith("/") -> path
+            else -> {
+                val last = path.substringAfterLast('/')
+                if (last.contains('.')) {
+                    path.substringBeforeLast('/') + "/"
+                } else {
+                    path + "/"
+                }
+            }
         }
-    }
     // Drop query/fragment: the directory is derived from the path alone, which
     // is what java.net.URL(protocol, host, port, path) used to do.
-    val directory = base.newBuilder()
-        .encodedPath(directoryPath)
-        .query(null)
-        .fragment(null)
-        .build()
+    val directory =
+        base
+            .newBuilder()
+            .encodedPath(directoryPath)
+            .query(null)
+            .fragment(null)
+            .build()
     return directory.resolve(url)?.toString() ?: url
 }
 
@@ -211,7 +235,10 @@ fun absolutizeUrl(baseUrl: String, url: String): String {
  * <0 when older, 0 when equal. Missing trailing parts compare as 0, so
  * "1.0" == "1.0.0" and "1.0.1" > "1.0".
  */
-fun compareVersions(a: String, b: String): Int {
+fun compareVersions(
+    a: String,
+    b: String,
+): Int {
     val aParts = a.trim().split('.')
     val bParts = b.trim().split('.')
     for (i in 0 until maxOf(aParts.size, bParts.size)) {

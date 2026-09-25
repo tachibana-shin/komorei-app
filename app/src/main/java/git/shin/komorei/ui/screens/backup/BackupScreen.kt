@@ -3,7 +3,6 @@ package git.shin.komorei.ui.screens.backup
 import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -113,28 +112,31 @@ fun BackupScreen(
         }
     }
 
-    val openDocument = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri -> uri?.let(viewModel::importUri) }
-    val createDocument = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json"),
-    ) { uri ->
-        val fileName = pendingExport
-        pendingExport = null
-        if (uri != null && fileName != null) viewModel.exportUri(fileName, uri)
-    }
-    val authorizationLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult(),
-    ) { result ->
-        if (activity != null) {
-            GoogleDriveAuthorization.handleResolutionResult(activity, result.data) { authResult ->
-                authResult.fold(
-                    onSuccess = { token -> handleDriveToken(token) },
-                    onFailure = { Toast.makeText(context, R.string.backup_drive_auth_failed, Toast.LENGTH_LONG).show() },
-                )
+    val openDocument =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument(),
+        ) { uri -> uri?.let(viewModel::importUri) }
+    val createDocument =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument("application/json"),
+        ) { uri ->
+            val fileName = pendingExport
+            pendingExport = null
+            if (uri != null && fileName != null) viewModel.exportUri(fileName, uri)
+        }
+    val authorizationLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.StartIntentSenderForResult(),
+        ) { result ->
+            if (activity != null) {
+                GoogleDriveAuthorization.handleResolutionResult(activity, result.data) { authResult ->
+                    authResult.fold(
+                        onSuccess = { token -> handleDriveToken(token) },
+                        onFailure = { Toast.makeText(context, R.string.backup_drive_auth_failed, Toast.LENGTH_LONG).show() },
+                    )
+                }
             }
         }
-    }
 
     fun authorize(action: DriveAuthAction) {
         val currentActivity = activity
@@ -161,24 +163,27 @@ fun BackupScreen(
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .testTag("backup_screen"),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .testTag("backup_screen"),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
                 onClick = onBack,
-                modifier = Modifier
-                    .tvFocus(shape = CircleShape, scale = 1.15f)
-                    .testTag("backup_back"),
+                modifier =
+                    Modifier
+                        .tvFocus(shape = CircleShape, scale = 1.15f)
+                        .testTag("backup_back"),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -198,9 +203,10 @@ fun BackupScreen(
         if (state.busy) ShimmerLoadingRow()
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             Text(
                 text = stringResource(R.string.backup_description),
@@ -254,10 +260,11 @@ fun BackupScreen(
             ) {
                 Button(
                     onClick = { showOptions = true },
-                    modifier = Modifier
-                        .weight(1f)
-                        .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
-                        .testTag("backup_create"),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
+                            .testTag("backup_create"),
                 ) {
                     Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
@@ -265,10 +272,11 @@ fun BackupScreen(
                 }
                 OutlinedButton(
                     onClick = { openDocument.launch(arrayOf("application/json", "application/octet-stream", "text/plain")) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
-                        .testTag("backup_import"),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
+                            .testTag("backup_import"),
                 ) {
                     Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
@@ -283,10 +291,11 @@ fun BackupScreen(
                     fontSize = 13.sp,
                     lineHeight = 18.sp,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 28.dp)
-                        .testTag("backup_empty"),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 28.dp)
+                            .testTag("backup_empty"),
                 )
             } else {
                 Spacer(Modifier.height(12.dp))
@@ -431,12 +440,13 @@ private fun DriveSection(
     onForget: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(CardDark)
-            .padding(14.dp)
-            .testTag("backup_drive_section"),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(CardDark)
+                .padding(14.dp)
+                .testTag("backup_drive_section"),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -455,16 +465,19 @@ private fun DriveSection(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = when {
-                        !configured -> stringResource(R.string.backup_drive_not_configured)
-                        connected && lastSyncAt != null -> stringResource(
-                            R.string.backup_drive_last_sync,
-                            DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                                .format(Date(lastSyncAt)),
-                        )
-                        connected -> stringResource(R.string.backup_drive_connected)
-                        else -> stringResource(R.string.backup_drive_disconnected)
-                    },
+                    text =
+                        when {
+                            !configured -> stringResource(R.string.backup_drive_not_configured)
+                            connected && lastSyncAt != null ->
+                                stringResource(
+                                    R.string.backup_drive_last_sync,
+                                    DateFormat
+                                        .getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                                        .format(Date(lastSyncAt)),
+                                )
+                            connected -> stringResource(R.string.backup_drive_connected)
+                            else -> stringResource(R.string.backup_drive_disconnected)
+                        },
                     color = TextMuted,
                     fontSize = 12.sp,
                     lineHeight = 16.sp,
@@ -473,9 +486,10 @@ private fun DriveSection(
             if (connected) {
                 IconButton(
                     onClick = onForget,
-                    modifier = Modifier
-                        .tvFocus(shape = CircleShape, scale = 1.1f)
-                        .testTag("backup_drive_forget"),
+                    modifier =
+                        Modifier
+                            .tvFocus(shape = CircleShape, scale = 1.1f)
+                            .testTag("backup_drive_forget"),
                 ) {
                     Icon(
                         Icons.Default.MoreVert,
@@ -503,26 +517,29 @@ private fun DriveSection(
         } else if (!connected) {
             OutlinedButton(
                 onClick = onConnect,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
-                    .testTag("backup_drive_connect"),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
+                        .testTag("backup_drive_connect"),
             ) { Text(stringResource(R.string.backup_drive_connect)) }
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = onUpload,
-                    modifier = Modifier
-                        .weight(1f)
-                        .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
-                        .testTag("backup_drive_upload"),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
+                            .testTag("backup_drive_upload"),
                 ) { Text(stringResource(R.string.backup_drive_upload)) }
                 OutlinedButton(
                     onClick = onDownload,
-                    modifier = Modifier
-                        .weight(1f)
-                        .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
-                        .testTag("backup_drive_download"),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
+                            .testTag("backup_drive_download"),
                 ) { Text(stringResource(R.string.backup_drive_download)) }
             }
         }
@@ -537,20 +554,22 @@ private fun BackgroundSyncSection(
     onRunNow: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(CardDark)
-            .padding(14.dp)
-            .testTag("backup_background_sync_section"),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(CardDark)
+                .padding(14.dp)
+                .testTag("backup_background_sync_section"),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.0f)
-                .clickable { onEnabledChange(!settings.enabled) }
-                .padding(vertical = 2.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.0f)
+                    .clickable { onEnabledChange(!settings.enabled) }
+                    .padding(vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -569,11 +588,12 @@ private fun BackgroundSyncSection(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = if (settings.enabled) {
-                        stringResource(R.string.backup_auto_sync_enabled)
-                    } else {
-                        stringResource(R.string.backup_auto_sync_disabled)
-                    },
+                    text =
+                        if (settings.enabled) {
+                            stringResource(R.string.backup_auto_sync_enabled)
+                        } else {
+                            stringResource(R.string.backup_auto_sync_disabled)
+                        },
                     color = TextMuted,
                     fontSize = 11.sp,
                     lineHeight = 15.sp,
@@ -607,11 +627,13 @@ private fun BackgroundSyncSection(
             settings.lastSyncAt?.let { lastSync ->
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = stringResource(
-                        R.string.backup_last_sync,
-                        DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                            .format(Date(lastSync)),
-                    ),
+                    text =
+                        stringResource(
+                            R.string.backup_last_sync,
+                            DateFormat
+                                .getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                                .format(Date(lastSync)),
+                        ),
                     color = TextMuted,
                     fontSize = 11.sp,
                     lineHeight = 15.sp,
@@ -629,10 +651,11 @@ private fun BackgroundSyncSection(
             Spacer(Modifier.height(8.dp))
             OutlinedButton(
                 onClick = onRunNow,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
-                    .testTag("backup_sync_now"),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.02f)
+                        .testTag("backup_sync_now"),
             ) {
                 Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(17.dp))
                 Spacer(Modifier.width(6.dp))
@@ -648,21 +671,23 @@ private fun SyncIntervalChip(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val label = when (interval) {
-        BackupSyncInterval.SIX_HOURS -> stringResource(R.string.backup_every_6_hours)
-        BackupSyncInterval.TWELVE_HOURS -> stringResource(R.string.backup_every_12_hours)
-        BackupSyncInterval.DAILY -> stringResource(R.string.backup_daily)
-        BackupSyncInterval.TWO_DAYS -> stringResource(R.string.backup_every_2_days)
-        BackupSyncInterval.WEEKLY -> stringResource(R.string.backup_weekly)
-    }
+    val label =
+        when (interval) {
+            BackupSyncInterval.SIX_HOURS -> stringResource(R.string.backup_every_6_hours)
+            BackupSyncInterval.TWELVE_HOURS -> stringResource(R.string.backup_every_12_hours)
+            BackupSyncInterval.DAILY -> stringResource(R.string.backup_daily)
+            BackupSyncInterval.TWO_DAYS -> stringResource(R.string.backup_every_2_days)
+            BackupSyncInterval.WEEKLY -> stringResource(R.string.backup_weekly)
+        }
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(9.dp))
-            .background(if (selected) AnimeRed else SurfaceVariantDark)
-            .tvFocus(shape = RoundedCornerShape(9.dp), scale = 1.0f)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 7.dp)
-            .testTag("backup_interval_${interval.name.lowercase()}"),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(9.dp))
+                .background(if (selected) AnimeRed else SurfaceVariantDark)
+                .tvFocus(shape = RoundedCornerShape(9.dp), scale = 1.0f)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 10.dp, vertical = 7.dp)
+                .testTag("backup_interval_${interval.name.lowercase()}"),
     ) {
         Text(
             text = label,
@@ -674,12 +699,13 @@ private fun SyncIntervalChip(
     }
 }
 
-private fun BackupSyncError.messageRes(): Int = when (this) {
-    BackupSyncError.AUTH_REQUIRED -> R.string.backup_sync_auth_required
-    BackupSyncError.REMOTE_CHANGED -> R.string.backup_sync_remote_changed
-    BackupSyncError.NETWORK -> R.string.backup_sync_network_error
-    BackupSyncError.UNKNOWN -> R.string.backup_sync_unknown_error
-}
+private fun BackupSyncError.messageRes(): Int =
+    when (this) {
+        BackupSyncError.AUTH_REQUIRED -> R.string.backup_sync_auth_required
+        BackupSyncError.REMOTE_CHANGED -> R.string.backup_sync_remote_changed
+        BackupSyncError.NETWORK -> R.string.backup_sync_network_error
+        BackupSyncError.UNKNOWN -> R.string.backup_sync_unknown_error
+    }
 
 @Composable
 private fun BackupRow(
@@ -689,12 +715,13 @@ private fun BackupRow(
     onDelete: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(CardDark)
-            .padding(horizontal = 14.dp, vertical = 12.dp)
-            .testTag("backup_row_${backup.fileName}"),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(CardDark)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+                .testTag("backup_row_${backup.fileName}"),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
@@ -708,18 +735,21 @@ private fun BackupRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                        .format(Date(backup.createdAt)),
+                    text =
+                        DateFormat
+                            .getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                            .format(Date(backup.createdAt)),
                     color = TextMuted,
                     fontSize = 11.sp,
                     lineHeight = 15.sp,
                 )
             }
             Text(
-                text = android.text.format.Formatter.formatShortFileSize(
-                    LocalContext.current,
-                    backup.sizeBytes,
-                ),
+                text =
+                    android.text.format.Formatter.formatShortFileSize(
+                        LocalContext.current,
+                        backup.sizeBytes,
+                    ),
                 color = TextMuted,
                 fontSize = 11.sp,
                 lineHeight = 15.sp,
@@ -727,11 +757,12 @@ private fun BackupRow(
         }
         Spacer(Modifier.height(6.dp))
         Text(
-            text = stringResource(
-                R.string.backup_counts,
-                backup.counts.library,
-                backup.counts.history,
-            ),
+            text =
+                stringResource(
+                    R.string.backup_counts,
+                    backup.counts.library,
+                    backup.counts.history,
+                ),
             color = TextSecondary,
             fontSize = 11.sp,
             lineHeight = 15.sp,
@@ -741,9 +772,10 @@ private fun BackupRow(
             TextButton(
                 onClick = onRestore,
                 enabled = backup.valid,
-                modifier = Modifier
-                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.02f)
-                    .testTag("backup_restore_${backup.fileName}"),
+                modifier =
+                    Modifier
+                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.02f)
+                        .testTag("backup_restore_${backup.fileName}"),
             ) {
                 Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
@@ -752,9 +784,10 @@ private fun BackupRow(
             TextButton(
                 onClick = onExport,
                 enabled = backup.valid,
-                modifier = Modifier
-                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.02f)
-                    .testTag("backup_export_${backup.fileName}"),
+                modifier =
+                    Modifier
+                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.02f)
+                        .testTag("backup_export_${backup.fileName}"),
             ) {
                 Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
@@ -762,9 +795,10 @@ private fun BackupRow(
             }
             TextButton(
                 onClick = onDelete,
-                modifier = Modifier
-                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.02f)
-                    .testTag("backup_delete_${backup.fileName}"),
+                modifier =
+                    Modifier
+                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.02f)
+                        .testTag("backup_delete_${backup.fileName}"),
             ) {
                 Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.backup_delete), tint = AnimeRed)
             }
@@ -795,10 +829,11 @@ private fun BackupOptionsDialog(
                     onValueChange = onNameChange,
                     label = { Text(stringResource(R.string.backup_name)) },
                     singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.0f)
-                        .testTag("backup_name"),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.0f)
+                            .testTag("backup_name"),
                 )
                 Spacer(Modifier.height(4.dp))
                 BackupOptionRow(
@@ -855,12 +890,13 @@ private fun BackupOptionRow(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.0f)
-            .clickable { onCheckedChange(!checked) }
-            .padding(vertical = 6.dp, horizontal = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.0f)
+                .clickable { onCheckedChange(!checked) }
+                .padding(vertical = 6.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

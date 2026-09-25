@@ -25,6 +25,6 @@ fun BigScrollerRow(
     BannerCarousel(
         featuredList = entries,
         onAnimeClick = onAnimeClick,
-        modifier = modifier
+        modifier = modifier,
     )
 }

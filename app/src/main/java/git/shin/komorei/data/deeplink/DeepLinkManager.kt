@@ -13,7 +13,6 @@ import javax.inject.Singleton
  */
 @Singleton
 class DeepLinkManager @Inject constructor() {
-
     private val _pending = MutableStateFlow<String?>(null)
 
     /** The latest incoming deep-link URL, or null once consumed. */

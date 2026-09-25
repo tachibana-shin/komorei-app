@@ -77,8 +77,11 @@ fun ListingScreen(
 
     // Infinite scroll: trigger a load when the user approaches the last page.
     LaunchedEffect(gridState) {
-        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
-            .distinctUntilChanged()
+        snapshotFlow {
+            gridState.layoutInfo.visibleItemsInfo
+                .lastOrNull()
+                ?.index ?: 0
+        }.distinctUntilChanged()
             .collect { lastIndex ->
                 val total = gridState.layoutInfo.totalItemsCount
                 if (lastIndex >= total - 6) viewModel.loadMore()
@@ -86,10 +89,11 @@ fun ListingScreen(
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding(),
     ) {
         ListingTopBar(
             title = viewModel.listingName,
@@ -100,70 +104,74 @@ fun ListingScreen(
         when {
             uiState.isLoading -> ListingGridSkeleton()
 
-            uiState.items.isEmpty() -> Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = uiState.error
-                            ?: stringResource(R.string.listing_empty),
-                        color = if (uiState.error != null) AnimeRed else TextMuted,
-                        fontSize = 14.sp,
-                    )
-                    if (uiState.error != null) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Surface(
-                            onClick = { viewModel.loadMore(reset = true) },
-                            color = AnimeRedContainer,
-                            shape = RoundedCornerShape(20.dp),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.action_retry),
-                                color = AnimeRed,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                            )
-                        }
-                    }
-                }
-            }
-
-            else -> BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val columns = animeGridColumns()
-                PullToRefreshBox(
-                    isRefreshing = isRefreshing,
-                    onRefresh = viewModel::refresh,
+            uiState.items.isEmpty() ->
+                Box(
                     modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    LazyVerticalGrid(
-                        columns = columns,
-                        state = gridState,
-                        contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            bottom = 120.dp,          // clear the mini player + bottom nav
-                        ),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxSize().testTag("listing_grid"),
-                    ) {
-                        items(uiState.items, key = { it.id }) { anime ->
-                            AnimeCard(
-                                anime = anime,
-                                onClick = { onAnimeClick(anime) },
-                            )
-                        }
-                        if (uiState.isLoadingMore) {
-                            item(key = "_load_more") { ListingLoadingRow() }
-                        }
-                        if (!uiState.isLoadingMore && !uiState.hasNextPage && uiState.items.isNotEmpty()) {
-                            item(key = "_end") { ListingEndRow() }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text =
+                                uiState.error
+                                    ?: stringResource(R.string.listing_empty),
+                            color = if (uiState.error != null) AnimeRed else TextMuted,
+                            fontSize = 14.sp,
+                        )
+                        if (uiState.error != null) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Surface(
+                                onClick = { viewModel.loadMore(reset = true) },
+                                color = AnimeRedContainer,
+                                shape = RoundedCornerShape(20.dp),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.action_retry),
+                                    color = AnimeRed,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                )
+                            }
                         }
                     }
                 }
-            }
+
+            else ->
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                    val columns = animeGridColumns()
+                    PullToRefreshBox(
+                        isRefreshing = isRefreshing,
+                        onRefresh = viewModel::refresh,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        LazyVerticalGrid(
+                            columns = columns,
+                            state = gridState,
+                            contentPadding =
+                                PaddingValues(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    bottom = 120.dp, // clear the mini player + bottom nav
+                                ),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxSize().testTag("listing_grid"),
+                        ) {
+                            items(uiState.items, key = { it.id }) { anime ->
+                                AnimeCard(
+                                    anime = anime,
+                                    onClick = { onAnimeClick(anime) },
+                                )
+                            }
+                            if (uiState.isLoadingMore) {
+                                item(key = "_load_more") { ListingLoadingRow() }
+                            }
+                            if (!uiState.isLoadingMore && !uiState.hasNextPage && uiState.items.isNotEmpty()) {
+                                item(key = "_end") { ListingEndRow() }
+                            }
+                        }
+                    }
+                }
         }
     }
 }
@@ -171,18 +179,24 @@ fun ListingScreen(
 // ── top bar ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun ListingTopBar(title: String, subtitle: String, onBack: () -> Unit) {
+private fun ListingTopBar(
+    title: String,
+    subtitle: String,
+    onBack: () -> Unit,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(
             onClick = onBack,
-            modifier = Modifier
-                // TV focus highlight (no-op on phones).
-                .tvFocus(shape = CircleShape, scale = 1.15f),
+            modifier =
+                Modifier
+                    // TV focus highlight (no-op on phones).
+                    .tvFocus(shape = CircleShape, scale = 1.15f),
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -224,9 +238,10 @@ private fun ListingEndRow() {
         text = stringResource(R.string.listing_end_of_list),
         color = TextMuted,
         fontSize = 12.sp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
     )
 }
@@ -238,9 +253,10 @@ private fun ListingGridSkeleton() {
     // 3 columns × 6 rows of anime-card shimmer placeholders. Bounded Column
     // (not LazyColumn) so it can live inside the root Column.
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
     ) {
         repeat(2) { _ ->
             Row(
@@ -250,24 +266,27 @@ private fun ListingGridSkeleton() {
                 repeat(3) {
                     Column(modifier = Modifier.weight(1f)) {
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(0.7f)
-                                .shimmerEffect(RoundedCornerShape(12.dp))
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(0.7f)
+                                    .shimmerEffect(RoundedCornerShape(12.dp)),
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.85f)
-                                .height(13.dp)
-                                .shimmerEffect(RoundedCornerShape(4.dp))
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth(0.85f)
+                                    .height(13.dp)
+                                    .shimmerEffect(RoundedCornerShape(4.dp)),
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.5f)
-                                .height(11.dp)
-                                .shimmerEffect(RoundedCornerShape(4.dp))
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth(0.5f)
+                                    .height(11.dp)
+                                    .shimmerEffect(RoundedCornerShape(4.dp)),
                         )
                     }
                 }

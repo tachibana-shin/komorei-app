@@ -6,25 +6,41 @@
 
 use wasmi::{Caller, Linker};
 
-use crate::state::RunnerData;
 use crate::imports::stub_code;
+use crate::state::RunnerData;
 
 pub fn register(linker: &mut Linker<RunnerData>) {
-	linker.func_wrap("canvas", "new_context", new_context).unwrap();
-	linker.func_wrap("canvas", "set_transform", set_transform).unwrap();
-	linker.func_wrap("canvas", "copy_image", copy_image).unwrap();
-	linker.func_wrap("canvas", "draw_image", draw_image).unwrap();
+	linker
+		.func_wrap("canvas", "new_context", new_context)
+		.unwrap();
+	linker
+		.func_wrap("canvas", "set_transform", set_transform)
+		.unwrap();
+	linker
+		.func_wrap("canvas", "copy_image", copy_image)
+		.unwrap();
+	linker
+		.func_wrap("canvas", "draw_image", draw_image)
+		.unwrap();
 	linker.func_wrap("canvas", "fill", fill).unwrap();
 	linker.func_wrap("canvas", "stroke", stroke).unwrap();
 	linker.func_wrap("canvas", "draw_text", draw_text).unwrap();
 	linker.func_wrap("canvas", "get_image", get_image).unwrap();
 	linker.func_wrap("canvas", "new_font", new_font).unwrap();
-	linker.func_wrap("canvas", "system_font", system_font).unwrap();
+	linker
+		.func_wrap("canvas", "system_font", system_font)
+		.unwrap();
 	linker.func_wrap("canvas", "load_font", load_font).unwrap();
 	linker.func_wrap("canvas", "new_image", new_image).unwrap();
-	linker.func_wrap("canvas", "get_image_data", get_image_data).unwrap();
-	linker.func_wrap("canvas", "get_image_width", get_image_width).unwrap();
-	linker.func_wrap("canvas", "get_image_height", get_image_height).unwrap();
+	linker
+		.func_wrap("canvas", "get_image_data", get_image_data)
+		.unwrap();
+	linker
+		.func_wrap("canvas", "get_image_width", get_image_width)
+		.unwrap();
+	linker
+		.func_wrap("canvas", "get_image_height", get_image_height)
+		.unwrap();
 }
 
 fn new_context(_caller: Caller<'_, RunnerData>, _width: f32, _height: f32) -> i32 {

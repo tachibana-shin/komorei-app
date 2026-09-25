@@ -6,9 +6,17 @@
     "type": "git",
     "url": "https://github.com/tachibana-shin/komorei-app.git"
   },
-  "description": "Release tooling for the Komorei Android application",
+  "description": "Release tooling and local quality gates for the Komorei Android application",
   "packageManager": "bun@1.4.2",
   "scripts": {
+    "prepare": "husky",
+    "lint": "bun run lint:ktlint && bun run lint:rust",
+    "lint:ktlint": "./gradlew ktlintCheck",
+    "lint:ktlint:fix": "./gradlew ktlintFormat",
+    "lint:rust": "cargo fmt --manifest-path runner/Cargo.toml -- --check",
+    "lint:rust:fix": "cargo fmt --manifest-path runner/Cargo.toml",
+    "lint:clippy": "cargo clippy --manifest-path runner/Cargo.toml --all-targets --all-features -- -D warnings",
+    "lint:ci": "bun run lint && bun run lint:clippy && ./gradlew ktlintCheck",
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run"
   },
@@ -18,6 +26,7 @@
     "@semantic-release/git": "11.0.1",
     "@semantic-release/github": "12.0.10",
     "@semantic-release/release-notes-generator": "14.1.1",
+    "husky": "9.1.7",
     "semantic-release": "25.0.9"
   }
 }

@@ -27,7 +27,6 @@ data class KrxSourceMeta(
  * handle for all source calls (search / details / streams / filters / ...).
  */
 object KrxManager {
-
     private const val TAG = "KrxManager"
 
     /** The wasm payload path inside a `.krx` archive. */
@@ -92,9 +91,10 @@ object KrxManager {
                             name = info.getString("name"),
                             version = info.optInt("version", 1),
                             url = info.optString("url", ""),
-                            languages = info.optJSONArray("languages")?.let { arr ->
-                                (0 until arr.length()).map { arr.getString(it) }
-                            } ?: emptyList(),
+                            languages =
+                                info.optJSONArray("languages")?.let { arr ->
+                                    (0 until arr.length()).map { arr.getString(it) }
+                                } ?: emptyList(),
                             contentRating = info.optInt("contentRating", 0),
                         )
                     } catch (e: Exception) {
@@ -115,9 +115,13 @@ object KrxManager {
      * Callers should run this off the main thread (the runner is synchronous and
      * its host performs blocking IO on every call).
      */
-    fun load(host: KrxHostImpl, krx: ByteArray): KomoreiRunner {
-        val wasm = extractMainWasm(krx)
-            ?: throw IllegalArgumentException("Invalid .krx package: missing $MAIN_WASM_ENTRY")
+    fun load(
+        host: KrxHostImpl,
+        krx: ByteArray,
+    ): KomoreiRunner {
+        val wasm =
+            extractMainWasm(krx)
+                ?: throw IllegalArgumentException("Invalid .krx package: missing $MAIN_WASM_ENTRY")
         val runner = KomoreiRunner(host)
         try {
             runner.load(wasm)

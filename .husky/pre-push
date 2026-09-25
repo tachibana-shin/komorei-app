@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+# Runs before `git push`. Slower than pre-commit on purpose: by this point the
+# commit exists, so the expensive checks (full-project ktlint + cargo clippy
+# over every target) are worth the wait — and they catch the two things a
+# formatter can never catch: a Clippy lint, and a style regression in a file
+# you did not touch this commit.
+
+bun run lint:ktlint
+bun run lint:clippy

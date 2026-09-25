@@ -93,6 +93,40 @@ This allows debug and release builds to be installed side by side with isolated 
 
 ## Building and Testing
 
+### Local quality gates
+
+Style and lint run locally through [husky](https://typicode.github.io/husky/): a
+`pre-commit` hook covers the fast checks and a `pre-push` hook adds the slower
+ones. The same commands are what CI runs, so nothing is gated locally that is
+not gated remotely.
+
+```bash
+# Everything the pre-commit + pre-push hooks check
+bun run lint:ci
+
+# Kotlin style — the rules live in .editorconfig
+./gradlew ktlintCheck     # check
+./gradlew ktlintFormat    # fix
+
+# Rust style + lints for the wasm runner crate
+cargo fmt  --manifest-path runner/Cargo.toml          # fix
+cargo clippy --manifest-path runner/Cargo.toml --all-targets --all-features -- -D warnings
+```
+
+`ktlint` and `clippy` run with `-D warnings` in CI, so a new violation fails the
+build. Two lint families are deliberately relaxed in `.editorconfig`, with the
+reasoning recorded next to each:
+
+- **Wildcard imports** — `import androidx.compose.foundation.layout.*` is the
+  style Compose's own samples use; the plain-JVM rule reported 22 legitimate
+  imports.
+- **Max line length** — a Composable is allowed to be long; real complexity is
+  bounded by SonarQube and detekt, not by line width.
+
+The `rust` commands deliberately omit `--all`: `komorei` is a path dependency
+into the separate `komorei-sdk` checkout, and `--all` would reformat a repo that
+has its own CI for exactly that.
+
 ### Kotlin / Android
 
 ```bash

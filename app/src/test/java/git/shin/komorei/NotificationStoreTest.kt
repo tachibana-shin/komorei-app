@@ -17,9 +17,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class NotificationStoreTest {
-
-    private fun newStore(): NotificationStore =
-        NotificationStore(ApplicationProvider.getApplicationContext<Context>()).also { it.reseed() }
+    private fun newStore(): NotificationStore = NotificationStore(ApplicationProvider.getApplicationContext<Context>()).also { it.reseed() }
 
     @Test
     fun `seed has unread notifications`() {
@@ -36,7 +34,11 @@ class NotificationStoreTest {
 
         store.markRead(target.id)
 
-        assertTrue(store.notifications.value.first { it.id == target.id }.isRead)
+        assertTrue(
+            store.notifications.value
+                .first { it.id == target.id }
+                .isRead,
+        )
         assertEquals(unreadBefore - 1, store.unreadCount)
     }
 

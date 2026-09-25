@@ -55,14 +55,14 @@ import java.util.concurrent.CopyOnWriteArrayList
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class VsmovSourceRunnerIntegrationTest {
-
     private lateinit var host: KrxHostImpl
     private lateinit var runner: git.shin.komorei.sdk.runner.KomoreiRunner
     private lateinit var fixture: FixtureServer
 
     companion object {
-        private val vsmovKrx: String = System.getProperty("komorei.test.vsmovKrx")
-            ?: error("missing -Dkomorei.test.vsmovKrx (set by app/build.gradle.kts)")
+        private val vsmovKrx: String =
+            System.getProperty("komorei.test.vsmovKrx")
+                ?: error("missing -Dkomorei.test.vsmovKrx (set by app/build.gradle.kts)")
     }
 
     @Before
@@ -151,10 +151,12 @@ class VsmovSourceRunnerIntegrationTest {
 
     @Test
     fun `genre chip routes to the flat recently-updated list with the slug`() {
-        val result = runner.search(
-            null, 2,
-            listOf(FilterValue.MultiSelect("category", listOf("Hành Động"), emptyList())),
-        )
+        val result =
+            runner.search(
+                null,
+                2,
+                listOf(FilterValue.MultiSelect("category", listOf("Hành Động"), emptyList())),
+            )
         // No keyword → the empty-keyword-proof fallback list, with the genre
         // name mapped to its vsmov slug.
         assertEquals("/api/danh-sach/phim-moi-cap-nhat?page=2&category=hanh-dong", fixture.lastRequest())
@@ -193,10 +195,12 @@ class VsmovSourceRunnerIntegrationTest {
 
     @Test
     fun `chapters come from the largest playback server`() {
-        val full = runner.animeUpdate(
-            runner.search(null, 1, emptyList()).entries.single { it.key == "nhat-au-xuan" },
-            needsDetails = true, needsChapters = true,
-        )
+        val full =
+            runner.animeUpdate(
+                runner.search(null, 1, emptyList()).entries.single { it.key == "nhat-au-xuan" },
+                needsDetails = true,
+                needsChapters = true,
+            )
         val eps = full.episodes!!
         assertEquals(listOf("tap-1", "tap-2"), eps.map { it.key })
         assertEquals(listOf("1", "2"), eps.map { it.episodeNumber })
@@ -207,10 +211,12 @@ class VsmovSourceRunnerIntegrationTest {
 
     @Test
     fun `stream derives the master playlist and pulls the vtt subtitles from the embed page`() {
-        val full = runner.animeUpdate(
-            runner.search(null, 1, emptyList()).entries.single { it.key == "nhat-au-xuan" },
-            needsDetails = true, needsChapters = true,
-        )
+        val full =
+            runner.animeUpdate(
+                runner.search(null, 1, emptyList()).entries.single { it.key == "nhat-au-xuan" },
+                needsDetails = true,
+                needsChapters = true,
+            )
         val ep = full.episodes!!.last() // tap-2
         val servers = runner.streamList(full, ep)
         assertEquals(listOf("Vietsub #1", "Trailer"), servers.map { it.key })
@@ -249,10 +255,12 @@ class VsmovSourceRunnerIntegrationTest {
     fun `m3u8 link_embed passes through untouched`() {
         // A fixture variant whose link_embed is already a playlist URL.
         fixture.directPlaylist = true
-        val full = runner.animeUpdate(
-            runner.search(null, 1, emptyList()).entries.single { it.key == "nhat-au-xuan" },
-            needsDetails = true, needsChapters = true,
-        )
+        val full =
+            runner.animeUpdate(
+                runner.search(null, 1, emptyList()).entries.single { it.key == "nhat-au-xuan" },
+                needsDetails = true,
+                needsChapters = true,
+            )
         val ep = full.episodes!!.last()
         val data = runner.stream(full, ep, runner.streamList(full, ep).first())
         // Punished by fixture serving a direct master.m3u8 for tap-2.
@@ -307,11 +315,13 @@ class VsmovSourceRunnerIntegrationTest {
 
     private class FixtureServer : Closeable {
         private val server = ServerSocket(0, 64, InetAddress.getByName("127.0.0.1"))
+
         @Volatile private var closed = false
         val requests = CopyOnWriteArrayList<String>()
 
         /** The fixture's real listen origin (`http://127.0.0.1:<port>`). */
         val baseUrl: String get() = "http://127.0.0.1:${server.localPort}"
+
         /** The origin the source's URL transforms produce (`https://` is hardcoded). */
         val httpsOrigin: String get() = "https://127.0.0.1:${server.localPort}"
 
@@ -319,19 +329,26 @@ class VsmovSourceRunnerIntegrationTest {
         @Volatile var directPlaylist = false
 
         init {
-            Thread({ acceptLoop() }, "vsmov-fixture").apply { isDaemon = true; start() }
+            Thread({ acceptLoop() }, "vsmov-fixture").apply {
+                isDaemon = true
+                start()
+            }
         }
 
         fun lastRequest(): String = requests.lastOrNull() ?: ""
 
         private fun acceptLoop() {
             while (!closed) {
-                val sock = try {
-                    server.accept()
-                } catch (e: IOException) {
-                    break
+                val sock =
+                    try {
+                        server.accept()
+                    } catch (e: IOException) {
+                        break
+                    }
+                Thread({ handle(sock) }, "vsmov-fixture-handler").apply {
+                    isDaemon = true
+                    start()
                 }
-                Thread({ handle(sock) }, "vsmov-fixture-handler").apply { isDaemon = true; start() }
             }
         }
 
@@ -364,15 +381,21 @@ class VsmovSourceRunnerIntegrationTest {
             }
         }
 
-        private fun respond(sock: Socket, status: Int, headers: Map<String, String>, body: String) {
+        private fun respond(
+            sock: Socket,
+            status: Int,
+            headers: Map<String, String>,
+            body: String,
+        ) {
             val bytes = body.toByteArray(Charsets.UTF_8)
-            val hdrs = buildString {
-                append("HTTP/1.1 $status OK\r\n")
-                headers.forEach { (k, v) -> append("$k: $v\r\n") }
-                append("Content-Length: ${bytes.size}\r\n")
-                append("Connection: close\r\n")
-                append("\r\n")
-            }
+            val hdrs =
+                buildString {
+                    append("HTTP/1.1 $status OK\r\n")
+                    headers.forEach { (k, v) -> append("$k: $v\r\n") }
+                    append("Content-Length: ${bytes.size}\r\n")
+                    append("Connection: close\r\n")
+                    append("\r\n")
+                }
             val out = sock.getOutputStream()
             out.write(hdrs.toByteArray(Charsets.US_ASCII))
             if (bytes.isNotEmpty()) out.write(bytes)
@@ -426,51 +449,57 @@ class VsmovSourceRunnerIntegrationTest {
               "tmdb": { "id": null },
               "imdb": { "id": null }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         private val nhatLite = liteItem("nhat-au-xuan", "Nhất Âu Xuân", "Once Upon a Time", 2026, "2026-09-21T00:19:37+07:00")
         private val phapLite = liteItem("phap-y", "Pháp Y", "Forensic", 2022, "2026-09-20T19:12:05+07:00")
 
         // ── flat list envelopes ───────────────────────────────────────────────
 
-        private val latestPage = """
+        private val latestPage =
+            """
             {"status": true, "msg": "done",
              "items": [$nhatLite, $phapLite],
              "pagination": {"totalItems": 48, "totalItemsPerPage": 24, "currentPage": 1, "totalPages": 2}}
-        """.trimIndent()
+            """.trimIndent()
 
-        private val boPage = """
+        private val boPage =
+            """
             {"status": true, "msg": "done",
              "items": [$nhatLite],
              "pagination": {"totalItems": 24, "totalItemsPerPage": 24, "currentPage": 1, "totalPages": 1}}
-        """.trimIndent()
+            """.trimIndent()
 
-        private val lePage = """
+        private val lePage =
+            """
             {"status": true, "msg": "done",
              "items": [$phapLite],
              "pagination": {"totalItems": 24, "totalItemsPerPage": 24, "currentPage": 1, "totalPages": 1}}
-        """.trimIndent()
+            """.trimIndent()
 
-        private val emptyPage = """
+        private val emptyPage =
+            """
             {"status": true, "msg": "done",
              "items": [],
              "pagination": {"totalItems": 48, "totalItemsPerPage": 24, "currentPage": 2, "totalPages": 2}}
-        """.trimIndent()
+            """.trimIndent()
 
-        private val searchEnvelope = """
+        private val searchEnvelope =
+            """
             {"status": true, "msg": "done",
              "items": [$nhatLite],
              "pagination": {"totalItems": 13, "totalItemsPerPage": 24, "currentPage": 1, "totalPages": 1}}
-        """.trimIndent()
+            """.trimIndent()
 
         // ── detail (root `movie` + root `episodes`, vsmov's flat fork) ────────
 
         private val detailJson: String by lazy {
-            val ep2 = if (directPlaylist) {
-                """{"name":"2","slug":"tap-2","filename":"2","link_embed":"$baseUrl/stream/6a002aba-05c7-4ce3-a89a-0b214eac60f8/master.m3u8"}"""
-            } else {
-                """{"name":"2","slug":"tap-2","filename":"2","link_embed":"$baseUrl/video/6a002aba-05c7-4ce3-a89a-0b214eac60f8"}"""
-            }
+            val ep2 =
+                if (directPlaylist) {
+                    """{"name":"2","slug":"tap-2","filename":"2","link_embed":"$baseUrl/stream/6a002aba-05c7-4ce3-a89a-0b214eac60f8/master.m3u8"}"""
+                } else {
+                    """{"name":"2","slug":"tap-2","filename":"2","link_embed":"$baseUrl/video/6a002aba-05c7-4ce3-a89a-0b214eac60f8"}"""
+                }
             """
             {
               "status": true,
@@ -513,7 +542,8 @@ class VsmovSourceRunnerIntegrationTest {
             """.trimIndent()
         }
 
-        private val phapDetailJson = """
+        private val phapDetailJson =
+            """
             {"status": true, "msg": "done",
              "movie": {
                "_id": 45232,
@@ -539,11 +569,12 @@ class VsmovSourceRunnerIntegrationTest {
                    "link_embed": "$baseUrl/video/aaaa0000-0000-4000-8000-000000000001" }
                ]}
              ]}
-        """.trimIndent()
+            """.trimIndent()
 
         // ── embed page (playerOptions.subtitles with relative .vtt paths) ─────
 
-        private fun embedHtml(hash: String): String = """
+        private fun embedHtml(hash: String): String =
+            """
             <!DOCTYPE html><html><head><meta charset="utf-8"></head><body>
             <script>
               var playerOptions = {
@@ -557,7 +588,7 @@ class VsmovSourceRunnerIntegrationTest {
               };
             </script>
             </body></html>
-        """.trimIndent()
+            """.trimIndent()
 
         override fun close() {
             closed = true

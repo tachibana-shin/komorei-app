@@ -52,23 +52,25 @@ fun AnimeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     cardWidth: androidx.compose.ui.unit.Dp? = null,
-    getSourceName: (String) -> String = { it }
+    getSourceName: (String) -> String = { it },
 ) {
     Column(
-        modifier = modifier
-            // TV focus highlight (no-op on phones). Scaled via graphicsLayer so
-            // grid/row neighbors never re-flow when an item gains focus.
-            .tvFocus()
-            .then(if (cardWidth != null) Modifier.width(cardWidth) else Modifier)
-            .testTag("anime_card_${anime.id}")
-            .clickable(onClick = onClick)
+        modifier =
+            modifier
+                // TV focus highlight (no-op on phones). Scaled via graphicsLayer so
+                // grid/row neighbors never re-flow when an item gains focus.
+                .tvFocus()
+                .then(if (cardWidth != null) Modifier.width(cardWidth) else Modifier)
+                .testTag("anime_card_${anime.id}")
+                .clickable(onClick = onClick),
     ) {
         // Poster Box with fixed ratio (approx 0.7 aspect ratio = 2:3 standard poster)
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.7f)
-                .clip(RoundedCornerShape(12.dp))
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(0.7f)
+                    .clip(RoundedCornerShape(12.dp)),
 //                .background(CardDark)
         ) {
             // Poster Image — placeholder + error painters so a slow/failed
@@ -79,20 +81,21 @@ fun AnimeCard(
                 contentScale = ContentScale.Crop,
                 placeholder = ColorPainter(CardDark),
                 error = ColorPainter(CardDark),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             )
 
             // Bottom Gradient for rating/title readability
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-                    .align(Alignment.BottomCenter)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color(0xDD0A0D14))
-                        )
-                    )
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color(0xDD0A0D14)),
+                            ),
+                        ),
             )
 
             // Top Badges Row: Left Green Quality Tag + Right Slim Compact Episode Badge
@@ -105,16 +108,17 @@ fun AnimeCard(
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
-                    style = TextStyle(
-                        platformStyle = PlatformTextStyle(includeFontPadding = false)
-                    ),
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .background(Color(0xFF00C853).copy(alpha = .85f), RoundedCornerShape(4.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                    style =
+                        TextStyle(
+                            platformStyle = PlatformTextStyle(includeFontPadding = false),
+                        ),
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(6.dp)
+                            .background(Color(0xFF00C853).copy(alpha = .85f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
                 )
-
             }
 
             // Top right slim compact episode badge (narrow, low vertical padding, subtle rounded corners)
@@ -125,38 +129,40 @@ fun AnimeCard(
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
-                    style = TextStyle(
-                        platformStyle = PlatformTextStyle(includeFontPadding = false)
-                    ),
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(6.dp)
-                        .background(Accent.copy(alpha = .85f), RoundedCornerShape(4.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                    style =
+                        TextStyle(
+                            platformStyle = PlatformTextStyle(includeFontPadding = false),
+                        ),
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(6.dp)
+                            .background(Accent.copy(alpha = .85f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
                 )
             }
-
 
             // Rating & Views on bottom
             if (anime.rating != null) {
                 Row(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(horizontal = 6.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
                         imageVector = Icons.Default.Star,
                         contentDescription = stringResource(R.string.cd_star_rating),
                         tint = GoldRating,
-                        modifier = Modifier.size(12.dp)
+                        modifier = Modifier.size(12.dp),
                     )
                     Spacer(modifier = Modifier.width(1.dp))
                     Text(
                         text = String.format("%.1f", anime.rating),
                         color = TextPrimary,
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
@@ -172,7 +178,7 @@ fun AnimeCard(
             fontWeight = FontWeight.Medium,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            lineHeight = 16.sp
+            lineHeight = 16.sp,
         )
 
         Spacer(modifier = Modifier.height(2.dp))
@@ -183,7 +189,7 @@ fun AnimeCard(
             color = TextMuted,
             fontSize = 11.sp,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

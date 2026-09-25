@@ -28,16 +28,20 @@ class FingerprintFreeWebResourceRequest(
     private val delegate: WebResourceRequest,
 ) : WebResourceRequest {
     override fun getUrl(): Uri = delegate.url
+
     override fun isForMainFrame(): Boolean = delegate.isForMainFrame()
+
     override fun hasGesture(): Boolean = delegate.hasGesture()
+
     override fun getMethod(): String = delegate.method
+
     override fun getRequestHeaders(): Map<String, String> =
         delegate.requestHeaders.filterKeys { key ->
             !key.equals(HEADER_X_REQUESTED_WITH, ignoreCase = true)
         }
+
     override fun isRedirect(): Boolean = delegate.isRedirect()
 }
 
 /** Wraps [request] so its `X-Requested-With` header is removed. */
-fun stripFingerprintHeaders(request: WebResourceRequest): WebResourceRequest =
-    FingerprintFreeWebResourceRequest(request)
+fun stripFingerprintHeaders(request: WebResourceRequest): WebResourceRequest = FingerprintFreeWebResourceRequest(request)

@@ -14,6 +14,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
+import git.shin.komorei.ui.tv.LocalTvMode
+import git.shin.komorei.ui.tv.rememberIsTvMode
+import git.shin.komorei.ui.tv.tvFocus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Rule
@@ -22,9 +25,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import git.shin.komorei.ui.tv.LocalTvMode
-import git.shin.komorei.ui.tv.rememberIsTvMode
-import git.shin.komorei.ui.tv.tvFocus
 
 /**
  * TV navigation tests (ui/tv/TvUi.kt).
@@ -39,7 +39,6 @@ import git.shin.komorei.ui.tv.tvFocus
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class TvUiTest {
-
     @get:Rule val composeTestRule = createComposeRule()
 
     @Test

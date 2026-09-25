@@ -10,7 +10,6 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +20,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -54,8 +55,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import git.shin.komorei.R
 import git.shin.komorei.data.remote.WEBVIEW_ANTI_FINGERPRINT_HEADERS
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import git.shin.komorei.data.remote.stripFingerprintHeaders
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
@@ -113,11 +112,12 @@ fun ChallengeBypassDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnBackPress = true,
-            dismissOnClickOutside = false,
-        ),
+        properties =
+            DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = false,
+            ),
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = BackgroundDark) {
             Column(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
@@ -128,10 +128,11 @@ fun ChallengeBypassDialog(
                 ) {
                     IconButton(
                         onClick = onDismiss,
-                        modifier = Modifier
-                            // TV focus highlight (no-op on phones).
-                            .tvFocus(shape = CircleShape, scale = 1.15f)
-                            .testTag("challenge_close"),
+                        modifier =
+                            Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = CircleShape, scale = 1.15f)
+                                .testTag("challenge_close"),
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Close,
@@ -188,44 +189,55 @@ fun ChallengeBypassDialog(
                 AndroidView(
                     factory = { ctx ->
                         WebView(ctx).apply {
-                            layoutParams = android.view.ViewGroup.LayoutParams(
-                                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                            )
+                            layoutParams =
+                                android.view.ViewGroup.LayoutParams(
+                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                                )
                             settings.javaScriptEnabled = true
                             settings.domStorageEnabled = true
                             settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                             CookieManager.getInstance().setAcceptCookie(true)
                             CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                            webViewClient = object : WebViewClient() {
-                                override fun onPageFinished(view: WebView, url: String?) {
-                                    super.onPageFinished(view, url)
-                                    canGoBack = view.canGoBack()
-                                    canGoForward = view.canGoForward()
-                                }
+                            webViewClient =
+                                object : WebViewClient() {
+                                    override fun onPageFinished(
+                                        view: WebView,
+                                        url: String?,
+                                    ) {
+                                        super.onPageFinished(view, url)
+                                        canGoBack = view.canGoBack()
+                                        canGoForward = view.canGoForward()
+                                    }
 
-                                // "Chặn request": hide the Android WebView
-                                // fingerprint header like the reference app.
-                                override fun shouldInterceptRequest(
-                                    view: WebView,
-                                    request: WebResourceRequest,
-                                ): WebResourceResponse? =
-                                    super.shouldInterceptRequest(view, stripFingerprintHeaders(request))
+                                    // "Chặn request": hide the Android WebView
+                                    // fingerprint header like the reference app.
+                                    override fun shouldInterceptRequest(
+                                        view: WebView,
+                                        request: WebResourceRequest,
+                                    ): WebResourceResponse? = super.shouldInterceptRequest(view, stripFingerprintHeaders(request))
 
-                                override fun shouldOverrideUrlLoading(
-                                    view: WebView,
-                                    request: WebResourceRequest,
-                                ): Boolean = false
-                            }
-                            webChromeClient = object : WebChromeClient() {
-                                override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                                    progress = newProgress
+                                    override fun shouldOverrideUrlLoading(
+                                        view: WebView,
+                                        request: WebResourceRequest,
+                                    ): Boolean = false
                                 }
+                            webChromeClient =
+                                object : WebChromeClient() {
+                                    override fun onProgressChanged(
+                                        view: WebView?,
+                                        newProgress: Int,
+                                    ) {
+                                        progress = newProgress
+                                    }
 
-                                override fun onReceivedTitle(view: WebView?, title: String?) {
-                                    if (!title.isNullOrBlank()) pageTitle = title
+                                    override fun onReceivedTitle(
+                                        view: WebView?,
+                                        title: String?,
+                                    ) {
+                                        if (!title.isNullOrBlank()) pageTitle = title
+                                    }
                                 }
-                            }
                             loadUrl(url, WEBVIEW_ANTI_FINGERPRINT_HEADERS)
                             webView = this
                         }
@@ -234,17 +246,20 @@ fun ChallengeBypassDialog(
                     update = { webView = it },
                 )
                 Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .background(SurfaceDark)
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .background(SurfaceDark)
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(
                         onClick = onDismiss,
-                        modifier = Modifier
-                            // TV focus highlight (no-op on phones).
-                            .tvFocus(shape = CircleShape, scale = 1.15f)
-                            .testTag("challenge_dismiss"),
+                        modifier =
+                            Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = CircleShape, scale = 1.15f)
+                                .testTag("challenge_dismiss"),
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Close,
@@ -256,10 +271,11 @@ fun ChallengeBypassDialog(
                     IconButton(
                         onClick = { webView?.goBack() },
                         enabled = canGoBack,
-                        modifier = Modifier
-                            // TV focus highlight (no-op on phones).
-                            .tvFocus(shape = CircleShape, scale = 1.15f)
-                            .testTag("challenge_back"),
+                        modifier =
+                            Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = CircleShape, scale = 1.15f)
+                                .testTag("challenge_back"),
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -284,10 +300,11 @@ fun ChallengeBypassDialog(
                     Spacer(modifier = Modifier.weight(1f))
                     TextButton(
                         onClick = onNext,
-                        modifier = Modifier
-                            // TV focus highlight (no-op on phones).
-                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
-                            .testTag("challenge_continue"),
+                        modifier =
+                            Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
+                                .testTag("challenge_continue"),
                     ) {
                         Text(
                             text = stringResource(R.string.challenge_dialog_continue),
@@ -302,15 +319,16 @@ fun ChallengeBypassDialog(
 }
 
 /** Returns JS `true` once the challenge markers are gone from the DOM. */
-private const val CHALLENGE_CLEARED_JS = "(function(){" +
-    "var b=document.body;if(!b)return false;" +
-    "var t=((b.innerText||\"\")+(document.title||\"\")).toLowerCase();" +
-    "if(t.indexOf(\"just a moment\")!==-1)return false;" +
-    "if(t.indexOf(\"cf-challenge\")!==-1)return false;" +
-    "if(t.indexOf(\"cf-browser-verification\")!==-1)return false;" +
-    "if(t.indexOf(\"ray-id\")!==-1)return false;" +
-    "if(t.indexOf(\"xác minh an toàn\")!==-1)return false;" +
-    "if(t.indexOf(\"xác minh khu vực\")!==-1)return false;" +
-    "if(document.querySelector(\".captcha-placeholder\"))return false;" +
-    "return true;" +
-    "})()"
+private const val CHALLENGE_CLEARED_JS =
+    "(function(){" +
+        "var b=document.body;if(!b)return false;" +
+        "var t=((b.innerText||\"\")+(document.title||\"\")).toLowerCase();" +
+        "if(t.indexOf(\"just a moment\")!==-1)return false;" +
+        "if(t.indexOf(\"cf-challenge\")!==-1)return false;" +
+        "if(t.indexOf(\"cf-browser-verification\")!==-1)return false;" +
+        "if(t.indexOf(\"ray-id\")!==-1)return false;" +
+        "if(t.indexOf(\"xác minh an toàn\")!==-1)return false;" +
+        "if(t.indexOf(\"xác minh khu vực\")!==-1)return false;" +
+        "if(document.querySelector(\".captcha-placeholder\"))return false;" +
+        "return true;" +
+        "})()"

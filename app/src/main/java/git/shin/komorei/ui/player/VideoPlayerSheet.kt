@@ -1,7 +1,6 @@
 package git.shin.komorei.ui.player
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -19,10 +18,7 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,7 +30,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -69,7 +64,7 @@ fun VideoPlayerSheet(
      * Height of the app's bottom navigation bar (px-converted inside). The collapsed
      * mini bubble's bottom corners are raised above it so it never covers the toolbar.
      */
-    bottomToolbarPadding: Dp = 0.dp
+    bottomToolbarPadding: Dp = 0.dp,
 ) {
     // Everything derives from the ViewModel — the single source of truth for the
     // player engine, playback state and every action — so no callback plumbing.
@@ -142,7 +137,15 @@ fun VideoPlayerSheet(
     // instead of moving with the swipe like the volume drag, which bases on the live
     // player.volume).
     var effectiveBrightness by remember {
-        mutableStateOf((activity?.window?.attributes?.screenBrightness?.takeIf { it >= 0f }) ?: 0.5f)
+        mutableStateOf(
+            (
+                activity
+                    ?.window
+                    ?.attributes
+                    ?.screenBrightness
+                    ?.takeIf { it >= 0f }
+            ) ?: 0.5f,
+        )
     }
 
     val detailViewModel: AnimeDetailViewModel = hiltViewModel()
@@ -151,20 +154,23 @@ fun VideoPlayerSheet(
 
     val menuAnime = detailUiState.masterAnime ?: anime
     val detailEpisodes = detailUiState.currentSeasonEpisodes
-    val realSeasons = menuAnime.seasons.ifEmpty {
-        listOf(AnimeSeason(menuAnime.id, stringResource(R.string.season_fallback_full)))
-    }
-    val effectiveSeasons = if (detailUiState.virtualSeasons.isEmpty()) {
-        realSeasons
-    } else {
-        val parentId = detailUiState.selectedSeason?.animeId ?: menuAnime.id
-        realSeasons.flatMap { season ->
-            if (season.animeId == parentId) detailUiState.virtualSeasons else listOf(season)
+    val realSeasons =
+        menuAnime.seasons.ifEmpty {
+            listOf(AnimeSeason(menuAnime.id, stringResource(R.string.season_fallback_full)))
         }
-    }
-    val menuSelectedSeasonId = detailUiState.selectedVirtualSeasonId
-        ?: detailUiState.selectedSeason?.animeId
-        ?: menuAnime.id
+    val effectiveSeasons =
+        if (detailUiState.virtualSeasons.isEmpty()) {
+            realSeasons
+        } else {
+            val parentId = detailUiState.selectedSeason?.animeId ?: menuAnime.id
+            realSeasons.flatMap { season ->
+                if (season.animeId == parentId) detailUiState.virtualSeasons else listOf(season)
+            }
+        }
+    val menuSelectedSeasonId =
+        detailUiState.selectedVirtualSeasonId
+            ?: detailUiState.selectedSeason?.animeId
+            ?: menuAnime.id
 
     val currentIndex = detailEpisodes.indexOfFirst { it.id == currentEp.id }
     val nextEpisode = detailEpisodes.getOrNull(currentIndex + 1)
@@ -174,24 +180,25 @@ fun VideoPlayerSheet(
     // episode, so it doesn't nag again after being skipped (e.g. user seeks back).
     var dismissedSkips by remember { mutableStateOf(setOf<SkipKind>()) }
     LaunchedEffect(currentEp.id) { dismissedSkips = emptySet() }
-    val skipHint = remember(
-        playbackState.currentPositionMs,
-        playbackState.introRange,
-        playbackState.outroRange,
-        currentEp.id,
-        dismissedSkips
-    ) {
-        val position = playbackState.currentPositionMs
-        val outro = playbackState.outroRange
-        val intro = playbackState.introRange
-        when {
-            outro != null && position in outro && SkipKind.OUTRO !in dismissedSkips ->
-                SkipHint(SkipKind.OUTRO, outro.last)
-            intro != null && position in intro && SkipKind.INTRO !in dismissedSkips ->
-                SkipHint(SkipKind.INTRO, intro.last)
-            else -> null
+    val skipHint =
+        remember(
+            playbackState.currentPositionMs,
+            playbackState.introRange,
+            playbackState.outroRange,
+            currentEp.id,
+            dismissedSkips,
+        ) {
+            val position = playbackState.currentPositionMs
+            val outro = playbackState.outroRange
+            val intro = playbackState.introRange
+            when {
+                outro != null && position in outro && SkipKind.OUTRO !in dismissedSkips ->
+                    SkipHint(SkipKind.OUTRO, outro.last)
+                intro != null && position in intro && SkipKind.INTRO !in dismissedSkips ->
+                    SkipHint(SkipKind.INTRO, intro.last)
+                else -> null
+            }
         }
-    }
     val onSkipSegment: () -> Unit = {
         skipHint?.let { hint ->
             dismissedSkips = dismissedSkips + hint.kind
@@ -227,10 +234,11 @@ fun VideoPlayerSheet(
         // gate and ping-ponged the shared video surface sheet↔bubble (black flicker).
         val fullHeightPx = constraints.maxHeight.toFloat()
 
-        val targetOffset = when (playbackState.sheetValue) {
-            PlayerSheetValue.EXPANDED -> 0f
-            PlayerSheetValue.COLLAPSED, PlayerSheetValue.HIDDEN -> fullHeightPx
-        }
+        val targetOffset =
+            when (playbackState.sheetValue) {
+                PlayerSheetValue.EXPANDED -> 0f
+                PlayerSheetValue.COLLAPSED, PlayerSheetValue.HIDDEN -> fullHeightPx
+            }
 
         val sheetOffset = remember { Animatable(0f) }
         val scope = rememberCoroutineScope()
@@ -243,11 +251,12 @@ fun VideoPlayerSheet(
                 releaseVelocity = 0f
                 sheetOffset.animateTo(
                     targetValue = targetOffset,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    ),
-                    initialVelocity = startVelocity
+                    animationSpec =
+                        spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow,
+                        ),
+                    initialVelocity = startVelocity,
                 )
             }
         }
@@ -271,86 +280,95 @@ fun VideoPlayerSheet(
         // DRAG START (the Animatable is stopped there). Deliberately never feed an
         // animated value back into the accumulator — that compounded a slightly-lagging
         // value every step and the sheet crept (see round-1 fix notes).
-        val draggableState = rememberDraggableState { delta ->
-            scope.launch { sheetOffset.snapTo((sheetOffset.value + delta).coerceIn(0f, fullHeightPx)) }
-        }
+        val draggableState =
+            rememberDraggableState { delta ->
+                scope.launch { sheetOffset.snapTo((sheetOffset.value + delta).coerceIn(0f, fullHeightPx)) }
+            }
 
         // Mini bubble geometry (px) — shared with FloatingMiniPlayer: size, the four
         // corner anchors (bottom ones raised above the app's bottom toolbar) and the
         // bottom-center point the bubble appears from. The bubble's top-left is hoisted
         // here so it keeps whatever corner the user snapped it to across collapse/expand.
         val bottomInsetPx = with(LocalDensity.current) { bottomToolbarPadding.toPx() }.coerceAtLeast(0f)
-        val miniGeometry = computeMiniPlayerGeometry(
-            maxWidthPx = constraints.maxWidth.toFloat(),
-            maxHeightPx = fullHeightPx,
-            density = LocalDensity.current,
-            bottomInsetPx = bottomInsetPx
-        )
+        val miniGeometry =
+            computeMiniPlayerGeometry(
+                maxWidthPx = constraints.maxWidth.toFloat(),
+                maxHeightPx = fullHeightPx,
+                density = LocalDensity.current,
+                bottomInsetPx = bottomInsetPx,
+            )
         var miniBubblePos: Offset by remember { mutableStateOf(miniGeometry.cornerBottomRight) }
         // Pivot for the bubble's scaleIn enter animation: the corner the bubble will
         // occupy, as a fraction of this overlay. The bubble visibly GROWS OUT of the
         // corner it lands in (plus a short fade) — "mở mini player bằng animate" —
         // instead of scaling around the screen center.
-        val bubbleOrigin = TransformOrigin(
-            (miniBubblePos.x / constraints.maxWidth.coerceAtLeast(1)).coerceIn(0f, 1f),
-            (miniBubblePos.y / constraints.maxHeight.coerceAtLeast(1)).coerceIn(0f, 1f)
-        )
+        val bubbleOrigin =
+            TransformOrigin(
+                (miniBubblePos.x / constraints.maxWidth.coerceAtLeast(1)).coerceIn(0f, 1f),
+                (miniBubblePos.y / constraints.maxHeight.coerceAtLeast(1)).coerceIn(0f, 1f),
+            )
 
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                // The WHOLE sheet slides down 1:1 with the finger via a plain LAYOUT
-                // offset ("trượt theo nhịp vuốt") — placement-only, and NOT graphicsLayer
-                // (this box contains the TextureView surface; layering it blacks the
-                // video). At full collapse it sits fully below the viewport, so the app
-                // behind gets the pointer and the mini bubble takes over.
-                .offset { IntOffset(x = 0, y = sheetOffset.value.roundToInt()) }
-                .draggable(
-                    state = draggableState,
-                    orientation = Orientation.Vertical,
-                    // Drag only while the sheet is up. Once collapsed the overlay must
-                    // NOT swallow touches — the mini bubble is the interactive element
-                    // and the app behind it needs the pointer (fullscreen locks too).
-                    enabled = !isFullscreen && playbackState.sheetValue != PlayerSheetValue.COLLAPSED,
-                    onDragStarted = {
-                        isSheetDragging = true
-                        scope.launch { sheetOffset.stop() }
-                    },
-                    onDragStopped = { velocity ->
-                        isSheetDragging = false
-                        releaseVelocity = velocity
-                        val endOffset = sheetOffset.value
-                        if (velocity > 800 || endOffset > fullHeightPx * 0.4f) {
-                            onStateChange(PlayerSheetValue.COLLAPSED)
-                        } else if (velocity < -800 || endOffset <= fullHeightPx * 0.4f) {
-                            onStateChange(PlayerSheetValue.EXPANDED)
-                        }
-                    }
-                )
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    // The WHOLE sheet slides down 1:1 with the finger via a plain LAYOUT
+                    // offset ("trượt theo nhịp vuốt") — placement-only, and NOT graphicsLayer
+                    // (this box contains the TextureView surface; layering it blacks the
+                    // video). At full collapse it sits fully below the viewport, so the app
+                    // behind gets the pointer and the mini bubble takes over.
+                    .offset { IntOffset(x = 0, y = sheetOffset.value.roundToInt()) }
+                    .draggable(
+                        state = draggableState,
+                        orientation = Orientation.Vertical,
+                        // Drag only while the sheet is up. Once collapsed the overlay must
+                        // NOT swallow touches — the mini bubble is the interactive element
+                        // and the app behind it needs the pointer (fullscreen locks too).
+                        enabled = !isFullscreen && playbackState.sheetValue != PlayerSheetValue.COLLAPSED,
+                        onDragStarted = {
+                            isSheetDragging = true
+                            scope.launch { sheetOffset.stop() }
+                        },
+                        onDragStopped = { velocity ->
+                            isSheetDragging = false
+                            releaseVelocity = velocity
+                            val endOffset = sheetOffset.value
+                            if (velocity > 800 || endOffset > fullHeightPx * 0.4f) {
+                                onStateChange(PlayerSheetValue.COLLAPSED)
+                            } else if (velocity < -800 || endOffset <= fullHeightPx * 0.4f) {
+                                onStateChange(PlayerSheetValue.EXPANDED)
+                            }
+                        },
+                    ),
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                    Column(
-                        modifier = Modifier
+                Column(
+                    modifier =
+                        Modifier
                             .fillMaxSize()
                             // Opaque wall behind the sheet content. It rides along with the
                             // whole sheet's offset and leaves the viewport entirely when
                             // collapsed, so it never lingers over the app behind the bubble.
-                            .background(BackgroundDark)
-                    ) {
-                        Box(
-                            modifier = Modifier
+                            .background(BackgroundDark),
+                ) {
+                    Box(
+                        modifier =
+                            Modifier
                                 .fillMaxWidth()
                                 .then(
-                                    if (isFullscreen) Modifier.weight(1f)
-                                    else Modifier.aspectRatio(16f / 9f).statusBarsPadding()
+                                    if (isFullscreen) {
+                                        Modifier.weight(1f)
+                                    } else {
+                                        Modifier.aspectRatio(16f / 9f).statusBarsPadding()
+                                    },
                                 )
                                 // Opaque black behind the video. NO offset, NO graphicsLayer —
                                 // the whole sheet Box slides via its own layout offset above,
                                 // and the fade comes from the veil overlay below.
-                                .background(Color.Black)
-                        ) {
-                            if (showSheetVideo) {
-                                PlayerVideoArea(
+                                .background(Color.Black),
+                    ) {
+                        if (showSheetVideo) {
+                            PlayerVideoArea(
                                 player = player,
                                 title = anime.title,
                                 episodeTitle = episodeHeaderLabel(currentEp.episodeNumber, currentEp.title),
@@ -371,8 +389,11 @@ fun VideoPlayerSheet(
                                 initialBrightness = effectiveBrightness,
                                 isLocked = playbackState.isLocked,
                                 onMinimizeClick = {
-                                    if (isFullscreen) onToggleFullscreen()
-                                    else onStateChange(PlayerSheetValue.COLLAPSED)
+                                    if (isFullscreen) {
+                                        onToggleFullscreen()
+                                    } else {
+                                        onStateChange(PlayerSheetValue.COLLAPSED)
+                                    }
                                 },
                                 onToggleFullscreen = onToggleFullscreen,
                                 onRefresh = onRetryStreams,
@@ -394,212 +415,218 @@ fun VideoPlayerSheet(
                                 onNextEpisode = nextEpisode?.let { ep -> { onEpisodeSelected(ep) } },
                                 skipHint = skipHint,
                                 onSkip = onSkipSegment,
-                                modifier = Modifier.fillMaxSize()
-                                )
-                            }
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
 
-                            // Loading / Error indicator inside the video area container but above the player surface
-                            val streamError = playbackState.streamError
-                            if (playbackState.streamData == null && !playbackState.isLocked && streamError != null) {
-                                Box(
-                                    modifier = Modifier
+                        // Loading / Error indicator inside the video area container but above the player surface
+                        val streamError = playbackState.streamError
+                        if (playbackState.streamData == null && !playbackState.isLocked && streamError != null) {
+                            Box(
+                                modifier =
+                                    Modifier
                                         .fillMaxSize()
                                         .background(Color.Black.copy(alpha = 0.5f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(
-                                            text = streamError,
-                                            color = Color.White,
-                                            fontSize = 13.sp,
-                                            modifier = Modifier.padding(16.dp)
-                                        )
-                                        Button(
-                                            onClick = onRetryStreams,
-                                            colors = ButtonDefaults.buttonColors(containerColor = AnimeRed),
-                                            // TV focus highlight (no-op on phones). The retry
-                                            // floats over the player surface as a sibling Box —
-                                            // never an ancestor of the TextureView, so the
-                                            // graphicsLayer is safe.
-                                            modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
-                                        ) {
-                                            Text(stringResource(R.string.action_retry))
-                                        }
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = streamError,
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.padding(16.dp),
+                                    )
+                                    Button(
+                                        onClick = onRetryStreams,
+                                        colors = ButtonDefaults.buttonColors(containerColor = AnimeRed),
+                                        // TV focus highlight (no-op on phones). The retry
+                                        // floats over the player surface as a sibling Box —
+                                        // never an ancestor of the TextureView, so the
+                                        // graphicsLayer is safe.
+                                        modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
+                                    ) {
+                                        Text(stringResource(R.string.action_retry))
                                     }
                                 }
                             }
                         }
-
-                        // Anime Detail Content (Title, Description, Episode selector, Related animes)
-                        // Always keep in composition to preserve scroll state
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .then(
-                                    if (isFullscreen) Modifier.height(0.dp)
-                                    else Modifier.weight(1f)
-                                )
-                        ) {
-                            AnimeDetailView(
-                                anime = anime,
-                                currentEpisode = currentEp,
-                                relatedAnimeList = relatedAnimeList,
-                                streams = playbackState.streams,
-                                selectedStreamId = playbackState.selectedStreamId,
-                                isLoadingStreams = playbackState.isLoadingStreams,
-                                streamError = playbackState.streamError,
-                                onEpisodeSelected = onEpisodeSelected,
-                                onStreamSelected = onStreamSelected,
-                                onRetryStreams = onRetryStreams,
-                                onAnimeSelected = onAnimeSelected,
-                                onNavigateToCategory = onNavigateToCategory,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
                     }
 
-                    // Fade-to-black veil ("fade mờ"): dims the whole sheet content
-                    // progressively as the drag/slide progresses. A plain opaque overlay
-                    // over the Column — the ONLY way to "fade" a TextureView surface,
-                    // which would render BLACK if any ancestor grew a graphicsLayer
-                    // alpha instead (AGENTS.md). MUST be a sibling overlay of this Box,
-                    // NOT a Column child — a full-size child inside the Column starves
-                    // the weighted detail box down to 0px ("content bị xóa, chỉ còn nền").
-                    // Off while the mini bubble is up (the sheet is fully off-screen then).
-                    if (collapse > 0f && !showBubble) {
-                        Box(
-                            modifier = Modifier
+                    // Anime Detail Content (Title, Description, Episode selector, Related animes)
+                    // Always keep in composition to preserve scroll state
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .then(
+                                    if (isFullscreen) {
+                                        Modifier.height(0.dp)
+                                    } else {
+                                        Modifier.weight(1f)
+                                    },
+                                ),
+                    ) {
+                        AnimeDetailView(
+                            anime = anime,
+                            currentEpisode = currentEp,
+                            relatedAnimeList = relatedAnimeList,
+                            streams = playbackState.streams,
+                            selectedStreamId = playbackState.selectedStreamId,
+                            isLoadingStreams = playbackState.isLoadingStreams,
+                            streamError = playbackState.streamError,
+                            onEpisodeSelected = onEpisodeSelected,
+                            onStreamSelected = onStreamSelected,
+                            onRetryStreams = onRetryStreams,
+                            onAnimeSelected = onAnimeSelected,
+                            onNavigateToCategory = onNavigateToCategory,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
+
+                // Fade-to-black veil ("fade mờ"): dims the whole sheet content
+                // progressively as the drag/slide progresses. A plain opaque overlay
+                // over the Column — the ONLY way to "fade" a TextureView surface,
+                // which would render BLACK if any ancestor grew a graphicsLayer
+                // alpha instead (AGENTS.md). MUST be a sibling overlay of this Box,
+                // NOT a Column child — a full-size child inside the Column starves
+                // the weighted detail box down to 0px ("content bị xóa, chỉ còn nền").
+                // Off while the mini bubble is up (the sheet is fully off-screen then).
+                if (collapse > 0f && !showBubble) {
+                    Box(
+                        modifier =
+                            Modifier
                                 .fillMaxSize()
-                                .background(Color.Black.copy(alpha = collapse))
+                                .background(Color.Black.copy(alpha = collapse)),
+                    )
+                }
+
+                // Side Sheets for Fullscreen
+                if (isFullscreen) {
+                    PlayerSideSheet(
+                        visible = activeMenu == PlayerMenu.EPISODES,
+                        onDismiss = { activeMenu = null },
+                        title = stringResource(R.string.cd_episodes_list),
+                    ) {
+                        EpisodesContent(
+                            anime = menuAnime,
+                            seasons = effectiveSeasons,
+                            currentEpisode = currentEp,
+                            watchHistory = watchHistory,
+                            selectedSeasonId = menuSelectedSeasonId,
+                            onSeasonChange = { id ->
+                                effectiveSeasons.find { it.id == id }?.let { detailViewModel.selectSeason(it) }
+                            },
+                            episodes = detailEpisodes,
+                            episodesError = detailUiState.episodeError,
+                            isLoading = detailUiState.isLoadingEpisodes,
+                            onRetryEpisodes = { detailViewModel.retryEpisodes() },
+                            onEpisodeSelected = { ep ->
+                                onEpisodeSelected(ep)
+                                activeMenu = null
+                            },
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
 
-                    // Side Sheets for Fullscreen
-                    if (isFullscreen) {
-                        PlayerSideSheet(
-                            visible = activeMenu == PlayerMenu.EPISODES,
-                            onDismiss = { activeMenu = null },
-                            title = stringResource(R.string.cd_episodes_list)
-                        ) {
-                            EpisodesContent(
-                                anime = menuAnime,
-                                seasons = effectiveSeasons,
-                                currentEpisode = currentEp,
-                                watchHistory = watchHistory,
-                                selectedSeasonId = menuSelectedSeasonId,
-                                onSeasonChange = { id ->
-                                    effectiveSeasons.find { it.id == id }?.let { detailViewModel.selectSeason(it) }
-                                },
-                                episodes = detailEpisodes,
-                                episodesError = detailUiState.episodeError,
-                                isLoading = detailUiState.isLoadingEpisodes,
-                                onRetryEpisodes = { detailViewModel.retryEpisodes() },
-                                onEpisodeSelected = { ep ->
-                                    onEpisodeSelected(ep)
-                                    activeMenu = null
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-
-                        PlayerSideSheet(
-                            visible = activeMenu == PlayerMenu.SERVERS,
-                            onDismiss = { activeMenu = null },
-                            title = stringResource(R.string.streaming_server_header)
-                        ) {
-                            ServerMenuContent(
-                                streams = playbackState.streams,
-                                selectedStreamId = playbackState.selectedStreamId,
-                                isLoading = playbackState.isLoadingStreams,
-                                onStreamSelected = { stream ->
-                                    onStreamSelected(stream)
-                                    activeMenu = null
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-
-                        PlayerSideSheet(
-                            visible = activeMenu == PlayerMenu.SETTINGS,
-                            onDismiss = { activeMenu = null }
-                        ) {
-                            UnifiedSettingsContent(
-                                playbackState = playbackState,
-                                autoNextEnabled = playbackState.autoNextEnabled,
-                                onAutoNextChange = { playerViewModel.setAutoNextEnabled(it) },
-                                onSpeedChange = onSpeedChange,
-                                onStreamSelected = onStreamSelected,
-                                onTrackSelected = onTrackSelected,
-                                onClearTrackType = onClearTrackType,
-                                onDismiss = { activeMenu = null }
-                            )
-                        }
-
-                        PlayerSideSheet(
-                            visible = activeMenu == PlayerMenu.SUBTITLES,
-                            onDismiss = { activeMenu = null }
-                        ) {
-                            TrackSelectionPane(
-                                title = stringResource(R.string.player_subtitle),
-                                type = androidx.media3.common.C.TRACK_TYPE_TEXT,
-                                availableTracks = playbackState.availableTracks,
-                                onTrackSelected = { group, index ->
-                                    onTrackSelected(group, index)
-                                    activeMenu = null
-                                },
-                                onClearTrack = {
-                                    onClearTrackType(androidx.media3.common.C.TRACK_TYPE_TEXT)
-                                    activeMenu = null
-                                },
-                                onBack = { activeMenu = PlayerMenu.SETTINGS }
-                            )
-                        }
-                    } else {
-                        // Bottom Sheets for Normal Mode
-                        if (activeMenu == PlayerMenu.SETTINGS) {
-                            UnifiedPlayerSettingsSheet(
-                                playbackSpeed = playbackState.playbackSpeed,
-                                availableTracks = playbackState.availableTracks,
-                                streams = playbackState.streams,
-                                selectedStreamId = playbackState.selectedStreamId,
-                                videoTrackOverride = playbackState.videoTrackOverride,
-                                videoSize = playbackState.videoSize,
-                                autoNextEnabled = playbackState.autoNextEnabled,
-                                onAutoNextChange = { playerViewModel.setAutoNextEnabled(it) },
-                                onSpeedChange = onSpeedChange,
-                                onStreamSelected = onStreamSelected,
-                                onTrackSelected = onTrackSelected,
-                                onClearTrackType = onClearTrackType,
-                                onDismiss = { activeMenu = null }
-                            )
-                        }
-
-                        PlayerSideMenu(
-                            visible = activeMenu == PlayerMenu.EPISODES,
-                            onDismiss = { activeMenu = null },
-                            title = stringResource(R.string.cd_episodes_list)
-                        ) {
-                            EpisodesContent(
-                                anime = menuAnime,
-                                seasons = effectiveSeasons,
-                                currentEpisode = currentEp,
-                                watchHistory = watchHistory,
-                                selectedSeasonId = menuSelectedSeasonId,
-                                onSeasonChange = { id ->
-                                    effectiveSeasons.find { it.id == id }?.let { detailViewModel.selectSeason(it) }
-                                },
-                                episodes = detailEpisodes,
-                                episodesError = detailUiState.episodeError,
-                                isLoading = detailUiState.isLoadingEpisodes,
-                                onRetryEpisodes = { detailViewModel.retryEpisodes() },
-                                onEpisodeSelected = { ep ->
-                                    onEpisodeSelected(ep)
-                                    activeMenu = null
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
+                    PlayerSideSheet(
+                        visible = activeMenu == PlayerMenu.SERVERS,
+                        onDismiss = { activeMenu = null },
+                        title = stringResource(R.string.streaming_server_header),
+                    ) {
+                        ServerMenuContent(
+                            streams = playbackState.streams,
+                            selectedStreamId = playbackState.selectedStreamId,
+                            isLoading = playbackState.isLoadingStreams,
+                            onStreamSelected = { stream ->
+                                onStreamSelected(stream)
+                                activeMenu = null
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
                     }
+
+                    PlayerSideSheet(
+                        visible = activeMenu == PlayerMenu.SETTINGS,
+                        onDismiss = { activeMenu = null },
+                    ) {
+                        UnifiedSettingsContent(
+                            playbackState = playbackState,
+                            autoNextEnabled = playbackState.autoNextEnabled,
+                            onAutoNextChange = { playerViewModel.setAutoNextEnabled(it) },
+                            onSpeedChange = onSpeedChange,
+                            onStreamSelected = onStreamSelected,
+                            onTrackSelected = onTrackSelected,
+                            onClearTrackType = onClearTrackType,
+                            onDismiss = { activeMenu = null },
+                        )
+                    }
+
+                    PlayerSideSheet(
+                        visible = activeMenu == PlayerMenu.SUBTITLES,
+                        onDismiss = { activeMenu = null },
+                    ) {
+                        TrackSelectionPane(
+                            title = stringResource(R.string.player_subtitle),
+                            type = androidx.media3.common.C.TRACK_TYPE_TEXT,
+                            availableTracks = playbackState.availableTracks,
+                            onTrackSelected = { group, index ->
+                                onTrackSelected(group, index)
+                                activeMenu = null
+                            },
+                            onClearTrack = {
+                                onClearTrackType(androidx.media3.common.C.TRACK_TYPE_TEXT)
+                                activeMenu = null
+                            },
+                            onBack = { activeMenu = PlayerMenu.SETTINGS },
+                        )
+                    }
+                } else {
+                    // Bottom Sheets for Normal Mode
+                    if (activeMenu == PlayerMenu.SETTINGS) {
+                        UnifiedPlayerSettingsSheet(
+                            playbackSpeed = playbackState.playbackSpeed,
+                            availableTracks = playbackState.availableTracks,
+                            streams = playbackState.streams,
+                            selectedStreamId = playbackState.selectedStreamId,
+                            videoTrackOverride = playbackState.videoTrackOverride,
+                            videoSize = playbackState.videoSize,
+                            autoNextEnabled = playbackState.autoNextEnabled,
+                            onAutoNextChange = { playerViewModel.setAutoNextEnabled(it) },
+                            onSpeedChange = onSpeedChange,
+                            onStreamSelected = onStreamSelected,
+                            onTrackSelected = onTrackSelected,
+                            onClearTrackType = onClearTrackType,
+                            onDismiss = { activeMenu = null },
+                        )
+                    }
+
+                    PlayerSideMenu(
+                        visible = activeMenu == PlayerMenu.EPISODES,
+                        onDismiss = { activeMenu = null },
+                        title = stringResource(R.string.cd_episodes_list),
+                    ) {
+                        EpisodesContent(
+                            anime = menuAnime,
+                            seasons = effectiveSeasons,
+                            currentEpisode = currentEp,
+                            watchHistory = watchHistory,
+                            selectedSeasonId = menuSelectedSeasonId,
+                            onSeasonChange = { id ->
+                                effectiveSeasons.find { it.id == id }?.let { detailViewModel.selectSeason(it) }
+                            },
+                            episodes = detailEpisodes,
+                            episodesError = detailUiState.episodeError,
+                            isLoading = detailUiState.isLoadingEpisodes,
+                            onRetryEpisodes = { detailViewModel.retryEpisodes() },
+                            onEpisodeSelected = { ep ->
+                                onEpisodeSelected(ep)
+                                activeMenu = null
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
             }
         }
 
@@ -615,17 +642,20 @@ fun VideoPlayerSheet(
         // corner the user left it.
         AnimatedVisibility(
             visible = showBubble,
-            enter = scaleIn(
-                animationSpec = tween(240, easing = FastOutSlowInEasing),
-                initialScale = 0.5f,
-                transformOrigin = bubbleOrigin
-            ) + fadeIn(animationSpec = tween(180, delayMillis = 90)),
-            exit = fadeOut(animationSpec = tween(120)) + scaleOut(
-                animationSpec = tween(150),
-                targetScale = 0.8f,
-                transformOrigin = bubbleOrigin
-            ),
-            modifier = Modifier.fillMaxSize()
+            enter =
+                scaleIn(
+                    animationSpec = tween(240, easing = FastOutSlowInEasing),
+                    initialScale = 0.5f,
+                    transformOrigin = bubbleOrigin,
+                ) + fadeIn(animationSpec = tween(180, delayMillis = 90)),
+            exit =
+                fadeOut(animationSpec = tween(120)) +
+                    scaleOut(
+                        animationSpec = tween(150),
+                        targetScale = 0.8f,
+                        transformOrigin = bubbleOrigin,
+                    ),
+            modifier = Modifier.fillMaxSize(),
         ) {
             FloatingMiniPlayer(
                 player = player,
@@ -637,7 +667,7 @@ fun VideoPlayerSheet(
                 onPlayPauseToggle = onPlayPauseToggle,
                 onClose = onDismiss,
                 modifier = Modifier.fillMaxSize(),
-                bottomInsetPx = bottomInsetPx
+                bottomInsetPx = bottomInsetPx,
             )
         }
     }
@@ -652,7 +682,7 @@ fun UnifiedSettingsContent(
     onStreamSelected: (StreamInfo) -> Unit,
     onTrackSelected: (Tracks.Group, Int) -> Unit,
     onClearTrackType: (Int) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     SettingsContent(
         playbackState = playbackState,
@@ -662,7 +692,7 @@ fun UnifiedSettingsContent(
         onStreamSelected = onStreamSelected,
         onTrackSelected = onTrackSelected,
         onClearTrackType = onClearTrackType,
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
     )
 }
 
@@ -672,7 +702,10 @@ fun UnifiedSettingsContent(
  * "Tập N" label — those suffixes are skipped so the line reads clean.
  */
 @Composable
-private fun episodeHeaderLabel(episodeNumber: String, title: String): String {
+private fun episodeHeaderLabel(
+    episodeNumber: String,
+    title: String,
+): String {
     val detail = title.trim().takeIf { it.isNotEmpty() && it != episodeNumber }
     return if (detail != null) {
         stringResource(R.string.episode_title_format, episodeNumber, detail)

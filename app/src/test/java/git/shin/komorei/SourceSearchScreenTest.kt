@@ -1,8 +1,15 @@
 package git.shin.komorei
 
 import android.content.Context
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isFocused
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
+import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
@@ -21,14 +28,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
-import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.hasAnyDescendant
-import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.isFocused
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.junit4.v2.createComposeRule
 import java.io.File
 
 /**
@@ -42,27 +41,28 @@ import java.io.File
 @Config(qualifiers = RobolectricDeviceQualifiers.Pixel8, sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class SourceSearchScreenTest {
-
     @get:Rule val composeTestRule = createComposeRule()
 
     private lateinit var repository: AnimeRepository
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     companion object {
-        private val fakeKrx: String = System.getProperty("komorei.test.fakeKrx")
-            ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
+        private val fakeKrx: String =
+            System.getProperty("komorei.test.fakeKrx")
+                ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
     }
 
     @Before
-    fun setUp() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val host = KrxHostImpl(context)
-        val registry = KrxSourceRegistry(context, host)
-        val runner = registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
-        checkNotNull(runner) { "fake source should load" }
-        repository = AnimeRepository(registry)
-        Dispatchers.setMain(mainDispatcher)
-    }
+    fun setUp() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val host = KrxHostImpl(context)
+            val registry = KrxSourceRegistry(context, host)
+            val runner = registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
+            checkNotNull(runner) { "fake source should load" }
+            repository = AnimeRepository(registry)
+            Dispatchers.setMain(mainDispatcher)
+        }
 
     @After
     fun tearDown() {
@@ -88,7 +88,8 @@ class SourceSearchScreenTest {
             )
         }
         // Search input field should be present
-        composeTestRule.onNodeWithTag("source_search_input")
+        composeTestRule
+            .onNodeWithTag("source_search_input")
             .assertExists()
     }
 
@@ -103,7 +104,8 @@ class SourceSearchScreenTest {
                 viewModel = vm,
             )
         }
-        composeTestRule.onNodeWithTag("source_search_input")
+        composeTestRule
+            .onNodeWithTag("source_search_input")
             .assertExists()
     }
 
@@ -118,7 +120,8 @@ class SourceSearchScreenTest {
                 viewModel = vm,
             )
         }
-        composeTestRule.onNodeWithTag("source_search_input")
+        composeTestRule
+            .onNodeWithTag("source_search_input")
             .assertExists()
     }
 
@@ -134,7 +137,8 @@ class SourceSearchScreenTest {
             )
         }
         // Screen renders
-        composeTestRule.onNodeWithTag("source_search_input")
+        composeTestRule
+            .onNodeWithTag("source_search_input")
             .assertExists()
     }
 
@@ -151,20 +155,22 @@ class SourceSearchScreenTest {
         }
         // Opened fresh (source-home search button): the input grabs focus so
         // the IME is up and ready for typing.
-        composeTestRule.onNode(
-            hasTestTag("source_search_input") and hasAnyDescendant(isFocused())
-        ).assertExists()
+        composeTestRule
+            .onNode(
+                hasTestTag("source_search_input") and hasAnyDescendant(isFocused()),
+            ).assertExists()
     }
 
     @Test
     fun skipsAutofocusWhenKeywordCarried() {
         // Carried in from the Discover tab header: route args seed the query,
         // results start loading — the keyboard must NOT pop over them.
-        val vm = SourceSearchViewModel(
-            ApplicationProvider.getApplicationContext(),
-            repository,
-            SavedStateHandle(mapOf("sourceId" to "vi.fake-source", "query" to "phim")),
-        )
+        val vm =
+            SourceSearchViewModel(
+                ApplicationProvider.getApplicationContext(),
+                repository,
+                SavedStateHandle(mapOf("sourceId" to "vi.fake-source", "query" to "phim")),
+            )
         composeTestRule.setContent {
             SourceSearchScreen(
                 sourceId = "vi.fake-source",
@@ -187,7 +193,8 @@ class SourceSearchScreenTest {
                 viewModel = vm,
             )
         }
-        composeTestRule.onNodeWithTag("source_search_input")
+        composeTestRule
+            .onNodeWithTag("source_search_input")
             .assertExists()
     }
 }

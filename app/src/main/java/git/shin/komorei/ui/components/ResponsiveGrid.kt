@@ -25,12 +25,13 @@ val MAX_CONTENT_WIDTH = 1200.dp
  * navigation rail / [MAX_CONTENT_WIDTH] cap), so every host stays consistent.
  */
 @Composable
-fun BoxWithConstraintsScope.animeGridColumnCount(): Int = when {
-    maxWidth < 480.dp -> 3
-    maxWidth < 720.dp -> 4
-    maxWidth < 1024.dp -> 5
-    else -> 6
-}
+fun BoxWithConstraintsScope.animeGridColumnCount(): Int =
+    when {
+        maxWidth < 480.dp -> 3
+        maxWidth < 720.dp -> 4
+        maxWidth < 1024.dp -> 5
+        else -> 6
+    }
 
 /** [animeGridColumnCount] as [GridCells] — the default for every anime grid. */
 @Composable

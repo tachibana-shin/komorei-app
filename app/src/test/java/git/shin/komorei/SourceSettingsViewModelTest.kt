@@ -37,37 +37,41 @@ import java.io.File
 @Config(sdk = [36])
 @RunWith(RobolectricTestRunner::class)
 class SourceSettingsViewModelTest {
-
     private lateinit var repository: AnimeRepository
     private lateinit var viewModel: SourceSettingsViewModel
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     companion object {
-        private val fakeKrx: String = System.getProperty("komorei.test.fakeKrx")
-            ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
+        private val fakeKrx: String =
+            System.getProperty("komorei.test.fakeKrx")
+                ?: error("missing -Dkomorei.test.fakeKrx (set by app/build.gradle.kts)")
     }
 
     @Before
-    fun setUp() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val host = KrxHostImpl(context)
-        val registry = KrxSourceRegistry(context, host)
-        registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
-        val db = Room.inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java)
-            .allowMainThreadQueries()
-            .build()
-        repository = AnimeRepository(registry)
-        val defaultsStore: KrxDefaultsStore = RoomKrxDefaultsStore(db.krxDefaultsDao())
-        val migrationRepo = SourceMigrationRepository(db.animeDao(), repository)
-        viewModel = SourceSettingsViewModel(
-            context,
-            repository,
-            defaultsStore,
-            migrationRepo,
-            SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
-        )
-        Dispatchers.setMain(mainDispatcher)
-    }
+    fun setUp() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val host = KrxHostImpl(context)
+            val registry = KrxSourceRegistry(context, host)
+            registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
+            val db =
+                Room
+                    .inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java)
+                    .allowMainThreadQueries()
+                    .build()
+            repository = AnimeRepository(registry)
+            val defaultsStore: KrxDefaultsStore = RoomKrxDefaultsStore(db.krxDefaultsDao())
+            val migrationRepo = SourceMigrationRepository(db.animeDao(), repository)
+            viewModel =
+                SourceSettingsViewModel(
+                    context,
+                    repository,
+                    defaultsStore,
+                    migrationRepo,
+                    SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
+                )
+            Dispatchers.setMain(mainDispatcher)
+        }
 
     @After
     fun tearDown() {
@@ -75,45 +79,54 @@ class SourceSettingsViewModelTest {
     }
 
     @Test
-    fun sourceSettingsViewModelLoadsSettings() = runBlocking {
-        // Verify the VM initializes without error
-        viewModel.loadSettings()
-        assertNotNull(viewModel)
-    }
+    fun sourceSettingsViewModelLoadsSettings() =
+        runBlocking {
+            // Verify the VM initializes without error
+            viewModel.loadSettings()
+            assertNotNull(viewModel)
+        }
 
     @Test
-    fun sourceSettingsViewModelHasMessages() = runBlocking {
-        // Verify messages flow is accessible (assert so the lambda's last
-        // expression is Unit — JUnit rejects a test method that returns a value).
-        assertNotNull(viewModel.messages)
-    }
+    fun sourceSettingsViewModelHasMessages() =
+        runBlocking {
+            // Verify messages flow is accessible (assert so the lambda's last
+            // expression is Unit — JUnit rejects a test method that returns a value).
+            assertNotNull(viewModel.messages)
+        }
 
     @Test
-    fun sourceSettingsViewModelResetSettings() = runBlocking {
-        // Verify resetSettings works
-        viewModel.resetSettings()
-    }
+    fun sourceSettingsViewModelResetSettings() =
+        runBlocking {
+            // Verify resetSettings works
+            viewModel.resetSettings()
+        }
 
     @Test
-    fun sourceSettingsViewModelMigrateData() = runBlocking {
-        // Verify migrateData works
-        viewModel.migrateData()
-    }
+    fun sourceSettingsViewModelMigrateData() =
+        runBlocking {
+            // Verify migrateData works
+            viewModel.migrateData()
+        }
 
     @Test
-    fun sourceSettingsViewModelDifferentSource() = runBlocking {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val db2 = Room.inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java)
-            .allowMainThreadQueries().build()
-        val defaultsStore: KrxDefaultsStore = RoomKrxDefaultsStore(db2.krxDefaultsDao())
-        val migrationRepo = SourceMigrationRepository(db2.animeDao(), repository)
-        val vm2 = SourceSettingsViewModel(
-            context,
-            repository,
-            defaultsStore,
-            migrationRepo,
-            SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
-        )
-        assertNotNull(vm2)
-    }
+    fun sourceSettingsViewModelDifferentSource() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val db2 =
+                Room
+                    .inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java)
+                    .allowMainThreadQueries()
+                    .build()
+            val defaultsStore: KrxDefaultsStore = RoomKrxDefaultsStore(db2.krxDefaultsDao())
+            val migrationRepo = SourceMigrationRepository(db2.animeDao(), repository)
+            val vm2 =
+                SourceSettingsViewModel(
+                    context,
+                    repository,
+                    defaultsStore,
+                    migrationRepo,
+                    SavedStateHandle(mapOf("sourceId" to "vi.fake-source")),
+                )
+            assertNotNull(vm2)
+        }
 }

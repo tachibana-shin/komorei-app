@@ -2,11 +2,11 @@ package git.shin.komorei.ui.components.search.filters
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -73,20 +73,22 @@ fun FilterBottomSheet(
                 if (onReset != null) {
                     TextButton(
                         onClick = onReset,
-                        modifier = Modifier
-                            // TV focus highlight (no-op on phones).
-                            .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
-                            .testTag("filter_reset_button"),
+                        modifier =
+                            Modifier
+                                // TV focus highlight (no-op on phones).
+                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
+                                .testTag("filter_reset_button"),
                     ) {
                         Text(stringResource(R.string.filter_reset), color = TextMuted)
                     }
                 }
                 IconButton(
                     onClick = onDismiss,
-                    modifier = Modifier
-                        // TV focus highlight (no-op on phones).
-                        .tvFocus(shape = CircleShape, scale = 1.15f)
-                        .testTag("filter_sheet_close"),
+                    modifier =
+                        Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = CircleShape, scale = 1.15f)
+                            .testTag("filter_sheet_close"),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,

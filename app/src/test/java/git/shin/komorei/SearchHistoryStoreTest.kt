@@ -18,7 +18,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class SearchHistoryStoreTest {
-
     private fun newStore(): SearchHistoryStore {
         // Fresh prefs name so tests are isolated from each other.
         val context = ApplicationProvider.getApplicationContext<Context>()

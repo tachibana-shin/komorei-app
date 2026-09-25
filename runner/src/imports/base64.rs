@@ -2,8 +2,8 @@
 //! trip), so sources that decode base64 blobs (grab playlists, embedded
 //! configs) don't carry a decoder inside their wasm.
 
-use base64::engine::general_purpose::{STANDARD, STANDARD_NO_PAD, URL_SAFE, URL_SAFE_NO_PAD};
 use base64::Engine;
+use base64::engine::general_purpose::{STANDARD, STANDARD_NO_PAD, URL_SAFE, URL_SAFE_NO_PAD};
 use wasmi::{Caller, Linker};
 
 use crate::abi;

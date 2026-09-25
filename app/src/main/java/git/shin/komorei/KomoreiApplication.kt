@@ -12,8 +12,9 @@ import git.shin.komorei.data.remote.KomoreiDataSourceFactory
 import javax.inject.Inject
 
 @HiltAndroidApp
-class KomoreiApplication : Application(), ImageLoaderFactory {
-
+class KomoreiApplication :
+    Application(),
+    ImageLoaderFactory {
     @Inject
     lateinit var imageLoader: ImageLoader
 
@@ -38,21 +39,35 @@ class KomoreiApplication : Application(), ImageLoaderFactory {
         // Reconcile the persisted toggle/interval with WorkManager after process
         // death or an app update; this does not contact Drive by itself.
         backupSyncScheduler.reconcileCurrentSettings()
-        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
-            override fun onActivityStarted(activity: Activity) {}
-            override fun onActivityResumed(activity: Activity) {
-                currentActivity = activity
-            }
-            override fun onActivityPaused(activity: Activity) {
-                if (currentActivity === activity) currentActivity = null
-            }
-            override fun onActivityStopped(activity: Activity) {}
-            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
-            override fun onActivityDestroyed(activity: Activity) {
-                if (currentActivity === activity) currentActivity = null
-            }
-        })
+        registerActivityLifecycleCallbacks(
+            object : ActivityLifecycleCallbacks {
+                override fun onActivityCreated(
+                    activity: Activity,
+                    savedInstanceState: Bundle?,
+                ) {}
+
+                override fun onActivityStarted(activity: Activity) {}
+
+                override fun onActivityResumed(activity: Activity) {
+                    currentActivity = activity
+                }
+
+                override fun onActivityPaused(activity: Activity) {
+                    if (currentActivity === activity) currentActivity = null
+                }
+
+                override fun onActivityStopped(activity: Activity) {}
+
+                override fun onActivitySaveInstanceState(
+                    activity: Activity,
+                    outState: Bundle,
+                ) {}
+
+                override fun onActivityDestroyed(activity: Activity) {
+                    if (currentActivity === activity) currentActivity = null
+                }
+            },
+        )
     }
 
     override fun newImageLoader(): ImageLoader = imageLoader

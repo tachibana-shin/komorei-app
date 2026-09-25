@@ -1,34 +1,46 @@
-import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
 import java.util.Properties
 
 // OAuth client IDs are public identifiers, but keep them out of the repository.
 // local.properties is ignored; environment variables are convenient in CI.
-val localProperties = Properties().apply {
-  val file = rootProject.file("local.properties")
-  if (file.exists()) {
-    file.inputStream().use { stream -> load(stream) }
+val localProperties =
+  Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+      file.inputStream().use { stream -> load(stream) }
+    }
   }
-}
-fun driveConfig(localKey: String, environmentKey: String): String =
+
+fun driveConfig(
+  localKey: String,
+  environmentKey: String,
+): String =
   localProperties.getProperty(localKey)?.takeIf { it.isNotBlank() }
     ?: System.getenv(environmentKey).orEmpty()
-fun String.asBuildConfigString(): String =
-  replace("\\", "\\\\").replace("\"", "\\\"")
 
-val googleDriveAndroidClientId = driveConfig(
-  "google.drive.android.clientId",
-  "GOOGLE_ANDROID_CLIENT_ID",
-).ifBlank { "UNCONFIGURED" }
-val googleDriveAndroidDebugClientId = driveConfig(
-  "google.drive.android.debugClientId",
-  "GOOGLE_ANDROID_DEBUG_CLIENT_ID",
-).ifBlank { "UNCONFIGURED" }
-val googleDriveWebClientId = driveConfig(
-  "google.drive.web.clientId",
-  "GOOGLE_WEB_CLIENT_ID",
-).ifBlank { "UNCONFIGURED" }
+fun String.asBuildConfigString(): String = replace("\\", "\\\\").replace("\"", "\\\"")
+
+val googleDriveAndroidClientId =
+  driveConfig(
+    "google.drive.android.clientId",
+    "GOOGLE_ANDROID_CLIENT_ID",
+  ).ifBlank { "UNCONFIGURED" }
+val googleDriveAndroidDebugClientId =
+  driveConfig(
+    "google.drive.android.debugClientId",
+    "GOOGLE_ANDROID_DEBUG_CLIENT_ID",
+  ).ifBlank { "UNCONFIGURED" }
+val googleDriveWebClientId =
+  driveConfig(
+    "google.drive.web.clientId",
+    "GOOGLE_WEB_CLIENT_ID",
+  ).ifBlank { "UNCONFIGURED" }
 val appVersionName = providers.gradleProperty("VERSION_NAME").orElse("1.0.0").get()
-val appVersionCode = providers.gradleProperty("VERSION_CODE").orElse("1").get().toInt()
+val appVersionCode =
+  providers
+    .gradleProperty("VERSION_CODE")
+    .orElse("1")
+    .get()
+    .toInt()
 
 plugins {
   alias(libs.plugins.android.application)
@@ -59,7 +71,7 @@ android {
 
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
+      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "$rootDir/my-upload-key.jks"
       storeFile = file(keystorePath)
       storePassword = System.getenv("STORE_PASSWORD")
       keyAlias = System.getenv("KEYSTORE_ALIAS") ?: "upload"
@@ -96,79 +108,83 @@ android {
     compose = true
     buildConfig = true
   }
-  testOptions { unitTests { isIncludeAndroidResources = true
-    all { test ->
-      // The uniffi bindings read `uniffi.component.komorei_runner.libraryOverride`
-      // to locate the cdylib. Point the JVM tests at the host-built debug .so
-      // (File.exists is unreliable inside the Robolectric sandbox classloader).
-      test.systemProperty(
-        "uniffi.component.komorei_runner.libraryOverride",
-        rootProject.file("runner/target/debug/libkomorei_runner.so").absolutePath,
-      )
-      test.systemProperty(
-        "komorei.test.exampleKrx",
-        rootProject.file("komorei-sdk/examples/example-source/package.krx").absolutePath,
-      )
-      // The app's own fake source (rich catalog), packaged from
-      // sources/sources/vi.fake-source/package.krx — the committed fixture in
-      // main assets.
-      test.systemProperty(
-        "komorei.test.fakeKrx",
-        rootProject.file("app/src/main/assets/sources/fake-vi-source.krx").absolutePath,
-      )
-      // The real OPhim source (sources/sources/vi.ophim) — exercised end-to-end
-      // against a local classic-OPHIM fixture server in
-      // OphimSourceRunnerIntegrationTest.
-      test.systemProperty(
-        "komorei.test.ophimKrx",
-        rootProject.file("sources/sources/vi.ophim/package.krx").absolutePath,
-      )
-      // The real Nguồn C source (sources/sources/vi.nguonc) — exercised
-      // end-to-end against a local fixture server (including the
-      // bootstrap → issue embed grant) in
-      // NguoncSourceRunnerIntegrationTest.
-      test.systemProperty(
-        "komorei.test.nguoncKrx",
-        rootProject.file("sources/sources/vi.nguonc/package.krx").absolutePath,
-      )
-      // The real Nguồn Phim source (sources/sources/vi.nguonphim) — the same
-      // nguonc-style engine pointed at api.nguonphim.net; exercised against the
-      // same fixture shape in NguonphimSourceRunnerIntegrationTest.
-      test.systemProperty(
-        "komorei.test.nguonphimKrx",
-        rootProject.file("sources/sources/vi.nguonphim/package.krx").absolutePath,
-      )
-      // The real Nguồn Phim site source (sources/sources/vi.nguonphime) — an
-      // HTML scrape (nguonphime.site) with the NP Checker bounce + base64 grab
-      // playlists + the streamc grant; exercised end-to-end against a local
-      // fixture server in NguonphimeSourceRunnerIntegrationTest.
-      test.systemProperty(
-        "komorei.test.nguonphimeKrx",
-        rootProject.file("sources/sources/vi.nguonphime/package.krx").absolutePath,
-      )
-      // The real KKPhim source (sources/sources/vi.kkphim) — a kkphim-style
-      // table-like homepage; unlike the fake source it does NOT implement the
-      // optional Segment interceptor traits, which is exactly what
-      // SegmentInterceptorOptionalTest pins down.
-      test.systemProperty(
-        "komorei.test.kkphimKrx",
-        rootProject.file("sources/sources/vi.kkphim/package.krx").absolutePath,
-      )
-      // The real VSMov source (sources/sources/vi.vsmov) — an OPhim-style
-      // flat-fork GET API (vsmov.com) whose detail exposes only link_embed;
-      // exercised end-to-end against a local fixture server (including the
-      // embed-page playerOptions.subtitles scan) in
-      // VsmovSourceRunnerIntegrationTest.
-      test.systemProperty(
-        "komorei.test.vsmovKrx",
-        rootProject.file("sources/sources/vi.vsmov/package.krx").absolutePath,
-      )
+  testOptions {
+    unitTests {
+      isIncludeAndroidResources = true
+      all { test ->
+        // The uniffi bindings read `uniffi.component.komorei_runner.libraryOverride`
+        // to locate the cdylib. Point the JVM tests at the host-built debug .so
+        // (File.exists is unreliable inside the Robolectric sandbox classloader).
+        test.systemProperty(
+          "uniffi.component.komorei_runner.libraryOverride",
+          rootProject.file("runner/target/debug/libkomorei_runner.so").absolutePath,
+        )
+        test.systemProperty(
+          "komorei.test.exampleKrx",
+          rootProject.file("komorei-sdk/examples/example-source/package.krx").absolutePath,
+        )
+        // The app's own fake source (rich catalog), packaged from
+        // sources/sources/vi.fake-source/package.krx — the committed fixture in
+        // main assets.
+        test.systemProperty(
+          "komorei.test.fakeKrx",
+          rootProject.file("app/src/main/assets/sources/fake-vi-source.krx").absolutePath,
+        )
+        // The real OPhim source (sources/sources/vi.ophim) — exercised end-to-end
+        // against a local classic-OPHIM fixture server in
+        // OphimSourceRunnerIntegrationTest.
+        test.systemProperty(
+          "komorei.test.ophimKrx",
+          rootProject.file("sources/sources/vi.ophim/package.krx").absolutePath,
+        )
+        // The real Nguồn C source (sources/sources/vi.nguonc) — exercised
+        // end-to-end against a local fixture server (including the
+        // bootstrap → issue embed grant) in
+        // NguoncSourceRunnerIntegrationTest.
+        test.systemProperty(
+          "komorei.test.nguoncKrx",
+          rootProject.file("sources/sources/vi.nguonc/package.krx").absolutePath,
+        )
+        // The real Nguồn Phim source (sources/sources/vi.nguonphim) — the same
+        // nguonc-style engine pointed at api.nguonphim.net; exercised against the
+        // same fixture shape in NguonphimSourceRunnerIntegrationTest.
+        test.systemProperty(
+          "komorei.test.nguonphimKrx",
+          rootProject.file("sources/sources/vi.nguonphim/package.krx").absolutePath,
+        )
+        // The real Nguồn Phim site source (sources/sources/vi.nguonphime) — an
+        // HTML scrape (nguonphime.site) with the NP Checker bounce + base64 grab
+        // playlists + the streamc grant; exercised end-to-end against a local
+        // fixture server in NguonphimeSourceRunnerIntegrationTest.
+        test.systemProperty(
+          "komorei.test.nguonphimeKrx",
+          rootProject.file("sources/sources/vi.nguonphime/package.krx").absolutePath,
+        )
+        // The real KKPhim source (sources/sources/vi.kkphim) — a kkphim-style
+        // table-like homepage; unlike the fake source it does NOT implement the
+        // optional Segment interceptor traits, which is exactly what
+        // SegmentInterceptorOptionalTest pins down.
+        test.systemProperty(
+          "komorei.test.kkphimKrx",
+          rootProject.file("sources/sources/vi.kkphim/package.krx").absolutePath,
+        )
+        // The real VSMov source (sources/sources/vi.vsmov) — an OPhim-style
+        // flat-fork GET API (vsmov.com) whose detail exposes only link_embed;
+        // exercised end-to-end against a local fixture server (including the
+        // embed-page playerOptions.subtitles scan) in
+        // VsmovSourceRunnerIntegrationTest.
+        test.systemProperty(
+          "komorei.test.vsmovKrx",
+          rootProject.file("sources/sources/vi.vsmov/package.krx").absolutePath,
+        )
+      }
     }
-  } }
+  }
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
-  }}
+  }
+}
 
 // ─── JNA-dependent runner tests get their own test JVM ────────────────────
 //
@@ -187,23 +203,25 @@ android {
 // runner test green. It carries BOTH the `git.shin.komorei.sdk.*` classes and
 // the root-package suites that actually invoke a wasm export (the rest only
 // read registry metadata and never cross the FFI boundary).
-val RUNNER_WASM_TESTS = listOf(
-  "git/shin/komorei/AnimeRepositoryTest.kt",
-  "git/shin/komorei/PlayerViewModelTest.kt",
-  "git/shin/komorei/RecommendedAnimeFallbackTest.kt",
-  "git/shin/komorei/SourceHomeScopedTest.kt",
-)
-val sdkRunnerUnitTest = tasks.register<Test>("testSdkRunnerUnitTest") {
-  group = "verification"
-  description = "Tests that invoke the wasm runner, in their own JVM (JNA vs Robolectric sandboxes)"
-  outputs.upToDateWhen { false }
-  filter {
-    includeTestsMatching("git.shin.komorei.sdk.*")
-    RUNNER_WASM_TESTS.forEach {
-      includeTestsMatching(it.removeSuffix(".kt").replace('/', '.'))
+val RUNNER_WASM_TESTS =
+  listOf(
+    "git/shin/komorei/AnimeRepositoryTest.kt",
+    "git/shin/komorei/PlayerViewModelTest.kt",
+    "git/shin/komorei/RecommendedAnimeFallbackTest.kt",
+    "git/shin/komorei/SourceHomeScopedTest.kt",
+  )
+val sdkRunnerUnitTest =
+  tasks.register<Test>("testSdkRunnerUnitTest") {
+    group = "verification"
+    description = "Tests that invoke the wasm runner, in their own JVM (JNA vs Robolectric sandboxes)"
+    outputs.upToDateWhen { false }
+    filter {
+      includeTestsMatching("git.shin.komorei.sdk.*")
+      RUNNER_WASM_TESTS.forEach {
+        includeTestsMatching(it.removeSuffix(".kt").replace('/', '.'))
+      }
     }
   }
-}
 
 // Same classpath + the uniffi cdylib override / `-Dkomorei.test.*Krx` fixture
 // paths that `testOptions.unitTests.all` sets on the AGP unit-test task (that
@@ -249,40 +267,46 @@ val uniffiBindingsDir = layout.buildDirectory.dir("generated/uniffi/kotlin")
 // app/build/ was left over from a previous build). A staging dir gives the two
 // tasks a real producer -> consumer edge.
 val uniffiStagingDir = layout.buildDirectory.dir("generated/uniffi/staging")
-val uniffiBindgenPath = providers
-  .gradleProperty("uniffiBindgen")
-  .orElse("${System.getProperty("user.home")}/.cargo/bin/uniffi-bindgen")
-  .get()
+val uniffiBindgenPath =
+  providers
+    .gradleProperty("uniffiBindgen")
+    .orElse("${System.getProperty("user.home")}/.cargo/bin/uniffi-bindgen")
+    .get()
 
-val cargoBuildUniffi = tasks.register<Exec>("cargoBuildUniffi") {
-  description = "Build the host debug cdylib that uniffi-bindgen reads metadata from"
-  val runnerDir = rootProject.layout.projectDirectory.dir("runner")
-  workingDir = runnerDir.asFile
-  // `cargo` is invoked relative to the runner workspace (uniffi.toml + Cargo.toml).
-  commandLine("cargo", "build")
-  inputs.dir(runnerDir.dir("src"))
-  inputs.files(runnerDir.file("Cargo.toml"), runnerDir.file("Cargo.lock"))
-  outputs.file(runnerDir.file("target/debug/libkomorei_runner.so"))
-}
+val cargoBuildUniffi =
+  tasks.register<Exec>("cargoBuildUniffi") {
+    description = "Build the host debug cdylib that uniffi-bindgen reads metadata from"
+    val runnerDir = rootProject.layout.projectDirectory.dir("runner")
+    workingDir = runnerDir.asFile
+    // `cargo` is invoked relative to the runner workspace (uniffi.toml + Cargo.toml).
+    commandLine("cargo", "build")
+    inputs.dir(runnerDir.dir("src"))
+    inputs.files(runnerDir.file("Cargo.toml"), runnerDir.file("Cargo.lock"))
+    outputs.file(runnerDir.file("target/debug/libkomorei_runner.so"))
+  }
 
-val generateUniffiBindings = tasks.register<Exec>("generateUniffiBindings") {
-  description = "Run uniffi-bindgen to emit the Kotlin bindings into the staging dir"
-  dependsOn(cargoBuildUniffi)
-  val runnerDir = rootProject.layout.projectDirectory.dir("runner")
-  workingDir = runnerDir.asFile
-  commandLine(
-    uniffiBindgenPath,
-    "generate",
-    "--library", "target/debug/libkomorei_runner.so",
-    "--language", "kotlin",
-    "--no-format",
-    "--out-dir", uniffiStagingDir.get().asFile.absolutePath,
-  )
-  inputs.file(runnerDir.file("uniffi.toml"))
-  // the .so produced by cargoBuildUniffi doubles as the ordering edge
-  inputs.file(runnerDir.file("target/debug/libkomorei_runner.so"))
-  outputs.dir(uniffiStagingDir)
-}
+val generateUniffiBindings =
+  tasks.register<Exec>("generateUniffiBindings") {
+    description = "Run uniffi-bindgen to emit the Kotlin bindings into the staging dir"
+    dependsOn(cargoBuildUniffi)
+    val runnerDir = rootProject.layout.projectDirectory.dir("runner")
+    workingDir = runnerDir.asFile
+    commandLine(
+      uniffiBindgenPath,
+      "generate",
+      "--library",
+      "target/debug/libkomorei_runner.so",
+      "--language",
+      "kotlin",
+      "--no-format",
+      "--out-dir",
+      uniffiStagingDir.get().asFile.absolutePath,
+    )
+    inputs.file(runnerDir.file("uniffi.toml"))
+    // the .so produced by cargoBuildUniffi doubles as the ordering edge
+    inputs.file(runnerDir.file("target/debug/libkomorei_runner.so"))
+    outputs.dir(uniffiStagingDir)
+  }
 
 // Custom task so the generated dir can be a managed @OutputDirectory — that's
 // what `androidComponents.onVariants` needs to wire it as a generated source dir.
@@ -299,20 +323,21 @@ abstract class PatchUniffiBindings : DefaultTask() {
     val relative = "git/shin/komorei/sdk/runner/komorei_runner.kt"
     val src = stagingDir.get().asFile.resolve(relative)
     val dst = bindingsDir.get().asFile.resolve(relative)
-    val patched = src.readText()
-      .replace(
-        "        val `message`: kotlin.String",
-        "        override val `message`: kotlin.String",
-      )
-      .replace(
-        "        override val message\n" +
-          "            get() = \"code=\${ `code` }, message=\${ `message` }\"\n" +
-          "    }",
-        "        // NOTE: no computed `override val message` here — the constructor field\n" +
-          "        // IS the message (uniffi 0.32.1 codegen emits a duplicate override that\n" +
-          "        // would be a REDECLARATION; patched on generation).\n" +
-          "    }",
-      )
+    val patched =
+      src
+        .readText()
+        .replace(
+          "        val `message`: kotlin.String",
+          "        override val `message`: kotlin.String",
+        ).replace(
+          "        override val message\n" +
+            "            get() = \"code=\${ `code` }, message=\${ `message` }\"\n" +
+            "    }",
+          "        // NOTE: no computed `override val message` here — the constructor field\n" +
+            "        // IS the message (uniffi 0.32.1 codegen emits a duplicate override that\n" +
+            "        // would be a REDECLARATION; patched on generation).\n" +
+            "    }",
+        )
     check("override val `message`: kotlin.String" in patched) {
       "RunnerException.Source constructor field not found — uniffi codegen changed, update the patch in app/build.gradle.kts"
     }
@@ -324,12 +349,13 @@ abstract class PatchUniffiBindings : DefaultTask() {
   }
 }
 
-val patchUniffiBindings = tasks.register<PatchUniffiBindings>("patchUniffiBindings") {
-  description = "Re-apply the RunnerException.Source patch (uniffi 0.32.1 codegen bug)"
-  dependsOn(generateUniffiBindings)
-  stagingDir.set(uniffiStagingDir)
-  bindingsDir.set(uniffiBindingsDir)
-}
+val patchUniffiBindings =
+  tasks.register<PatchUniffiBindings>("patchUniffiBindings") {
+    description = "Re-apply the RunnerException.Source patch (uniffi 0.32.1 codegen bug)"
+    dependsOn(generateUniffiBindings)
+    stagingDir.set(uniffiStagingDir)
+    bindingsDir.set(uniffiBindingsDir)
+  }
 
 // Wire the generated bindings into every variant's Kotlin (java fallback)
 // generated-source dir — `addGeneratedSourceDirectory` also creates the task

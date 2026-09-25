@@ -1,6 +1,5 @@
 package git.shin.komorei.ui.theme
 
-import androidx.compose.foundation.ScrollState
 import androidx.compose.ui.graphics.Color
 
 // AnimeVsub Cinema Dark Theme Palette
@@ -40,4 +39,3 @@ val SuccessGreen = Color(0xFF34C77B)
 
 val ShimmerBase = Color(0xFF1A2234)
 val ShimmerHighlight = Color(0xFF2E3D5C)
-

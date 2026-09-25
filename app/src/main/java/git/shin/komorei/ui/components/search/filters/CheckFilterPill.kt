@@ -34,11 +34,12 @@ fun CheckFilterPill(
             onChange(filter.id, checkFilterValue(filter.id, nextCheckState(state, kind.canExclude)))
         },
         chevron = false,
-        icon = when (state) {
-            1 -> Icons.Default.Check
-            2 -> Icons.Default.Close
-            else -> null
-        },
+        icon =
+            when (state) {
+                1 -> Icons.Default.Check
+                2 -> Icons.Default.Close
+                else -> null
+            },
         modifier = modifier,
     )
 }

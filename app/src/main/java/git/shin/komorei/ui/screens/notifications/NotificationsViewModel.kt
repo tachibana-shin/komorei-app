@@ -15,7 +15,6 @@ import javax.inject.Inject
 class NotificationsViewModel @Inject constructor(
     private val store: NotificationStore,
 ) : ViewModel() {
-
     val notifications: StateFlow<List<AppNotification>> = store.notifications
 
     val unreadCount: Int get() = store.unreadCount

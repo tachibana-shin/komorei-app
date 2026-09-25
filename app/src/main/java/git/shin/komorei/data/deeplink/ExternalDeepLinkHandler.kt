@@ -5,22 +5,36 @@ import git.shin.komorei.data.SourceReposRepository
 import git.shin.komorei.data.SourceStateStore
 import git.shin.komorei.sdk.KrxManager
 import git.shin.komorei.sdk.KrxSourceRegistry
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /** Result of handling an app-owned (non-content) deep link. */
 sealed interface ExternalDeepLinkResult {
-    data class RepositoryAdded(val url: String) : ExternalDeepLinkResult
+    data class RepositoryAdded(
+        val url: String,
+    ) : ExternalDeepLinkResult
+
     data object RepositoryAlreadyAdded : ExternalDeepLinkResult
+
     data object RepositoryUnavailable : ExternalDeepLinkResult
-    data class SourceInstalled(val id: String, val name: String) : ExternalDeepLinkResult
-    data class SourceAlreadyInstalled(val id: String, val name: String) : ExternalDeepLinkResult
+
+    data class SourceInstalled(
+        val id: String,
+        val name: String,
+    ) : ExternalDeepLinkResult
+
+    data class SourceAlreadyInstalled(
+        val id: String,
+        val name: String,
+    ) : ExternalDeepLinkResult
+
     data object SourceInstallFailed : ExternalDeepLinkResult
+
     data object Invalid : ExternalDeepLinkResult
 }
 
@@ -78,8 +92,9 @@ class ExternalDeepLinkHandler @Inject constructor(
     }
 
     private suspend fun installSource(url: String): ExternalDeepLinkResult {
-        val bytes = reposRepository.downloadPackage(url)
-            ?: return ExternalDeepLinkResult.SourceInstallFailed
+        val bytes =
+            reposRepository.downloadPackage(url)
+                ?: return ExternalDeepLinkResult.SourceInstallFailed
 
         val packageInfo = KrxManager.readInfo(bytes)
         if (packageInfo != null) {
@@ -89,8 +104,9 @@ class ExternalDeepLinkHandler @Inject constructor(
             }
         }
 
-        val meta = sourceRegistry.installKrx(bytes)
-            ?: return ExternalDeepLinkResult.SourceInstallFailed
+        val meta =
+            sourceRegistry.installKrx(bytes)
+                ?: return ExternalDeepLinkResult.SourceInstallFailed
         stateStore.setDisabled(meta.id, false)
         return ExternalDeepLinkResult.SourceInstalled(meta.id, meta.name)
     }

@@ -24,9 +24,8 @@ class TransformableHttpDataSource(
     private val delegate: HttpDataSource,
     private val streamData: StreamData?,
     private val urlInterceptor: SegmentUrlInterceptor?,
-    private val dataInterceptor: SegmentDataInterceptor?
+    private val dataInterceptor: SegmentDataInterceptor?,
 ) : HttpDataSource by delegate {
-
     private var dataStream: ByteArrayInputStream? = null
     private var isDelegateOpened = false
 
@@ -36,9 +35,11 @@ class TransformableHttpDataSource(
             uri = urlInterceptor.intercept(streamData, uri)
         }
 
-        val resolvedSpec = dataSpec.buildUpon()
-            .setUri(Uri.parse(uri))
-            .build()
+        val resolvedSpec =
+            dataSpec
+                .buildUpon()
+                .setUri(Uri.parse(uri))
+                .build()
 
         val delegateLength = delegate.open(resolvedSpec)
         isDelegateOpened = true
@@ -66,11 +67,16 @@ class TransformableHttpDataSource(
         }
     }
 
-    override fun read(buffer: ByteArray, offset: Int, length: Int): Int = if (dataStream != null) {
-        dataStream!!.read(buffer, offset, length)
-    } else {
-        delegate.read(buffer, offset, length)
-    }
+    override fun read(
+        buffer: ByteArray,
+        offset: Int,
+        length: Int,
+    ): Int =
+        if (dataStream != null) {
+            dataStream!!.read(buffer, offset, length)
+        } else {
+            delegate.read(buffer, offset, length)
+        }
 
     override fun close() {
         try {

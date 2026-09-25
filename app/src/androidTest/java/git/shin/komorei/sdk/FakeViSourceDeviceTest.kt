@@ -10,7 +10,6 @@ import git.shin.komorei.sdk.runner.HostDefaultValue
 import git.shin.komorei.sdk.runner.ListingKind
 import git.shin.komorei.sdk.runner.StreamType
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -31,7 +30,6 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class FakeViSourceDeviceTest {
-
     private lateinit var host: KrxHostImpl
     private lateinit var runner: git.shin.komorei.sdk.runner.KomoreiRunner
 
@@ -62,10 +60,13 @@ class FakeViSourceDeviceTest {
         assertEquals(1, byQuery.size)
         assertEquals("frieren_journey", byQuery.single().key)
 
-        val action = runner.search(
-            null, 1,
-            listOf(FilterValue.MultiSelect("genres", listOf("Hành Động"), emptyList())),
-        ).entries
+        val action =
+            runner
+                .search(
+                    null,
+                    1,
+                    listOf(FilterValue.MultiSelect("genres", listOf("Hành Động"), emptyList())),
+                ).entries
         assertTrue(action.isNotEmpty())
         assertTrue(action.all { it.genres.any { g -> g.name == "Hành Động" } })
     }

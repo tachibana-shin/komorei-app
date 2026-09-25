@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -92,11 +91,12 @@ fun SourceSearchScreen(
 
     Column(
         verticalArrangement = Arrangement.Top,
-        modifier = modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding()
-            .imePadding(),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .statusBarsPadding()
+                .imePadding(),
     ) {
         // ── Search header (YouTube-style): field + Hủy ────────────────────
         // The field is the app's standard [CompactInput] pill (40dp, same as
@@ -114,16 +114,18 @@ fun SourceSearchScreen(
                 showClear = query.isNotEmpty(),
                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                 focusRequester = focusRequester,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("source_search_input"),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .testTag("source_search_input"),
             )
             TextButton(
                 onClick = onBack,
-                modifier = Modifier
-                    // TV focus highlight (no-op on phones).
-                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
-                    .testTag("source_search_cancel"),
+                modifier =
+                    Modifier
+                        // TV focus highlight (no-op on phones).
+                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f)
+                        .testTag("source_search_cancel"),
             ) {
                 Text(
                     text = stringResource(R.string.source_search_cancel),
@@ -150,14 +152,26 @@ fun SourceSearchScreen(
         Box(modifier = Modifier.weight(1f)) {
             when {
                 uiState.isIdle -> IdleSearchHint(modifier = Modifier.fillMaxSize())
-                uiState.items.isNotEmpty() -> Column(modifier = Modifier.fillMaxSize()) {
-                    Text(
-                        text = stringResource(R.string.source_search_results_count, uiState.items.size),
-                        color = TextSecondary,
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp,
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
-                    )
+                uiState.items.isNotEmpty() ->
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Text(
+                            text = stringResource(R.string.source_search_results_count, uiState.items.size),
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                        )
+                        SearchResultsGrid(
+                            state = uiState,
+                            onAnimeClick = onAnimeClick,
+                            onLoadMore = viewModel::loadMore,
+                            onRetry = viewModel::retry,
+                            isRefreshing = uiState.isRefreshing,
+                            onRefresh = viewModel::refresh,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                else ->
                     SearchResultsGrid(
                         state = uiState,
                         onAnimeClick = onAnimeClick,
@@ -165,18 +179,8 @@ fun SourceSearchScreen(
                         onRetry = viewModel::retry,
                         isRefreshing = uiState.isRefreshing,
                         onRefresh = viewModel::refresh,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxSize(),
                     )
-                }
-                else -> SearchResultsGrid(
-                    state = uiState,
-                    onAnimeClick = onAnimeClick,
-                    onLoadMore = viewModel::loadMore,
-                    onRetry = viewModel::retry,
-                    isRefreshing = uiState.isRefreshing,
-                    onRefresh = viewModel::refresh,
-                    modifier = Modifier.fillMaxSize(),
-                )
             }
         }
     }
@@ -198,9 +202,10 @@ private fun IdleSearchHint(modifier: Modifier = Modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(CardDark, CircleShape),
+                modifier =
+                    Modifier
+                        .size(56.dp)
+                        .background(CardDark, CircleShape),
             ) {
                 Icon(
                     imageVector = Icons.Default.Search,

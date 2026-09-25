@@ -62,7 +62,9 @@ class KrxSourceRegistry @Inject constructor(
     @Volatile private var bundledMetas: List<KrxSourceMeta>? = null
     private val metaMap = ConcurrentHashMap<String, Source>()
     private val krxFileNames = ConcurrentHashMap<String, String>() // sourceId → file name (asset or filesDir)
-    private val userInstalled = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    private val userInstalled =
+        java.util.concurrent.ConcurrentHashMap
+            .newKeySet<String>()
 
     /** App-model sources (non-aggregator) — emits whenever the set changes. */
     private val _sourceAppFlow = MutableStateFlow<List<Source>>(emptyList())
@@ -77,8 +79,7 @@ class KrxSourceRegistry @Inject constructor(
     /** Per-source scoped hosts — each namespaces defaults keys with its source id. */
     private val hosts = ConcurrentHashMap<String, KrxHostImpl>()
 
-    private fun hostFor(sourceId: String): KrxHostImpl =
-        hosts.getOrPut(sourceId) { host.scopedTo(sourceId) }
+    private fun hostFor(sourceId: String): KrxHostImpl = hosts.getOrPut(sourceId) { host.scopedTo(sourceId) }
 
     // ── metadata discovery ──────────────────────────────────────────────────
 
@@ -94,39 +95,42 @@ class KrxSourceRegistry @Inject constructor(
         bundledMetas?.let { return it }
         synchronized(this) {
             bundledMetas?.let { return it }
-            val metas = buildList {
-                // Bundled sources (read-only assets).
-                val names = context.assets.list(SOURCES_DIR) ?: emptyArray()
-                for (name in names.filter { it.endsWith(".krx") }) {
-                    try {
-                        val bytes = context.assets.open("$SOURCES_DIR/$name").readBytes()
-                        KrxManager.readInfo(bytes)?.let { meta ->
-                            add(meta)
-                            metaMap[meta.id] = meta.toAppSource(persistIcon(meta.id, bytes))
-                            krxFileNames[meta.id] = name
-                        }
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to read $SOURCES_DIR/$name", e)
-                    }
-                }
-                // User-installed sources (persisted in filesDir; survive restarts).
-                val dir = installedDir()
-                dir.listFiles { f -> f.isFile && f.name.endsWith(".krx") }.orEmpty()
-                    .sortedBy { it.name }
-                    .forEach { file ->
+            val metas =
+                buildList {
+                    // Bundled sources (read-only assets).
+                    val names = context.assets.list(SOURCES_DIR) ?: emptyArray()
+                    for (name in names.filter { it.endsWith(".krx") }) {
                         try {
-                            val bytes = file.readBytes()
+                            val bytes = context.assets.open("$SOURCES_DIR/$name").readBytes()
                             KrxManager.readInfo(bytes)?.let { meta ->
                                 add(meta)
                                 metaMap[meta.id] = meta.toAppSource(persistIcon(meta.id, bytes))
-                                krxFileNames[meta.id] = file.name
-                                userInstalled += meta.id
+                                krxFileNames[meta.id] = name
                             }
                         } catch (e: Exception) {
-                            Log.w(TAG, "Failed to read installed ${file.name}", e)
+                            Log.w(TAG, "Failed to read $SOURCES_DIR/$name", e)
                         }
                     }
-            }
+                    // User-installed sources (persisted in filesDir; survive restarts).
+                    val dir = installedDir()
+                    dir
+                        .listFiles { f -> f.isFile && f.name.endsWith(".krx") }
+                        .orEmpty()
+                        .sortedBy { it.name }
+                        .forEach { file ->
+                            try {
+                                val bytes = file.readBytes()
+                                KrxManager.readInfo(bytes)?.let { meta ->
+                                    add(meta)
+                                    metaMap[meta.id] = meta.toAppSource(persistIcon(meta.id, bytes))
+                                    krxFileNames[meta.id] = file.name
+                                    userInstalled += meta.id
+                                }
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Failed to read installed ${file.name}", e)
+                            }
+                        }
+                }
             bundledMetas = metas
             emitSources()
             Log.i(TAG, "Discovered ${metas.size} source(s) (${userInstalled.size} user-installed)")
@@ -134,24 +138,24 @@ class KrxSourceRegistry @Inject constructor(
         }
     }
 
-    private fun KrxSourceMeta.toAppSource(iconPath: String?) = Source(
-        id = id,
-        name = name,
-        icon = iconPath.orEmpty(),
-        version = version.toString(),
-        baseUrl = url,
-        isEnabled = true,
-        isAggregator = false,
-        languages = languages,
-        contentRating = contentRating,
-    )
+    private fun KrxSourceMeta.toAppSource(iconPath: String?) =
+        Source(
+            id = id,
+            name = name,
+            icon = iconPath.orEmpty(),
+            version = version.toString(),
+            baseUrl = url,
+            isEnabled = true,
+            isAggregator = false,
+            languages = languages,
+            contentRating = contentRating,
+        )
 
     private fun emitSources() {
         _sourceAppFlow.value = sourceAppList()
     }
 
-    private fun installedDir(): File =
-        File(context.filesDir, SOURCES_DIR).apply { mkdirs() }
+    private fun installedDir(): File = File(context.filesDir, SOURCES_DIR).apply { mkdirs() }
 
     /**
      * Extracts the source's brand icon PNG from its `.krx` package and caches it
@@ -159,7 +163,10 @@ class KrxSourceRegistry @Inject constructor(
      * when the package ships no icon). The path feeds [Source.icon] so the UI can
      * render the real artwork instead of a generic vector.
      */
-    private fun persistIcon(sourceId: String, krxBytes: ByteArray): String? {
+    private fun persistIcon(
+        sourceId: String,
+        krxBytes: ByteArray,
+    ): String? {
         val icon = KrxManager.extractIcon(krxBytes) ?: return null
         val dir = File(context.filesDir, ICONS_DIR).apply { mkdirs() }
         val file = File(dir, "$sourceId.png")
@@ -182,8 +189,7 @@ class KrxSourceRegistry @Inject constructor(
         return metaMap.values.toList()
     }
 
-    fun sourceMeta(sourceId: String): KrxSourceMeta? =
-        bundledMetas().find { it.id == sourceId }
+    fun sourceMeta(sourceId: String): KrxSourceMeta? = bundledMetas().find { it.id == sourceId }
 
     /** Source ids of currently loaded runners. */
     fun loadedRunnerIds(): Set<String> = runners.keys.toSet()
@@ -206,16 +212,19 @@ class KrxSourceRegistry @Inject constructor(
 
         return try {
             bundledMetas() // ensure krxFileNames populated (cheap, cached)
-            val krxName = krxFileNames[sourceId]
-                ?: error("No .krx registered for source $sourceId")
-            val runner = withContextIO(sourceId) {
-                val bytes = if (sourceId in userInstalled) {
-                    File(installedDir(), krxName).readBytes()
-                } else {
-                    context.assets.open("$SOURCES_DIR/$krxName").readBytes()
+            val krxName =
+                krxFileNames[sourceId]
+                    ?: error("No .krx registered for source $sourceId")
+            val runner =
+                withContextIO(sourceId) {
+                    val bytes =
+                        if (sourceId in userInstalled) {
+                            File(installedDir(), krxName).readBytes()
+                        } else {
+                            context.assets.open("$SOURCES_DIR/$krxName").readBytes()
+                        }
+                    KrxManager.load(hostFor(sourceId), bytes)
                 }
-                KrxManager.load(hostFor(sourceId), bytes)
-            }
             runners[sourceId] = runner
             deferred.complete(runner)
             inFlight.remove(sourceId)
@@ -233,7 +242,10 @@ class KrxSourceRegistry @Inject constructor(
      * Load a source from raw bytes (for testing or manual installation).
      * Registers metadata automatically from the `source.json` inside the krx.
      */
-    suspend fun loadKrx(sourceId: String, krxBytes: ByteArray): KomoreiRunner? {
+    suspend fun loadKrx(
+        sourceId: String,
+        krxBytes: ByteArray,
+    ): KomoreiRunner? {
         // Register metadata if unknown
         if (!metaMap.containsKey(sourceId)) {
             KrxManager.readInfo(krxBytes)?.let { meta ->
@@ -249,9 +261,10 @@ class KrxSourceRegistry @Inject constructor(
         if (existing != null) return existing.await()
 
         return try {
-            val runner = withContextIO(sourceId) {
-                KrxManager.load(hostFor(sourceId), krxBytes)
-            }
+            val runner =
+                withContextIO(sourceId) {
+                    KrxManager.load(hostFor(sourceId), krxBytes)
+                }
             runners[sourceId] = runner
             deferred.complete(runner)
             inFlight.remove(sourceId)
@@ -346,7 +359,8 @@ class KrxSourceRegistry @Inject constructor(
      */
     suspend fun exportUserSources(): List<InstalledSourcePackage> {
         bundledMetas()
-        return installedDir().listFiles { file -> file.isFile && file.name.endsWith(".krx") }
+        return installedDir()
+            .listFiles { file -> file.isFile && file.name.endsWith(".krx") }
             .orEmpty()
             .sortedBy { it.name }
             .mapNotNull { file ->
@@ -396,7 +410,10 @@ class KrxSourceRegistry @Inject constructor(
      *
      * Returns null when the source cannot be loaded.
      */
-    suspend fun <T> call(sourceId: String, block: suspend (KomoreiRunner) -> T): T? {
+    suspend fun <T> call(
+        sourceId: String,
+        block: suspend (KomoreiRunner) -> T,
+    ): T? {
         val runner = load(sourceId) ?: return null
         return withContextIO(sourceId) { block(runner) }
     }
@@ -411,13 +428,13 @@ class KrxSourceRegistry @Inject constructor(
     ): Map<String, T> {
         val ids = sourceIds ?: bundledMetas().map { it.id }
         return coroutineScope {
-            ids.map { id ->
-                async {
-                    val result = call(id) { runner -> block(id, runner) }
-                    if (result != null) id to result else null
-                }
-            }
-                .awaitAll()
+            ids
+                .map { id ->
+                    async {
+                        val result = call(id) { runner -> block(id, runner) }
+                        if (result != null) id to result else null
+                    }
+                }.awaitAll()
                 .filterNotNull()
                 .toMap()
         }
@@ -432,9 +449,10 @@ class KrxSourceRegistry @Inject constructor(
      * has never been written for this source. Input keys are the RAW setting
      * key (e.g. `"prefer_fhd"`) exactly like the source's own `defaults_get`.
      */
-    fun defaultsGet(sourceId: String, key: String): HostDefaultValue? {
-        return hostFor(sourceId).defaultsGet(key)
-    }
+    fun defaultsGet(
+        sourceId: String,
+        key: String,
+    ): HostDefaultValue? = hostFor(sourceId).defaultsGet(key)
 
     /**
      * App-side mirror of a source's `defaults_set` — writes [value] for
@@ -442,25 +460,30 @@ class KrxSourceRegistry @Inject constructor(
      * row is identical to what the source itself would write (or the wasm
      * side reads via `defaults_get`).
      */
-    fun defaultsSet(sourceId: String, key: String, value: HostDefaultValue) {
+    fun defaultsSet(
+        sourceId: String,
+        key: String,
+        value: HostDefaultValue,
+    ) {
         hostFor(sourceId).defaultsSet(key, value)
     }
 
     // ── internals ───────────────────────────────────────────────────────────
 
-    private fun sourceDispatcher(sourceId: String): CoroutineDispatcher {
-        return dispatchers.getOrPut(sourceId) {
-            Executors.newSingleThreadExecutor { r ->
-                Thread(r, "komorei-wasm-$sourceId").apply { isDaemon = true }
-            }.asCoroutineDispatcher()
+    private fun sourceDispatcher(sourceId: String): CoroutineDispatcher =
+        dispatchers.getOrPut(sourceId) {
+            Executors
+                .newSingleThreadExecutor { r ->
+                    Thread(r, "komorei-wasm-$sourceId").apply { isDaemon = true }
+                }.asCoroutineDispatcher()
         }
-    }
 
     /**
      * Dispatch [block] onto [sourceId]'s dedicated IO thread.
      * This is a suspend wrapper; it does NOT block the caller's thread.
      */
-    private suspend fun <T> withContextIO(sourceId: String, block: suspend () -> T): T {
-        return withContext(sourceDispatcher(sourceId)) { block() }
-    }
+    private suspend fun <T> withContextIO(
+        sourceId: String,
+        block: suspend () -> T,
+    ): T = withContext(sourceDispatcher(sourceId)) { block() }
 }

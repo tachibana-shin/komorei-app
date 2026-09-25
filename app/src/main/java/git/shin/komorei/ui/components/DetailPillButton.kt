@@ -3,7 +3,6 @@ package git.shin.komorei.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,33 +34,36 @@ fun DetailPillButton(
     isActive: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tag: String
+    tag: String,
 ) {
     Surface(
         onClick = onClick,
         color = if (isActive) AnimeRedContainer else CardDark,
         shape = RoundedCornerShape(18.dp),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (isActive) AnimeRed else CardBorderDark
-        ),
-        modifier = modifier
+        border =
+            androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isActive) AnimeRed else CardBorderDark,
+            ),
+        modifier =
+            modifier
 //            .height(36.dp)
-            // TV focus highlight (no-op on phones).
-            .tvFocus(shape = RoundedCornerShape(18.dp), scale = 1.05f)
-            .testTag(tag)
+                // TV focus highlight (no-op on phones).
+                .tvFocus(shape = RoundedCornerShape(18.dp), scale = 1.05f)
+                .testTag(tag),
     ) {
         Row(
-            modifier = Modifier
-                .padding(horizontal = 14.dp, vertical = 8.dp),
+            modifier =
+                Modifier
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = if (isActive) AnimeRed else TextPrimary,
-                modifier = Modifier.size(15.dp)
+                modifier = Modifier.size(15.dp),
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
@@ -71,7 +73,7 @@ fun DetailPillButton(
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = NoPaddingTextStyle
+                style = NoPaddingTextStyle,
             )
         }
     }

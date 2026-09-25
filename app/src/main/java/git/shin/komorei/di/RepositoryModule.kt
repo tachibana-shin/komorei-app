@@ -4,7 +4,6 @@ import android.content.Context
 import android.webkit.WebSettings
 import androidx.room.Room
 import coil.ImageLoader
-import coil.util.DebugLogger
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,31 +28,35 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
-
     @Provides
     @Singleton
-    fun provideUserAgent(@ApplicationContext context: Context): String {
-        return try {
+    fun provideUserAgent(
+        @ApplicationContext context: Context,
+    ): String =
+        try {
             WebSettings.getDefaultUserAgent(context)
         } catch (e: Exception) {
             "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
         }
-    }
 
     @Provides
     @Singleton
     fun provideOkHttpClient(userAgent: String): OkHttpClient {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.HEADERS
-        }
-        return OkHttpClient.Builder()
-            .addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .header("User-Agent", userAgent)
-                    .build()
-                chain.proceed(request)
+        val logging =
+            HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.HEADERS
             }
-            .addInterceptor(logging)
+        return OkHttpClient
+            .Builder()
+            .addInterceptor { chain ->
+                val request =
+                    chain
+                        .request()
+                        .newBuilder()
+                        .header("User-Agent", userAgent)
+                        .build()
+                chain.proceed(request)
+            }.addInterceptor(logging)
             .cookieJar(WebViewCookieJar())
             .followRedirects(true)
             .followSslRedirects(true)
@@ -66,7 +69,8 @@ object RepositoryModule {
     fun provideDriveHttpClient(): OkHttpClient {
         // Do not reuse the source client here: it logs headers and carries the
         // WebView cookie jar, which must never see a Google bearer token.
-        return OkHttpClient.Builder()
+        return OkHttpClient
+            .Builder()
             .followRedirects(true)
             .followSslRedirects(true)
             .build()
@@ -78,7 +82,8 @@ object RepositoryModule {
     fun provideUpdateHttpClient(): OkHttpClient {
         // OTA metadata/APK downloads must not inherit source cookies or header
         // logging from the WebView-backed client.
-        return OkHttpClient.Builder()
+        return OkHttpClient
+            .Builder()
             .followRedirects(true)
             .followSslRedirects(true)
             .build()
@@ -86,53 +91,50 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideDriveBackupApi(@DriveHttpClient client: OkHttpClient): DriveBackupApi =
-        GoogleDriveBackupApi(client)
+    fun provideDriveBackupApi(
+        @DriveHttpClient client: OkHttpClient,
+    ): DriveBackupApi = GoogleDriveBackupApi(client)
 
     @Provides
     @Singleton
     fun provideImageLoader(
         @ApplicationContext context: Context,
-        okHttpClient: OkHttpClient
-    ): ImageLoader {
-        return ImageLoader.Builder(context)
+        okHttpClient: OkHttpClient,
+    ): ImageLoader =
+        ImageLoader
+            .Builder(context)
             .okHttpClient(okHttpClient)
             .crossfade(true)
             .build()
-    }
 
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): KomoreiDatabase {
-        return Room.databaseBuilder(
-            context,
-            KomoreiDatabase::class.java,
-            "komorei_db"
-        )
+    fun provideDatabase(
+        @ApplicationContext context: Context,
+    ): KomoreiDatabase =
+        Room
+            .databaseBuilder(
+                context,
+                KomoreiDatabase::class.java,
+                "komorei_db",
+            )
             // CategoryLink JSON shape changed (filters: SelectedFilter → FilterValue) — dev data
             // written with the old shape would break the new adapters.
             .fallbackToDestructiveMigration()
             .addMigrations(KomoreiDatabase.MIGRATION_2_3, KomoreiDatabase.MIGRATION_3_4)
             .build()
-    }
 
     @Provides
     @Singleton
-    fun provideAnimeDao(database: KomoreiDatabase): AnimeDao {
-        return database.animeDao()
-    }
+    fun provideAnimeDao(database: KomoreiDatabase): AnimeDao = database.animeDao()
 
     @Provides
     @Singleton
-    fun provideKrxDefaultsDao(database: KomoreiDatabase): KrxDefaultsDao {
-        return database.krxDefaultsDao()
-    }
+    fun provideKrxDefaultsDao(database: KomoreiDatabase): KrxDefaultsDao = database.krxDefaultsDao()
 
     @Provides
     @Singleton
-    fun provideKrxDefaultsStore(dao: KrxDefaultsDao): KrxDefaultsStore {
-        return RoomKrxDefaultsStore(dao)
-    }
+    fun provideKrxDefaultsStore(dao: KrxDefaultsDao): KrxDefaultsStore = RoomKrxDefaultsStore(dao)
 
     @Provides
     @Singleton
@@ -140,24 +142,18 @@ object RepositoryModule {
         @ApplicationContext context: Context,
         okHttpClient: OkHttpClient,
         krxDefaultsStore: KrxDefaultsStore,
-    ): KrxHostImpl {
-        return KrxHostImpl(context, okHttpClient, krxDefaultsStore)
-    }
+    ): KrxHostImpl = KrxHostImpl(context, okHttpClient, krxDefaultsStore)
 
     @Provides
     @Singleton
     fun provideKrxSourceRegistry(
         @ApplicationContext context: Context,
         krxHost: KrxHostImpl,
-    ): KrxSourceRegistry {
-        return KrxSourceRegistry(context, krxHost)
-    }
+    ): KrxSourceRegistry = KrxSourceRegistry(context, krxHost)
 
     @Provides
     @Singleton
-    fun provideAnimeRepository(registry: KrxSourceRegistry): AnimeRepository {
-        return AnimeRepository(registry)
-    }
+    fun provideAnimeRepository(registry: KrxSourceRegistry): AnimeRepository = AnimeRepository(registry)
 }
 
 @Qualifier
