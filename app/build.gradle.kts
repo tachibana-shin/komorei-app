@@ -19,6 +19,10 @@ val googleDriveAndroidClientId = driveConfig(
   "google.drive.android.clientId",
   "GOOGLE_ANDROID_CLIENT_ID",
 ).ifBlank { "UNCONFIGURED" }
+val googleDriveAndroidDebugClientId = driveConfig(
+  "google.drive.android.debugClientId",
+  "GOOGLE_ANDROID_DEBUG_CLIENT_ID",
+).ifBlank { "UNCONFIGURED" }
 val googleDriveWebClientId = driveConfig(
   "google.drive.web.clientId",
   "GOOGLE_WEB_CLIENT_ID",
@@ -48,7 +52,6 @@ android {
     versionCode = appVersionCode
     versionName = appVersionName
 
-    buildConfigField("String", "DRIVE_ANDROID_CLIENT_ID", "\"${googleDriveAndroidClientId.asBuildConfigString()}\"")
     buildConfigField("String", "DRIVE_WEB_CLIENT_ID", "\"${googleDriveWebClientId.asBuildConfigString()}\"")
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -66,12 +69,20 @@ android {
 
   buildTypes {
     release {
+      // The published application ID stays stable for updates and Drive OAuth.
+      buildConfigField("String", "DRIVE_ANDROID_CLIENT_ID", "\"${googleDriveAndroidClientId.asBuildConfigString()}\"")
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
     }
-    debug { }
+    debug {
+      // Keep development installs beside the release app with isolated data.
+      applicationIdSuffix = ".dev"
+      // Android OAuth clients are bound to one package name; use an optional
+      // separate debug client instead of the release client here.
+      buildConfigField("String", "DRIVE_ANDROID_CLIENT_ID", "\"${googleDriveAndroidDebugClientId.asBuildConfigString()}\"")
+    }
   }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11
