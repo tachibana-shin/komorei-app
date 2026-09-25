@@ -8,6 +8,12 @@ import com.squareup.moshi.JsonReader
 import com.squareup.moshi.JsonWriter
 
 /**
+ * Wire value of [FilterKind.MultiSelect] in `source.json`. Shared by the parser
+ * and both Moshi adapters so the three can never drift apart.
+ */
+private const val TYPE_MULTI_SELECT = "multi-select"
+
+/**
  * A filter that a source exposes for search.
  *
  * Mirrors `Filter` in komorei-sdk (`crates/lib/src/structs/filter.rs`): same fields and the
@@ -155,7 +161,7 @@ class FilterKindJsonAdapter : JsonAdapter<FilterKind>() {
                 ids = (fields["ids"] as? List<*>)?.castStrings(),
                 default = fields["default"] as? String
             )
-            "multi-select" -> FilterKind.MultiSelect(
+            TYPE_MULTI_SELECT -> FilterKind.MultiSelect(
                 isGenre = fields["is_genre"] as? Boolean ?: false,
                 canExclude = fields["can_exclude"] as? Boolean ?: false,
                 usesTagStyle = fields["uses_tag_style"] as? Boolean ?: false,
@@ -215,7 +221,7 @@ class FilterKindJsonAdapter : JsonAdapter<FilterKind>() {
                 writer.name("default").value(value.default)
             }
             is FilterKind.MultiSelect -> {
-                writer.name("type").value("multi-select")
+                writer.name("type").value(TYPE_MULTI_SELECT)
                 writer.name("is_genre").value(value.isGenre)
                 writer.name("can_exclude").value(value.canExclude)
                 writer.name("uses_tag_style").value(value.usesTagStyle)
@@ -274,7 +280,7 @@ class FilterValueJsonAdapter : JsonAdapter<FilterValue>() {
                 id = fields["id"] as? String ?: "",
                 value = fields["value"] as? String ?: ""
             )
-            "multi-select" -> FilterValue.MultiSelect(
+            TYPE_MULTI_SELECT -> FilterValue.MultiSelect(
                 id = fields["id"] as? String ?: "",
                 included = (fields["included"] as? List<*>)?.castStrings() ?: emptyList(),
                 excluded = (fields["excluded"] as? List<*>)?.castStrings() ?: emptyList()
@@ -317,7 +323,7 @@ class FilterValueJsonAdapter : JsonAdapter<FilterValue>() {
                 writer.name("value").value(value.value)
             }
             is FilterValue.MultiSelect -> {
-                writer.name("type").value("multi-select")
+                writer.name("type").value(TYPE_MULTI_SELECT)
                 writer.name("id").value(value.id)
                 writer.stringList("included", value.included)
                 writer.stringList("excluded", value.excluded)

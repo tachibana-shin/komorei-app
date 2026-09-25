@@ -975,7 +975,12 @@ class KrxHostImpl(
                 done.countDown()
             }
         }
-        done.await(EVAL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+        if (!done.await(EVAL_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+            // The callback never landed — the result below is whatever the last
+            // successful eval left behind, or null. Log it so a flaky WebView is
+            // distinguishable from a source that genuinely returned nothing.
+            Log.w(TAG, "evaluateJavascript timed out after ${EVAL_TIMEOUT_MS}ms")
+        }
         return output.get()
     }
 
@@ -1155,7 +1160,9 @@ class KrxHostImpl(
     }
 
     override fun jsWebviewDeleteCookie(handle: Long, name: String, value: String, domain: String) {
-        val state = webviews[handle] ?: return
+        // Guard only: the value is irrelevant, we just refuse to touch a webview
+        // the source has already released.
+        if (webviews[handle] == null) return
         onMainThread {
             try {
                 val cookieUrl = when {

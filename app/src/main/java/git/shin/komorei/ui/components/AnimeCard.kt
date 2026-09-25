@@ -158,12 +158,6 @@ fun AnimeCard(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
-//                Spacer(modifier = Modifier.width(6.dp))
-//                Text(
-//                    text = anime.views,
-//                    color = TextSecondary,
-//                    fontSize = 10.sp
-//                )
                 }
             }
         }

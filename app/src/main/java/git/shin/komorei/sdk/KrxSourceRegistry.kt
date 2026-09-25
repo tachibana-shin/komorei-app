@@ -298,8 +298,13 @@ class KrxSourceRegistry @Inject constructor(
             metaMap.remove(meta.id)
             krxFileNames.remove(meta.id)
             userInstalled.remove(meta.id)
-            file.delete()
-            File(File(context.filesDir, ICONS_DIR), "${meta.id}.png").delete()
+            if (!file.delete()) {
+                Log.w(TAG, "Could not remove the failed package at $file")
+            }
+            val icon = File(File(context.filesDir, ICONS_DIR), "${meta.id}.png")
+            if (icon.exists() && !icon.delete()) {
+                Log.w(TAG, "Could not remove the stale icon at $icon")
+            }
             emitSources()
             return null
         }
@@ -315,8 +320,14 @@ class KrxSourceRegistry @Inject constructor(
     suspend fun uninstall(sourceId: String): Boolean {
         if (sourceId !in userInstalled) return false
         val fileName = krxFileNames.remove(sourceId) ?: return false
-        File(installedDir(), fileName).delete()
-        File(File(context.filesDir, ICONS_DIR), "$sourceId.png").delete()
+        val packageFile = File(installedDir(), fileName)
+        if (packageFile.exists() && !packageFile.delete()) {
+            Log.w(TAG, "Could not remove $packageFile; the registry entry is dropped anyway")
+        }
+        val icon = File(File(context.filesDir, ICONS_DIR), "$sourceId.png")
+        if (icon.exists() && !icon.delete()) {
+            Log.w(TAG, "Could not remove the source icon at $icon")
+        }
 
         metaMap.remove(sourceId)
         userInstalled.remove(sourceId)

@@ -76,6 +76,9 @@ class TransformableHttpDataSource(
         try {
             dataStream?.close()
         } catch (_: IOException) {
+            // A half-consumed response often throws on close; there is nothing
+            // left to salvage and close() must not propagate, so the error is
+            // deliberately swallowed here.
         }
         dataStream = null
         if (isDelegateOpened) {

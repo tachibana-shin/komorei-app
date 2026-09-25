@@ -448,8 +448,6 @@ fun EpisodesContent(
                 ) {
                     items(filteredEpisodes) { ep ->
                         val isPlaying = ep.id == currentEpisode.id
-                        val history = watchHistory.find { it.episodeId == ep.id }
-
                         Surface(
                             onClick = { onEpisodeSelected(ep) },
                             color = if (isPlaying) AnimeRedContainer else SurfaceDark,

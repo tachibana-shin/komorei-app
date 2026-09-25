@@ -10,6 +10,9 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
+/** `HH:MM` / `MM:SS` — the app renders every duration through this pattern. */
+private const val CLOCK_FORMAT = "%02d:%02d"
+
 @Composable
 fun formatNumber(num: Int): String {
     val million = stringResource(R.string.million_suffix)
@@ -27,7 +30,7 @@ fun formatScheduleUpdate(update: Triple<Int, Int, Int>): String {
     val updateDayOfWeek =
         if (update.first == 0) 1 else update.first + 1 // Convert 0-6 to Calendar's 1-7
 
-    val time = String.format("%02d:%02d", update.second, update.third)
+    val time = String.format(CLOCK_FORMAT, update.second, update.third)
 
     val dayText = if (updateDayOfWeek == currentDay) {
         stringResource(R.string.today_text)
@@ -58,7 +61,7 @@ fun formatDuration(durationMs: Long): String {
     return if (hours > 0) {
         String.format("%02d:%02d:%02d", hours, minutes, seconds)
     } else {
-        String.format("%02d:%02d", minutes, seconds)
+        String.format(CLOCK_FORMAT, minutes, seconds)
     }
 }
 
@@ -79,7 +82,7 @@ fun formatDurationMinutes(durationMinutes: Int): String {
 fun formatTimeMinutes(minutesTotal: Long): String {
     val hours = minutesTotal / 60
     val minutes = minutesTotal % 60
-    return String.format("%02d:%02d", hours, minutes)
+    return String.format(CLOCK_FORMAT, hours, minutes)
 }
 
 fun formatTime(timestampMillis: Long): String {

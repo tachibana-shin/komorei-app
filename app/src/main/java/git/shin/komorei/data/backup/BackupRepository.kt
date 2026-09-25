@@ -3,6 +3,7 @@ package git.shin.komorei.data.backup
 import android.content.Context
 import android.net.Uri
 import android.util.Base64
+import android.util.Log
 import androidx.room.withTransaction
 import dagger.hilt.android.qualifiers.ApplicationContext
 import git.shin.komorei.BuildConfig
@@ -246,7 +247,9 @@ class BackupRepository @Inject constructor(
         temporary.writeBytes(encoded)
         if (!temporary.renameTo(file)) {
             temporary.copyTo(file, overwrite = true)
-            temporary.delete()
+            if (!temporary.delete()) {
+                Log.w(TAG, "Could not remove the temp backup at $temporary")
+            }
         }
         return inspect(file)
     }
@@ -309,6 +312,7 @@ class BackupRepository @Inject constructor(
     )
 
     private companion object {
+        const val TAG = "BackupRepository"
         const val DIRECTORY_NAME = "backups"
         const val FILE_EXTENSION = "kbackup"
         // Anime has many embedded columns; keep each INSERT well below

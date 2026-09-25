@@ -389,7 +389,9 @@ fun PlayerVideoArea(
                             // NOTE: we do NOT consume the DOWN — playerGestures (outer modifier)
                             // needs an unconsumed DOWN for tap detection.
                             awaitEachGesture {
-                                val down = awaitFirstDown(requireUnconsumed = false)
+                                // The returned Down is not needed — the call itself
+                                // is what suspends until the first pointer event.
+                                awaitFirstDown(requireUnconsumed = false)
 
                                 // Cancel any in-flight snap-back from a previous gesture. If the
                                 // animation was still running (snapBackActive), adopt its current

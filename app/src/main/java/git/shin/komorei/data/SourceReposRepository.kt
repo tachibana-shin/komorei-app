@@ -2,6 +2,7 @@ package git.shin.komorei.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
@@ -184,18 +185,25 @@ class SourceReposRepository @Inject constructor(
  */
 fun absolutizeUrl(baseUrl: String, url: String): String {
     if (url.startsWith("http://") || url.startsWith("https://")) return url
-    val base = runCatching { java.net.URL(baseUrl) }.getOrNull() ?: return url
+    val base = baseUrl.toHttpUrlOrNull() ?: return url
+    val path = base.encodedPath
     val directoryPath = when {
-        base.path.isEmpty() -> "/"
-        base.path.endsWith("/") -> base.path
+        path.isEmpty() -> "/"
+        path.endsWith("/") -> path
         else -> {
-            val last = base.path.substringAfterLast('/')
-            if (last.contains('.')) base.path.substringBeforeLast('/') + "/"
-            else base.path + "/"
+            val last = path.substringAfterLast('/')
+            if (last.contains('.')) path.substringBeforeLast('/') + "/"
+            else path + "/"
         }
     }
-    val directory = java.net.URL(base.protocol, base.host, base.port, directoryPath)
-    return runCatching { java.net.URL(directory, url).toString() }.getOrNull() ?: url
+    // Drop query/fragment: the directory is derived from the path alone, which
+    // is what java.net.URL(protocol, host, port, path) used to do.
+    val directory = base.newBuilder()
+        .encodedPath(directoryPath)
+        .query(null)
+        .fragment(null)
+        .build()
+    return directory.resolve(url)?.toString() ?: url
 }
 
 /**
