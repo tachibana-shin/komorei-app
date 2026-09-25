@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [main]
   workflow_call:
-    secrets:
-      PAT_TOKEN:
-        description: Read access to the private komorei-sdk and komorei-sources repositories
-        required: true
 
 permissions:
   contents: read
@@ -22,13 +18,11 @@ jobs:
       - name: Checkout Komorei
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT_TOKEN || github.token }}
           fetch-depth: 0
 
       - name: Checkout komorei-sdk
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT_TOKEN || github.token }}
           repository: tachibana-shin/komorei-sdk
           path: komorei-sdk
           fetch-depth: 0
@@ -65,13 +59,11 @@ jobs:
       - name: Checkout Komorei
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT_TOKEN || github.token }}
           fetch-depth: 0
 
       - name: Checkout komorei-sdk
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT_TOKEN || github.token }}
           repository: tachibana-shin/komorei-sdk
           path: komorei-sdk
           fetch-depth: 0
@@ -79,7 +71,6 @@ jobs:
       - name: Checkout komorei-sources
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT_TOKEN || github.token }}
           repository: tachibana-shin/komorei-sources
           path: sources
           fetch-depth: 0

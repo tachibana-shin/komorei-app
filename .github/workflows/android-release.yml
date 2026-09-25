@@ -12,8 +12,6 @@ jobs:
   ci:
     name: CI gate
     uses: ./.github/workflows/android-ci.yml
-    secrets:
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
     permissions:
       contents: read
 
@@ -29,14 +27,12 @@ jobs:
       - name: Checkout Komorei
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT_TOKEN || github.token }}
           fetch-depth: 0
           fetch-tags: true
 
       - name: Checkout komorei-sdk
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT_TOKEN || github.token }}
           repository: tachibana-shin/komorei-sdk
           path: komorei-sdk
           fetch-depth: 0
@@ -44,7 +40,6 @@ jobs:
       - name: Checkout komorei-sources
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT_TOKEN || github.token }}
           repository: tachibana-shin/komorei-sources
           path: sources
           fetch-depth: 0
