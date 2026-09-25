@@ -430,7 +430,6 @@
     <string name="settings_cookies_cleared">Đã xoá cookie</string>
     <string name="settings_search_history_cleared">Đã xoá lịch sử tìm kiếm</string>
     <string name="settings_section_about">Giới thiệu</string>
-    <string name="settings_version">Phiên bản</string>
     <string name="settings_update">Cập nhật ứng dụng</string>
     <string name="settings_update_check">Kiểm tra cập nhật</string>
     <string name="settings_update_checking">Đang kiểm tra cập nhật…</string>
@@ -484,11 +483,11 @@
     <string name="about_build">Bản build</string>
     <string name="about_links_section">Liên kết</string>
     <string name="about_github">Mã nguồn trên GitHub</string>
-    <string name="about_github_subtitle">Xem mã nguồn và đóng góp</string>
+    <string name="about_github_subtitle">@tachibana-shin · Xem mã nguồn và đóng góp</string>
     <string name="about_discord">Cộng đồng Discord</string>
-    <string name="about_discord_subtitle">Thảo luận và hỗ trợ cùng cộng đồng</string>
+    <string name="about_discord_subtitle">@tachib.shin · Thảo luận và hỗ trợ cùng cộng đồng</string>
     <string name="about_support">Ủng hộ qua Ko-fi</string>
-    <string name="about_support_subtitle">Giúp duy trì và phát triển Komorei</string>
+    <string name="about_support_subtitle">@tachib_shin · Giúp duy trì và phát triển Komorei</string>
 
     <!-- Insights / Thống kê (Aidoku InsightsView) -->
     <string name="insights_title">Thống kê</string>

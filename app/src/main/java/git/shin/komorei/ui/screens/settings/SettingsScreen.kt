@@ -184,11 +184,11 @@ fun SettingsScreen(
                     testTag = "settings_update",
                 )
                 SettingsRow(
-                    icon = Icons.Default.Info,
-                    title = stringResource(R.string.settings_version),
-                    subtitle = viewModel.appVersion,
-                    onClick = null,
-                    testTag = "settings_version",
+                    icon = Icons.Default.BarChart,
+                    title = stringResource(R.string.settings_insights),
+                    subtitle = stringResource(R.string.settings_insights_subtitle),
+                    onClick = onOpenInsights,
+                    testTag = "settings_insights",
                 )
                 SettingsRow(
                     icon = Icons.Default.Info,
@@ -196,13 +196,6 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_about_subtitle),
                     onClick = onOpenAbout,
                     testTag = "settings_about",
-                )
-                SettingsRow(
-                    icon = Icons.Default.BarChart,
-                    title = stringResource(R.string.settings_insights),
-                    subtitle = stringResource(R.string.settings_insights_subtitle),
-                    onClick = onOpenInsights,
-                    testTag = "settings_insights",
                 )
             }
 

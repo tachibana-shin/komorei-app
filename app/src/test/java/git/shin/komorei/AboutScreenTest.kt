@@ -29,8 +29,11 @@ class AboutScreenTest {
         composeTestRule.onNodeWithTag("about_screen").assertIsDisplayed()
         composeTestRule.onNodeWithText(BuildConfig.VERSION_NAME).assertIsDisplayed()
         composeTestRule.onNodeWithTag("about_github").assertIsDisplayed()
+        composeTestRule.onNodeWithText("@tachibana-shin", substring = true).assertIsDisplayed()
         composeTestRule.onNodeWithTag("about_discord").assertIsDisplayed()
+        composeTestRule.onNodeWithText("@tachib.shin", substring = true).assertIsDisplayed()
         composeTestRule.onNodeWithTag("about_support").assertIsDisplayed()
+        composeTestRule.onNodeWithText("@tachib_shin", substring = true).assertIsDisplayed()
     }
 
     @Test

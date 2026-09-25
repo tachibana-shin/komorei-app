@@ -51,7 +51,7 @@ import git.shin.komorei.ui.tv.tvFocus
 
 private const val GITHUB_URL = "https://github.com/tachibana-shin/komorei-app"
 private const val DISCORD_URL = "https://discord.gg/9U8cC5Zk3s"
-private const val KOFI_URL = "https://ko-fi.com/skittyblock"
+private const val KOFI_URL = "https://ko-fi.com/tachib_shin"
 
 /** "Thông tin" — the Compose counterpart of Aidoku's `SettingsAboutView`. */
 @Composable
