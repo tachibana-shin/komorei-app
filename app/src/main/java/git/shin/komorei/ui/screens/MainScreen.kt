@@ -126,7 +126,6 @@ fun MainScreen(
         // The repo-management page is likewise a full-screen sub page.
         val isListingRoute = currentRoute == Screen.Listing.route
         val isSourceReposRoute = currentRoute == Screen.SourceRepos.route
-        val isSourceHomeRoute = currentRoute == Screen.SourceHome.route
         val isSourceSettingsRoute = currentRoute == Screen.SourceSettings.route
         val isSourceSearchRoute = currentRoute == Screen.SourceSearch.route
         val isNotificationsRoute = currentRoute == Screen.Notifications.route
@@ -184,7 +183,10 @@ fun MainScreen(
                 Scaffold(
                     bottomBar = {
                         AnimatedVisibility(
-                            visible = !isPlayerExpanded && !isFullscreen && !isListingRoute && !isSourceReposRoute && !isSourceHomeRoute && !isSourceSettingsRoute && !isSourceSearchRoute && !isNotificationsRoute && !isSettingsSubPageRoute,
+                            // SourceHome is a full source page but keeps the shell
+                            // navigation visible so the user can jump straight to
+                            // Settings (and the other top-level tabs) from it.
+                            visible = !isPlayerExpanded && !isFullscreen && !isListingRoute && !isSourceReposRoute && !isSourceSettingsRoute && !isSourceSearchRoute && !isNotificationsRoute && !isSettingsSubPageRoute,
                             enter = slideInVertically(initialOffsetY = { it }),
                             exit = slideOutVertically(targetOffsetY = { it })
                         ) {
