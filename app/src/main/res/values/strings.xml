@@ -464,6 +464,14 @@
     <string name="settings_advanced_logs">Nhật ký máy chủ</string>
     <string name="settings_advanced_logs_subtitle">Xem nhật ký từ các nguồn và ứng dụng</string>
     <string name="advanced_title">Nâng cao</string>
+    <string name="advanced_log_server">URL máy chủ logcat</string>
+    <string name="advanced_log_server_placeholder">http://10.0.2.2:9000</string>
+    <string name="advanced_log_server_hint">Dùng với komorei logcat --port 9000; máy thật dùng IP LAN của máy chạy CLI.</string>
+    <string name="advanced_log_server_saved">Đã lưu URL máy chủ logcat</string>
+    <string name="advanced_log_server_cleared">Đã tắt gửi log đến máy chủ</string>
+    <string name="advanced_log_server_invalid">URL máy chủ logcat không hợp lệ</string>
+    <string name="advanced_log_server_save_cd">Lưu URL máy chủ logcat</string>
+    <string name="advanced_log_server_clear_cd">Xoá URL máy chủ logcat</string>
     <string name="advanced_clear_source_cache">Xoá bộ nhớ đệm nguồn</string>
     <string name="advanced_clear_source_cache_subtitle">Buộc các nguồn tải lại trang chủ và danh sách</string>
     <string name="advanced_source_cache_cleared">Đã xoá bộ nhớ đệm nguồn</string>

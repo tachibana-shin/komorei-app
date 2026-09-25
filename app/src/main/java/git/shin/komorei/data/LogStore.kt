@@ -58,16 +58,17 @@ object LogStore {
 
     /** Appends a line, evicting the oldest ones past [MAX_ENTRIES]. */
     fun add(level: LogLevel = LogLevel.DEFAULT, message: String, sourceId: String? = null) {
+        val entry = LogEntry(level = level, message = message, sourceId = sourceId)
         synchronized(lock) {
             val current = _entries.value
             val next = if (current.size >= MAX_ENTRIES) {
-                current.subList(current.size - MAX_ENTRIES + 1, current.size).toList() +
-                    LogEntry(level = level, message = message, sourceId = sourceId)
+                current.subList(current.size - MAX_ENTRIES + 1, current.size).toList() + entry
             } else {
-                current + LogEntry(level = level, message = message, sourceId = sourceId)
+                current + entry
             }
             _entries.value = next
         }
+        LogStreamClient.send(entry.formatted())
     }
 
     fun debug(message: String, sourceId: String? = null) = add(LogLevel.DEBUG, message, sourceId)

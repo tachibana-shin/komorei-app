@@ -6,6 +6,7 @@ import android.os.Bundle
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import dagger.hilt.android.HiltAndroidApp
+import git.shin.komorei.data.LogStreamClient
 import git.shin.komorei.data.backup.BackupSyncScheduler
 import git.shin.komorei.data.remote.KomoreiDataSourceFactory
 import javax.inject.Inject
@@ -33,6 +34,7 @@ class KomoreiApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+        LogStreamClient.initialize(this)
         // Reconcile the persisted toggle/interval with WorkManager after process
         // death or an app update; this does not contact Drive by itself.
         backupSyncScheduler.reconcileCurrentSettings()

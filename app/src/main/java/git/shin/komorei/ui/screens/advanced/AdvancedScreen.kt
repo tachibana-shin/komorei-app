@@ -12,18 +12,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +47,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -59,11 +67,11 @@ import git.shin.komorei.ui.tv.tvFocus
  * group (`Settings.advancedSettings`).
  *
  * Aidoku groups four things under Advanced: logging (log server / export /
- * display), cache clears, history migration and a full reset. Android has no
- * "log server" (the Logs screen exports a file instead, which the share sheet
- * can POST anywhere), so the mapping is:
+ * display), cache clears, history migration and a full reset. Komorei keeps
+ * the same log-server concept: the URL entered here is POSTed to by the local
+ * `komorei logcat` server, while the Logs screen remains the local viewer.
  *
- * - **Logging**  → the server-log viewer + clear, as its own sub-page.
+ * - **Logging**  → optional remote log stream + local viewer/clear.
  * - **Caches**   → OkHttp's network cache (plus the image/cookie clears that
  *   already live in Settings).
  * - **Reset**    → clear the log buffer, with a confirm dialog, like Aidoku's
@@ -77,6 +85,7 @@ fun AdvancedScreen(
     viewModel: AdvancedViewModel = hiltViewModel(),
 ) {
     var confirmClearLogs by remember { mutableStateOf(false) }
+    var logServerInput by rememberSaveable { mutableStateOf(viewModel.logServerUrl.value) }
     val context = LocalContext.current
 
     // One-shot Toasts for the cache/cookie actions.
@@ -130,6 +139,15 @@ fun AdvancedScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             AdvancedSection(title = stringResource(R.string.logs_title)) {
+                LogServerUrlField(
+                    value = logServerInput,
+                    onValueChange = { logServerInput = it },
+                    onSave = { viewModel.saveLogServerUrl(logServerInput) },
+                    onClear = {
+                        logServerInput = ""
+                        viewModel.saveLogServerUrl("")
+                    },
+                )
                 AdvancedRow(
                     icon = Icons.Default.ReceiptLong,
                     title = stringResource(R.string.advanced_open_logs),
@@ -201,6 +219,62 @@ fun AdvancedScreen(
             },
         )
     }
+}
+
+@Composable
+private fun LogServerUrlField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onClear: () -> Unit,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .testTag("advanced_log_server_input"),
+        label = { Text(stringResource(R.string.advanced_log_server)) },
+        placeholder = { Text(stringResource(R.string.advanced_log_server_placeholder)) },
+        supportingText = { Text(stringResource(R.string.advanced_log_server_hint)) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Uri,
+            imeAction = ImeAction.Done,
+        ),
+        keyboardActions = KeyboardActions(onDone = { onSave() }),
+        trailingIcon = {
+            Row {
+                if (value.isNotBlank()) {
+                    IconButton(
+                        onClick = onClear,
+                        modifier = Modifier
+                            .tvFocus(shape = CircleShape, scale = 1.05f)
+                            .testTag("advanced_log_server_clear"),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = stringResource(R.string.advanced_log_server_clear_cd),
+                            tint = TextMuted,
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = onSave,
+                    modifier = Modifier
+                        .tvFocus(shape = CircleShape, scale = 1.05f)
+                        .testTag("advanced_log_server_save"),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = stringResource(R.string.advanced_log_server_save_cd),
+                        tint = AnimeRed,
+                    )
+                }
+            }
+        },
+    )
 }
 
 @Composable
