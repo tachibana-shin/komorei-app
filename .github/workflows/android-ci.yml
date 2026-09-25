@@ -112,7 +112,11 @@ jobs:
 
       - name: Install native tooling
         run: |
-          cargo install uniffi-bindgen --version 0.32.1 --locked
+          # The `uniffi-bindgen` binary ships in the `uniffi` crate (there is no
+          # `uniffi-bindgen` package on crates.io, and `uniffi_bindgen` is a
+          # binless library). The binary is behind the crate's `cli` feature, and
+          # the version must stay in lockstep with the runner's `uniffi` dep.
+          cargo install uniffi --version 0.32.1 --locked --features cli
           cargo install --path komorei-sdk/crates/cli --locked
 
       - name: Build test fixtures
