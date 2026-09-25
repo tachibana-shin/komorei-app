@@ -44,7 +44,7 @@ sealed class Screen(val route: String) {
     /** In-app notifications (new episodes for followed anime, source messages). */
     data object Notifications : Screen("notifications")
 
-    /** App-wide settings (source repos, caches, about) — distinct from per-source settings. */
+    /** App-wide settings (source repos, caches, about, insights) — distinct from per-source settings. */
     data object Settings : Screen("settings")
 
     /** The "Nâng cao" hub (server log, network cache, reset) — off Settings. */
@@ -52,6 +52,12 @@ sealed class Screen(val route: String) {
 
     /** Aidoku-style "Ghi nhật ký máy chủ" viewer — off Advanced. */
     data object Logs : Screen("logs")
+
+    /** App information and support links (Aidoku's About page). */
+    data object About : Screen("about")
+
+    /** Reading activity statistics (Aidoku's Insights page). */
+    data object Insights : Screen("insights")
 
     /**
      * A single source's "home screen" (Aidoku's NewSourceViewController): the

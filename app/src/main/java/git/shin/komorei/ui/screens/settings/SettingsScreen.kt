@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Cookie
 import androidx.compose.material.icons.filled.History
@@ -53,6 +54,8 @@ fun SettingsScreen(
     onOpenAdvanced: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
+    onOpenInsights: () -> Unit = {},
+    onOpenAbout: () -> Unit = {},
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) {
@@ -144,11 +147,18 @@ fun SettingsScreen(
                     testTag = "settings_version",
                 )
                 SettingsRow(
-                    icon = Icons.Default.Tune,
-                    title = stringResource(R.string.settings_about_app),
-                    subtitle = stringResource(R.string.settings_about_app_subtitle),
-                    onClick = null,
+                    icon = Icons.Default.Info,
+                    title = stringResource(R.string.settings_about),
+                    subtitle = stringResource(R.string.settings_about_subtitle),
+                    onClick = onOpenAbout,
                     testTag = "settings_about",
+                )
+                SettingsRow(
+                    icon = Icons.Default.BarChart,
+                    title = stringResource(R.string.settings_insights),
+                    subtitle = stringResource(R.string.settings_insights_subtitle),
+                    onClick = onOpenInsights,
+                    testTag = "settings_insights",
                 )
             }
 

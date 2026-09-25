@@ -68,6 +68,16 @@ class LibraryRepository @Inject constructor(
         return animeDao.getAnime(id, sourceId)?.isBookmarked ?: false
     }
 
+    /**
+     * Everything the "Thống kê" screen needs, derived from the saved history
+     * rows that correspond to Aidoku's reading sessions. The table is small
+     * (one row per watched episode), so the date aggregation happens in Kotlin
+     * rather than in a pile of SQL date functions.
+     */
+    suspend fun getInsights(now: Long = System.currentTimeMillis()): InsightsData {
+        return InsightsData.from(animeDao.getAllWatchHistory(), now)
+    }
+
     private fun Anime.toEntity(): AnimeEntity {
         return AnimeEntity(
             anime = this

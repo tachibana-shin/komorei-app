@@ -54,6 +54,8 @@ import git.shin.komorei.ui.screens.search.SourceSearchScreen
 import git.shin.komorei.ui.screens.settings.SettingsScreen
 import git.shin.komorei.ui.screens.source.SourceHomeScreen
 import git.shin.komorei.ui.screens.advanced.AdvancedScreen
+import git.shin.komorei.ui.screens.about.AboutScreen
+import git.shin.komorei.ui.screens.insights.InsightsScreen
 import git.shin.komorei.ui.screens.logs.LogsScreen
 import git.shin.komorei.ui.screens.source.SourceBrowserScreen
 import git.shin.komorei.ui.screens.source.SourceSettingsScreen
@@ -127,6 +129,11 @@ fun MainScreen(
         val isSourceSettingsRoute = currentRoute == Screen.SourceSettings.route
         val isSourceSearchRoute = currentRoute == Screen.SourceSearch.route
         val isNotificationsRoute = currentRoute == Screen.Notifications.route
+        val isAdvancedRoute = currentRoute == Screen.Advanced.route
+        val isLogsRoute = currentRoute == Screen.Logs.route
+        val isAboutRoute = currentRoute == Screen.About.route
+        val isInsightsRoute = currentRoute == Screen.Insights.route
+        val isSettingsSubPageRoute = isAdvancedRoute || isLogsRoute || isAboutRoute || isInsightsRoute
 
         Box(modifier = Modifier.fillMaxSize()) {
             if (isWideScreen) {
@@ -175,7 +182,7 @@ fun MainScreen(
                 Scaffold(
                     bottomBar = {
                         AnimatedVisibility(
-                            visible = !isPlayerExpanded && !isFullscreen && !isListingRoute && !isSourceReposRoute && !isSourceHomeRoute && !isSourceSettingsRoute && !isSourceSearchRoute && !isNotificationsRoute,
+                            visible = !isPlayerExpanded && !isFullscreen && !isListingRoute && !isSourceReposRoute && !isSourceHomeRoute && !isSourceSettingsRoute && !isSourceSearchRoute && !isNotificationsRoute && !isSettingsSubPageRoute,
                             enter = slideInVertically(initialOffsetY = { it }),
                             exit = slideOutVertically(targetOffsetY = { it })
                         ) {
@@ -370,7 +377,15 @@ fun MainNavigationHost(
             SettingsScreen(
                 onOpenSourceRepos = { navController.navigate(Screen.SourceRepos.route) },
                 onOpenAdvanced = { navController.navigate(Screen.Advanced.route) },
+                onOpenInsights = { navController.navigate(Screen.Insights.route) },
+                onOpenAbout = { navController.navigate(Screen.About.route) },
             )
+        }
+        composable(Screen.About.route) {
+            AboutScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.Insights.route) {
+            InsightsScreen(onBack = { navController.popBackStack() })
         }
         composable(Screen.Advanced.route) {
             AdvancedScreen(

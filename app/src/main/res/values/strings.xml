@@ -422,8 +422,6 @@
     <string name="settings_search_history_cleared">Đã xoá lịch sử tìm kiếm</string>
     <string name="settings_section_about">Giới thiệu</string>
     <string name="settings_version">Phiên bản</string>
-    <string name="settings_about_app">Komorē</string>
-    <string name="settings_about_app_subtitle">Trình xem anime đa nguồn</string>
 
     <!-- Logs Screen (Aidoku-style server log) -->
     <string name="logs_title">Nhật ký máy chủ</string>
@@ -452,4 +450,44 @@
     <string name="advanced_clear_cookies">Xoá cookie và phiên đăng nhập</string>
     <string name="advanced_clear_cookies_subtitle">Buộc đăng nhập lại vào các nguồn yêu cầu cookie</string>
     <string name="advanced_open_logs">Mở nhật ký máy chủ</string>
+
+    <!-- About / Thông tin (Aidoku SettingsAboutView) -->
+    <string name="settings_about">Thông tin</string>
+    <string name="settings_about_subtitle">Phiên bản, mã nguồn và liên kết</string>
+    <string name="settings_insights">Thống kê</string>
+    <string name="settings_insights_subtitle">Chuỗi ngày xem, lịch sử và thời lượng</string>
+    <string name="about_title">Thông tin</string>
+    <string name="about_description">Komorei là trình xem anime đa nguồn, xây dựng trên nền tảng Aidoku.</string>
+    <string name="about_version_section">Phiên bản</string>
+    <string name="about_version">Phiên bản</string>
+    <string name="about_build">Bản build</string>
+    <string name="about_links_section">Liên kết</string>
+    <string name="about_github">Mã nguồn trên GitHub</string>
+    <string name="about_github_subtitle">Xem mã nguồn và đóng góp</string>
+    <string name="about_discord">Cộng đồng Discord</string>
+    <string name="about_discord_subtitle">Thảo luận và hỗ trợ cùng cộng đồng</string>
+    <string name="about_support">Ủng hộ qua Ko-fi</string>
+    <string name="about_support_subtitle">Giúp duy trì và phát triển Komorei</string>
+
+    <!-- Insights / Thống kê (Aidoku InsightsView) -->
+    <string name="insights_title">Thống kê</string>
+    <string name="insights_streaks">Chuỗi ngày</string>
+    <string name="insights_current_streak">Chuỗi hiện tại</string>
+    <string name="insights_longest_streak">Chuỗi dài nhất</string>
+    <string name="insights_days">ngày</string>
+    <string name="insights_no_streak">Chưa có chuỗi ngày</string>
+    <string name="insights_no_streak_text">Xem phim trong hai ngày liên tiếp để bắt đầu.</string>
+    <string name="insights_stats">Thống kê tổng quan</string>
+    <string name="insights_stat_episodes">Tập đã xem</string>
+    <string name="insights_stat_series">Anime đã xem</string>
+    <string name="insights_stat_hours">Thời gian xem</string>
+    <string name="insights_unit_episodes">tập</string>
+    <string name="insights_unit_series">anime</string>
+    <string name="insights_unit_hours">giờ</string>
+    <string name="insights_time_note">Thời gian xem được ước tính từ tiến độ đã lưu của các tập.</string>
+    <string name="insights_this_month">Tháng này: %1$d</string>
+    <string name="insights_this_year">Năm nay: %1$d</string>
+    <string name="insights_activity">Hoạt động theo tháng</string>
+    <string name="insights_year_total">%1$d tập</string>
+    <string name="insights_empty">Chưa có dữ liệu xem để thống kê.</string>
 </resources>

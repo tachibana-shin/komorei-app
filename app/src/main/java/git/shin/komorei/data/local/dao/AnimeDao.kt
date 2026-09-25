@@ -81,6 +81,13 @@ interface AnimeDao {
     @Query("SELECT * FROM anime_library WHERE sourceId = :sourceId")
     suspend fun getAnimesForSource(sourceId: String): List<AnimeEntity>
 
+    // --- Insights (Thống kê) ---
+    // One row per watched episode, so the whole table is small enough to read in
+    // one shot and derive streaks / heatmap / monthly counts in Kotlin (much
+    // easier to test than a pile of date-bucketed SQL).
+    @Query("SELECT * FROM watch_history")
+    suspend fun getAllWatchHistory(): List<WatchHistoryEntity>
+
     @Query("SELECT * FROM watch_history WHERE sourceId = :sourceId")
     suspend fun getWatchHistoryForSource(sourceId: String): List<WatchHistoryEntity>
 
