@@ -232,13 +232,23 @@ tasks.withType<Test>().configureEach {
 
 // ─── uniffi Kotlin bindings — generated at build time (flutter_rust_bridge style) ───
 // The Rust trait lives in runner/; bindgen emits
-// build/generated/uniffi/kotlin/git/shin/komorei/sdk/runner/komorei_runner.kt.
+// build/generated/uniffi/kotlin/git/shin/komorei/sdk/runner/komorei_runner.kt
+// (bindgen emits into build/generated/uniffi/staging, the patch task copies the
+// patched file across — see `uniffiStagingDir` for why).
 // runner/uniffi.toml sets package_name (kills the old sed); the
 // `RunnerException.Source` patch is re-applied by patchUniffiBindings (uniffi
 // 0.32.1 Kotlin codegen emits a REDECLARING computed `override val message` —
 // keep the constructor field). Use explicit Exec TASKS, NOT `project.exec {}`
 // (the Project.exec/javaexec family was removed in Gradle 9.6+).
 val uniffiBindingsDir = layout.buildDirectory.dir("generated/uniffi/kotlin")
+// bindgen writes HERE, and the patch task copies the patched file into
+// `uniffiBindingsDir`. bindgen's out-dir used to be the patch task's own
+// @OutputDirectory, which made that dir an input AND an output of the same
+// task: Gradle 9 then rejects the build with "Input file does not exist ...
+// patchUniffiBindings" on a CLEAN tree (it only survived locally because
+// app/build/ was left over from a previous build). A staging dir gives the two
+// tasks a real producer -> consumer edge.
+val uniffiStagingDir = layout.buildDirectory.dir("generated/uniffi/staging")
 val uniffiBindgenPath = providers
   .gradleProperty("uniffiBindgen")
   .orElse("${System.getProperty("user.home")}/.cargo/bin/uniffi-bindgen")
@@ -256,7 +266,7 @@ val cargoBuildUniffi = tasks.register<Exec>("cargoBuildUniffi") {
 }
 
 val generateUniffiBindings = tasks.register<Exec>("generateUniffiBindings") {
-  description = "Run uniffi-bindgen to emit the Kotlin bindings into build/generated/uniffi/kotlin"
+  description = "Run uniffi-bindgen to emit the Kotlin bindings into the staging dir"
   dependsOn(cargoBuildUniffi)
   val runnerDir = rootProject.layout.projectDirectory.dir("runner")
   workingDir = runnerDir.asFile
@@ -266,23 +276,30 @@ val generateUniffiBindings = tasks.register<Exec>("generateUniffiBindings") {
     "--library", "target/debug/libkomorei_runner.so",
     "--language", "kotlin",
     "--no-format",
-    "--out-dir", uniffiBindingsDir.get().asFile.absolutePath,
+    "--out-dir", uniffiStagingDir.get().asFile.absolutePath,
   )
   inputs.file(runnerDir.file("uniffi.toml"))
   // the .so produced by cargoBuildUniffi doubles as the ordering edge
   inputs.file(runnerDir.file("target/debug/libkomorei_runner.so"))
+  outputs.dir(uniffiStagingDir)
 }
 
 // Custom task so the generated dir can be a managed @OutputDirectory — that's
 // what `androidComponents.onVariants` needs to wire it as a generated source dir.
 abstract class PatchUniffiBindings : DefaultTask() {
+  // Produced by generateUniffiBindings — declared so Gradle knows the edge.
+  @get:InputDirectory
+  abstract val stagingDir: DirectoryProperty
+
   @get:OutputDirectory
   abstract val bindingsDir: DirectoryProperty
 
   @TaskAction
   fun patch() {
-    val f = bindingsDir.get().asFile.resolve("git/shin/komorei/sdk/runner/komorei_runner.kt")
-    val patched = f.readText()
+    val relative = "git/shin/komorei/sdk/runner/komorei_runner.kt"
+    val src = stagingDir.get().asFile.resolve(relative)
+    val dst = bindingsDir.get().asFile.resolve(relative)
+    val patched = src.readText()
       .replace(
         "        val `message`: kotlin.String",
         "        override val `message`: kotlin.String",
@@ -302,15 +319,16 @@ abstract class PatchUniffiBindings : DefaultTask() {
     check("NOTE: no computed `override val message` here" in patched) {
       "RunnerException.Source computed getter not found — uniffi codegen changed, update the patch in app/build.gradle.kts"
     }
-    f.writeText(patched)
+    dst.parentFile.mkdirs()
+    dst.writeText(patched)
   }
 }
 
 val patchUniffiBindings = tasks.register<PatchUniffiBindings>("patchUniffiBindings") {
   description = "Re-apply the RunnerException.Source patch (uniffi 0.32.1 codegen bug)"
   dependsOn(generateUniffiBindings)
+  stagingDir.set(uniffiStagingDir)
   bindingsDir.set(uniffiBindingsDir)
-  inputs.dir(uniffiBindingsDir)
 }
 
 // Wire the generated bindings into every variant's Kotlin (java fallback)
