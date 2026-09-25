@@ -14,6 +14,14 @@ local.properties
 client_secret_*.json
 google-services.json
 
+# Local secrets consumed by the Secrets Gradle Plugin (`secrets { }` in
+# app/build.gradle.kts). Commit `.env.example` instead — the plugin falls back to
+# it, so builds work without a local `.env`. Currently a single `API_KEY`
+# placeholder for the planned Gemini feature; nothing reads it yet.
+.env
+.env.local
+!.env.example
+
 # Rust runner build output (symlinked to /mnt/komorei-data/komorei-builds/)
 runner/target/
 app/src/main/jniLibs
