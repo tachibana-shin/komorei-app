@@ -164,9 +164,29 @@ jobs:
           echo "STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
           echo "KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
 
+      - name: Configure Google Drive OAuth
+        if: steps.semantic.outputs.new_release_published == 'true'
+        env:
+          GOOGLE_ANDROID_CLIENT_ID: ${{ secrets.GOOGLE_ANDROID_CLIENT_ID }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        run: |
+          test -n "$GOOGLE_ANDROID_CLIENT_ID"
+          test -n "$GOOGLE_WEB_CLIENT_ID"
+          echo "GOOGLE_ANDROID_CLIENT_ID=$GOOGLE_ANDROID_CLIENT_ID" >> "$GITHUB_ENV"
+          echo "GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" >> "$GITHUB_ENV"
+
       - name: Build signed AAB and APK
         if: steps.semantic.outputs.new_release_published == 'true'
         run: ./gradlew :app:bundleRelease :app:assembleRelease --stacktrace
+
+      - name: Verify release configuration
+        if: steps.semantic.outputs.new_release_published == 'true'
+        run: |
+          build_config="app/build/generated/source/buildConfig/release/git/shin/komorei/BuildConfig.java"
+          test -f "$build_config"
+          ! grep -q 'UNCONFIGURED' "$build_config"
+          grep -q 'DRIVE_ANDROID_CLIENT_ID' "$build_config"
+          grep -q 'DRIVE_WEB_CLIENT_ID' "$build_config"
 
       - name: Verify release signatures
         if: steps.semantic.outputs.new_release_published == 'true'
