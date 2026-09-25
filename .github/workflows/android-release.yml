@@ -1,0 +1,192 @@
+name: Android Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: CI gate
+    uses: ./.github/workflows/android-ci.yml
+    secrets:
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+    permissions:
+      contents: read
+
+  release:
+    name: Build and publish release
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout Komorei
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Checkout komorei-sdk
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+          repository: tachibana-shin/komorei-sdk
+          path: komorei-sdk
+          fetch-depth: 0
+
+      - name: Checkout komorei-sources
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+          repository: tachibana-shin/komorei-sources
+          path: sources
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager "platform-tools" "build-tools;36.0.0"
+          sdkmanager "platforms;android-37" || sdkmanager "platforms;android-37.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            runner/target
+            komorei-sdk/target
+            sources/target
+          key: ${{ runner.os }}-release-cargo-${{ hashFiles('runner/Cargo.lock', 'komorei-sdk/Cargo.lock', 'sources/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-release-cargo-
+
+      - name: Install native tooling
+        run: |
+          cargo install uniffi-bindgen --version 0.32.1 --locked
+          cargo install --path komorei-sdk/crates/cli --locked
+
+      - name: Build release fixtures
+        run: |
+          komorei package komorei-sdk/examples/example-source
+          for source in sources/sources/*; do
+            [ -d "$source" ] || continue
+            [ -f "$source/.skip" ] && continue
+            komorei package "$source"
+          done
+
+      - name: Grant Gradle wrapper permission
+        run: chmod +x gradlew
+
+      - name: Install semantic-release dependencies
+        run: bun ci
+
+      - name: Predict next release
+        id: semantic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          output="$(bunx semantic-release \
+            --dry-run \
+            --no-ci \
+            --branches main \
+            --plugins \
+              @semantic-release/commit-analyzer \
+              @semantic-release/release-notes-generator 2>&1)"
+          printf '%s\n' "$output"
+          plain="$(printf '%s' "$output" | sed -E 's/\x1B\[[0-9;]*[[:alpha:]]//g')"
+          version="$(printf '%s\n' "$plain" | sed -nE 's/.*next release version is ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' | tail -n 1)"
+          if [ -n "$version" ]; then
+            echo "new_release_published=true" >> "$GITHUB_OUTPUT"
+            echo "new_release_version=$version" >> "$GITHUB_OUTPUT"
+          else
+            echo "new_release_published=false" >> "$GITHUB_OUTPUT"
+            echo "new_release_version=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update Gradle version properties
+        if: steps.semantic.outputs.new_release_published == 'true'
+        env:
+          NEW_RELEASE_VERSION: ${{ steps.semantic.outputs.new_release_version }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+          path = Path("gradle.properties")
+          version = os.environ["NEW_RELEASE_VERSION"].removeprefix("v")
+          version_code = 100000 + int(os.environ["GITHUB_RUN_NUMBER"])
+          text = path.read_text()
+          text = re.sub(r"^VERSION_NAME=.*$", f"VERSION_NAME={version}", text, flags=re.MULTILINE)
+          text = re.sub(r"^VERSION_CODE=.*$", f"VERSION_CODE={version_code}", text, flags=re.MULTILINE)
+          path.write_text(text)
+          PY
+
+      - name: Configure release signing
+        if: steps.semantic.outputs.new_release_published == 'true'
+        env:
+          KEYSTORE_CONTENT: ${{ secrets.KEYSTORE_CONTENT }}
+          KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_CONTENT"
+          test -n "$KEYSTORE_ALIAS"
+          test -n "$STORE_PASSWORD"
+          test -n "$KEY_PASSWORD"
+          echo "$KEYSTORE_CONTENT" | base64 --decode > "$RUNNER_TEMP/komorei-release.keystore"
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/komorei-release.keystore" >> "$GITHUB_ENV"
+          echo "KEYSTORE_ALIAS=$KEYSTORE_ALIAS" >> "$GITHUB_ENV"
+          echo "STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Build signed AAB and APK
+        if: steps.semantic.outputs.new_release_published == 'true'
+        run: ./gradlew :app:bundleRelease :app:assembleRelease --stacktrace
+
+      - name: Verify release signatures
+        if: steps.semantic.outputs.new_release_published == 'true'
+        run: |
+          apk="$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' -print -quit)"
+          aab="$(find app/build/outputs/bundle/release -maxdepth 1 -name '*.aab' -print -quit)"
+          test -n "$apk"
+          test -n "$aab"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$apk"
+          # Upload keys are self-signed; -strict would reject their chain
+          # before Android gets a chance to verify the APK/Bundle signature.
+          jarsigner -verify "$aab"
+
+      - name: Publish semantic release
+        if: steps.semantic.outputs.new_release_published == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun run release

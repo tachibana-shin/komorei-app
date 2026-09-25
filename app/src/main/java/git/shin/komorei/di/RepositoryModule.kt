@@ -74,6 +74,18 @@ object RepositoryModule {
 
     @Provides
     @Singleton
+    @UpdateHttpClient
+    fun provideUpdateHttpClient(): OkHttpClient {
+        // OTA metadata/APK downloads must not inherit source cookies or header
+        // logging from the WebView-backed client.
+        return OkHttpClient.Builder()
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .build()
+    }
+
+    @Provides
+    @Singleton
     fun provideDriveBackupApi(@DriveHttpClient client: OkHttpClient): DriveBackupApi =
         GoogleDriveBackupApi(client)
 
@@ -152,3 +164,8 @@ object RepositoryModule {
 @Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION)
 annotation class DriveHttpClient
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+@Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION)
+annotation class UpdateHttpClient

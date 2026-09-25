@@ -24,11 +24,15 @@ import androidx.compose.material.icons.filled.Cookie
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,8 +43,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import git.shin.komorei.R
+import git.shin.komorei.data.update.UpdateInfo
+import git.shin.komorei.data.update.UpdateUiState
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.CardDark
@@ -60,6 +68,19 @@ fun SettingsScreen(
     onOpenBackups: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    val updateState by viewModel.updateState.collectAsStateWithLifecycle()
+    val updateSubtitle = when (val state = updateState) {
+        UpdateUiState.Idle -> stringResource(R.string.settings_update_check)
+        UpdateUiState.Checking -> stringResource(R.string.settings_update_checking)
+        is UpdateUiState.Available -> stringResource(
+            R.string.settings_update_available,
+            state.info.version,
+        )
+        is UpdateUiState.Downloading -> stringResource(
+            R.string.settings_update_downloading_progress,
+            state.progress,
+        )
+    }
     LaunchedEffect(Unit) {
         viewModel.messages.collect { messageRes ->
             Toast.makeText(context, messageRes, Toast.LENGTH_SHORT).show()
@@ -152,6 +173,17 @@ fun SettingsScreen(
 
             SettingsSection(title = stringResource(R.string.settings_section_about)) {
                 SettingsRow(
+                    icon = Icons.Default.SystemUpdateAlt,
+                    title = stringResource(R.string.settings_update),
+                    subtitle = updateSubtitle,
+                    onClick = if (updateState is UpdateUiState.Checking || updateState is UpdateUiState.Downloading) {
+                        null
+                    } else {
+                        viewModel::checkForUpdate
+                    },
+                    testTag = "settings_update",
+                )
+                SettingsRow(
                     icon = Icons.Default.Info,
                     title = stringResource(R.string.settings_version),
                     subtitle = viewModel.appVersion,
@@ -177,6 +209,66 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
+
+    (updateState as? UpdateUiState.Available)?.let { available ->
+        UpdateDialog(
+            info = available.info,
+            onDismiss = viewModel::dismissUpdate,
+            onConfirm = { viewModel.downloadAndInstall(available.info) },
+        )
+    }
+}
+
+@Composable
+private fun UpdateDialog(
+    info: UpdateInfo,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val notes = info.releaseNotes.ifBlank {
+        stringResource(R.string.settings_update_no_notes)
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CardDark,
+        title = { Text(stringResource(R.string.settings_update_available_title), color = TextPrimary) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    text = stringResource(R.string.settings_update_version, info.version),
+                    color = TextSecondary,
+                    fontSize = 14.sp,
+                    lineHeight = 19.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = notes,
+                    color = TextSecondary,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    maxLines = 16,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
+            ) {
+                Text(stringResource(R.string.settings_update_now), color = AnimeRed)
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
+            ) {
+                Text(stringResource(R.string.source_settings_cancel), color = TextSecondary)
+            }
+        },
+    )
 }
 
 @Composable

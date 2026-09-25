@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Lets the Logs screen share an exported log file through the system share
-  sheet: LogStore writes `logs/log_<timestamp>.txt` into the app's cache dir,
-  and FileProvider hands that one subdirectory to the receiving app.
+  FileProvider paths for the Logs share sheet and the OTA updater. The updater
+  writes a verified APK only to cache/updates and grants read access to the
+  system package installer through the provider URI.
 -->
 <paths>
     <cache-path
         name="logs"
         path="logs/" />
+    <cache-path
+        name="updates"
+        path="updates/" />
 </paths>

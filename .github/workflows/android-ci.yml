@@ -1,0 +1,150 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_call:
+    secrets:
+      PAT_TOKEN:
+        description: Read access to the private komorei-sdk and komorei-sources repositories
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Komorei
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+          fetch-depth: 0
+
+      - name: Checkout komorei-sdk
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+          repository: tachibana-shin/komorei-sdk
+          path: komorei-sdk
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            runner/target
+            komorei-sdk/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('runner/Cargo.lock', 'komorei-sdk/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build SDK example fixture
+        run: |
+          cargo install --path komorei-sdk/crates/cli --locked
+          komorei package komorei-sdk/examples/example-source
+
+      - name: Rust tests
+        run: cargo test --manifest-path runner/Cargo.toml --all-targets --locked
+
+  android:
+    name: Kotlin / Android tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Komorei
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+          fetch-depth: 0
+
+      - name: Checkout komorei-sdk
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+          repository: tachibana-shin/komorei-sdk
+          path: komorei-sdk
+          fetch-depth: 0
+
+      - name: Checkout komorei-sources
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+          repository: tachibana-shin/komorei-sources
+          path: sources
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager "platform-tools" "build-tools;36.0.0"
+          sdkmanager "platforms;android-37" || sdkmanager "platforms;android-37.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            runner/target
+            komorei-sdk/target
+            sources/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('runner/Cargo.lock', 'komorei-sdk/Cargo.lock', 'sources/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install native tooling
+        run: |
+          cargo install uniffi-bindgen --version 0.32.1 --locked
+          cargo install --path komorei-sdk/crates/cli --locked
+
+      - name: Build test fixtures
+        run: |
+          komorei package komorei-sdk/examples/example-source
+          for source in sources/sources/*; do
+            [ -d "$source" ] || continue
+            [ -f "$source/.skip" ] && continue
+            komorei package "$source"
+          done
+
+      - name: Grant Gradle wrapper permission
+        run: chmod +x gradlew
+
+      - name: Kotlin unit tests
+        run: ./gradlew :app:testDebugUnitTest
+
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: komorei-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

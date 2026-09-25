@@ -431,6 +431,18 @@
     <string name="settings_search_history_cleared">Đã xoá lịch sử tìm kiếm</string>
     <string name="settings_section_about">Giới thiệu</string>
     <string name="settings_version">Phiên bản</string>
+    <string name="settings_update">Cập nhật ứng dụng</string>
+    <string name="settings_update_check">Kiểm tra cập nhật</string>
+    <string name="settings_update_checking">Đang kiểm tra cập nhật…</string>
+    <string name="settings_update_available">Có bản cập nhật %1$s</string>
+    <string name="settings_update_downloading_progress">Đang tải cập nhật… %1$d%%</string>
+    <string name="settings_update_latest">Bạn đang dùng bản mới nhất</string>
+    <string name="settings_update_failed">Không thể kiểm tra hoặc tải bản cập nhật</string>
+    <string name="settings_update_available_title">Có bản cập nhật mới</string>
+    <string name="settings_update_version">Phiên bản %1$s</string>
+    <string name="settings_update_no_notes">Không có ghi chú phiên bản.</string>
+    <string name="settings_update_now">Cập nhật</string>
+    <string name="settings_update_install_started">Đã tải xong, đang mở trình cài đặt</string>
 
     <!-- Logs Screen (Aidoku-style server log) -->
     <string name="logs_title">Nhật ký máy chủ</string>

@@ -23,6 +23,8 @@ val googleDriveWebClientId = driveConfig(
   "google.drive.web.clientId",
   "GOOGLE_WEB_CLIENT_ID",
 ).ifBlank { "UNCONFIGURED" }
+val appVersionName = providers.gradleProperty("VERSION_NAME").orElse("1.0.0").get()
+val appVersionCode = providers.gradleProperty("VERSION_CODE").orElse("1").get().toInt()
 
 plugins {
   alias(libs.plugins.android.application)
@@ -43,8 +45,8 @@ android {
     minSdk = 24
     //noinspection OldTargetApi
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    versionCode = appVersionCode
+    versionName = appVersionName
 
     buildConfigField("String", "DRIVE_ANDROID_CLIENT_ID", "\"${googleDriveAndroidClientId.asBuildConfigString()}\"")
     buildConfigField("String", "DRIVE_WEB_CLIENT_ID", "\"${googleDriveWebClientId.asBuildConfigString()}\"")
@@ -57,7 +59,7 @@ android {
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
       storeFile = file(keystorePath)
       storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
+      keyAlias = System.getenv("KEYSTORE_ALIAS") ?: "upload"
       keyPassword = System.getenv("KEY_PASSWORD")
     }
   }

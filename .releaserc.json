@@ -1,0 +1,31 @@
+{
+  "branches": ["main"],
+  "tagFormat": "v${version}",
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/changelog",
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["gradle.properties", "CHANGELOG.md"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "app/build/outputs/apk/release/*.apk",
+            "label": "Android signed APK"
+          },
+          {
+            "path": "app/build/outputs/bundle/release/*.aab",
+            "label": "Android App Bundle"
+          }
+        ]
+      }
+    ]
+  ]
+}
