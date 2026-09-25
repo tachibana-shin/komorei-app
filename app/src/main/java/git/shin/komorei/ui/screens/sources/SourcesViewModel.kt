@@ -6,12 +6,12 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import git.shin.komorei.R
+import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.ExternalSourceInfo
-import git.shin.komorei.data.compareVersions
 import git.shin.komorei.data.RepoLoadResult
 import git.shin.komorei.data.SourceReposRepository
 import git.shin.komorei.data.SourceStateStore
-import git.shin.komorei.data.AnimeRepository
+import git.shin.komorei.data.compareVersions
 import git.shin.komorei.model.Source
 import git.shin.komorei.sdk.KrxManager
 import git.shin.komorei.sdk.KrxSourceRegistry
@@ -41,7 +41,12 @@ data class SourceUiState(
 /** A repo's fetch state used by the "Add source" sheet. */
 sealed interface RepoSectionState {
     data object Loading : RepoSectionState
-    data class Loaded(val name: String, val sources: List<ExternalSourceInfo>) : RepoSectionState
+
+    data class Loaded(
+        val name: String,
+        val sources: List<ExternalSourceInfo>,
+    ) : RepoSectionState
+
     data object Unavailable : RepoSectionState
 }
 
@@ -59,10 +64,9 @@ class SourcesViewModel @Inject constructor(
     private val stateStore: SourceStateStore,
     private val reposRepository: SourceReposRepository,
 ) : ViewModel() {
-
     val searchQuery = MutableStateFlow("")
 
-    private val _updateMap = MutableStateFlow<Map<String, String>>(emptyMap())
+    private val updateMap = MutableStateFlow<Map<String, String>>(emptyMap())
     private val _installingIds = MutableStateFlow<Set<String>>(emptySet())
     private val _repoStates = MutableStateFlow<Map<String, RepoSectionState>>(emptyMap())
 
@@ -77,38 +81,37 @@ class SourcesViewModel @Inject constructor(
     val repoStates: StateFlow<Map<String, RepoSectionState>> = _repoStates.asStateFlow()
 
     /** Installed sources (non-aggregator) — search-filtered, pinned first. */
-    val sources: StateFlow<List<SourceUiState>> = combine(
-        repository.sourcesFlow,
-        stateStore.disabled,
-        stateStore.pinned,
-        searchQuery,
-        _updateMap,
-    ) { all, disabled, pinned, query, updates ->
-        val q = query.trim().lowercase()
-        all
-            .filter { !it.isAggregator }
-            .filter {
-                q.isEmpty() ||
-                    it.name.lowercase().contains(q) ||
-                    it.id.lowercase().contains(q)
-            }
-            .map { source ->
-                SourceUiState(
-                    source = source,
-                    enabled = source.id !in disabled,
-                    pinnedIndex = pinned.indexOf(source.id),
-                    isUserInstalled = registry.isUserInstalled(source.id),
-                    updateAvailableVersion = updates[source.id],
+    val sources: StateFlow<List<SourceUiState>> =
+        combine(
+            repository.sourcesFlow,
+            stateStore.disabled,
+            stateStore.pinned,
+            searchQuery,
+            updateMap,
+        ) { all, disabled, pinned, query, updates ->
+            val q = query.trim().lowercase()
+            all
+                .filter { !it.isAggregator }
+                .filter {
+                    q.isEmpty() ||
+                        it.name.lowercase().contains(q) ||
+                        it.id.lowercase().contains(q)
+                }.map { source ->
+                    SourceUiState(
+                        source = source,
+                        enabled = source.id !in disabled,
+                        pinnedIndex = pinned.indexOf(source.id),
+                        isUserInstalled = registry.isUserInstalled(source.id),
+                        updateAvailableVersion = updates[source.id],
+                    )
+                }.sortedWith(
+                    compareBy<SourceUiState>(
+                        { it.pinnedIndex == -1 && it.updateAvailableVersion == null },
+                        { if (it.pinnedIndex >= 0) it.pinnedIndex else Int.MAX_VALUE },
+                        { it.source.name.lowercase() },
+                    ),
                 )
-            }
-            .sortedWith(
-                compareBy<SourceUiState>(
-                    { it.pinnedIndex == -1 && it.updateAvailableVersion == null },
-                    { if (it.pinnedIndex >= 0) it.pinnedIndex else Int.MAX_VALUE },
-                    { it.source.name.lowercase() },
-                )
-            )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val repos: StateFlow<List<String>> = stateStore.repos
 
@@ -116,9 +119,12 @@ class SourcesViewModel @Inject constructor(
         searchQuery.value = query
     }
 
-    fun setEnabled(source: Source, enabled: Boolean) {
+    fun setEnabled(
+        source: Source,
+        enabled: Boolean,
+    ) {
         stateStore.setDisabled(source.id, !enabled)
-        if (enabled) _updateMap.update { it - source.id }
+        if (enabled) updateMap.update { it - source.id }
     }
 
     fun togglePinned(source: Source) {
@@ -130,7 +136,7 @@ class SourcesViewModel @Inject constructor(
         viewModelScope.launch {
             stateStore.unpin(source.id)
             stateStore.setDisabled(source.id, false)
-            _updateMap.update { it - source.id }
+            updateMap.update { it - source.id }
             registry.uninstall(source.id)
         }
     }
@@ -174,7 +180,7 @@ class SourcesViewModel @Inject constructor(
                     result.repo.sources.forEach { ext ->
                         val installed = repository.sources.firstOrNull { it.id == ext.id } ?: return@forEach
                         if (compareVersions(ext.version, installed.version) > 0) {
-                            _updateMap.update { it + (ext.id to ext.version) }
+                            updateMap.update { it + (ext.id to ext.version) }
                             found++
                         }
                     }
@@ -186,7 +192,7 @@ class SourcesViewModel @Inject constructor(
     }
 
     fun dismissUpdate(source: Source) {
-        _updateMap.update { it - source.id }
+        updateMap.update { it - source.id }
     }
 
     /**
@@ -199,7 +205,9 @@ class SourcesViewModel @Inject constructor(
             stateStore.repos.value.forEach { url ->
                 when (val result = reposRepository.fetchSourceList(url)) {
                     is RepoLoadResult.Success ->
-                        result.repo.sources.filter { it.id == source.id }.forEach(candidates::add)
+                        result.repo.sources
+                            .filter { it.id == source.id }
+                            .forEach(candidates::add)
                     RepoLoadResult.Unavailable -> Unit
                 }
             }
@@ -240,16 +248,17 @@ class SourcesViewModel @Inject constructor(
         _installingIds.update { it + info.id }
         viewModelScope.launch {
             val url = info.downloadURL
-            val ok = url?.let { reposRepository.downloadPackage(it) }?.let { bytes ->
-                val meta = registry.installKrx(bytes)
-                if (meta != null) {
-                    stateStore.setDisabled(meta.id, false)
-                    _updateMap.update { it - meta.id }
-                    true
-                } else {
-                    false
-                }
-            } ?: false
+            val ok =
+                url?.let { reposRepository.downloadPackage(it) }?.let { bytes ->
+                    val meta = registry.installKrx(bytes)
+                    if (meta != null) {
+                        stateStore.setDisabled(meta.id, false)
+                        updateMap.update { it - meta.id }
+                        true
+                    } else {
+                        false
+                    }
+                } ?: false
             _installingIds.update { it - info.id }
             if (ok) {
                 sendMessage(R.string.sources_import_success)

@@ -4,6 +4,9 @@ import android.webkit.WebView
 import androidx.test.core.app.ApplicationProvider
 import git.shin.komorei.data.remote.HEADER_X_REQUESTED_WITH
 import git.shin.komorei.sdk.runner.HostHttpMethod
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
@@ -35,7 +38,6 @@ import java.util.concurrent.atomic.AtomicInteger
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class KrxHostChallengeTest {
-
     private val calls = AtomicInteger(0)
 
     @Before
@@ -62,32 +64,39 @@ class KrxHostChallengeTest {
         message: String,
         body: String,
         contentType: String,
-    ): Response = Response.Builder()
-        .request(request)
-        .protocol(Protocol.HTTP_1_1)
-        .code(code)
-        .message(message)
-        .header("Content-Type", contentType)
-        .body(body.toResponseBody(contentType.toMediaType()))
-        .build()
+    ): Response =
+        Response
+            .Builder()
+            .request(request)
+            .protocol(Protocol.HTTP_1_1)
+            .code(code)
+            .message(message)
+            .header("Content-Type", contentType)
+            .body(body.toResponseBody(contentType.toMediaType()))
+            .build()
 
     /** Client whose interceptor plays the Nth response from a script. */
     private fun scriptedClient(script: (call: Int, request: okhttp3.Request) -> Response): OkHttpClient =
-        OkHttpClient.Builder().addInterceptor { chain ->
-            script(calls.incrementAndGet(), chain.request())
-        }.build()
+        OkHttpClient
+            .Builder()
+            .addInterceptor { chain ->
+                script(calls.incrementAndGet(), chain.request())
+            }.build()
 
-    private fun get(host: KrxHostImpl, url: String = "https://example.com/api") =
-        host.netRequest(HostHttpMethod.GET, url, emptyMap(), byteArrayOf(), null)
+    private fun get(
+        host: KrxHostImpl,
+        url: String = "https://example.com/api",
+    ) = host.netRequest(HostHttpMethod.GET, url, emptyMap(), byteArrayOf(), null)
 
     // ---- plain errors are NOT challenges -----------------------------------
 
     @Test
     fun `plain 403 without challenge markers is returned as-is and not retried`() {
-        val host = KrxHostImpl(
-            context(),
-            scriptedClient { _, request -> response(request, 403, "Forbidden", "<html><body>Access denied</body></html>", "text/html") },
-        )
+        val host =
+            KrxHostImpl(
+                context(),
+                scriptedClient { _, request -> response(request, 403, "Forbidden", "<html><body>Access denied</body></html>", "text/html") },
+            )
         val resp = get(host)
         assertEquals(403, resp.status)
         assertEquals("single attempt — a bare 403 is not a challenge", 1, calls.get())
@@ -96,10 +105,11 @@ class KrxHostChallengeTest {
 
     @Test
     fun `challenge markers on a 200 or non-html body are not treated as challenges`() {
-        val host = KrxHostImpl(
-            context(),
-            scriptedClient { _, request -> response(request, 200, "OK", challengeHtml(), "text/html") },
-        )
+        val host =
+            KrxHostImpl(
+                context(),
+                scriptedClient { _, request -> response(request, 200, "OK", challengeHtml(), "text/html") },
+            )
         val resp = get(host)
         assertEquals(200, resp.status)
         assertEquals(1, calls.get())
@@ -110,16 +120,17 @@ class KrxHostChallengeTest {
     @Test
     fun `403 challenge is solved in a headless webview then retried`() {
         var capturedView: WebView? = null
-        val host = KrxHostImpl(
-            context(),
-            scriptedClient { call, request ->
-                if (call == 1) {
-                    response(request, 403, "Forbidden", challengeHtml(), "text/html")
-                } else {
-                    response(request, 200, "OK", "{\"ok\":true}", "application/json")
-                }
-            },
-        )
+        val host =
+            KrxHostImpl(
+                context(),
+                scriptedClient { call, request ->
+                    if (call == 1) {
+                        response(request, 403, "Forbidden", challengeHtml(), "text/html")
+                    } else {
+                        response(request, 200, "OK", "{\"ok\":true}", "application/json")
+                    }
+                },
+            )
         host.jsEvalOverride = { "false" } // the challenge document already cleared
         host.onChallengeWebViewCreated = { capturedView = it }
 
@@ -140,33 +151,42 @@ class KrxHostChallengeTest {
     @Test
     fun `headless stall falls back to the visible browser and retries after the user completes`() {
         val sawPending = AtomicBoolean(false)
-        val host = KrxHostImpl(
-            context(),
-            scriptedClient { call, request ->
-                if (call == 1) {
-                    response(request, 403, "Forbidden", challengeHtml(), "text/html")
-                } else {
-                    response(request, 200, "OK", "ok", "text/plain")
-                }
-            },
-        )
+        val host =
+            KrxHostImpl(
+                context(),
+                scriptedClient { call, request ->
+                    if (call == 1) {
+                        response(request, 403, "Forbidden", challengeHtml(), "text/html")
+                    } else {
+                        response(request, 200, "OK", "ok", "text/plain")
+                    }
+                },
+            )
         host.jsEvalOverride = { "true" } // the challenge never clears headlessly
         host.challengeSolveTimeoutMs = 50
         host.challengePollIntervalMs = 10
 
-        val watcher = Thread {
-            while (true) {
-                val p = JsChallengeCoordinator.pending.value
-                if (p != null) sawPending.set(true)
-                if (sawPending.get() && p == null) break // consumed
-                Thread.sleep(2)
+        val watcher =
+            Thread {
+                // Collect the flow rather than polling `pending.value` on a
+                // timer: the pending window is short, so a 2ms poll could
+                // straddle "published" and "consumed" and miss the request
+                // entirely — which is exactly how this test used to fail
+                // intermittently on a loaded machine.
+                runBlocking {
+                    runCatching {
+                        withTimeout(WATCH_TIMEOUT_MS) {
+                            JsChallengeCoordinator.pending.first { it != null }
+                        }
+                    }
+                }.onSuccess { sawPending.set(true) }
             }
-        }
         watcher.start()
-        val completer = Thread {
-            Thread.sleep(120)
-            JsChallengeCoordinator.completeBypass()
-        }
+        val completer =
+            Thread {
+                Thread.sleep(120)
+                JsChallengeCoordinator.completeBypass()
+            }
         completer.start()
 
         val resp = get(host)
@@ -182,18 +202,20 @@ class KrxHostChallengeTest {
 
     @Test
     fun `cancelling the visible browser returns the 403 without retry`() {
-        val host = KrxHostImpl(
-            context(),
-            scriptedClient { _, request -> response(request, 403, "Forbidden", challengeHtml(), "text/html") },
-        )
+        val host =
+            KrxHostImpl(
+                context(),
+                scriptedClient { _, request -> response(request, 403, "Forbidden", challengeHtml(), "text/html") },
+            )
         host.jsEvalOverride = { "true" }
         host.challengeSolveTimeoutMs = 50
         host.challengePollIntervalMs = 10
 
-        val canceller = Thread {
-            Thread.sleep(100)
-            JsChallengeCoordinator.cancelBypass()
-        }
+        val canceller =
+            Thread {
+                Thread.sleep(100)
+                JsChallengeCoordinator.cancelBypass()
+            }
         canceller.start()
 
         val resp = get(host)
@@ -203,5 +225,10 @@ class KrxHostChallengeTest {
         assertEquals(403, resp.status)
         assertEquals("no retry after the user cancelled", 1, calls.get())
         assertNull(JsChallengeCoordinator.pending.value)
+    }
+
+    private companion object {
+        /** How long the watcher waits for the coordinator to publish `pending`. */
+        const val WATCH_TIMEOUT_MS = 5_000L
     }
 }

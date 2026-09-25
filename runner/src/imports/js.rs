@@ -195,10 +195,10 @@ fn context_eval_async(
 	};
 	let host = caller.data().host.clone();
 	std::thread::spawn(move || {
-		if let Ok(value) = host.js_context_eval(handle, code) {
-			if value > 0 {
-				let _ = host.js_value_release(value);
-			}
+		if let Ok(value) = host.js_context_eval(handle, code)
+			&& value > 0
+		{
+			let _ = host.js_value_release(value);
 		}
 	});
 	0
@@ -407,10 +407,10 @@ fn webview_eval_async(
 	};
 	let host = caller.data().host.clone();
 	std::thread::spawn(move || {
-		if let Ok(value) = host.js_webview_eval(handle, code) {
-			if value > 0 {
-				let _ = host.js_value_release(value);
-			}
+		if let Ok(value) = host.js_webview_eval(handle, code)
+			&& value > 0
+		{
+			let _ = host.js_value_release(value);
 		}
 	});
 	0

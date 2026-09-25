@@ -7,8 +7,8 @@
 
 use std::borrow::Cow;
 
-use komorei::{LoginMethod, SortFilterDefault};
 use crate::error::RunnerError;
+use komorei::{LoginMethod, SortFilterDefault};
 
 // ---------------------------------------------------------------------------
 // Filter
@@ -16,9 +16,19 @@ use crate::error::RunnerError;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FilterKindBuf {
-	Text { placeholder: Option<String> },
-	Sort { can_ascend: bool, options: Vec<String>, default: Option<SortFilterDefault> },
-	Check { name: Option<String>, can_exclude: bool, default: Option<bool> },
+	Text {
+		placeholder: Option<String>,
+	},
+	Sort {
+		can_ascend: bool,
+		options: Vec<String>,
+		default: Option<SortFilterDefault>,
+	},
+	Check {
+		name: Option<String>,
+		can_exclude: bool,
+		default: Option<bool>,
+	},
 	Select {
 		is_genre: bool,
 		uses_tag_style: bool,
@@ -36,7 +46,11 @@ pub enum FilterKindBuf {
 		default_excluded: Option<Vec<String>>,
 	},
 	Note(String),
-	Range { min: Option<f32>, max: Option<f32>, decimal: bool },
+	Range {
+		min: Option<f32>,
+		max: Option<f32>,
+		decimal: bool,
+	},
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -50,28 +64,40 @@ pub struct FilterBuf {
 impl FilterBuf {
 	pub fn into_komorei(self) -> komorei::Filter {
 		let kind = match self.kind {
-			FilterKindBuf::Text { placeholder } => {
-				komorei::FilterKind::Text { placeholder: placeholder.map(Cow::Owned) }
-			}
-			FilterKindBuf::Sort { can_ascend, options, default } => komorei::FilterKind::Sort {
+			FilterKindBuf::Text { placeholder } => komorei::FilterKind::Text {
+				placeholder: placeholder.map(Cow::Owned),
+			},
+			FilterKindBuf::Sort {
+				can_ascend,
+				options,
+				default,
+			} => komorei::FilterKind::Sort {
 				can_ascend,
 				options: options.into_iter().map(Cow::Owned).collect(),
 				default,
 			},
-			FilterKindBuf::Check { name, can_exclude, default } => komorei::FilterKind::Check {
+			FilterKindBuf::Check {
+				name,
+				can_exclude,
+				default,
+			} => komorei::FilterKind::Check {
 				name: name.map(Cow::Owned),
 				can_exclude,
 				default,
 			},
-			FilterKindBuf::Select { is_genre, uses_tag_style, options, ids, default } => {
-				komorei::FilterKind::Select {
-					is_genre,
-					uses_tag_style,
-					options: options.into_iter().map(Cow::Owned).collect(),
-					ids: ids.map(|v| v.into_iter().map(Cow::Owned).collect()),
-					default: default.map(Cow::Owned),
-				}
-			}
+			FilterKindBuf::Select {
+				is_genre,
+				uses_tag_style,
+				options,
+				ids,
+				default,
+			} => komorei::FilterKind::Select {
+				is_genre,
+				uses_tag_style,
+				options: options.into_iter().map(Cow::Owned).collect(),
+				ids: ids.map(|v| v.into_iter().map(Cow::Owned).collect()),
+				default: default.map(Cow::Owned),
+			},
 			FilterKindBuf::MultiSelect {
 				is_genre,
 				can_exclude,
@@ -90,7 +116,9 @@ impl FilterBuf {
 				default_excluded: default_excluded.map(|v| v.into_iter().map(Cow::Owned).collect()),
 			},
 			FilterKindBuf::Note(text) => komorei::FilterKind::Note(Cow::Owned(text)),
-			FilterKindBuf::Range { min, max, decimal } => komorei::FilterKind::Range { min, max, decimal },
+			FilterKindBuf::Range { min, max, decimal } => {
+				komorei::FilterKind::Range { min, max, decimal }
+			}
 		};
 		komorei::Filter {
 			id: Cow::Owned(self.id.unwrap_or_default()),
@@ -110,8 +138,9 @@ impl FilterBuf {
 /// with `take_from_bytes` in exactly the order the lib emits them
 /// (`crates/lib/src/structs/filter.rs`): id, title, hide_from_header, type,
 /// then the kind payload.
-pub fn decode_filters<'a>(payload: &'a [u8]) -> Result<Vec<FilterBuf>, RunnerError> {
-	let (count, mut rest) = postcard::take_from_bytes::<usize>(payload).map_err(RunnerError::from)?;
+pub fn decode_filters(payload: &[u8]) -> Result<Vec<FilterBuf>, RunnerError> {
+	let (count, mut rest) =
+		postcard::take_from_bytes::<usize>(payload).map_err(RunnerError::from)?;
 	let mut out = Vec::with_capacity(count);
 	for _ in 0..count {
 		let (filter, remainder) = decode_one_filter(rest)?;
@@ -121,10 +150,11 @@ pub fn decode_filters<'a>(payload: &'a [u8]) -> Result<Vec<FilterBuf>, RunnerErr
 	Ok(out)
 }
 
-fn decode_one_filter<'a>(mut rest: &'a [u8]) -> Result<(FilterBuf, &'a [u8]), RunnerError> {
+fn decode_one_filter(mut rest: &[u8]) -> Result<(FilterBuf, &[u8]), RunnerError> {
 	macro_rules! take {
 		($t:ty) => {{
-			let (value, remainder) = postcard::take_from_bytes::<$t>(rest).map_err(RunnerError::from)?;
+			let (value, remainder) =
+				postcard::take_from_bytes::<$t>(rest).map_err(RunnerError::from)?;
 			rest = remainder;
 			value
 		}};
@@ -209,7 +239,15 @@ fn decode_one_filter<'a>(mut rest: &'a [u8]) -> Result<(FilterBuf, &'a [u8]), Ru
 		other => return Err(RunnerError::serde(format!("unknown filter type: {other}"))),
 	};
 
-	Ok((FilterBuf { id, title, hide_from_header, kind }, rest))
+	Ok((
+		FilterBuf {
+			id,
+			title,
+			hide_from_header,
+			kind,
+		},
+		rest,
+	))
 }
 
 // ---------------------------------------------------------------------------
@@ -236,12 +274,37 @@ pub struct SettingBuf {
 /// the variant wins.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SettingValueBuf {
-	Group { footer: Option<String>, items: Vec<SettingBuf> },
-	Select { values: Vec<String>, titles: Option<Vec<String>>, auth_to_open: Option<bool>, default: Option<String> },
-	MultiSelect { values: Vec<String>, titles: Option<Vec<String>>, auth_to_open: Option<bool>, default: Option<Vec<String>> },
-	Toggle { subtitle: Option<String>, auth_to_disable: Option<bool>, default: bool },
-	Stepper { minimum_value: f64, maximum_value: f64, step_value: Option<f64>, default: Option<f64> },
-	Segment { options: Vec<String>, default: Option<i32> },
+	Group {
+		footer: Option<String>,
+		items: Vec<SettingBuf>,
+	},
+	Select {
+		values: Vec<String>,
+		titles: Option<Vec<String>>,
+		auth_to_open: Option<bool>,
+		default: Option<String>,
+	},
+	MultiSelect {
+		values: Vec<String>,
+		titles: Option<Vec<String>>,
+		auth_to_open: Option<bool>,
+		default: Option<Vec<String>>,
+	},
+	Toggle {
+		subtitle: Option<String>,
+		auth_to_disable: Option<bool>,
+		default: bool,
+	},
+	Stepper {
+		minimum_value: f64,
+		maximum_value: f64,
+		step_value: Option<f64>,
+		default: Option<f64>,
+	},
+	Segment {
+		options: Vec<String>,
+		default: Option<i32>,
+	},
 	Text {
 		placeholder: Option<String>,
 		autocapitalization_type: Option<i32>,
@@ -252,7 +315,10 @@ pub enum SettingValueBuf {
 		default: Option<String>,
 	},
 	Button,
-	Link { url: String, external: Option<bool> },
+	Link {
+		url: String,
+		external: Option<bool>,
+	},
 	Login {
 		method: LoginMethodBuf,
 		url: Option<String>,
@@ -272,8 +338,17 @@ pub enum SettingValueBuf {
 		icon: Option<PageIconBuf>,
 		info: Option<String>,
 	},
-	EditableList { line_limit: Option<i32>, inline: bool, placeholder: Option<String>, default: Option<Vec<String>> },
-	Picker { values: Vec<String>, titles: Option<Vec<String>>, default: Option<String> },
+	EditableList {
+		line_limit: Option<i32>,
+		inline: bool,
+		placeholder: Option<String>,
+		default: Option<Vec<String>>,
+	},
+	Picker {
+		values: Vec<String>,
+		titles: Option<Vec<String>>,
+		default: Option<String>,
+	},
 }
 
 /// `LoginMethod` serializes as a plain string ("basic" | "oauth" | "web").
@@ -296,7 +371,11 @@ impl LoginMethodBuf {
 /// by `decode_page_icon` below.
 #[derive(Debug, Clone, PartialEq)]
 pub enum PageIconBuf {
-	System { name: String, color: String, inset: Option<i32> },
+	System {
+		name: String,
+		color: String,
+		inset: Option<i32>,
+	},
 	Url(String),
 }
 
@@ -305,8 +384,9 @@ pub enum PageIconBuf {
 /// (the `SettingValue`), and the `Page` variant embeds a variable-arity
 /// `PageIcon` — so the stream is walked field by field with `take_from_bytes`
 /// in exactly the order `crates/lib/src/structs/setting.rs` emits them.
-pub fn decode_settings<'a>(payload: &'a [u8]) -> Result<Vec<SettingBuf>, RunnerError> {
-	let (count, mut rest) = postcard::take_from_bytes::<usize>(payload).map_err(RunnerError::from)?;
+pub fn decode_settings(payload: &[u8]) -> Result<Vec<SettingBuf>, RunnerError> {
+	let (count, mut rest) =
+		postcard::take_from_bytes::<usize>(payload).map_err(RunnerError::from)?;
 	let mut out = Vec::with_capacity(count);
 	for _ in 0..count {
 		let (setting, remainder) = decode_one_setting(rest)?;
@@ -316,10 +396,11 @@ pub fn decode_settings<'a>(payload: &'a [u8]) -> Result<Vec<SettingBuf>, RunnerE
 	Ok(out)
 }
 
-fn decode_one_setting<'a>(mut rest: &'a [u8]) -> Result<(SettingBuf, &'a [u8]), RunnerError> {
+fn decode_one_setting(mut rest: &[u8]) -> Result<(SettingBuf, &[u8]), RunnerError> {
 	macro_rules! take {
 		($t:ty) => {{
-			let (value, remainder) = postcard::take_from_bytes::<$t>(rest).map_err(RunnerError::from)?;
+			let (value, remainder) =
+				postcard::take_from_bytes::<$t>(rest).map_err(RunnerError::from)?;
 			rest = remainder;
 			value
 		}};
@@ -337,23 +418,32 @@ fn decode_one_setting<'a>(mut rest: &'a [u8]) -> Result<(SettingBuf, &'a [u8]), 
 	rest = remainder;
 
 	Ok((
-		SettingBuf { key, title, notification, requires, requires_false, refreshes, value },
+		SettingBuf {
+			key,
+			title,
+			notification,
+			requires,
+			requires_false,
+			refreshes,
+			value,
+		},
 		rest,
 	))
 }
 
 /// Walks one `SettingValue`. The lib derives `Serialize` for the enum, so the
 /// wire is `[u32 variant index][variant fields]` in declaration order.
-fn decode_value<'a>(mut rest: &'a [u8]) -> Result<(SettingValueBuf, &'a [u8]), RunnerError> {
+fn decode_value(mut rest: &[u8]) -> Result<(SettingValueBuf, &[u8]), RunnerError> {
 	macro_rules! take {
 		($t:ty) => {{
-			let (value, remainder) = postcard::take_from_bytes::<$t>(rest).map_err(RunnerError::from)?;
+			let (value, remainder) =
+				postcard::take_from_bytes::<$t>(rest).map_err(RunnerError::from)?;
 			rest = remainder;
 			value
 		}};
 	}
 	// recursive helper for Vec<Setting>
-	fn items<'a>(rest: &'a [u8]) -> Result<(Vec<SettingBuf>, &'a [u8]), RunnerError> {
+	fn items(rest: &[u8]) -> Result<(Vec<SettingBuf>, &[u8]), RunnerError> {
 		let (count, rest) = postcard::take_from_bytes::<usize>(rest).map_err(RunnerError::from)?;
 		let mut out = Vec::with_capacity(count);
 		let mut rest = rest;
@@ -371,7 +461,10 @@ fn decode_value<'a>(mut rest: &'a [u8]) -> Result<(SettingValueBuf, &'a [u8]), R
 			let footer: Option<String> = take!(Option<String>);
 			let (group_items, remainder) = items(rest)?;
 			rest = remainder;
-			SettingValueBuf::Group { footer, items: group_items }
+			SettingValueBuf::Group {
+				footer,
+				items: group_items,
+			}
 		}
 		1 => SettingValueBuf::Select {
 			values: take!(Vec<String>),
@@ -396,7 +489,10 @@ fn decode_value<'a>(mut rest: &'a [u8]) -> Result<(SettingValueBuf, &'a [u8]), R
 			step_value: take!(Option<f64>),
 			default: take!(Option<f64>),
 		},
-		5 => SettingValueBuf::Segment { options: take!(Vec<String>), default: take!(Option<i32>) },
+		5 => SettingValueBuf::Segment {
+			options: take!(Vec<String>),
+			default: take!(Option<i32>),
+		},
 		6 => SettingValueBuf::Text {
 			placeholder: take!(Option<String>),
 			autocapitalization_type: take!(Option<i32>),
@@ -407,7 +503,10 @@ fn decode_value<'a>(mut rest: &'a [u8]) -> Result<(SettingValueBuf, &'a [u8]), R
 			default: take!(Option<String>),
 		},
 		7 => SettingValueBuf::Button,
-		8 => SettingValueBuf::Link { url: take!(String), external: take!(Option<bool>) },
+		8 => SettingValueBuf::Link {
+			url: take!(String),
+			external: take!(Option<bool>),
+		},
 		9 => SettingValueBuf::Login {
 			method: LoginMethodBuf(take!(String)),
 			url: take!(Option<String>),
@@ -452,16 +551,21 @@ fn decode_value<'a>(mut rest: &'a [u8]) -> Result<(SettingValueBuf, &'a [u8]), R
 			titles: take!(Option<Vec<String>>),
 			default: take!(Option<String>),
 		},
-		other => return Err(RunnerError::serde(format!("unknown setting value kind: {other}"))),
+		other => {
+			return Err(RunnerError::serde(format!(
+				"unknown setting value kind: {other}"
+			)));
+		}
 	};
 	Ok((value, rest))
 }
 
 /// Walks one `PageIcon` (with the Option tag already consumed by the caller).
-fn decode_page_icon<'a>(mut rest: &'a [u8]) -> Result<(PageIconBuf, &'a [u8]), RunnerError> {
+fn decode_page_icon(mut rest: &[u8]) -> Result<(PageIconBuf, &[u8]), RunnerError> {
 	macro_rules! take {
 		($t:ty) => {{
-			let (value, remainder) = postcard::take_from_bytes::<$t>(rest).map_err(RunnerError::from)?;
+			let (value, remainder) =
+				postcard::take_from_bytes::<$t>(rest).map_err(RunnerError::from)?;
 			rest = remainder;
 			value
 		}};
@@ -474,7 +578,11 @@ fn decode_page_icon<'a>(mut rest: &'a [u8]) -> Result<(PageIconBuf, &'a [u8]), R
 			inset: take!(Option<i32>),
 		},
 		"url" => PageIconBuf::Url(take!(String)),
-		other => return Err(RunnerError::serde(format!("unknown page icon type: {other}"))),
+		other => {
+			return Err(RunnerError::serde(format!(
+				"unknown page icon type: {other}"
+			)));
+		}
 	};
 	Ok((icon, rest))
 }
@@ -487,7 +595,9 @@ impl SettingBuf {
 			notification: self.notification.map(Cow::Owned),
 			requires: self.requires.map(Cow::Owned),
 			requires_false: self.requires_false.map(Cow::Owned),
-			refreshes: self.refreshes.map(|v| v.into_iter().map(Cow::Owned).collect()),
+			refreshes: self
+				.refreshes
+				.map(|v| v.into_iter().map(Cow::Owned).collect()),
 			value: self.value.into_komorei(),
 		}
 	}
@@ -501,26 +611,48 @@ impl SettingValueBuf {
 				footer: footer.map(Cow::Owned),
 				items: items.into_iter().map(SettingBuf::into_komorei).collect(),
 			},
-			SettingValueBuf::Select { values, titles, auth_to_open, default } => SettingValue::Select {
+			SettingValueBuf::Select {
+				values,
+				titles,
+				auth_to_open,
+				default,
+			} => SettingValue::Select {
 				values: values.into_iter().map(Cow::Owned).collect(),
 				titles: titles.map(|v| v.into_iter().map(Cow::Owned).collect()),
 				auth_to_open,
 				default,
 			},
-			SettingValueBuf::MultiSelect { values, titles, auth_to_open, default } => SettingValue::MultiSelect {
+			SettingValueBuf::MultiSelect {
+				values,
+				titles,
+				auth_to_open,
+				default,
+			} => SettingValue::MultiSelect {
 				values: values.into_iter().map(Cow::Owned).collect(),
 				titles: titles.map(|v| v.into_iter().map(Cow::Owned).collect()),
 				auth_to_open,
 				default,
 			},
-			SettingValueBuf::Toggle { subtitle, auth_to_disable, default } => SettingValue::Toggle {
+			SettingValueBuf::Toggle {
+				subtitle,
+				auth_to_disable,
+				default,
+			} => SettingValue::Toggle {
 				subtitle: subtitle.map(Cow::Owned),
 				auth_to_disable,
 				default,
 			},
-			SettingValueBuf::Stepper { minimum_value, maximum_value, step_value, default } => {
-				SettingValue::Stepper { minimum_value, maximum_value, step_value, default }
-			}
+			SettingValueBuf::Stepper {
+				minimum_value,
+				maximum_value,
+				step_value,
+				default,
+			} => SettingValue::Stepper {
+				minimum_value,
+				maximum_value,
+				step_value,
+				default,
+			},
 			SettingValueBuf::Segment { options, default } => SettingValue::Segment {
 				options: options.into_iter().map(Cow::Owned).collect(),
 				default,
@@ -570,22 +702,35 @@ impl SettingValueBuf {
 				local_storage_keys,
 				clear_cookies_on_log_out,
 			},
-			SettingValueBuf::Page { items, inline_title, auth_to_open, icon, info } => SettingValue::Page {
+			SettingValueBuf::Page {
+				items,
+				inline_title,
+				auth_to_open,
+				icon,
+				info,
+			} => SettingValue::Page {
 				items: items.into_iter().map(SettingBuf::into_komorei).collect(),
 				inline_title,
 				auth_to_open,
 				icon: icon.map(|i| i.into_komorei()),
 				info,
 			},
-			SettingValueBuf::EditableList { line_limit, inline, placeholder, default } => {
-				SettingValue::EditableList {
-					line_limit,
-					inline,
-					placeholder: placeholder.map(Cow::Owned),
-					default: default.map(|v| v.into_iter().map(Cow::Owned).collect()),
-				}
-			}
-			SettingValueBuf::Picker { values, titles, default } => SettingValue::Picker {
+			SettingValueBuf::EditableList {
+				line_limit,
+				inline,
+				placeholder,
+				default,
+			} => SettingValue::EditableList {
+				line_limit,
+				inline,
+				placeholder: placeholder.map(Cow::Owned),
+				default: default.map(|v| v.into_iter().map(Cow::Owned).collect()),
+			},
+			SettingValueBuf::Picker {
+				values,
+				titles,
+				default,
+			} => SettingValue::Picker {
 				values: values.into_iter().map(Cow::Owned).collect(),
 				titles: titles.map(|v| v.into_iter().map(Cow::Owned).collect()),
 				default,
@@ -597,7 +742,9 @@ impl SettingValueBuf {
 impl PageIconBuf {
 	pub fn into_komorei(self) -> komorei::PageIcon {
 		match self {
-			PageIconBuf::System { name, color, inset } => komorei::PageIcon::System { name, color, inset },
+			PageIconBuf::System { name, color, inset } => {
+				komorei::PageIcon::System { name, color, inset }
+			}
 			PageIconBuf::Url(url) => komorei::PageIcon::Url(url),
 		}
 	}

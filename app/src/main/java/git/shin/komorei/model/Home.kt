@@ -2,7 +2,7 @@ package git.shin.komorei.model
 
 import com.squareup.moshi.JsonClass
 
-/**
+/*
  * Full, lossless app-side mirror of the komorei runner's `get_home` result.
  *
  * The runner (wasm source) exposes its home page as a list of
@@ -28,9 +28,17 @@ data class Listing(
 
 /** What tapping a [Link] navigates to (mirrors the runner `LinkValue`). */
 sealed class LinkValue {
-    data class Url(val url: String) : LinkValue()
-    data class Listing(val listing: git.shin.komorei.model.Listing) : LinkValue()
-    data class Anime(val anime: git.shin.komorei.model.Anime) : LinkValue()
+    data class Url(
+        val url: String,
+    ) : LinkValue()
+
+    data class Listing(
+        val listing: git.shin.komorei.model.Listing,
+    ) : LinkValue()
+
+    data class Anime(
+        val anime: git.shin.komorei.model.Anime,
+    ) : LinkValue()
 }
 
 /** A link used inside home components (image scrollers, rails, header rows, ...). */
@@ -41,10 +49,11 @@ data class Link(
     val value: LinkValue? = null,
 ) {
     /** Convenience: the linked anime when this link points at one. */
-    val anime: Anime? get() = when (val v = value) {
-        is LinkValue.Anime -> v.anime
-        else -> null
-    }
+    val anime: Anime? get() =
+        when (val v = value) {
+            is LinkValue.Anime -> v.anime
+            else -> null
+        }
 }
 
 /** A link to a filtered listing (entries of the `Filters` component). */
@@ -104,8 +113,12 @@ sealed class HomeComponentValue {
     ) : HomeComponentValue()
 
     /** Links to filtered listings (genre chips etc). */
-    data class Filters(val items: List<FilterItem>) : HomeComponentValue()
+    data class Filters(
+        val items: List<FilterItem>,
+    ) : HomeComponentValue()
 
     /** A plain list of links (external urls, "view more", ...). */
-    data class Links(val links: List<Link>) : HomeComponentValue()
+    data class Links(
+        val links: List<Link>,
+    ) : HomeComponentValue()
 }

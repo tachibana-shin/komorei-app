@@ -80,6 +80,10 @@ fn utc_offset(caller: Caller<'_, RunnerData>) -> i64 {
 	caller.data().host.utc_offset().unwrap_or(0)
 }
 
+// The parameter count is dictated by the wasm import signature: each string
+// argument crosses the ABI as a (ptr, len) pair, and a struct of them would have
+// to be built and torn down on the caller's side of the FFI for no benefit.
+#[allow(clippy::too_many_arguments)]
 fn parse_date(
 	caller: Caller<'_, RunnerData>,
 	date_ptr: u32,

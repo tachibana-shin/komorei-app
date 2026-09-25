@@ -37,12 +37,37 @@ impl From<crate::deser::SettingBuf> for Setting {
 
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]
 pub enum SettingValue {
-	Group { footer: Option<String>, items: Vec<Setting> },
-	Select { values: Vec<String>, titles: Option<Vec<String>>, auth_to_open: Option<bool>, default: Option<String> },
-	MultiSelect { values: Vec<String>, titles: Option<Vec<String>>, auth_to_open: Option<bool>, default: Option<Vec<String>> },
-	Toggle { subtitle: Option<String>, auth_to_disable: Option<bool>, default: bool },
-	Stepper { minimum_value: f64, maximum_value: f64, step_value: Option<f64>, default: Option<f64> },
-	Segment { options: Vec<String>, default: Option<i32> },
+	Group {
+		footer: Option<String>,
+		items: Vec<Setting>,
+	},
+	Select {
+		values: Vec<String>,
+		titles: Option<Vec<String>>,
+		auth_to_open: Option<bool>,
+		default: Option<String>,
+	},
+	MultiSelect {
+		values: Vec<String>,
+		titles: Option<Vec<String>>,
+		auth_to_open: Option<bool>,
+		default: Option<Vec<String>>,
+	},
+	Toggle {
+		subtitle: Option<String>,
+		auth_to_disable: Option<bool>,
+		default: bool,
+	},
+	Stepper {
+		minimum_value: f64,
+		maximum_value: f64,
+		step_value: Option<f64>,
+		default: Option<f64>,
+	},
+	Segment {
+		options: Vec<String>,
+		default: Option<i32>,
+	},
 	Text {
 		placeholder: Option<String>,
 		autocapitalization_type: Option<i32>,
@@ -53,7 +78,10 @@ pub enum SettingValue {
 		default: Option<String>,
 	},
 	Button,
-	Link { url: String, external: Option<bool> },
+	Link {
+		url: String,
+		external: Option<bool>,
+	},
 	Login {
 		method: LoginMethod,
 		url: Option<String>,
@@ -66,9 +94,24 @@ pub enum SettingValue {
 		local_storage_keys: Option<Vec<String>>,
 		clear_cookies_on_log_out: bool,
 	},
-	Page { items: Vec<Setting>, inline_title: Option<bool>, auth_to_open: Option<bool>, icon: Option<PageIcon>, info: Option<String> },
-	EditableList { line_limit: Option<i32>, inline: bool, placeholder: Option<String>, default: Option<Vec<String>> },
-	Picker { values: Vec<String>, titles: Option<Vec<String>>, default: Option<String> },
+	Page {
+		items: Vec<Setting>,
+		inline_title: Option<bool>,
+		auth_to_open: Option<bool>,
+		icon: Option<PageIcon>,
+		info: Option<String>,
+	},
+	EditableList {
+		line_limit: Option<i32>,
+		inline: bool,
+		placeholder: Option<String>,
+		default: Option<Vec<String>>,
+	},
+	Picker {
+		values: Vec<String>,
+		titles: Option<Vec<String>>,
+		default: Option<String>,
+	},
 }
 
 impl From<crate::deser::SettingValueBuf> for SettingValue {
@@ -79,18 +122,48 @@ impl From<crate::deser::SettingValueBuf> for SettingValue {
 				footer,
 				items: items.into_iter().map(Into::into).collect(),
 			},
-			B::Select { values, titles, auth_to_open, default } => {
-				SettingValue::Select { values, titles, auth_to_open, default }
-			}
-			B::MultiSelect { values, titles, auth_to_open, default } => {
-				SettingValue::MultiSelect { values, titles, auth_to_open, default }
-			}
-			B::Toggle { subtitle, auth_to_disable, default } => {
-				SettingValue::Toggle { subtitle, auth_to_disable, default }
-			}
-			B::Stepper { minimum_value, maximum_value, step_value, default } => {
-				SettingValue::Stepper { minimum_value, maximum_value, step_value, default }
-			}
+			B::Select {
+				values,
+				titles,
+				auth_to_open,
+				default,
+			} => SettingValue::Select {
+				values,
+				titles,
+				auth_to_open,
+				default,
+			},
+			B::MultiSelect {
+				values,
+				titles,
+				auth_to_open,
+				default,
+			} => SettingValue::MultiSelect {
+				values,
+				titles,
+				auth_to_open,
+				default,
+			},
+			B::Toggle {
+				subtitle,
+				auth_to_disable,
+				default,
+			} => SettingValue::Toggle {
+				subtitle,
+				auth_to_disable,
+				default,
+			},
+			B::Stepper {
+				minimum_value,
+				maximum_value,
+				step_value,
+				default,
+			} => SettingValue::Stepper {
+				minimum_value,
+				maximum_value,
+				step_value,
+				default,
+			},
 			B::Segment { options, default } => SettingValue::Segment { options, default },
 			B::Text {
 				placeholder,
@@ -138,20 +211,44 @@ impl From<crate::deser::SettingValueBuf> for SettingValue {
 				local_storage_keys,
 				clear_cookies_on_log_out,
 			},
-			B::Page { items, inline_title, auth_to_open, icon, info } => SettingValue::Page {
+			B::Page {
+				items,
+				inline_title,
+				auth_to_open,
+				icon,
+				info,
+			} => SettingValue::Page {
 				items: items.into_iter().map(Into::into).collect(),
 				inline_title,
 				auth_to_open,
 				icon: icon.map(|i| match i {
-					crate::deser::PageIconBuf::System { name, color, inset } => PageIcon::System { name, color, inset },
+					crate::deser::PageIconBuf::System { name, color, inset } => {
+						PageIcon::System { name, color, inset }
+					}
 					crate::deser::PageIconBuf::Url(url) => PageIcon::Url(url),
 				}),
 				info,
 			},
-			B::EditableList { line_limit, inline, placeholder, default } => {
-				SettingValue::EditableList { line_limit, inline, placeholder, default }
-			}
-			B::Picker { values, titles, default } => SettingValue::Picker { values, titles, default },
+			B::EditableList {
+				line_limit,
+				inline,
+				placeholder,
+				default,
+			} => SettingValue::EditableList {
+				line_limit,
+				inline,
+				placeholder,
+				default,
+			},
+			B::Picker {
+				values,
+				titles,
+				default,
+			} => SettingValue::Picker {
+				values,
+				titles,
+				default,
+			},
 		}
 	}
 }
@@ -179,6 +276,14 @@ impl From<komorei::Link> for Link {
 	}
 }
 
+// `Anime` is an order of magnitude larger than the sibling payloads, so this
+// enum is ~560 bytes wide and gets moved around on every decode. Boxing `Anime`
+// would trade one heap allocation per decoded link for a smaller value; that is
+// only worth paying once someone measures how often links are decoded (they are
+// built once per listing and then held for the whole screen), so the lint is
+// parked here rather than silenced globally. Note the shape is also pinned by
+// the uniffi bindings and the source-side JSON model.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]
 pub enum LinkValue {
 	Url(String),
@@ -206,7 +311,9 @@ impl From<komorei::FilterItem> for FilterItem {
 	fn from(v: komorei::FilterItem) -> Self {
 		Self {
 			title: v.title,
-			values: v.values.map(|vals| vals.into_iter().map(Into::into).collect()),
+			values: v
+				.values
+				.map(|vals| vals.into_iter().map(Into::into).collect()),
 		}
 	}
 }
@@ -219,7 +326,10 @@ pub struct AnimeWithEpisode {
 
 impl From<komorei::AnimeWithEpisode> for AnimeWithEpisode {
 	fn from(v: komorei::AnimeWithEpisode) -> Self {
-		Self { anime: v.anime.into(), episode: v.episode.into() }
+		Self {
+			anime: v.anime.into(),
+			episode: v.episode.into(),
+		}
 	}
 }
 
@@ -232,17 +342,41 @@ pub struct HomeComponent {
 
 impl From<komorei::HomeComponent> for HomeComponent {
 	fn from(v: komorei::HomeComponent) -> Self {
-		Self { title: v.title, subtitle: v.subtitle, value: v.value.into() }
+		Self {
+			title: v.title,
+			subtitle: v.subtitle,
+			value: v.value.into(),
+		}
 	}
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]
 pub enum HomeComponentValue {
-	ImageScroller { links: Vec<Link>, auto_scroll_interval: Option<f32>, width: Option<i32>, height: Option<i32> },
-	BigScroller { entries: Vec<Anime>, auto_scroll_interval: Option<f32> },
-	Scroller { entries: Vec<Link>, listing: Option<Listing> },
-	AnimeList { ranking: bool, page_size: Option<i32>, entries: Vec<Link>, listing: Option<Listing> },
-	AnimeEpisodeList { page_size: Option<i32>, entries: Vec<AnimeWithEpisode>, listing: Option<Listing> },
+	ImageScroller {
+		links: Vec<Link>,
+		auto_scroll_interval: Option<f32>,
+		width: Option<i32>,
+		height: Option<i32>,
+	},
+	BigScroller {
+		entries: Vec<Anime>,
+		auto_scroll_interval: Option<f32>,
+	},
+	Scroller {
+		entries: Vec<Link>,
+		listing: Option<Listing>,
+	},
+	AnimeList {
+		ranking: bool,
+		page_size: Option<i32>,
+		entries: Vec<Link>,
+		listing: Option<Listing>,
+	},
+	AnimeEpisodeList {
+		page_size: Option<i32>,
+		entries: Vec<AnimeWithEpisode>,
+		listing: Option<Listing>,
+	},
 	Filters(Vec<FilterItem>),
 	Links(Vec<Link>),
 }
@@ -251,13 +385,21 @@ impl From<komorei::HomeComponentValue> for HomeComponentValue {
 	fn from(v: komorei::HomeComponentValue) -> Self {
 		use komorei::HomeComponentValue as L;
 		match v {
-			L::ImageScroller { links, auto_scroll_interval, width, height } => HomeComponentValue::ImageScroller {
+			L::ImageScroller {
+				links,
+				auto_scroll_interval,
+				width,
+				height,
+			} => HomeComponentValue::ImageScroller {
 				links: links.into_iter().map(Into::into).collect(),
 				auto_scroll_interval,
 				width,
 				height,
 			},
-			L::BigScroller { entries, auto_scroll_interval } => HomeComponentValue::BigScroller {
+			L::BigScroller {
+				entries,
+				auto_scroll_interval,
+			} => HomeComponentValue::BigScroller {
 				entries: entries.into_iter().map(Into::into).collect(),
 				auto_scroll_interval,
 			},
@@ -265,19 +407,32 @@ impl From<komorei::HomeComponentValue> for HomeComponentValue {
 				entries: entries.into_iter().map(Into::into).collect(),
 				listing: listing.map(Into::into),
 			},
-			L::AnimeList { ranking, page_size, entries, listing } => HomeComponentValue::AnimeList {
+			L::AnimeList {
+				ranking,
+				page_size,
+				entries,
+				listing,
+			} => HomeComponentValue::AnimeList {
 				ranking,
 				page_size,
 				entries: entries.into_iter().map(Into::into).collect(),
 				listing: listing.map(Into::into),
 			},
-			L::AnimeEpisodeList { page_size, entries, listing } => HomeComponentValue::AnimeEpisodeList {
+			L::AnimeEpisodeList {
+				page_size,
+				entries,
+				listing,
+			} => HomeComponentValue::AnimeEpisodeList {
 				page_size,
 				entries: entries.into_iter().map(Into::into).collect(),
 				listing: listing.map(Into::into),
 			},
-			L::Filters(items) => HomeComponentValue::Filters(items.into_iter().map(Into::into).collect()),
-			L::Links(links) => HomeComponentValue::Links(links.into_iter().map(Into::into).collect()),
+			L::Filters(items) => {
+				HomeComponentValue::Filters(items.into_iter().map(Into::into).collect())
+			}
+			L::Links(links) => {
+				HomeComponentValue::Links(links.into_iter().map(Into::into).collect())
+			}
 		}
 	}
 }
@@ -375,13 +530,21 @@ pub struct AnimeSeason {
 
 impl From<komorei::AnimeSeason> for AnimeSeason {
 	fn from(v: komorei::AnimeSeason) -> Self {
-		Self { anime_id: v.anime_id, title: v.title, id: v.id }
+		Self {
+			anime_id: v.anime_id,
+			title: v.title,
+			id: v.id,
+		}
 	}
 }
 
 impl From<AnimeSeason> for komorei::AnimeSeason {
 	fn from(v: AnimeSeason) -> Self {
-		Self { anime_id: v.anime_id, title: v.title, id: v.id }
+		Self {
+			anime_id: v.anime_id,
+			title: v.title,
+			id: v.id,
+		}
 	}
 }
 
@@ -393,13 +556,19 @@ pub struct CategoryLink {
 
 impl From<komorei::CategoryLink> for CategoryLink {
 	fn from(v: komorei::CategoryLink) -> Self {
-		Self { name: v.name, filters: v.filters.into_iter().map(Into::into).collect() }
+		Self {
+			name: v.name,
+			filters: v.filters.into_iter().map(Into::into).collect(),
+		}
 	}
 }
 
 impl From<CategoryLink> for komorei::CategoryLink {
 	fn from(v: CategoryLink) -> Self {
-		Self { name: v.name, filters: v.filters.into_iter().map(Into::into).collect() }
+		Self {
+			name: v.name,
+			filters: v.filters.into_iter().map(Into::into).collect(),
+		}
 	}
 }
 
@@ -458,15 +627,37 @@ impl From<crate::deser::FilterBuf> for Filter {
 	fn from(buf: crate::deser::FilterBuf) -> Self {
 		let kind = match buf.kind {
 			crate::deser::FilterKindBuf::Text { placeholder } => FilterKind::Text { placeholder },
-			crate::deser::FilterKindBuf::Sort { can_ascend, options, default } => {
-				FilterKind::Sort { can_ascend, options, default: default.map(Into::into) }
-			}
-			crate::deser::FilterKindBuf::Check { name, can_exclude, default } => {
-				FilterKind::Check { name, can_exclude, default }
-			}
-			crate::deser::FilterKindBuf::Select { is_genre, uses_tag_style, options, ids, default } => {
-				FilterKind::Select { is_genre, uses_tag_style, options, ids, default }
-			}
+			crate::deser::FilterKindBuf::Sort {
+				can_ascend,
+				options,
+				default,
+			} => FilterKind::Sort {
+				can_ascend,
+				options,
+				default: default.map(Into::into),
+			},
+			crate::deser::FilterKindBuf::Check {
+				name,
+				can_exclude,
+				default,
+			} => FilterKind::Check {
+				name,
+				can_exclude,
+				default,
+			},
+			crate::deser::FilterKindBuf::Select {
+				is_genre,
+				uses_tag_style,
+				options,
+				ids,
+				default,
+			} => FilterKind::Select {
+				is_genre,
+				uses_tag_style,
+				options,
+				ids,
+				default,
+			},
 			crate::deser::FilterKindBuf::MultiSelect {
 				is_genre,
 				can_exclude,
@@ -485,9 +676,16 @@ impl From<crate::deser::FilterBuf> for Filter {
 				default_excluded,
 			},
 			crate::deser::FilterKindBuf::Note(text) => FilterKind::Note(text),
-			crate::deser::FilterKindBuf::Range { min, max, decimal } => FilterKind::Range { min, max, decimal },
+			crate::deser::FilterKindBuf::Range { min, max, decimal } => {
+				FilterKind::Range { min, max, decimal }
+			}
 		};
-		Filter { id: buf.id.unwrap_or_default(), title: buf.title, hide_from_header: buf.hide_from_header, kind }
+		Filter {
+			id: buf.id.unwrap_or_default(),
+			title: buf.title,
+			hide_from_header: buf.hide_from_header,
+			kind,
+		}
 	}
 }
 
@@ -499,19 +697,43 @@ pub struct SortFilterDefault {
 
 impl From<komorei::SortFilterDefault> for SortFilterDefault {
 	fn from(v: komorei::SortFilterDefault) -> Self {
-		Self { index: v.index, ascending: v.ascending }
+		Self {
+			index: v.index,
+			ascending: v.ascending,
+		}
 	}
 }
 
 /// A configured search filter value.
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]
 pub enum FilterValue {
-	Text { id: String, value: String },
-	Sort { id: String, index: i32, ascending: bool },
-	Check { id: String, value: i32 },
-	Select { id: String, value: String },
-	MultiSelect { id: String, included: Vec<String>, excluded: Vec<String> },
-	Range { id: String, from: Option<f32>, to: Option<f32> },
+	Text {
+		id: String,
+		value: String,
+	},
+	Sort {
+		id: String,
+		index: i32,
+		ascending: bool,
+	},
+	Check {
+		id: String,
+		value: i32,
+	},
+	Select {
+		id: String,
+		value: String,
+	},
+	MultiSelect {
+		id: String,
+		included: Vec<String>,
+		excluded: Vec<String>,
+	},
+	Range {
+		id: String,
+		from: Option<f32>,
+		to: Option<f32>,
+	},
 }
 
 impl From<komorei::FilterValue> for FilterValue {
@@ -519,10 +741,26 @@ impl From<komorei::FilterValue> for FilterValue {
 		use komorei::FilterValue as L;
 		match v {
 			L::Text { id, value } => FilterValue::Text { id, value },
-			L::Sort { id, index, ascending } => FilterValue::Sort { id, index, ascending },
+			L::Sort {
+				id,
+				index,
+				ascending,
+			} => FilterValue::Sort {
+				id,
+				index,
+				ascending,
+			},
 			L::Check { id, value } => FilterValue::Check { id, value },
 			L::Select { id, value } => FilterValue::Select { id, value },
-			L::MultiSelect { id, included, excluded } => FilterValue::MultiSelect { id, included, excluded },
+			L::MultiSelect {
+				id,
+				included,
+				excluded,
+			} => FilterValue::MultiSelect {
+				id,
+				included,
+				excluded,
+			},
 			L::Range { id, from, to } => FilterValue::Range { id, from, to },
 		}
 	}
@@ -533,10 +771,26 @@ impl From<FilterValue> for komorei::FilterValue {
 		use komorei::FilterValue as L;
 		match v {
 			FilterValue::Text { id, value } => L::Text { id, value },
-			FilterValue::Sort { id, index, ascending } => L::Sort { id, index, ascending },
+			FilterValue::Sort {
+				id,
+				index,
+				ascending,
+			} => L::Sort {
+				id,
+				index,
+				ascending,
+			},
 			FilterValue::Check { id, value } => L::Check { id, value },
 			FilterValue::Select { id, value } => L::Select { id, value },
-			FilterValue::MultiSelect { id, included, excluded } => L::MultiSelect { id, included, excluded },
+			FilterValue::MultiSelect {
+				id,
+				included,
+				excluded,
+			} => L::MultiSelect {
+				id,
+				included,
+				excluded,
+			},
 			FilterValue::Range { id, from, to } => L::Range { id, from, to },
 		}
 	}
@@ -601,7 +855,9 @@ impl From<komorei::Anime> for Anime {
 			next_episode_air_info: v.next_episode_air_info,
 			quality_tag: v.quality_tag,
 			seasons: v.seasons.into_iter().map(Into::into).collect(),
-			episodes: v.episodes.map(|eps| eps.into_iter().map(Into::into).collect()),
+			episodes: v
+				.episodes
+				.map(|eps| eps.into_iter().map(Into::into).collect()),
 			url: v.url,
 		}
 	}
@@ -633,7 +889,9 @@ impl From<Anime> for komorei::Anime {
 			next_episode_air_info: v.next_episode_air_info,
 			quality_tag: v.quality_tag,
 			seasons: v.seasons.into_iter().map(Into::into).collect(),
-			episodes: v.episodes.map(|eps| eps.into_iter().map(Into::into).collect()),
+			episodes: v
+				.episodes
+				.map(|eps| eps.into_iter().map(Into::into).collect()),
 			url: v.url,
 		}
 	}
@@ -748,13 +1006,21 @@ pub struct Listing {
 
 impl From<komorei::Listing> for Listing {
 	fn from(v: komorei::Listing) -> Self {
-		Self { id: v.id, name: v.name, kind: v.kind.into() }
+		Self {
+			id: v.id,
+			name: v.name,
+			kind: v.kind.into(),
+		}
 	}
 }
 
 impl From<Listing> for komorei::Listing {
 	fn from(v: Listing) -> Self {
-		Self { id: v.id, name: v.name, kind: v.kind.into() }
+		Self {
+			id: v.id,
+			name: v.name,
+			kind: v.kind.into(),
+		}
 	}
 }
 
@@ -803,13 +1069,19 @@ pub struct RangeLong {
 
 impl From<komorei::RangeLong> for RangeLong {
 	fn from(v: komorei::RangeLong) -> Self {
-		Self { start_ms: v.start_ms, end_ms: v.end_ms }
+		Self {
+			start_ms: v.start_ms,
+			end_ms: v.end_ms,
+		}
 	}
 }
 
 impl From<RangeLong> for komorei::RangeLong {
 	fn from(v: RangeLong) -> Self {
-		Self { start_ms: v.start_ms, end_ms: v.end_ms }
+		Self {
+			start_ms: v.start_ms,
+			end_ms: v.end_ms,
+		}
 	}
 }
 
@@ -852,13 +1124,21 @@ pub struct StreamInfo {
 
 impl From<komorei::StreamInfo> for StreamInfo {
 	fn from(v: komorei::StreamInfo) -> Self {
-		Self { key: v.key, name: v.name, quality: v.quality }
+		Self {
+			key: v.key,
+			name: v.name,
+			quality: v.quality,
+		}
 	}
 }
 
 impl From<StreamInfo> for komorei::StreamInfo {
 	fn from(v: StreamInfo) -> Self {
-		Self { key: v.key, name: v.name, quality: v.quality }
+		Self {
+			key: v.key,
+			name: v.name,
+			quality: v.quality,
+		}
 	}
 }
 
@@ -924,6 +1204,10 @@ impl From<crate::deser::LoginMethodBuf> for LoginMethod {
 
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]
 pub enum PageIcon {
-	System { name: String, color: String, inset: Option<i32> },
+	System {
+		name: String,
+		color: String,
+		inset: Option<i32>,
+	},
 	Url(String),
 }

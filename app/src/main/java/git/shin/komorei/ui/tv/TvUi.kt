@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import git.shin.komorei.ui.theme.AnimeRed
 import kotlinx.coroutines.delay
 
-/**
+/*
  * Android TV / leanback support.
  *
  * The app is touch-first, but every interactive surface can also be driven by a
@@ -96,8 +96,7 @@ fun Modifier.tvFocus(
             val s = 1f + (scale - 1f) * progress
             scaleX = s
             scaleY = s
-        }
-        .border(width = borderWidth, color = borderColor.copy(alpha = progress), shape = shape)
+        }.border(width = borderWidth, color = borderColor.copy(alpha = progress), shape = shape)
 }
 
 /**

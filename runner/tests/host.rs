@@ -410,7 +410,7 @@ impl KomoreiHost for CannedHost {
 	fn js_webview_load_html(
 		&self,
 		handle: i64,
-		html: String,
+		_html: String,
 		base_url: String,
 	) -> Result<(), RunnerError> {
 		self.record_js(format!("webview_load_html {handle} {base_url}"));
@@ -818,7 +818,8 @@ fn settings_reflect_defaults() {
 	));
 
 	// after the host stores Bool(true) the DynamicSettings adds setting2
-	host.defaults_set("setting".into(), HostDefaultValue::Bool(true));
+	host.defaults_set("setting".into(), HostDefaultValue::Bool(true))
+		.expect("defaults_set ok");
 	let settings = runner.settings().expect("settings ok");
 	assert_eq!(settings.len(), 2);
 	assert_eq!(settings[1].key, "setting2");
