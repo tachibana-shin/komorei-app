@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -50,7 +51,16 @@ open class AnimeRepository @Inject constructor(
     private val registry: KrxSourceRegistry,
 ) {
     private companion object {
+        const val TAG = "AnimeRepository"
         const val AGGREGATOR_ID = "all"
+
+        /**
+         * How long a load waits for a home-stream collector before giving up
+         * and rendering without streaming. Generous: attaching a collector is a
+         * matter of one dispatch, and a slow main thread should not be mistaken
+         * for a source that will never stream.
+         */
+        const val PARTIAL_HOME_SUBSCRIBER_TIMEOUT_MS = 3_000L
         const val AGGREGATOR_NAME = "Tổng hợp"
 
         // The aggregator is a virtual source with no krx artwork; SourceIcon
@@ -636,20 +646,33 @@ open class AnimeRepository @Inject constructor(
 
     /**
      * Suspends until collectors are live on every stream [partialHomeResults]
-     * for [sourceId] hands out.
+     * for [sourceId] hands out — or until [timeoutMs] elapses.
      *
      * A caller about to start [getHome] awaits this first: the runner begins
      * emitting on its own thread as soon as the first request lands, so a load
      * started before the collector is attached silently drops the earliest rows.
      * For "all" every source is awaited, because `merge` subscribes to each of
      * them and a source that loses its first rows is a source with a hole in it.
+     *
+     * The timeout is the important part. Streaming is an optimisation, so a
+     * collector that never attaches must cost the reader nothing: without a
+     * bound, one missed subscription turns the home into a skeleton that never
+     * resolves, which is strictly worse than not streaming at all. On timeout
+     * the load simply proceeds and the early rows are dropped.
      */
-    open suspend fun awaitPartialHomeSubscribers(sourceId: String) {
-        if (sourceId == AGGREGATOR_ID) {
-            sources.filter { !it.isAggregator }.forEach { awaitPartialHomeSubscribers(it.id) }
-        } else {
-            registry.awaitPartialHomeSubscriber(sourceId)
-        }
+    open suspend fun awaitPartialHomeSubscribers(
+        sourceId: String,
+        timeoutMs: Long = PARTIAL_HOME_SUBSCRIBER_TIMEOUT_MS,
+    ) {
+        val ids =
+            if (sourceId == AGGREGATOR_ID) {
+                sources.filter { !it.isAggregator }.map { it.id }
+            } else {
+                listOf(sourceId)
+            }
+        withTimeoutOrNull(timeoutMs) {
+            for (id in ids) registry.awaitPartialHomeSubscriber(id)
+        } ?: Log.w(TAG, "no home-stream collector attached for $sourceId after ${timeoutMs}ms")
     }
 
     /**

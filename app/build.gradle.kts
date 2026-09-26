@@ -130,6 +130,14 @@ android {
           "komorei.test.fakeKrx",
           rootProject.file("app/src/main/assets/sources/fake-vi-source.krx").absolutePath,
         )
+        // The real AnimeVietsub source (sources/sources/vi.animevietsub) — its
+        // network side is a local server replaying the source's own page
+        // captures, because animevietsub.li answers a datacenter IP with a JS
+        // challenge (see AnimevietsubSourceRunnerIntegrationTest).
+        test.systemProperty(
+          "komorei.test.animevietsubKrx",
+          rootProject.file("sources/sources/vi.animevietsub/package.krx").absolutePath,
+        )
         // The real OPhim source (sources/sources/vi.ophim) — exercised end-to-end
         // against a local classic-OPHIM fixture server in
         // OphimSourceRunnerIntegrationTest.

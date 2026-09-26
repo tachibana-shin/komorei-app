@@ -106,7 +106,10 @@ class HomeViewModelStreamingTest {
         // instance from the one this test emits into, so it would never see a
         // subscriber. In production the two always name the same host — which is
         // exactly the invariant this override stands in for.
-        override suspend fun awaitPartialHomeSubscribers(sourceId: String) = Unit
+        override suspend fun awaitPartialHomeSubscribers(
+            sourceId: String,
+            timeoutMs: Long,
+        ) = Unit
 
         override suspend fun getHome(sourceId: String): List<HomeComponent> {
             fetchStarted.complete(Unit)

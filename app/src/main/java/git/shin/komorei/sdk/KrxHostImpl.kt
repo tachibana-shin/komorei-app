@@ -232,16 +232,16 @@ class KrxHostImpl(
                     // A placeholder layout names the rows the page will have but
                     // carries no content, so there is nothing to paint: forwarding
                     // it would put a blank strip above the real ones. The row
-                    // skeletons already on screen cover the same span, and the first
-                    // `Component` to arrive fills one in. Logged so the shape of the
-                    // page is still visible in the source's own log.
-                    Log.d(
-                        TAG,
-                        "source announced ${result.v1.components.size} home row(s) up front",
-                    )
+                    // skeletons already on screen cover the same span, and the
+                    // first `Component` to arrive fills one in.
+                    logPrint("streamed home: ${result.v1.components.size} row(s) announced up front")
                     return
                 }
             }
+        // Through the source's own log rather than a bare `Log.d`: streaming is a
+        // source behaviour, and the Logs screen is where someone debugging a
+        // source actually looks.
+        logPrint("streamed home row: ${component.title ?: "(untitled)"}")
         // `tryEmit`, never `emit`: this runs inside a blocking wasm call and
         // must not suspend the runner thread or fail when nobody is listening.
         if (!partialHomeSink.tryEmit(component)) {

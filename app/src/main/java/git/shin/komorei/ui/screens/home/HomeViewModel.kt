@@ -1,6 +1,7 @@
 package git.shin.komorei.ui.screens.home
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -179,6 +180,7 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             }.onFailure { e ->
+                Log.e(TAG, "home load failed for $sourceId", e)
                 _sourceDataMap.update { map ->
                     val existing = map[sourceId] ?: SourceHomeData()
                     map + (
@@ -423,4 +425,8 @@ class HomeViewModel @Inject constructor(
 
     /** Infinite-scroll entry: append the next listing page. */
     fun loadListingMore(sourceId: String) = loadListingPage(sourceId, reset = false)
+
+    private companion object {
+        const val TAG = "HomeViewModel"
+    }
 }
