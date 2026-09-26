@@ -3,6 +3,7 @@ package git.shin.komorei
 import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -57,9 +58,9 @@ class InsightsScreenTest {
     fun emptyHistoryShowsEmptyState() {
         val viewModel = InsightsViewModel(LibraryRepository(database.animeDao()))
         composeTestRule.setContent { InsightsScreen(onBack = {}, viewModel = viewModel) }
-        composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithTag("insights_screen").assertIsDisplayed()
+        awaitTag("insights_empty")
         composeTestRule.onNodeWithTag("insights_empty").assertIsDisplayed()
     }
 
@@ -82,10 +83,29 @@ class InsightsScreenTest {
         }
         val viewModel = InsightsViewModel(LibraryRepository(database.animeDao()))
         composeTestRule.setContent { InsightsScreen(onBack = {}, viewModel = viewModel) }
-        composeTestRule.waitForIdle()
 
+        awaitTag("insights_stat_episodes")
         composeTestRule.onNodeWithTag("insights_stat_episodes").assertIsDisplayed()
         composeTestRule.onNodeWithTag("insights_stat_series").assertIsDisplayed()
         composeTestRule.onNodeWithTag("insights_stat_hours").assertIsDisplayed()
+    }
+
+    /**
+     * Waits for a node that only exists once the screen's data has loaded.
+     *
+     * `InsightsViewModel` reads through `withContext(Dispatchers.IO)`, and
+     * `UnconfinedTestDispatcher` only controls `Dispatchers.Main` — the Room
+     * read therefore lands on a real thread that `waitForIdle()` does not
+     * track. Asserting straight after composition passed on an idle machine
+     * and failed under CI load, where the read had not come back yet.
+     */
+    private fun awaitTag(tag: String) {
+        composeTestRule.waitUntil(AWAIT_TIMEOUT_MS) {
+            composeTestRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private companion object {
+        const val AWAIT_TIMEOUT_MS = 5_000L
     }
 }
