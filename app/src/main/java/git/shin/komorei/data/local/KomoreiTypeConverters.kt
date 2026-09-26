@@ -34,6 +34,17 @@ class KomoreiTypeConverters {
             Types.newParameterizedType(List::class.java, AnimeSeason::class.java),
         )
 
+    /**
+     * `Anime.extra` — the source-defined key/value bag, stored as one JSON
+     * object so a source can add a key without a schema migration. Keys and
+     * values are both plain strings by contract, which is what lets a null or
+     * empty map round-trip as `{}` rather than as a missing column.
+     */
+    private val stringMapAdapter =
+        moshi.adapter<Map<String, String>>(
+            Types.newParameterizedType(Map::class.java, String::class.java, String::class.java),
+        )
+
     @TypeConverter
     fun fromAnimeStatus(status: AnimeStatus): String = status.value
 
@@ -51,6 +62,12 @@ class KomoreiTypeConverters {
 
     @TypeConverter
     fun toListCategoryLink(json: String): List<CategoryLink> = json.let { listCategoryLinkAdapter.fromJson(it) ?: emptyList() }
+
+    @TypeConverter
+    fun fromStringMap(map: Map<String, String>): String = stringMapAdapter.toJson(map)
+
+    @TypeConverter
+    fun toStringMap(json: String): Map<String, String> = json.let { stringMapAdapter.fromJson(it) ?: emptyMap() }
 
     @TypeConverter
     fun fromListEpisode(episodes: List<Episode>): String = listEpisodeAdapter.toJson(episodes)

@@ -87,6 +87,7 @@ fun RunnerAnime.toAppModel(): Anime {
         views = views,
         nextEpisodeAirInfo = nextEpisodeAirInfo,
         qualityTag = qualityTag,
+        extra = extra,
     )
 }
 
@@ -449,6 +450,10 @@ fun Anime.toRunner(): RunnerAnime =
         seasons = seasons.map { it.toRunner() },
         episodes = episodes.map { it.toRunner() },
         url = null,
+        // Unlike the fields above, `extra` is data the source handed us and
+        // expects back — dropping it here would silently discard a source's
+        // cached recommendations the moment a lite card is upgraded.
+        extra = extra,
     )
 
 fun StreamInfo.toRunner(): RunnerStreamInfo =

@@ -1,5 +1,6 @@
 package git.shin.komorei.model
 
+import androidx.room.ColumnInfo
 import com.squareup.moshi.JsonClass
 
 /**
@@ -69,4 +70,21 @@ data class Anime(
     val views: Int = 0,
     val nextEpisodeAirInfo: String? = null,
     val qualityTag: String? = "FHD",
+    /**
+     * Source-defined extras, keyed by a dotted name (e.g. `"avs.recommendations"`).
+     *
+     * Data the source's own page carries but the app does not model, so a
+     * source can hand it over instead of making the app ask for it again.
+     * Values are opaque strings; a source storing anything structured encodes
+     * it. Defaults to empty so a source that sets nothing costs nothing.
+     *
+     * The Room annotation is the one place this model names a storage detail,
+     * and it is load-bearing: `anime_library` is an `@Embedded` copy of this
+     * class, and a `NOT NULL` column cannot be added to a table that already has
+     * rows without a default. Room validates the migrated column's default
+     * against this one, so `MIGRATION_4_5`'s `DEFAULT '{}'` and this string have
+     * to agree — including the quotes, which are part of the SQL literal.
+     */
+    @ColumnInfo(defaultValue = "'{}'")
+    val extra: Map<String, String> = emptyMap(),
 )

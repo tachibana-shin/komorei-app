@@ -1,6 +1,7 @@
 package git.shin.komorei.sdk
 
 import androidx.test.core.app.ApplicationProvider
+import git.shin.komorei.model.HomeComponent
 import git.shin.komorei.sdk.runner.AnimeStatus
 import git.shin.komorei.sdk.runner.DeepLinkResult
 import git.shin.komorei.sdk.runner.FilterKind
@@ -10,6 +11,10 @@ import git.shin.komorei.sdk.runner.ListingKind
 import git.shin.komorei.sdk.runner.RunnerException
 import git.shin.komorei.sdk.runner.SettingValue
 import git.shin.komorei.sdk.runner.StreamType
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -68,6 +73,45 @@ class KrxRunnerIntegrationTest {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         host = KrxHostImpl(context)
         runner = KrxManager.load(host, File(exampleKrx).readBytes())
+    }
+
+    /**
+     * The whole streaming chain, end to end: the example source calls
+     * `send_partial_result` from inside `get_home`, the runner decodes it out
+     * of linear memory and re-enters this JVM through the uniffi callback, and
+     * [KrxHostImpl.partialHome] publishes it.
+     *
+     * The Rust test `home_streams_partial_results_before_it_returns` proves the
+     * runner hands the chunks to *a* host; this proves it reaches *this* one,
+     * which is the half only a real `.krx` through a real cdylib can show.
+     */
+    @Test
+    fun `a streaming home reaches the host while get_home is still running`() {
+        // Collect first: the runner re-enters this JVM mid-call, so anything
+        // sent before a collector is attached is gone. This is the same ordering
+        // `HomeViewModel` guarantees with `awaitPartialHomeSubscribers`.
+        val streamed = mutableListOf<HomeComponent>()
+        val collector =
+            CoroutineScope(Dispatchers.Unconfined).launch {
+                host.partialHomeResults.toList(streamed)
+            }
+        while (host.partialHomeSubscribers.value == 0) {
+            Thread.sleep(5)
+        }
+
+        val home = runner.home()
+        collector.cancel()
+
+        // The example source announces an empty layout first (skipped by the
+        // host) and then sends every row; what a collector sees must match the
+        // layout the call finally returns, or the page would change as it paints.
+        val titles = home.components.map { it.title.orEmpty() }
+        assertEquals(
+            "the streamed rows differ from the layout that was returned",
+            titles,
+            streamed.map { it.title.orEmpty() },
+        )
+        assertTrue("expected a streaming source to send rows", streamed.isNotEmpty())
     }
 
     @Test

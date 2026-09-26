@@ -450,6 +450,30 @@ impl From<komorei::HomeLayout> for HomeLayout {
 	}
 }
 
+/// One chunk of a home layout a source streamed out of `get_home` via
+/// `send_partial_result`.
+///
+/// A source whose home needs several requests can send the first rails as soon
+/// as they land instead of making the user wait for the slowest one; see
+/// [`KomoreiHost::partial_home`](crate::host::KomoreiHost::partial_home).
+#[derive(Debug, Clone, PartialEq, uniffi::Enum)]
+pub enum HomePartialResult {
+	/// A whole layout — used for the opening placeholder, so the app can show
+	/// the right section skeletons before any real content exists.
+	Layout(HomeLayout),
+	/// One more section, appended to whatever has arrived so far.
+	Component(HomeComponent),
+}
+
+impl From<komorei::HomePartialResult> for HomePartialResult {
+	fn from(v: komorei::HomePartialResult) -> Self {
+		match v {
+			komorei::HomePartialResult::Layout(layout) => Self::Layout(layout.into()),
+			komorei::HomePartialResult::Component(component) => Self::Component(component.into()),
+		}
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Deep links
 // ---------------------------------------------------------------------------
@@ -827,6 +851,9 @@ pub struct Anime {
 	pub seasons: Vec<AnimeSeason>,
 	pub episodes: Option<Vec<Episode>>,
 	pub url: Option<String>,
+	/// Source-defined extras (see [`komorei::Anime::extra`]) — a flat map so no
+	/// source can widen the ABI by choosing a key.
+	pub extra: HashMap<String, String>,
 }
 
 impl From<komorei::Anime> for Anime {
@@ -859,6 +886,8 @@ impl From<komorei::Anime> for Anime {
 				.episodes
 				.map(|eps| eps.into_iter().map(Into::into).collect()),
 			url: v.url,
+			// `komorei::HashMap` is hashbrown's, not std's.
+			extra: v.extra.into_iter().collect(),
 		}
 	}
 }
@@ -893,6 +922,8 @@ impl From<Anime> for komorei::Anime {
 				.episodes
 				.map(|eps| eps.into_iter().map(Into::into).collect()),
 			url: v.url,
+			// `komorei::HashMap` is hashbrown's, not std's.
+			extra: v.extra.into_iter().collect(),
 		}
 	}
 }

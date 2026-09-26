@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import git.shin.komorei.data.backup.InstalledSourcePackage
+import git.shin.komorei.model.HomeComponent
 import git.shin.komorei.model.Source
 import git.shin.komorei.sdk.runner.HostDefaultValue
 import git.shin.komorei.sdk.runner.KomoreiRunner
@@ -14,6 +15,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -80,6 +82,20 @@ class KrxSourceRegistry @Inject constructor(
     private val hosts = ConcurrentHashMap<String, KrxHostImpl>()
 
     private fun hostFor(sourceId: String): KrxHostImpl = hosts.getOrPut(sourceId) { host.scopedTo(sourceId) }
+
+    /**
+     * The rows [sourceId] streams out of `get_home`.
+     *
+     * Public because the Home view model has to collect the same flow the runner
+     * writes to, and an unknown source is not an error here: like [call], this
+     * goes through [hostFor], which creates the scoped host on first use, so a
+     * collector attached before the first request lands on the very instance
+     * that request will use.
+     */
+    fun partialHomeResults(sourceId: String): SharedFlow<HomeComponent> = hostFor(sourceId).partialHomeResults
+
+    /** Suspends until [partialHomeResults] for [sourceId] has a live collector. */
+    suspend fun awaitPartialHomeSubscriber(sourceId: String) = hostFor(sourceId).awaitPartialHomeSubscriber()
 
     // ── metadata discovery ──────────────────────────────────────────────────
 

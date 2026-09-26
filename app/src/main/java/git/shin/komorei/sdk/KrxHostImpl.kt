@@ -17,10 +17,18 @@ import git.shin.komorei.data.local.krxDefaultsKey
 import git.shin.komorei.data.local.platformKrxDefaultsStore
 import git.shin.komorei.data.remote.WEBVIEW_ANTI_FINGERPRINT_HEADERS
 import git.shin.komorei.data.remote.stripFingerprintHeaders
+import git.shin.komorei.model.HomeComponent
+import git.shin.komorei.sdk.runner.HomePartialResult
 import git.shin.komorei.sdk.runner.HostDefaultValue
 import git.shin.komorei.sdk.runner.HostHttpMethod
 import git.shin.komorei.sdk.runner.HostNetResponse
 import git.shin.komorei.sdk.runner.KomoreiHost
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -177,6 +185,67 @@ class KrxHostImpl(
             Thread.sleep(seconds.toLong() * 1000L)
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
+        }
+    }
+
+    /**
+     * Home rows a source streamed out of `get_home` through
+     * `send_partial_result`, published as they arrive.
+     *
+     * The runner calls this **re-entrantly on the runner thread**, while
+     * `runner.home()` is still blocking, so this is a [SharedFlow] rather than a
+     * plain list: a collector that attaches late simply misses the chunks it was
+     * not around for, and the layout `home()` finally returns stays
+     * authoritative. A [Channel] would instead block the wasm call on a slow
+     * consumer, and an unbounded list would leak a whole home layout per source.
+     */
+    private val partialHomeSink =
+        MutableSharedFlow<HomeComponent>(
+            extraBufferCapacity = PARTIAL_HOME_BUFFER,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
+
+    /** Read-only view of [partialHomeSink] for the Home view models. */
+    internal val partialHomeResults: SharedFlow<HomeComponent> = partialHomeSink.asSharedFlow()
+
+    /**
+     * Suspends until a collector is live on [partialHomeResults].
+     *
+     * `get_home` runs on a runner thread and starts emitting the instant its
+     * first request lands, so a caller that has not finished subscribing by then
+     * loses the earliest rows — the ones that make streaming worth having. A
+     * caller that must not start the load before it is listening awaits this
+     * instead of trusting the dispatcher to be kind.
+     */
+    internal suspend fun awaitPartialHomeSubscriber() {
+        partialHomeSubscribers.first { it > 0 }
+    }
+
+    /** Live collector count on [partialHomeResults]; `> 0` means one is attached. */
+    internal val partialHomeSubscribers: StateFlow<Int> = partialHomeSink.subscriptionCount
+
+    override fun partialHome(result: HomePartialResult) {
+        val component =
+            when (result) {
+                is HomePartialResult.Component -> result.v1.toAppModel()
+                is HomePartialResult.Layout -> {
+                    // A placeholder layout names the rows the page will have but
+                    // carries no content, so there is nothing to paint: forwarding
+                    // it would put a blank strip above the real ones. The row
+                    // skeletons already on screen cover the same span, and the first
+                    // `Component` to arrive fills one in. Logged so the shape of the
+                    // page is still visible in the source's own log.
+                    Log.d(
+                        TAG,
+                        "source announced ${result.v1.components.size} home row(s) up front",
+                    )
+                    return
+                }
+            }
+        // `tryEmit`, never `emit`: this runs inside a blocking wasm call and
+        // must not suspend the runner thread or fail when nobody is listening.
+        if (!partialHomeSink.tryEmit(component)) {
+            Log.w(TAG, "dropped a streamed home row: buffer full")
         }
     }
 
@@ -1348,7 +1417,7 @@ class KrxHostImpl(
         }
     }
 
-    private companion object {
+    internal companion object {
         const val TAG = "KrxHost"
         const val MAX_403_RETRIES = 2
 
@@ -1359,6 +1428,16 @@ class KrxHostImpl(
         const val CHALLENGE_LOAD_TIMEOUT_MS = 15_000L
         const val CHALLENGE_SOLVE_TIMEOUT_MS = 15_000L
         const val CHALLENGE_POLL_INTERVAL_MS = 1_500L
+
+        /**
+         * How many streamed home rows are held for a slow collector.
+         *
+         * Sized well above any real home (a source with two dozen rows is
+         * already unusual) so `tryEmit` only fails under a pathological burst,
+         * at which point dropping the oldest row is the right trade: a home that
+         * paints slightly out of order beats one that never finishes.
+         */
+        internal const val PARTIAL_HOME_BUFFER = 64
 
         /** Body markers that identify an HTML 403..503 as a JS challenge. */
         val CHALLENGE_MARKERS =

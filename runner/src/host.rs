@@ -14,7 +14,7 @@
 
 use std::collections::HashMap;
 
-use crate::error::RunnerError;
+use crate::{error::RunnerError, records::HomePartialResult};
 
 /// HTTP methods in the same numeric order the wasm side uses (`net::HttpMethod`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
@@ -108,6 +108,20 @@ pub trait KomoreiHost: Send + Sync {
 	fn log_abort(&self) -> Result<(), RunnerError>;
 	/// Called by `env::sleep` (blocks the host thread).
 	fn sleep(&self, seconds: i32) -> Result<(), RunnerError>;
+
+	/// Called by `env::send_partial_result` while `get_home` is still running.
+	///
+	/// A home that needs several requests does not have to make the user wait
+	/// for the slowest one: it sends the rails it already has through this
+	/// callback and the app appends them as they arrive. Sending a `Layout`
+	/// first is how a source tells the app the *shape* of the page so the right
+	/// section skeletons can be shown before any content exists; every later
+	/// `Component` replaces the placeholder of the same position.
+	///
+	/// Returned as a `Result` for the same reason as every other method here: a
+	/// host that cannot accept the chunk must not abort the source, and the
+	/// wasm side treats a failure as "no usable value" and carries on.
+	fn partial_home(&self, result: HomePartialResult) -> Result<(), RunnerError>;
 
 	// ---- std dates ----
 	/// Current unix timestamp (seconds).

@@ -17,7 +17,7 @@ import git.shin.komorei.data.local.entity.WatchHistoryEntity
         WatchHistoryEntity::class,
         KrxDefaultsEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 @TypeConverters(KomoreiTypeConverters::class)
@@ -51,6 +51,20 @@ abstract class KomoreiDatabase : RoomDatabase() {
             object : Migration(3, 4) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     db.execSQL("DELETE FROM `krx_defaults`")
+                }
+            }
+
+        /** v4 → v5: adds `anime_library.extra`, the source-defined key/value bag
+         *  (see `Anime.extra`). Stored as a JSON object so a source can add a key
+         *  without a migration of its own. Existing rows get `{}` — the one thing
+         *  a default of "nothing" can express correctly here, since every source
+         *  reads its own key back and an absent map is a legitimate answer. */
+        val MIGRATION_4_5 =
+            object : Migration(4, 5) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "ALTER TABLE `anime_library` ADD COLUMN `extra` TEXT NOT NULL DEFAULT '{}'",
+                    )
                 }
             }
     }

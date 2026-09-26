@@ -133,13 +133,46 @@ class HomeViewModel @Inject constructor(
                 val existing = map[sourceId] ?: SourceHomeData()
                 map + (sourceId to existing.copy(isLoading = true, error = null))
             }
+
+            // Rows the source streams out of `get_home` while it is still
+            // running: a home that needs several requests paints each one as it
+            // lands instead of making the reader wait for the slowest. The real
+            // layout replaces these the moment it arrives, so they are never
+            // authoritative — a source that streams nothing behaves exactly as
+            // before.
+            val streaming =
+                launch {
+                    repository.partialHomeResults(sourceId).collect { component ->
+                        _sourceDataMap.update { map ->
+                            val existing = map[sourceId] ?: SourceHomeData()
+                            // A refresh already replaced the rows; a late chunk
+                            // must not append to a finished layout.
+                            if (!existing.isLoading) {
+                                map
+                            } else {
+                                map + (sourceId to existing.copy(home = existing.home + component))
+                            }
+                        }
+                    }
+                }
+            // `get_home` starts emitting on the runner thread the moment its
+            // first request lands, so the load must not start until the
+            // collector is live — otherwise the earliest rows, the ones that
+            // make streaming worth having at all, arrive with nobody listening.
+            repository.awaitPartialHomeSubscribers(sourceId)
+
             runCatching {
                 val home = repository.getHome(sourceId)
                 _sourceDataMap.update { map ->
+                    val existing = map[sourceId] ?: SourceHomeData()
                     map + (
                         sourceId to
                             SourceHomeData(
-                                home = home,
+                                // A source that streamed rows but then returned
+                                // an empty layout has already told us what the
+                                // page contains; dropping it would be worse than
+                                // keeping what it sent.
+                                home = home.ifEmpty { existing.home },
                                 isLoading = false,
                                 error = null,
                             )
@@ -157,6 +190,7 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             }
+            streaming.cancel()
         }
     }
 

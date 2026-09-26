@@ -121,8 +121,11 @@ object RepositoryModule {
             // CategoryLink JSON shape changed (filters: SelectedFilter → FilterValue) — dev data
             // written with the old shape would break the new adapters.
             .fallbackToDestructiveMigration()
-            .addMigrations(KomoreiDatabase.MIGRATION_2_3, KomoreiDatabase.MIGRATION_3_4)
-            .build()
+            .addMigrations(
+                KomoreiDatabase.MIGRATION_2_3,
+                KomoreiDatabase.MIGRATION_3_4,
+                KomoreiDatabase.MIGRATION_4_5,
+            ).build()
 
     @Provides
     @Singleton

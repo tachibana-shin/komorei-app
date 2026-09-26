@@ -1,5 +1,6 @@
 package git.shin.komorei.data
 
+import android.util.Log
 import git.shin.komorei.data.SourceSearchEvent.Completed
 import git.shin.komorei.data.SourceSearchEvent.Failed
 import git.shin.komorei.data.remote.SegmentDataInterceptor
@@ -32,6 +33,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -444,24 +446,35 @@ open class AnimeRepository @Inject constructor(
      * anime itself is always excluded; an empty result hides the section.
      */
     suspend fun getRecommendedAnime(anime: Anime): KrxPage<Anime> {
-        return registry.call(anime.sourceId) { runner ->
-            val page =
-                try {
-                    runner.recommendedAnime(anime.toRunner()).toAppPage()
-                } catch (e: RunnerException.ExportMissing) {
-                    // No RecommendationsHandler export — fall back to a search by
-                    // the first genre tag (see the SDK trait doc).
-                    val firstGenre =
-                        anime.genres.firstOrNull()
-                            ?: return@call KrxPage(emptyList(), false)
-                    val genreValues =
-                        firstGenre.filters
-                            .ifEmpty { buildGenreFilter(anime.sourceId, firstGenre.name) }
-                    if (genreValues.isEmpty()) return@call KrxPage(emptyList(), false)
-                    runner.search(null, 1, genreValues.map { it.toRunner() }).toAppPage()
-                }
-            KrxPage(page.entries.filterNot { it.id == anime.id }, page.hasNextPage)
-        } ?: KrxPage(emptyList(), false)
+        // Never throws. A source's own recommendations endpoint is optional and
+        // may be implemented against a page that is down, rate-limited or behind
+        // a challenge; a failure here used to propagate into the view model's
+        // `flow { emit(...) }`, which cancels the whole `relatedAnimeList` upstream
+        // for the rest of the session — one 403 and the section never comes back,
+        // on this anime or any other. An empty page just hides the section.
+        return runCatching {
+            registry.call(anime.sourceId) { runner ->
+                val page =
+                    try {
+                        runner.recommendedAnime(anime.toRunner()).toAppPage()
+                    } catch (e: RunnerException.ExportMissing) {
+                        // No RecommendationsHandler export — fall back to a search by
+                        // the first genre tag (see the SDK trait doc).
+                        val firstGenre =
+                            anime.genres.firstOrNull()
+                                ?: return@call KrxPage(emptyList(), false)
+                        val genreValues =
+                            firstGenre.filters
+                                .ifEmpty { buildGenreFilter(anime.sourceId, firstGenre.name) }
+                        if (genreValues.isEmpty()) return@call KrxPage(emptyList(), false)
+                        runner.search(null, 1, genreValues.map { it.toRunner() }).toAppPage()
+                    }
+                KrxPage(page.entries.filterNot { it.id == anime.id }, page.hasNextPage)
+            } ?: KrxPage(emptyList(), false)
+        }.getOrElse { e ->
+            Log.w("Komorei", "recommendations for ${anime.id} failed: ${e.message}")
+            KrxPage(emptyList(), false)
+        }
     }
 
     // ── settings ────────────────────────────────────────────────────────────
@@ -571,7 +584,7 @@ open class AnimeRepository @Inject constructor(
      * Scroller / ImageScroller / Filters / Links), in order. "all" merges every
      * source's components (each queried in parallel on its own thread).
      */
-    suspend fun getHome(sourceId: String): List<HomeComponent> {
+    open suspend fun getHome(sourceId: String): List<HomeComponent> {
         if (sourceId == AGGREGATOR_ID) {
             return coroutineScope {
                 sources
@@ -596,6 +609,46 @@ open class AnimeRepository @Inject constructor(
             homeCache.remove(sourceId, deferred)
             deferred.complete(emptyList()) // degrade: a failing source won't crash the Home tab
             emptyList()
+        }
+    }
+
+    /**
+     * The rows [sourceId] streams out of `get_home` **while it is still running**.
+     *
+     * The streaming counterpart of [getHome]: a home that needs several requests
+     * does not have to make the reader wait for the slowest one, it sends each
+     * row as it lands. "all" merges every source's stream.
+     *
+     * Collecting is optional and never required for correctness — a source that
+     * streams nothing simply produces no rows, and one that streams everything
+     * is indistinguishable from a source that did not stream at all, because
+     * [getHome] still returns the same layout either way.
+     */
+    open fun partialHomeResults(sourceId: String): Flow<HomeComponent> =
+        if (sourceId == AGGREGATOR_ID) {
+            sources
+                .filter { !it.isAggregator }
+                .map { partialHomeResults(it.id) }
+                .merge()
+        } else {
+            registry.partialHomeResults(sourceId)
+        }
+
+    /**
+     * Suspends until collectors are live on every stream [partialHomeResults]
+     * for [sourceId] hands out.
+     *
+     * A caller about to start [getHome] awaits this first: the runner begins
+     * emitting on its own thread as soon as the first request lands, so a load
+     * started before the collector is attached silently drops the earliest rows.
+     * For "all" every source is awaited, because `merge` subscribes to each of
+     * them and a source that loses its first rows is a source with a hole in it.
+     */
+    open suspend fun awaitPartialHomeSubscribers(sourceId: String) {
+        if (sourceId == AGGREGATOR_ID) {
+            sources.filter { !it.isAggregator }.forEach { awaitPartialHomeSubscribers(it.id) }
+        } else {
+            registry.awaitPartialHomeSubscriber(sourceId)
         }
     }
 

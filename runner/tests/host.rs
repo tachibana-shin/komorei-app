@@ -12,9 +12,9 @@ use std::sync::{Arc, Mutex};
 
 use komorei_runner::{
 	Anime, AnimePageResult, AnimeStatus, DeepLinkResult, Episode, Filter, FilterKind, FilterValue,
-	HomeComponentValue, HostDefaultValue, HostHttpMethod, HostNetResponse, KomoreiHost,
-	KomoreiRunner, Listing, ListingKind, RunnerError, SettingValue, StreamData, StreamInfo,
-	StreamType, SubtitleInfo,
+	HomeComponentValue, HomePartialResult, HostDefaultValue, HostHttpMethod, HostNetResponse,
+	KomoreiHost, KomoreiRunner, Listing, ListingKind, RunnerError, SettingValue, StreamData,
+	StreamInfo, StreamType, SubtitleInfo,
 };
 
 // ---------------------------------------------------------------------------
@@ -45,6 +45,9 @@ struct CannedHost {
 	dom: Mutex<HashMap<i64, (i32, Option<String>)>>,
 	/// Recorded `js_*` calls (for assertions); canned handles/values below.
 	js_calls: Mutex<Vec<String>>,
+	/// Chunks a source streamed out of `get_home` via `send_partial_result`,
+	/// in arrival order.
+	partials: Mutex<Vec<HomePartialResult>>,
 }
 
 impl CannedHost {
@@ -57,7 +60,13 @@ impl CannedHost {
 			net_calls: Mutex::new(Vec::new()),
 			dom: Mutex::new(dom),
 			js_calls: Mutex::new(Vec::new()),
+			partials: Mutex::new(Vec::new()),
 		}
+	}
+
+	/// The chunks the source streamed, in arrival order.
+	fn partials(&self) -> Vec<HomePartialResult> {
+		self.partials.lock().expect("partials lock").clone()
 	}
 
 	fn net_calls(&self) -> Vec<(HostHttpMethod, String, String)> {
@@ -85,6 +94,11 @@ impl KomoreiHost for CannedHost {
 	}
 
 	fn sleep(&self, _seconds: i32) -> Result<(), RunnerError> {
+		Ok(())
+	}
+
+	fn partial_home(&self, result: HomePartialResult) -> Result<(), RunnerError> {
+		self.partials.lock().expect("partials lock").push(result);
 		Ok(())
 	}
 
@@ -1024,6 +1038,75 @@ fn home_has_seven_components() {
 			);
 		}
 		other => panic!("expected Filters, got {other:?}"),
+	}
+}
+
+/// A source streaming its home out of `get_home` reaches the host as it builds
+/// it, so the app can paint each row as it lands instead of waiting for the
+/// slowest request.
+#[test]
+fn home_streams_partial_results_before_it_returns() {
+	let host = Arc::new(CannedHost::new());
+	let runner = loaded_runner(&host);
+
+	// Nothing yet: the chunks only arrive while `home()` runs.
+	assert!(host.partials().is_empty(), "partials before get_home");
+
+	let home = runner.home().expect("home ok");
+	let partials = host.partials();
+	assert!(!partials.is_empty(), "source sent no partial results");
+
+	// The first chunk is the placeholder layout: every row the page will have,
+	// with no entries, so the app can show the right skeletons immediately.
+	let HomePartialResult::Layout(placeholder) = &partials[0] else {
+		panic!("expected a layout placeholder first, got {:?}", partials[0]);
+	};
+	let titles = |layout: &komorei_runner::HomeLayout| -> Vec<String> {
+		layout
+			.components
+			.iter()
+			.map(|c| c.title.clone().unwrap_or_default())
+			.collect()
+	};
+	assert_eq!(
+		titles(placeholder),
+		titles(&home),
+		"the placeholder must name every row the real layout has"
+	);
+	// A placeholder carries no content, or the app would render it as a real row.
+	for component in &placeholder.components {
+		let empty = match &component.value {
+			HomeComponentValue::Links(links) => links.is_empty(),
+			HomeComponentValue::Scroller { entries, .. } => entries.is_empty(),
+			HomeComponentValue::BigScroller { entries, .. } => entries.is_empty(),
+			HomeComponentValue::AnimeList { entries, .. } => entries.is_empty(),
+			HomeComponentValue::AnimeEpisodeList { entries, .. } => entries.is_empty(),
+			HomeComponentValue::ImageScroller { links, .. } => links.is_empty(),
+			HomeComponentValue::Filters(items) => items.is_empty(),
+		};
+		assert!(
+			empty,
+			"placeholder row {:?} carries content",
+			component.title
+		);
+	}
+
+	// Every row then follows as its own chunk, in the same order the real
+	// layout uses — a host that appends on arrival ends up with the same page.
+	let streamed: Vec<HomePartialResult> = partials[1..].to_vec();
+	assert_eq!(
+		streamed.len(),
+		home.components.len(),
+		"expected one chunk per row"
+	);
+	for (chunk, component) in streamed.iter().zip(&home.components) {
+		let HomePartialResult::Component(streamed) = chunk else {
+			panic!("expected a component chunk, got {chunk:?}");
+		};
+		assert_eq!(
+			streamed, component,
+			"a streamed row differs from the final one"
+		);
 	}
 }
 

@@ -23,9 +23,9 @@ pub use host::{HostDefaultValue, HostHttpMethod, HostNetResponse, KomoreiHost};
 pub use records::{
 	Anime, AnimePageResult, AnimeSeason, AnimeStatus, AnimeWithEpisode, CategoryLink,
 	DeepLinkResult, Episode, Filter, FilterItem, FilterKind, FilterValue, HomeComponent,
-	HomeComponentValue, HomeLayout, Link, LinkValue, Listing, ListingKind, LoginMethod, PageIcon,
-	RangeLong, Setting, SettingValue, SortFilterDefault, StreamData, StreamInfo, StreamType,
-	SubtitleInfo,
+	HomeComponentValue, HomeLayout, HomePartialResult, Link, LinkValue, Listing, ListingKind,
+	LoginMethod, PageIcon, RangeLong, Setting, SettingValue, SortFilterDefault, StreamData,
+	StreamInfo, StreamType, SubtitleInfo,
 };
 
 use std::sync::{Arc, Mutex};

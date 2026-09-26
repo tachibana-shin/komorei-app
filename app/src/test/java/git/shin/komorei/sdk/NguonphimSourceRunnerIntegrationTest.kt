@@ -282,6 +282,7 @@ class NguonphimSourceRunnerIntegrationTest {
             seasons = emptyList(),
             episodes = null,
             url = null,
+            extra = emptyMap(),
         )
 
     private fun ep(
