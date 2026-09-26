@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/tachibana-shin/komorei-app/compare/v1.0.0...v1.0.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* make the OTA version gate testable and the challenge watcher deterministic ([7b6074e](https://github.com/tachibana-shin/komorei-app/commit/7b6074e5f02b783c69ee417dae94ab3666112252))
+
 # 1.0.0 (2026-09-25)
 
 
