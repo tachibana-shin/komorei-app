@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/tachibana-shin/komorei-app/compare/v1.1.0...v1.1.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* **test:** pass the animevietsub fixtures path in, and load it eagerly ([709cd83](https://github.com/tachibana-shin/komorei-app/commit/709cd83bf78e687764766e766845723e9c4da2dd))
+
 # [1.1.0](https://github.com/tachibana-shin/komorei-app/compare/v1.0.1...v1.1.0) (2026-09-26)
 
 
