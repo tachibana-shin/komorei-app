@@ -138,6 +138,14 @@ android {
           "komorei.test.animevietsubKrx",
           rootProject.file("sources/sources/vi.animevietsub/package.krx").absolutePath,
         )
+        // The page captures the integration test replays. Passed in rather than
+        // hardcoded: an absolute path that only exists on one developer's
+        // machine turns every request into a connection reset, which surfaces
+        // as an opaque source error instead of "file not found".
+        test.systemProperty(
+          "komorei.test.animevietsubFixtures",
+          rootProject.file("sources/sources/vi.animevietsub/tests/fixtures").absolutePath,
+        )
         // The real OPhim source (sources/sources/vi.ophim) — exercised end-to-end
         // against a local classic-OPHIM fixture server in
         // OphimSourceRunnerIntegrationTest.

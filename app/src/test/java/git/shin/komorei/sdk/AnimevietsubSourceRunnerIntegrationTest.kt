@@ -55,9 +55,16 @@ class AnimevietsubSourceRunnerIntegrationTest {
             System.getProperty("komorei.test.animevietsubKrx")
                 ?: error("missing -Dkomorei.test.animevietsubKrx (set by app/build.gradle.kts)")
 
-        /** The source's captured pages, replayed byte for byte. */
-        private const val FIXTURES =
-            "/home/shin/komorei-app/sources/sources/vi.animevietsub/tests/fixtures"
+        /**
+         * The source's captured pages, replayed byte for byte.
+         *
+         * Read eagerly in the server's constructor rather than per request: a
+         * missing path is a setup mistake, and serving an empty body for it
+         * turns into an opaque source error ten steps away.
+         */
+        private val FIXTURES: String =
+            System.getProperty("komorei.test.animevietsubFixtures")
+                ?: error("missing -Dkomorei.test.animevietsubFixtures (set by app/build.gradle.kts)")
 
         private fun fixture(name: String): String = File(FIXTURES, name).readText()
 
@@ -254,6 +261,28 @@ class AnimevietsubSourceRunnerIntegrationTest {
         val requests = CopyOnWriteArrayList<String>()
         val baseUrl: String get() = "http://127.0.0.1:${server.localPort}"
 
+        /**
+         * Every page the source can ask for, loaded up front.
+         *
+         * Loading here rather than per request means a wrong fixtures path fails
+         * the test where the mistake is, instead of closing connections with no
+         * body — which reaches the source as a plain "cannot connect" and reads
+         * like a networking problem.
+         */
+        private val pages: Map<String, String> =
+            mapOf(
+                "/" to "page_home.html",
+                "/index.php" to "page_home.html",
+                "/bang-xep-hang/" to "page_ranking.html",
+                "/phim/" to "page_detail.html",
+                "/danh-sach/" to "page_catalog.html",
+                "/tim-kiem/" to "page_search.html",
+            ).mapValues { (_, file) -> fixture(file) }
+
+        /** Prefix → page, longest first: `/` would otherwise swallow every url. */
+        private val byPrefix: List<Pair<String, String>> =
+            pages.entries.sortedByDescending { it.key.length }.map { it.key to it.value }
+
         init {
             Thread({ acceptLoop() }, "avs-fixture").apply {
                 isDaemon = true
@@ -296,9 +325,13 @@ class AnimevietsubSourceRunnerIntegrationTest {
                     val page = route(target)
                     val bytes = (page ?: "").toByteArray(Charsets.UTF_8)
                     val out = s.getOutputStream()
+                    // A 404 rather than an empty 200: an unrouted url is a gap in
+                    // the fixture, and saying so beats a source that quietly
+                    // parses nothing.
+                    val status = if (page == null) "404 Not Found" else "200 OK"
                     out.write(
                         (
-                            "HTTP/1.1 200 OK\r\n" +
+                            "HTTP/1.1 $status\r\n" +
                                 "Content-Type: text/html; charset=utf-8\r\n" +
                                 "Content-Length: ${bytes.size}\r\n" +
                                 "Connection: close\r\n\r\n"
@@ -321,14 +354,7 @@ class AnimevietsubSourceRunnerIntegrationTest {
          */
         private fun route(target: String): String? {
             val path = target.substringBefore('?')
-            return when {
-                path == "/" || path == "/index.php" -> fixture("page_home.html")
-                path.startsWith("/bang-xep-hang/") -> fixture("page_ranking.html")
-                path.startsWith("/phim/") -> fixture("page_detail.html")
-                path.startsWith("/danh-sach/") -> fixture("page_catalog.html")
-                path.startsWith("/tim-kiem/") -> fixture("page_search.html")
-                else -> null
-            }
+            return pages[path] ?: byPrefix.firstOrNull { path.startsWith(it.first) }?.second
         }
     }
 }
