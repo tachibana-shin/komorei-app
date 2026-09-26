@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/tachibana-shin/komorei-app/compare/v1.0.1...v1.1.0) (2026-09-26)
+
+
+### Features
+
+* forward streamed home results, and carry `Anime.extra` through the app ([55ec408](https://github.com/tachibana-shin/komorei-app/commit/55ec408728cf9b3ea4ecb3c243e4c2f0191317b0))
+
 ## [1.0.1](https://github.com/tachibana-shin/komorei-app/compare/v1.0.0...v1.0.1) (2026-09-26)
 
 
