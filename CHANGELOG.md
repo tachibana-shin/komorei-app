@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/tachibana-shin/komorei-app/compare/v1.1.1...v1.1.2) (2026-09-27)
+
+
+### Bug Fixes
+
+* **runner:** bound the wasm call depth so a runaway source cannot kill the app ([e6b9902](https://github.com/tachibana-shin/komorei-app/commit/e6b99027379acb6aee5eb6c458567ee5f204c045))
+
 ## [1.1.1](https://github.com/tachibana-shin/komorei-app/compare/v1.1.0...v1.1.1) (2026-09-26)
 
 
