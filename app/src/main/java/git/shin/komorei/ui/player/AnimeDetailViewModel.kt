@@ -157,8 +157,17 @@ class AnimeDetailViewModel @Inject constructor(
             )
         }
 
-        if (fullAnime != null && fullAnime.id == liteAnime.id) {
-            applyFullAnime(fullAnime, liteAnime.sourceId)
+        // No id check on [fullAnime] on purpose. It comes from the player, which
+        // only ever holds the record for the anime it is playing, so it is the
+        // right record by construction. Checking its id against [liteAnime] used
+        // to reject it — AnimeVietsub returns an upgraded record with an EMPTY id
+        // (`parse_detail` builds one without a key and the SDK's `copy_from`
+        // assigns it unconditionally) — and the rejection sent this screen off to
+        // fetch the same anime a second time, which is the whole thing the reuse
+        // exists to avoid. Second page load, different episode handles, episode
+        // strip highlights nothing.
+        if (fullAnime != null) {
+            applyFullAnime(fullAnime, liteAnime.sourceId, liteAnime.id)
             return
         }
 
@@ -167,7 +176,7 @@ class AnimeDetailViewModel @Inject constructor(
             runCatching {
                 animeRepository.getAnimeUpdate(liteAnime, needsDetails = true, needsChapters = false)
             }.onSuccess { fetched ->
-                applyFullAnime(fetched, liteAnime.sourceId)
+                applyFullAnime(fetched, liteAnime.sourceId, liteAnime.id)
             }.onFailure { e ->
                 _uiState.update {
                     it.copy(
@@ -184,23 +193,34 @@ class AnimeDetailViewModel @Inject constructor(
      * Adopts [full] as the master record and loads the episodes of its initial
      * season, seeding [seasonEpisodesCache] from [full] first so a full anime
      * that already carries chapters costs no second call.
+     *
+     * [animeId] is the id this screen was asked for, and it is deliberately NOT
+     * read back off [full]. An upgraded record's own `id` is whatever the source
+     * felt like returning: AnimeVietsub's `parse_detail` builds a fresh record
+     * without a key, and the SDK's `copy_from` assigns it unconditionally, so the
+     * key comes back empty. Matching the season list against `full.id` then finds
+     * nothing and silently falls back to the FIRST season — which, on a
+     * multi-season title, is a different season from the one the player opened.
+     * The detail screen loads that season's episodes, none of whose keys match
+     * the playing episode, and the episode strip highlights nothing.
      */
     private fun applyFullAnime(
         full: Anime,
         sourceId: String,
+        animeId: String,
     ) {
         val sourceName = animeRepository.getSourceName(sourceId)
 
-        // Select initial season (the one the player opened, else the first listed)
+        // Select initial season (the one this screen was opened for, else the first)
         val initialSeason =
-            full.seasons.find { it.animeId == full.id }
+            full.seasons.find { it.animeId == animeId }
                 ?: full.seasons.firstOrNull()
-                ?: AnimeSeason(full.id, appContext.getString(R.string.season_fallback_full))
+                ?: AnimeSeason(animeId, appContext.getString(R.string.season_fallback_full))
 
         // `getAnimeUpdate(needsChapters = true)` already put this season's
         // episodes on the record, so the season fetch resolves from memory.
         if (full.episodes.isNotEmpty()) {
-            seasonEpisodesCache[full.id] = full.episodes
+            seasonEpisodesCache[animeId] = full.episodes
         }
 
         _uiState.update {

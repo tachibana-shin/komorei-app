@@ -11,6 +11,8 @@ import git.shin.komorei.data.local.KomoreiDatabase
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.AnimeStatus
 import git.shin.komorei.model.Episode
+import git.shin.komorei.model.StreamData
+import git.shin.komorei.model.StreamInfo
 import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
 import git.shin.komorei.ui.player.PlayerViewModel
@@ -27,6 +29,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,6 +52,7 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 class PlayerViewModelTest {
     private val mainDispatcher = StandardTestDispatcher()
+    private lateinit var registry: KrxSourceRegistry
     private lateinit var repository: AnimeRepository
     private lateinit var libraryRepository: LibraryRepository
 
@@ -70,7 +74,7 @@ class PlayerViewModelTest {
             Dispatchers.setMain(mainDispatcher)
             val context = ApplicationProvider.getApplicationContext<Context>()
             val host = KrxHostImpl(context)
-            val registry = KrxSourceRegistry(context, host)
+            registry = KrxSourceRegistry(context, host)
             registry.loadKrx(FAKE_SOURCE, File(fakeKrx).readBytes())
             repository = AnimeRepository(registry)
             val db = Room.inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java).build()
@@ -139,6 +143,96 @@ class PlayerViewModelTest {
         }
         advanceUntilIdle()
     }
+
+    @Test
+    fun openingAnAnimeMarksTheStreamLoadStartedInTheSameUpdate() =
+        runTest(mainDispatcher) {
+            // `openAnime` makes the sheet visible in the same state update. The
+            // detail screen reads `isLoadingStreams` to tell "the player is still
+            // fetching" from "the player settled and has no record for me", and
+            // takes the second reading as a cue to fetch the anime itself — so
+            // the flag has to be true in the same update that reveals the sheet.
+            //
+            // Left at its previous value it is `false`, the sheet composes with
+            // that, and the detail screen goes and asks the source for the same
+            // anime a second time. Sources that mint a fresh handle per page load
+            // (AnimeVietsub's `data-id`/`data-hash`) then hand back *different*
+            // episode keys and the episode strip highlights nothing. This is the
+            // third distinct cause of that same symptom, all in the same area.
+            val vm = newPlayerViewModel()
+            vm.openAnime(liteAnime(CATALOG_KEY))
+
+            assertTrue(
+                "the sheet is already visible, so the stream load must already read as started",
+                vm.playbackState.value.isLoadingStreams,
+            )
+            awaitStreamResolution(vm)
+        }
+
+    @Test
+    fun theUpgradedAnimeSurvivesAFailedStreamResolve() =
+        runTest(mainDispatcher) {
+            // The detail screen reuses `playbackState.fullAnime` instead of
+            // fetching the anime a second time, and that reuse is what keeps the
+            // episode strip's selection working: some sources mint a fresh
+            // per-page-load handle per episode (AnimeVietsub's `data-id`/
+            // `data-hash` are the signed pair `POST /ajax/player` wants, and they
+            // change between loads), so a second fetch returns *different* episode
+            // keys and nothing can match `currentEpisode`.
+            //
+            // It only holds if the upgrade is published before the stream resolve,
+            // because a failed resolve is exactly the case the detail screen has
+            // to cover. Measured on a real AnimeVietsub title: player saw
+            // 24 episodes keyed `1-112705-vd02_…`, the detail screen's own fetch
+            // saw 23 keyed `1-69386-Sr9V…` — nothing highlighted.
+            val lite = liteAnime(CATALOG_KEY)
+            val expected = repository.getAnimeUpdate(lite, needsDetails = true, needsChapters = true).episodes
+
+            // Wraps the SAME registry rather than building a second one: a second
+            // `loadKrx` in the same JVM re-enters JNA, whose native side is
+            // initialised once per classloader.
+            val failing =
+                object : AnimeRepository(registry) {
+                    // A source whose playlist refuses to resolve: the "playlist is
+                    // not valid base64" failure that leaves the player on its
+                    // error state with the detail sheet still up.
+                    override suspend fun getStream(
+                        anime: Anime,
+                        episode: Episode,
+                        stream: StreamInfo,
+                    ): StreamData = throw IllegalStateException("Không giải được playlist: base64 không hợp lệ")
+                }
+            val failingVm =
+                PlayerViewModel(
+                    ApplicationProvider.getApplicationContext(),
+                    failing,
+                    libraryRepository,
+                    SavedStateHandle(),
+                )
+
+            failingVm.openAnime(lite)
+            awaitStreamResolution(failingVm)
+
+            val state = failingVm.playbackState.value
+            assertNotNull("the resolve must actually have failed for this to test anything", state.streamError)
+            assertNotNull(
+                "the upgrade must be published even when the stream resolve fails — " +
+                    "otherwise the detail screen refetches and gets different episode keys",
+                state.fullAnime,
+            )
+            assertEquals(
+                "the published record must be the one whose keys `currentEpisode` uses",
+                expected.map { it.id },
+                state.fullAnime?.episodes?.map { it.id },
+            )
+            assertEquals(
+                state.currentEpisode?.id,
+                state.fullAnime
+                    ?.episodes
+                    ?.firstOrNull()
+                    ?.id,
+            )
+        }
 
     @Test
     fun openAnimeWithoutEpisodeResolvesFirstRealEpisodeAndStream() =

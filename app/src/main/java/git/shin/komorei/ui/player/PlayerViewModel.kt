@@ -246,6 +246,15 @@ class PlayerViewModel @Inject constructor(
                 streamData = null,
                 streamError = null,
                 error = null,
+                // With the sheet value below, in the same update. The detail
+                // screen uses this flag to tell "the player is still fetching" from
+                // "the player settled and has no record for me", and it takes the
+                // second reading as a cue to fetch the anime itself — so leaving
+                // this at its previous `false` here made the sheet, which is
+                // already visible, decide the player had settled and go off and
+                // ask the source for the same anime a second time. Two page loads,
+                // two different episode handles, nothing highlighted.
+                isLoadingStreams = true,
             )
         }
 
@@ -569,7 +578,19 @@ class PlayerViewModel @Inject constructor(
                 full.episodes.find { it.id == episode.id }
                     ?: full.episodes.firstOrNull()
                     ?: episode
-            _playbackState.update { it.copy(currentEpisode = fullEpisode) }
+            // Publish the upgrade as soon as it lands, BEFORE the stream resolve
+            // below — the detail screen reuses this record instead of asking the
+            // source for the same anime again, and that reuse only holds if the
+            // record survives a failed resolve.
+            //
+            // It has to. Some sources mint a fresh per-page-load handle for every
+            // episode (AnimeVietsub's `data-id`/`data-hash` are the signed pair
+            // `POST /ajax/player` wants, and they change between loads), so a
+            // second fetch of the same anime comes back with *different* episode
+            // keys. A detail list built from that second fetch can never match
+            // `currentEpisode`, and the episode strip highlights nothing. It looks
+            // intermittent because the handle is not rotated on every load.
+            _playbackState.update { it.copy(currentEpisode = fullEpisode, fullAnime = full) }
             finishLoadStreams(full, fullEpisode, restorePosition)
         }.onFailure { e ->
             _playbackState.update {

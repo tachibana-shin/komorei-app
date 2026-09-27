@@ -192,7 +192,12 @@ open class AnimeRepository @Inject constructor(
             runner.streamList(anime.toRunner(), episode.toRunner()).map { it.toAppModel() }
         } ?: emptyList()
 
-    suspend fun getStream(
+    /**
+     * `open` for the same reason as [getAnimeUpdate]: a source that refuses to
+     * resolve a playlist is an ordinary state, and a test has to be able to
+     * reproduce it to check what the app still has afterwards.
+     */
+    open suspend fun getStream(
         anime: Anime,
         episode: Episode,
         stream: StreamInfo,

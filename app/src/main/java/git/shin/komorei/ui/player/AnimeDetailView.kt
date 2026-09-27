@@ -494,46 +494,72 @@ fun AnimeDetailView(
         }
 
         item {
-            LazyRow(
-                modifier =
-                    Modifier
-                        .fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                item {
-                    DetailPillButton(
-                        icon = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkAdd,
-                        label =
-                            if (isBookmarked) {
-                                stringResource(R.string.following_anime)
-                            } else {
-                                stringResource(
-                                    R.string.follow_anime,
-                                )
-                            },
-                        isActive = isBookmarked,
-                        onClick = { viewModel.toggleBookmark() },
-                        tag = "bookmark",
-                    )
+            // The action pills need no data of their own, so they render fine
+            // while the header is still a skeleton — but real, tappable controls
+            // sitting on top of placeholder content read as "this part is done",
+            // and the eye lands on them first. They hold the same shape and
+            // spacing as the real row, so the swap moves nothing.
+            if (uiState.isLoadingMetadata) {
+                LazyRow(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // Widths track the three labels they stand in for.
+                    items(DETAIL_PILL_SKELETON_WIDTHS.size) { index ->
+                        Box(
+                            modifier =
+                                Modifier
+                                    .width(DETAIL_PILL_SKELETON_WIDTHS[index])
+                                    .height(34.dp)
+                                    .shimmerEffect(RoundedCornerShape(18.dp)),
+                        )
+                    }
                 }
-                item {
-                    DetailPillButton(
-                        icon = Icons.Default.AutoAwesome,
-                        label = stringResource(R.string.description_title),
-                        isActive = false,
-                        onClick = { showDescriptionSheet = true },
-                        tag = "summary",
-                    )
-                }
-                item {
-                    DetailPillButton(
-                        icon = Icons.Default.Flag,
-                        label = stringResource(R.string.report_anime),
-                        isActive = false,
-                        onClick = { },
-                        tag = "report",
-                    )
+            } else {
+                LazyRow(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    item {
+                        DetailPillButton(
+                            icon = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkAdd,
+                            label =
+                                if (isBookmarked) {
+                                    stringResource(R.string.following_anime)
+                                } else {
+                                    stringResource(
+                                        R.string.follow_anime,
+                                    )
+                                },
+                            isActive = isBookmarked,
+                            onClick = { viewModel.toggleBookmark() },
+                            tag = "bookmark",
+                        )
+                    }
+                    item {
+                        DetailPillButton(
+                            icon = Icons.Default.AutoAwesome,
+                            label = stringResource(R.string.description_title),
+                            isActive = false,
+                            onClick = { showDescriptionSheet = true },
+                            tag = "summary",
+                        )
+                    }
+                    item {
+                        DetailPillButton(
+                            icon = Icons.Default.Flag,
+                            label = stringResource(R.string.report_anime),
+                            isActive = false,
+                            onClick = { },
+                            tag = "report",
+                        )
+                    }
                 }
             }
         }
@@ -688,14 +714,20 @@ fun AnimeDetailView(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    if (uiState.isLoadingEpisodes) {
+                    // Both flags, not just `isLoadingEpisodes`: while the screen
+                    // is still waiting on the player's own upgrade the episode
+                    // load has not been kicked off, so `isLoadingEpisodes` is
+                    // still at its default `false` and an empty list here means
+                    // "not asked yet", not "no episodes". Taken at face value it
+                    // showed "this season has no episodes" over a season with
+                    // two dozen of them.
+                    if (uiState.isLoadingMetadata || uiState.isLoadingEpisodes) {
                         items(5) {
                             Box(
                                 modifier =
                                     Modifier
                                         .size(width = 46.dp, height = 34.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(CardDark.copy(alpha = 0.5f)),
+                                        .shimmerEffect(RoundedCornerShape(8.dp)),
                             )
                         }
                     } else if (uiState.episodeError != null) {
@@ -864,71 +896,79 @@ fun AnimeDetailView(
         }
 
         item {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(SurfaceDark)
-                        .border(1.dp, CardBorderDark, RoundedCornerShape(10.dp))
-                        .clickable { showCommentsSheet = true }
-                        .padding(12.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+            // The comments teaser is placeholder content: a hardcoded "821", a
+            // hardcoded "K" avatar and a hardcoded one-line comment. Rendered, it
+            // reads as real data about a real title that does not exist, and
+            // there is no comments sheet behind it to click into — `showCommentsSheet`
+            // is set here and never read. Hidden until there is something real to
+            // put behind it; flip this on when the comments surface does.
+            if (SHOW_COMMENTS_TEASER) {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(SurfaceDark)
+                            .border(1.dp, CardBorderDark, RoundedCornerShape(10.dp))
+                            .clickable { showCommentsSheet = true }
+                            .padding(12.dp),
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = stringResource(R.string.comments_title),
-                            color = TextPrimary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "821",
-                            color = TextMuted,
-                            fontSize = 12.sp,
-                        )
-                    }
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                        contentDescription = stringResource(R.string.cd_view_comments),
-                        tint = TextMuted,
-                        modifier = Modifier.size(13.dp),
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(AnimeRedContainer),
-                        contentAlignment = Alignment.Center,
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            text = "K",
-                            color = AnimeRed,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = stringResource(R.string.comments_title),
+                                color = TextPrimary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "821",
+                                color = TextMuted,
+                                fontSize = 12.sp,
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                            contentDescription = stringResource(R.string.cd_view_comments),
+                            tint = TextMuted,
+                            modifier = Modifier.size(13.dp),
                         )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Great adaptation, the soundtrack is amazing!",
-                        color = TextSecondary,
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(AnimeRedContainer),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "K",
+                                color = AnimeRed,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Great adaptation, the soundtrack is amazing!",
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }
@@ -1247,6 +1287,24 @@ private fun serverSkeletonCount(sourceId: String): Int =
         "vuighe" -> 2
         else -> 3 // animevietsub
     }
+
+/**
+ * Whether the detail page's comments teaser is rendered.
+ *
+ * It is off for now: the whole card is hardcoded — a fixed "821" count, a fixed
+ * "K" avatar, a fixed one-line comment — so on screen it reads as a real comment
+ * count on a real title that does not exist, and there is no comments sheet
+ * behind it to open. Turn it back on when a source-side comments surface puts
+ * real data behind it.
+ */
+private const val SHOW_COMMENTS_TEASER = false
+
+/**
+ * Widths of the detail action pills while they are placeholders — one per pill,
+ * sized after the three labels they stand in for ("Theo dõi", "Giới thiệu nội
+ * dung", "Báo cáo") so the real row lands on the same edges.
+ */
+private val DETAIL_PILL_SKELETON_WIDTHS = listOf(92.dp, 172.dp, 108.dp)
 
 /**
  * Placeholder for the detail header while the anime is being upgraded from its

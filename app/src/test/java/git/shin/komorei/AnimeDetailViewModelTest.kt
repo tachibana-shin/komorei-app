@@ -163,6 +163,44 @@ class AnimeDetailViewModelTest {
     }
 
     @Test
+    fun `a record that lost its id still selects the season that was opened`() =
+        runBlocking {
+            // AnimeVietsub's `parse_detail` builds a record without a key and the
+            // SDK's `copy_from` assigns it unconditionally, so an upgraded anime
+            // comes back with an EMPTY id — verified on device (`full.id=`).
+            //
+            // Matching the season list against that empty id finds nothing and
+            // falls back to the first season, which on a multi-season title is not
+            // the one the player opened. The detail screen then loads the wrong
+            // season's episodes, none of whose keys match the playing episode, and
+            // the episode strip highlights nothing. The screen has to trust the id
+            // it was asked for, not the one the source handed back.
+            val seasonTwo = AnimeSeason("other-season", "Season 2")
+            val full =
+                fullAnime().copy(
+                    // Exactly what the source returns.
+                    id = "",
+                    episodes = listOf(Episode("s2e1", "other-season", "vi.fake-source", "1", "Episode 1")),
+                    seasons = listOf(AnimeSeason("lite-1", "Season 1"), seasonTwo),
+                )
+            // The player was asked to open season 2, so that is the id this screen
+            // knows. The upgraded record's own id is empty and must not be used.
+            viewModel.loadInitialData(liteAnime().copy(id = "other-season"), full)
+
+            val state = viewModel.uiState.value
+            assertEquals(
+                "the season matching the requested id must win, not the first listed",
+                seasonTwo,
+                state.selectedSeason,
+            )
+            assertEquals(
+                "and its episodes must come off the record, not a second fetch",
+                listOf("Episode 1"),
+                state.currentSeasonEpisodes.map { it.title },
+            )
+        }
+
+    @Test
     fun `a full anime from the player costs no upgrade at all`() =
         runBlocking {
             // The whole point. The player's `loadStreams` already fetched
