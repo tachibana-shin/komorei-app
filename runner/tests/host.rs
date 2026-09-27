@@ -1189,3 +1189,64 @@ fn js_host_contract_calls_through() {
 	);
 	assert!(calls.contains(&"webview_get_cookies 301".to_string()));
 }
+
+// ---------------------------------------------------------------------------
+// A `.krx` must not be able to kill the host process
+// ---------------------------------------------------------------------------
+
+/// `() -> ()` that calls itself unconditionally, exported as `get_base_url`.
+///
+/// Named after an export the runner already calls with no arguments, so the
+/// public API drives it with no test-only surface added to the crate. The body is
+/// `call 0; end` — an endless chain of calls with nothing to terminate it.
+const INFINITE_RECURSION_WASM: &[u8] = &[
+	0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, // magic + version
+	0x01, 0x08, 0x02, // type section: 2 types
+	0x60, 0x00, 0x01, 0x7f, // type 0: () -> i32   (an export result buffer pointer)
+	0x60, 0x00, 0x00, // type 1: () -> ()     (start)
+	0x03, 0x03, 0x02, 0x00, 0x01, // function section: func 0 : type 0, func 1 : type 1
+	0x05, 0x03, 0x01, 0x00, 0x01, // memory section: 1 page, no maximum
+	0x07, 0x21, 0x03, // export section: 3 entries
+	0x0c, b'g', b'e', b't', b'_', b'b', b'a', b's', b'e', b'_', b'u', b'r',
+	b'l', // "get_base_url"
+	0x00, 0x00, // kind func, index 0 -- recurses forever
+	0x06, b'm', b'e', b'm', b'o', b'r', b'y', // "memory"
+	0x02, 0x00, // kind memory, index 0
+	0x05, b's', b't', b'a', b'r', b't', // "start"
+	0x00, 0x01, // kind func, index 1 -- returns immediately
+	0x0a, 0x09, 0x02, // code section: 2 bodies
+	0x04, 0x00, 0x10, 0x00, 0x0b, // func 0: call 0; end
+	0x02, 0x00, 0x0b, // func 1: end
+];
+
+/// A wasm call chain that never ends must come back as an `Err`.
+///
+/// What this pins: wasmi's depth limit is reachable and *reported*, so a runaway
+/// `.krx` is a stream error the app can show rather than a dead process. That is
+/// the whole contract — a host cannot catch a SIGSEGV, so the only thing that
+/// matters is that the engine traps before the native stack runs out.
+///
+/// What this does NOT pin: the Android margin. A debug cdylib's interpreter
+/// frames are small enough that the JVM thread copes at wasmi's default 1000
+/// levels, so this test also passes with no limit set at all. Reproducing the
+/// device crash needs a release-built `.so` and a device, which is why
+/// [crate::STACK_SIZE] and `engine::MAX_RECURSION_DEPTH` carry the arithmetic in
+/// their own docs rather than relying on a test here to catch it.
+#[test]
+fn a_source_that_recurses_too_deep_errors_instead_of_crashing() {
+	let host = Arc::new(CannedHost::new());
+	let runner = KomoreiRunner::new(host);
+	runner
+		.load(INFINITE_RECURSION_WASM.to_vec())
+		.expect("load wasm");
+	runner.start().expect("start source");
+
+	let error = runner
+		.base_url()
+		.expect_err("unbounded recursion must not succeed");
+	let message = format!("{error:?}").to_lowercase();
+	assert!(
+		message.contains("stack") || message.contains("recursion"),
+		"expected a stack/recursion error, got: {error:?}"
+	);
+}

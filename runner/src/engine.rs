@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use serde::de::DeserializeOwned;
-use wasmi::{Engine, Instance, Linker, Memory, Module, Store, TypedFunc};
+use wasmi::{Config, Engine, Instance, Linker, Memory, Module, Store, TypedFunc};
 
 use crate::error::RunnerError;
 use crate::host::KomoreiHost;
@@ -25,7 +25,7 @@ unsafe impl Send for EngineState {}
 
 impl EngineState {
 	pub fn load(wasm: &[u8], host: Arc<dyn KomoreiHost>) -> Result<Self, RunnerError> {
-		let engine = Engine::default();
+		let engine = Engine::new(&engine_config());
 		let module = Module::new(&engine, wasm)?;
 		let data = RunnerData {
 			store: crate::state::GlobalStore::new(),
@@ -189,4 +189,29 @@ impl EngineState {
 		let payload = self.decode_raw(ptr)?;
 		postcard::from_bytes(&payload).map_err(RunnerError::from)
 	}
+}
+
+/// How deep a wasm call chain may go before wasmi traps.
+///
+/// Not wasmi's default of 1000: the executor's native frames on an Android
+/// release build are large enough that 1000 of them do not fit in the worker's
+/// 32 MiB stack, so the stack hits its guard page *before* the limit trips and
+/// the process dies instead of the call returning an error.
+///
+/// A real source's chain is a few dozen frames — the deepest legitimate one in
+/// this project is well under a tenth of this number — so the cost of tripping
+/// early is nil, and the benefit is that a runaway `.krx` gets a clean
+/// `TrapCode::StackOverflow` it can report, exactly like any other failure.
+///
+/// Tests: `a_source_that_recurses_too_deep_errors_instead_of_crashing`.
+const MAX_RECURSION_DEPTH: usize = 256;
+
+/// The wasmi configuration every source runs under.
+///
+/// Not `Engine::default()` — see [MAX_RECURSION_DEPTH] for the one limit that
+/// has to differ.
+fn engine_config() -> Config {
+	let mut config = Config::default();
+	config.set_max_recursion_depth(MAX_RECURSION_DEPTH);
+	config
 }

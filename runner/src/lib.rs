@@ -309,13 +309,20 @@ impl KomoreiRunner {
 }
 
 impl KomoreiRunner {
-	// wasmi's interpreter recurses natively for every wasm call. On Android,
-	// non-main threads get a 1 MiB stack by default and the release-built
-	// executor's per-call frames are large enough that a legitimate wasm call
-	// chain (up to wasmi's 1000-level recursion limit) SIGSEGVs the process
-	// before wasmi can trap cleanly — seen as "stack pointer close to top of
-	// stack" in tombstones. Run every call on a short-lived big-stack worker;
-	// the mutex still serializes calls exactly as before.
+	// wasmi's interpreter recurses natively for every wasm call, so the engine
+	// needs a stack far bigger than a thread gets by default — Android gives a
+	// non-main thread 1 MiB, and a release-built executor burns through that in
+	// a few hundred frames. Every call therefore runs on a short-lived
+	// big-stack worker; the mutex still serializes calls exactly as before.
+	//
+	// 64 MiB, not 32. A tombstone from playing an anime showed the stack hitting
+	// its guard page at 32 MiB, and the release-built frames are large enough
+	// that wasmi's own depth limit does not fit inside 32 MiB — so 32 MiB was
+	// ever only ever going to be enough for whatever chain depth nobody had
+	// reached yet. The depth limit in `engine.rs` is what is supposed to stop
+	// the chain; this is the backstop under it, and the margin is deliberately
+	// wide. A thread's stack is reserved address space, not resident memory, so
+	// the cost of the extra 32 MiB is only the pages a call actually touches.
 	//
 	// The worker ALSO contains panics. Most FFI-contract failures never get
 	// here — declaring `Result` on every `KomoreiHost` method makes uniffi
@@ -333,7 +340,7 @@ impl KomoreiRunner {
 		&self,
 		f: impl FnOnce(&mut engine::EngineState) -> Result<T, RunnerError> + Send,
 	) -> Result<T, RunnerError> {
-		const STACK_SIZE: usize = 32 * 1024 * 1024;
+		const STACK_SIZE: usize = 64 * 1024 * 1024;
 		std::thread::scope(|scope| {
 			let handle = std::thread::Builder::new()
 				.name("komorei-runner".into())
