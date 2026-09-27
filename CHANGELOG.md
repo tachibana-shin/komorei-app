@@ -1,3 +1,10 @@
+## [1.1.4](https://github.com/tachibana-shin/komorei-app/compare/v1.1.3...v1.1.4) (2026-09-27)
+
+
+### Bug Fixes
+
+* **ui:** the Related grid's cells were sized against the wrong width ([13e9aab](https://github.com/tachibana-shin/komorei-app/commit/13e9aab8143983e82b2a9def34268fc8a376d2ec))
+
 ## [1.1.3](https://github.com/tachibana-shin/komorei-app/compare/v1.1.2...v1.1.3) (2026-09-27)
 
 
