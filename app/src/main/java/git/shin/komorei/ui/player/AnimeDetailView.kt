@@ -79,10 +79,14 @@ import git.shin.komorei.ui.components.AnimeCard
 import git.shin.komorei.ui.components.Badge
 import git.shin.komorei.ui.components.DetailPillButton
 import git.shin.komorei.ui.components.EpisodeProgressBar
+import git.shin.komorei.ui.components.GRID_GUTTER
+import git.shin.komorei.ui.components.GRID_ROW_SPACING
 import git.shin.komorei.ui.components.MetadataDetailRow
+import git.shin.komorei.ui.components.PAGE_PADDING_HORIZONTAL
 import git.shin.komorei.ui.components.SectionHeader
 import git.shin.komorei.ui.components.ServerOptionChip
 import git.shin.komorei.ui.components.animeGridColumnCount
+import git.shin.komorei.ui.components.gridCellWidth
 import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
 import git.shin.komorei.ui.player.components.EpisodesBottomSheet
 import git.shin.komorei.ui.theme.Accent
@@ -894,34 +898,50 @@ fun AnimeDetailView(
                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                     val columns = animeGridColumnCount()
                     val rows = relatedAnimeList.chunked(columns)
-                    // Fixed cell width (not weight) so an incomplete last row keeps
-                    // the same sizing as full rows instead of stretching to 50%.
-                    val cellWidth = (maxWidth - 12.dp * (columns - 1)) / columns
-                    SectionHeader(title = stringResource(R.string.related_anime_header))
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                    ) {
-                        rows.forEachIndexed { index, rowAnimes ->
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = if (index < rows.lastIndex) 14.dp else 0.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                rowAnimes.forEach { anime ->
-                                    AnimeCard(
-                                        anime = anime,
-                                        onClick = { onAnimeSelected(anime) },
-                                        cardWidth = cellWidth,
-                                    )
-                                }
-                                // Keep an incomplete last row left-aligned.
-                                repeat(columns - rowAnimes.size) {
-                                    Spacer(modifier = Modifier.width(cellWidth))
+                    // Sized against the width the rows actually have, padding
+                    // included — see gridCellWidth. Measuring against the
+                    // container instead made the row ask for more than it had, and
+                    // Compose squeezed the last card to fit.
+                    val cellWidth = gridCellWidth(columns)
+                    // One Column, so the header sits above the grid. As siblings
+                    // of a Box these two overlapped, and the grid drew over its
+                    // own heading.
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        SectionHeader(title = stringResource(R.string.related_anime_header))
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = PAGE_PADDING_HORIZONTAL),
+                        ) {
+                            rows.forEachIndexed { index, rowAnimes ->
+                                Row(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(
+                                                bottom =
+                                                    if (index < rows.lastIndex) {
+                                                        GRID_ROW_SPACING
+                                                    } else {
+                                                        0.dp
+                                                    },
+                                            ),
+                                    horizontalArrangement = Arrangement.spacedBy(GRID_GUTTER),
+                                ) {
+                                    // Fixed cell width (not weight) so an incomplete last row keeps
+                                    // the same sizing as full rows instead of stretching to 50%.
+                                    rowAnimes.forEach { anime ->
+                                        AnimeCard(
+                                            anime = anime,
+                                            onClick = { onAnimeSelected(anime) },
+                                            cardWidth = cellWidth,
+                                        )
+                                    }
+                                    // Keep an incomplete last row left-aligned.
+                                    repeat(columns - rowAnimes.size) {
+                                        Spacer(modifier = Modifier.width(cellWidth))
+                                    }
                                 }
                             }
                         }

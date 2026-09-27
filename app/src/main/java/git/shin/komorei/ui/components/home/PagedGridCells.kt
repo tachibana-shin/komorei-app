@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import git.shin.komorei.ui.components.gridCellWidth
 
 /**
  * Upper bound for a paged cell's fixed width on the PHONE's 2-column layout
@@ -29,11 +30,9 @@ internal fun BoxWithConstraintsScope.pagedGridColumns(): Int =
     }
 
 /**
- * Fixed width of one paged cell: the measured container divided by
- * [pagedGridColumns] (16dp page padding each side + 12dp inter-column
- * spacing). On the phone's 2-column layout the width keeps the classic
- * [PAGED_CELL_WIDTH_MAX] cap so cards never balloon; on tablet/TV layouts the
- * cells fill their whole budget so the extra columns stay packed with no
+ * Fixed width of one paged cell: [gridCellWidth] on the phone's 2-column layout,
+ * capped at [PAGED_CELL_WIDTH_MAX] so cards never balloon; on tablet/TV layouts
+ * the cells fill their whole budget so the extra columns stay packed with no
  * leftover gap. Never weight/percentage — the width feel of Aidoku's
  * `mangaListLayout` page fraction with a fixed dp.
  */
@@ -41,7 +40,7 @@ internal fun BoxWithConstraintsScope.pagedGridColumns(): Int =
 internal fun BoxWithConstraintsScope.pagedCellWidth(
     columns: Int = pagedGridColumns(),
 ): Dp {
-    val budget = (maxWidth - 32.dp - 12.dp * (columns - 1)) / columns
+    val budget = gridCellWidth(columns)
     return if (columns == 2) {
         budget.coerceAtMost(PAGED_CELL_WIDTH_MAX)
     } else {
