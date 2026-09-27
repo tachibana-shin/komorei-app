@@ -27,7 +27,31 @@ sha1 = "0.10"
 sha2 = "0.10"
 thiserror = "2.0"
 uniffi = { version = "0.32.1", features = ["build"] }
-wasmi = "2.0.0"
+# `portable-dispatch` is not optional here, it is the difference between a
+# working player and a dead process.
+#
+# wasmi 2.0 picks its dispatch backend at compile time. With `auto-dispatch` and
+# a build it believes supports tail calls, it marks every opcode handler
+# `#[inline(never)]` and emits `return handler(..)`, leaving it to LLVM to turn
+# that into a sibling call. This crate builds at `opt-level = "s"` with fat LTO,
+# and there LLVM does *not* — the chain nests a native frame per executed wasm
+# instruction instead. A source doing any real work (AnimeVietsub's playlist
+# decryption alone is hundreds of thousands of instructions) then walks the
+# worker off the end of its stack and SIGSEGVs the app:
+#
+#   Cause: stack pointer is not in a rw map; likely due to stack overflow
+#   #00 wasmi::...::exec::u32_store_mem0_offset16_sr
+#   #01 wasmi::...::exec::i64_store_wrap32_mem0_offset16_rs   (dispatch/backend/tail.rs)
+#   #02 wasmi::...::exec::u32_store_mem0_offset16_sr
+#   ...
+#
+# `portable-dispatch` selects the other backend: handlers are `#[inline(always)]`,
+# so the dispatch chain is one function and the executor is a loop no matter what
+# LLVM decides. It is wasmi's own fallback for targets without tail calls, and
+# it is correct on every target — which is what a host that executes untrusted
+# `.krx` needs. See also `engine::MAX_RECURSION_DEPTH`, which bounds genuine wasm
+# *call* recursion, the one thing this does not cover.
+wasmi = { version = "2.0.0", features = ["portable-dispatch"] }
 
 [build-dependencies]
 uniffi = { version = "0.32.1", features = ["build"] }

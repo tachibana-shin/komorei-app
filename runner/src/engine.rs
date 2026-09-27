@@ -191,25 +191,30 @@ impl EngineState {
 	}
 }
 
-/// How deep a wasm call chain may go before wasmi traps.
+/// How deep a wasm *call* chain may go before wasmi traps.
 ///
 /// Not wasmi's default of 1000: the executor's native frames on an Android
-/// release build are large enough that 1000 of them do not fit in the worker's
-/// 32 MiB stack, so the stack hits its guard page *before* the limit trips and
-/// the process dies instead of the call returning an error.
+/// release build are large enough that 1000 of them do not comfortably fit in
+/// the worker's stack, so the limit should trip with margin rather than race the
+/// guard page.
 ///
-/// A real source's chain is a few dozen frames — the deepest legitimate one in
-/// this project is well under a tenth of this number — so the cost of tripping
-/// early is nil, and the benefit is that a runaway `.krx` gets a clean
-/// `TrapCode::StackOverflow` it can report, exactly like any other failure.
+/// This is the *call* bound only. It does not limit how much work a call may do:
+/// the executor's instruction dispatch is a separate concern, fixed by building
+/// wasmi with `portable-dispatch` (see `runner/Cargo.toml`), because with the
+/// default backend the native stack grew one frame per executed instruction and
+/// no depth limit could have helped.
+///
+/// A real source's chain is a few dozen frames, so tripping early costs nothing,
+/// and a runaway `.krx` gets a clean `TrapCode::StackOverflow` it can report.
 ///
 /// Tests: `a_source_that_recurses_too_deep_errors_instead_of_crashing`.
 const MAX_RECURSION_DEPTH: usize = 256;
 
 /// The wasmi configuration every source runs under.
 ///
-/// Not `Engine::default()` — see [MAX_RECURSION_DEPTH] for the one limit that
-/// has to differ.
+/// Not `Engine::default()` — see [MAX_RECURSION_DEPTH]. The other half of the
+/// stack story is not here at all: it is the `portable-dispatch` feature in
+/// `runner/Cargo.toml`, which is what keeps the executor a loop.
 fn engine_config() -> Config {
 	let mut config = Config::default();
 	config.set_max_recursion_depth(MAX_RECURSION_DEPTH);
