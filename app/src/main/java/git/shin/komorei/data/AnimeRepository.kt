@@ -170,8 +170,12 @@ open class AnimeRepository @Inject constructor(
      * The primary API to fetch missing data for an Anime. Upgrades a Lite card
      * (id + sourceId only) to full via the runner's `animeUpdate`.
      * Falls back to the input (unchanged) when the source can't be loaded.
+     *
+     * `open` so tests can count the calls: the player and the detail screen both
+     * need the upgraded record, and whether they share one call or each make
+     * their own is exactly the kind of thing that silently regresses.
      */
-    suspend fun getAnimeUpdate(
+    open suspend fun getAnimeUpdate(
         anime: Anime,
         needsDetails: Boolean,
         needsChapters: Boolean,

@@ -28,6 +28,19 @@ import javax.inject.Inject
 
 data class AnimeDetailUiState(
     val masterAnime: Anime? = null,
+    /**
+     * True from the moment an anime is requested until [masterAnime] holds its
+     * full metadata, and the detail screen must render a skeleton for that whole
+     * window.
+     *
+     * The `Anime` handed to the detail screen comes from a listing API, so it is
+     * a **Lite** record: a title, a poster, and little else. Falling back to it
+     * while the upgrade is in flight — which is what `masterAnime ?: anime` did —
+     * puts a real-looking screen on display with no studio, no genres, no seasons,
+     * no episodes and a zeroed rating. It reads as broken data rather than as
+     * loading, which is the one thing a skeleton exists to prevent.
+     */
+    val isLoadingMetadata: Boolean = true,
     val selectedSeason: AnimeSeason? = null,
     /** Full episode list of the selected real season, before virtual-season splitting. */
     val fullSeasonEpisodes: List<Episode> = emptyList(),
@@ -53,6 +66,15 @@ class AnimeDetailViewModel @Inject constructor(
 
     // Remembers the Lite anime for retry when the initial metadata fetch failed.
     private var lastLiteAnime: Anime? = null
+
+    /**
+     * Id of the anime the current load belongs to. Re-entering the detail screen
+     * for the same anime is a no-op, so the record is kept — and re-entering it
+     * shows the data already in memory instead of re-fetching. Distinct from
+     * `masterAnime?.id`, which a failed load leaves null and which therefore
+     * cannot tell "never requested" from "requested and failed".
+     */
+    private var requestedAnimeId: String? = null
 
     /**
      * Cache of already-fetched episode lists keyed by season [AnimeSeason.animeId].
@@ -95,45 +117,105 @@ class AnimeDetailViewModel @Inject constructor(
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /**
-     * Initial entry point: Upgrades Lite anime to Full metadata + first season episodes.
+     * Initial entry point: takes the FULL anime and serves metadata + first
+     * season episodes out of it, fetching only what it was not handed.
+     *
+     * [fullAnime] is the upgrade the player already performed — `loadStreams`
+     * asks for `needsDetails` **and** `needsChapters` in a single call, so its
+     * result carries the seasons *and* this season's episodes. Passing it in
+     * here is what removes the duplicate round trips: this ViewModel used to ask
+     * the source for the same anime twice more (metadata, then chapters), on top
+     * of the player's, and every extra call is another full source fetch — on a
+     * source behind a JS challenge that is seconds of skeleton each time.
+     *
+     * With [fullAnime] null (the detail screen reached without going through the
+     * player, or after the player's own load failed) it falls back to fetching
+     * the metadata itself, so nothing regresses.
      */
-    fun loadInitialData(liteAnime: Anime) {
-        if (_uiState.value.masterAnime?.id == liteAnime.id) return
+    fun loadInitialData(
+        liteAnime: Anime,
+        fullAnime: Anime? = null,
+    ) {
+        if (requestedAnimeId == liteAnime.id) return
+        requestedAnimeId = liteAnime.id
         lastLiteAnime = liteAnime
 
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingEpisodes = true, episodeError = null) }
+        // Synchronously, before returning: the previous anime's master record and
+        // the incoming Lite card both have to be out of the UI state now, or the
+        // header renders one of them for a frame before the coroutine even runs.
+        _uiState.update {
+            it.copy(
+                masterAnime = null,
+                isLoadingMetadata = true,
+                selectedSeason = null,
+                fullSeasonEpisodes = emptyList(),
+                virtualSeasons = emptyList(),
+                selectedVirtualSeasonId = null,
+                currentSeasonEpisodes = emptyList(),
+                isLoadingEpisodes = true,
+                episodeError = null,
+            )
+        }
 
+        if (fullAnime != null && fullAnime.id == liteAnime.id) {
+            applyFullAnime(fullAnime, liteAnime.sourceId)
+            return
+        }
+
+        viewModelScope.launch {
             // 1. Fetch FULL metadata (including all available seasons)
             runCatching {
                 animeRepository.getAnimeUpdate(liteAnime, needsDetails = true, needsChapters = false)
-            }.onSuccess { fullMetadata ->
-                val sourceName = animeRepository.getSourceName(liteAnime.sourceId)
-
-                // 2. Select initial season (usually the one provided by liteAnime or the first in list)
-                val initialSeason =
-                    fullMetadata.seasons.find { it.animeId == liteAnime.id }
-                        ?: fullMetadata.seasons.firstOrNull()
-                        ?: AnimeSeason(
-                            liteAnime.id,
-                            appContext.getString(R.string.season_fallback_full),
-                        )
-
-                _uiState.update {
-                    it.copy(masterAnime = fullMetadata, selectedSeason = initialSeason, sourceName = sourceName)
-                }
-
-                // 3. Fetch episodes for THIS specific season
-                fetchEpisodesForSeason(initialSeason, liteAnime.sourceId)
+            }.onSuccess { fetched ->
+                applyFullAnime(fetched, liteAnime.sourceId)
             }.onFailure { e ->
                 _uiState.update {
                     it.copy(
+                        isLoadingMetadata = false,
                         isLoadingEpisodes = false,
                         episodeError = e.message ?: appContext.getString(R.string.error_load_data),
                     )
                 }
             }
         }
+    }
+
+    /**
+     * Adopts [full] as the master record and loads the episodes of its initial
+     * season, seeding [seasonEpisodesCache] from [full] first so a full anime
+     * that already carries chapters costs no second call.
+     */
+    private fun applyFullAnime(
+        full: Anime,
+        sourceId: String,
+    ) {
+        val sourceName = animeRepository.getSourceName(sourceId)
+
+        // Select initial season (the one the player opened, else the first listed)
+        val initialSeason =
+            full.seasons.find { it.animeId == full.id }
+                ?: full.seasons.firstOrNull()
+                ?: AnimeSeason(full.id, appContext.getString(R.string.season_fallback_full))
+
+        // `getAnimeUpdate(needsChapters = true)` already put this season's
+        // episodes on the record, so the season fetch resolves from memory.
+        if (full.episodes.isNotEmpty()) {
+            seasonEpisodesCache[full.id] = full.episodes
+        }
+
+        _uiState.update {
+            it.copy(
+                masterAnime = full,
+                isLoadingMetadata = false,
+                selectedSeason = initialSeason,
+                sourceName = sourceName,
+            )
+        }
+
+        // Fire-and-forget: the episode list is published through the state flow.
+        // Launched rather than awaited so this stays callable from the synchronous
+        // path too, where the player already holds the full anime.
+        viewModelScope.launch { fetchEpisodesForSeason(initialSeason, sourceId) }
     }
 
     /**
@@ -296,6 +378,9 @@ class AnimeDetailViewModel @Inject constructor(
         val master = state.masterAnime
         when {
             master == null -> {
+                // Drop the request guard first, or the retry early-returns on the
+                // very id it is being asked to retry.
+                requestedAnimeId = null
                 lastLiteAnime?.let { loadInitialData(it) }
             }
             state.selectedSeason != null -> {

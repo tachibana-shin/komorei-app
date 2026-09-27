@@ -468,6 +468,7 @@ fun VideoPlayerSheet(
                     ) {
                         AnimeDetailView(
                             anime = anime,
+                            fullAnime = playbackState.fullAnime,
                             currentEpisode = currentEp,
                             relatedAnimeList = relatedAnimeList,
                             streams = playbackState.streams,

@@ -88,6 +88,7 @@ import git.shin.komorei.ui.components.ServerOptionChip
 import git.shin.komorei.ui.components.animeGridColumnCount
 import git.shin.komorei.ui.components.gridCellWidth
 import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
+import git.shin.komorei.ui.components.shimmerEffect
 import git.shin.komorei.ui.player.components.EpisodesBottomSheet
 import git.shin.komorei.ui.theme.Accent
 import git.shin.komorei.ui.theme.AnimeGreen
@@ -115,6 +116,7 @@ import kotlinx.coroutines.flow.first
 @Composable
 fun AnimeDetailView(
     anime: Anime,
+    fullAnime: Anime?,
     currentEpisode: Episode,
     relatedAnimeList: List<Anime>,
     streams: List<StreamInfo>,
@@ -133,8 +135,18 @@ fun AnimeDetailView(
     val isBookmarked by viewModel.isBookmarked.collectAsState()
     val watchHistory by viewModel.watchHistory.collectAsState()
 
-    LaunchedEffect(anime.id) {
-        viewModel.loadInitialData(anime)
+    // The player upgrades the anime itself — `loadStreams` asks for details AND
+    // chapters in one call — and publishes the result on `playbackState`. Wait for
+    // that instead of racing it: fetching the same anime from here as well meant
+    // two identical round trips to the source for one screen. `isLoadingStreams`
+    // is what says the player's load has settled — once it is false and there is
+    // still no full anime, that load failed (or this screen was reached without
+    // the player), and fetching here is the only way to get the data at all.
+    LaunchedEffect(anime.id, fullAnime?.id, isLoadingStreams) {
+        when {
+            fullAnime != null -> viewModel.loadInitialData(anime, fullAnime)
+            !isLoadingStreams -> viewModel.loadInitialData(anime)
+        }
     }
 
     val displayAnime = uiState.masterAnime ?: anime
@@ -216,255 +228,266 @@ fun AnimeDetailView(
         contentPadding = PaddingValues(bottom = 40.dp),
     ) {
         item {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { showDescriptionSheet = true }
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
+            // The anime reaching this screen is the Lite card from a listing:
+            // title and poster, nothing else. Rendering it while the upgrade is
+            // in flight shows a real-looking header with an empty studio, no
+            // genres, no seasons and a zeroed rating — it reads as broken data
+            // rather than as loading. Skeleton until `masterAnime` is the real
+            // record, then swap; the placeholder is shaped like the header so the
+            // swap does not move anything.
+            if (uiState.isLoadingMetadata) {
+                AnimeDetailHeaderSkeleton()
+            } else {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { showDescriptionSheet = true }
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
                 ) {
-                    Text(
-                        text = displayAnime.title,
-                        color = TextPrimary,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = 22.sp,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = stringResource(R.string.cd_introduction),
-                        tint = TextMuted,
-                        modifier = Modifier.size(20.dp),
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = displayAnime.title,
+                            color = TextPrimary,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 22.sp,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = stringResource(R.string.cd_introduction),
+                            tint = TextMuted,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Một Text duy nhất cho cả đoạn "lượt xem • Tập tiếp theo..." —
+                        // nếu để Text riêng trong Row, khi quá dài nó wrap và dòng thứ 2
+                        // thụt theo chỗ bắt đầu của chữ "Tập tiếp theo". Gộp chung một
+                        // paragraph (AnnotatedString giữ màu) để dòng xuống bắt đầu từ
+                        // mép trái, thẳng với số lượt xem.
+                        displayAnime.nextEpisodeAirInfo?.let { info ->
+                            Text(
+                                text =
+                                    buildAnnotatedString {
+                                        withStyle(SpanStyle(color = TextGrey)) {
+                                            append(stringResource(R.string.views_count, formatNumber(displayAnime.views)))
+                                            append(" • ")
+                                        }
+                                        withStyle(SpanStyle(color = Accent)) {
+                                            append(info)
+                                        }
+                                    },
+                                fontSize = 14.sp,
+                                style = NoPaddingTextStyle,
+                            )
+                        } ?: run {
+                            Text(
+                                text =
+                                    stringResource(
+                                        R.string.views_count,
+                                        formatNumber(displayAnime.views),
+                                    ),
+                                color = TextGrey,
+                                fontSize = 14.sp,
+                                style = NoPaddingTextStyle,
+                            )
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (displayAnime.authors.isNotEmpty()) {
+                            Text(
+                                text = stringResource(R.string.author_label) + " " + displayAnime.authors.first().name,
+                                color =
+                                    if (displayAnime.authors
+                                            .first()
+                                            .filters
+                                            .isNotEmpty()
+                                    ) {
+                                        AnimeGreen
+                                    } else {
+                                        TextSecondary
+                                    },
+                                fontSize = 14.sp,
+                                modifier =
+                                    Modifier
+                                        // TV focus highlight (no-op on phones).
+                                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                        .clickable(
+                                            enabled =
+                                                displayAnime.authors
+                                                    .first()
+                                                    .filters
+                                                    .isNotEmpty(),
+                                        ) {
+                                            onNavigateToCategory(displayAnime.authors.first().filters)
+                                        },
+                            )
+                            Text(text = " | ", color = TextGrey, fontSize = 14.sp)
+                        }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Một Text duy nhất cho cả đoạn "lượt xem • Tập tiếp theo..." —
-                    // nếu để Text riêng trong Row, khi quá dài nó wrap và dòng thứ 2
-                    // thụt theo chỗ bắt đầu của chữ "Tập tiếp theo". Gộp chung một
-                    // paragraph (AnnotatedString giữ màu) để dòng xuống bắt đầu từ
-                    // mép trái, thẳng với số lượt xem.
-                    displayAnime.nextEpisodeAirInfo?.let { info ->
-                        Text(
-                            text =
-                                buildAnnotatedString {
-                                    withStyle(SpanStyle(color = TextGrey)) {
-                                        append(stringResource(R.string.views_count, formatNumber(displayAnime.views)))
-                                        append(" • ")
-                                    }
-                                    withStyle(SpanStyle(color = Accent)) {
-                                        append(info)
-                                    }
-                                },
-                            fontSize = 14.sp,
-                            style = NoPaddingTextStyle,
-                        )
-                    } ?: run {
                         Text(
                             text =
                                 stringResource(
-                                    R.string.views_count,
-                                    formatNumber(displayAnime.views),
+                                    R.string.studio_prefix,
+                                    displayAnime.studio?.name ?: stringResource(R.string.unknown),
                                 ),
-                            color = TextGrey,
-                            fontSize = 14.sp,
-                            style = NoPaddingTextStyle,
-                        )
-                    }
-                }
-            }
-
-            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (displayAnime.authors.isNotEmpty()) {
-                        Text(
-                            text = stringResource(R.string.author_label) + " " + displayAnime.authors.first().name,
-                            color =
-                                if (displayAnime.authors
-                                        .first()
-                                        .filters
-                                        .isNotEmpty()
-                                ) {
-                                    AnimeGreen
-                                } else {
-                                    TextSecondary
-                                },
+                            color = if (displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) AnimeGreen else TextSecondary,
                             fontSize = 14.sp,
                             modifier =
                                 Modifier
                                     // TV focus highlight (no-op on phones).
                                     .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
-                                    .clickable(
-                                        enabled =
-                                            displayAnime.authors
-                                                .first()
-                                                .filters
-                                                .isNotEmpty(),
-                                    ) {
-                                        onNavigateToCategory(displayAnime.authors.first().filters)
+                                    .clickable(enabled = displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) {
+                                        displayAnime.studio?.let { onNavigateToCategory(it.filters) }
                                     },
                         )
-                        Text(text = " | ", color = TextGrey, fontSize = 14.sp)
                     }
 
-                    Text(
-                        text =
-                            stringResource(
-                                R.string.studio_prefix,
-                                displayAnime.studio?.name ?: stringResource(R.string.unknown),
-                            ),
-                        color = if (displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) AnimeGreen else TextSecondary,
-                        fontSize = 14.sp,
-                        modifier =
-                            Modifier
-                                // TV focus highlight (no-op on phones).
-                                .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
-                                .clickable(enabled = displayAnime.studio != null && displayAnime.studio.filters.isNotEmpty()) {
-                                    displayAnime.studio?.let { onNavigateToCategory(it.filters) }
-                                },
-                    )
-                }
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        displayAnime.qualityTag?.let {
+                            Text(
+                                text = it,
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                style = NoPaddingTextStyle,
+                                modifier =
+                                    Modifier
+                                        .background(
+                                            Color(0xFF00C853).copy(alpha = .85f),
+                                            RoundedCornerShape(4.dp),
+                                        ).padding(horizontal = 6.dp, vertical = 2.dp),
+                            )
+                        }
+                        displayAnime.releaseYear?.let {
+                            Badge(
+                                text = it.name,
+                                textStyle = NoPaddingTextStyle,
+                                modifier =
+                                    Modifier
+                                        // TV focus highlight (no-op on phones).
+                                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                        .clickable { onNavigateToCategory(it.filters) },
+                            )
+                        }
+                        if (!displayAnime.currentEpisode.isNullOrEmpty()) {
+                            Badge(
+                                text =
+                                    stringResource(
+                                        R.string.updated_to_episode,
+                                        displayAnime.currentEpisode,
+                                    ),
+                                textStyle = NoPaddingTextStyle,
+                            )
+                        }
+                        displayAnime.countries.forEach { country ->
+                            Text(
+                                text = country.name,
+                                color = if (country.filters.isNotEmpty()) AnimeGreen else TextSecondary,
+                                fontSize = 14.sp,
+                                style = NoPaddingTextStyle,
+                                modifier =
+                                    Modifier
+                                        // TV focus highlight (no-op on phones).
+                                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                        .clickable(enabled = country.filters.isNotEmpty()) {
+                                            onNavigateToCategory(country.filters)
+                                        },
+                            )
+                        }
+                    }
 
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    displayAnime.qualityTag?.let {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Rating info (Stars + Rating Count + SeasonOf Link)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 2.dp),
+                    ) {
                         Text(
-                            text = it,
-                            color = Color.White,
-                            fontSize = 10.sp,
+                            text = String.format("%.1f", displayAnime.rating ?: 0f),
+                            color = TextPrimary,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             style = NoPaddingTextStyle,
-                            modifier =
-                                Modifier
-                                    .background(
-                                        Color(0xFF00C853).copy(alpha = .85f),
-                                        RoundedCornerShape(4.dp),
-                                    ).padding(horizontal = 6.dp, vertical = 2.dp),
                         )
-                    }
-                    displayAnime.releaseYear?.let {
-                        Badge(
-                            text = it.name,
-                            textStyle = NoPaddingTextStyle,
-                            modifier =
-                                Modifier
-                                    // TV focus highlight (no-op on phones).
-                                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
-                                    .clickable { onNavigateToCategory(it.filters) },
+                        Icon(
+                            Icons.Default.Star,
+                            null,
+                            tint = GoldRating,
+                            modifier = Modifier.size(14.dp),
                         )
-                    }
-                    if (!displayAnime.currentEpisode.isNullOrEmpty()) {
-                        Badge(
-                            text =
-                                stringResource(
-                                    R.string.updated_to_episode,
-                                    displayAnime.currentEpisode,
-                                ),
-                            textStyle = NoPaddingTextStyle,
-                        )
-                    }
-                    displayAnime.countries.forEach { country ->
-                        Text(
-                            text = country.name,
-                            color = if (country.filters.isNotEmpty()) AnimeGreen else TextSecondary,
-                            fontSize = 14.sp,
-                            style = NoPaddingTextStyle,
-                            modifier =
-                                Modifier
-                                    // TV focus highlight (no-op on phones).
-                                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
-                                    .clickable(enabled = country.filters.isNotEmpty()) {
-                                        onNavigateToCategory(country.filters)
-                                    },
-                        )
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                        displayAnime.ratingCount?.let {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.rating_count, formatNumber(it)),
+                                color = TextGrey,
+                                fontSize = 14.sp,
+                                style = NoPaddingTextStyle,
+                            )
+                        }
 
-                // Rating info (Stars + Rating Count + SeasonOf Link)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 2.dp),
-                ) {
-                    Text(
-                        text = String.format("%.1f", displayAnime.rating ?: 0f),
-                        color = TextPrimary,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        style = NoPaddingTextStyle,
-                    )
-                    Icon(
-                        Icons.Default.Star,
-                        null,
-                        tint = GoldRating,
-                        modifier = Modifier.size(14.dp),
-                    )
+                        displayAnime.seasonOf?.let {
+                            Text(
+                                text = " | ",
+                                color = TextGrey,
+                                fontSize = 14.sp,
+                                style = NoPaddingTextStyle,
+                            )
 
-                    displayAnime.ratingCount?.let {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.rating_count, formatNumber(it)),
-                            color = TextGrey,
-                            fontSize = 14.sp,
-                            style = NoPaddingTextStyle,
-                        )
+                            Text(
+                                text = it.name,
+                                color = if (it.filters.isNotEmpty()) AnimeGreen else TextPrimary,
+                                fontSize = 14.sp,
+                                style = NoPaddingTextStyle,
+                                modifier =
+                                    Modifier
+                                        // TV focus highlight (no-op on phones).
+                                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                        .clickable(enabled = it.filters.isNotEmpty()) {
+                                            onNavigateToCategory(it.filters)
+                                        },
+                            )
+                        }
                     }
 
-                    displayAnime.seasonOf?.let {
-                        Text(
-                            text = " | ",
-                            color = TextGrey,
-                            fontSize = 14.sp,
-                            style = NoPaddingTextStyle,
-                        )
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                        Text(
-                            text = it.name,
-                            color = if (it.filters.isNotEmpty()) AnimeGreen else TextPrimary,
-                            fontSize = 14.sp,
-                            style = NoPaddingTextStyle,
-                            modifier =
-                                Modifier
-                                    // TV focus highlight (no-op on phones).
-                                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
-                                    .clickable(enabled = it.filters.isNotEmpty()) {
-                                        onNavigateToCategory(it.filters)
-                                    },
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    displayAnime.genres.forEach { genre ->
-                        Text(
-                            text = "#${genre.name}",
-                            color = if (genre.filters.isNotEmpty()) AnimeGreen else TextSecondary,
-                            fontSize = 14.sp,
-                            style = SmallTextStyle,
-                            modifier =
-                                Modifier
-                                    // TV focus highlight (no-op on phones).
-                                    .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
-                                    .clickable(enabled = genre.filters.isNotEmpty()) {
-                                        onNavigateToCategory(genre.filters)
-                                    },
-                        )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        displayAnime.genres.forEach { genre ->
+                            Text(
+                                text = "#${genre.name}",
+                                color = if (genre.filters.isNotEmpty()) AnimeGreen else TextSecondary,
+                                fontSize = 14.sp,
+                                style = SmallTextStyle,
+                                modifier =
+                                    Modifier
+                                        // TV focus highlight (no-op on phones).
+                                        .tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.08f)
+                                        .clickable(enabled = genre.filters.isNotEmpty()) {
+                                            onNavigateToCategory(genre.filters)
+                                        },
+                            )
+                        }
                     }
                 }
             }
@@ -617,12 +640,33 @@ fun AnimeDetailView(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = stringResource(R.string.episodes_header, displayAnime.episodeCount),
-                        color = TextPrimary,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
+                    if (uiState.isLoadingMetadata || uiState.isLoadingEpisodes) {
+                        // The count comes off the record, and `episodeCount` is 0
+                        // on the Lite card the listing handed us — so printing it
+                        // here puts a real "Danh sách tập (0 tập)" on screen
+                        // while the list is still arriving. A placeholder bar
+                        // says the same thing without the lie.
+                        //
+                        // Both flags, not just the episodes one: while the screen
+                        // is still waiting on the player's upgrade the load has
+                        // not even been kicked off yet, so `isLoadingEpisodes` is
+                        // still at its default `false` and the record on hand is
+                        // the Lite one.
+                        Box(
+                            modifier =
+                                Modifier
+                                    .width(150.dp)
+                                    .height(15.dp)
+                                    .shimmerEffect(RoundedCornerShape(4.dp)),
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.episodes_header, displayAnime.episodeCount),
+                            color = TextPrimary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = stringResource(R.string.section_see_all),
@@ -1203,3 +1247,87 @@ private fun serverSkeletonCount(sourceId: String): Int =
         "vuighe" -> 2
         else -> 3 // animevietsub
     }
+
+/**
+ * Placeholder for the detail header while the anime is being upgraded from its
+ * Lite record, drawn in the shape of the real header so the swap to real content
+ * does not shift the rows below it.
+ *
+ * Every block below corresponds to something the header really renders, and the
+ * sizes are taken from that code: a 17sp/22sp title line, a 14sp meta line, an
+ * author/studio line, the quality/year/updated-to badge flow, the rating line
+ * with its star, and the genre line. The counts are deliberately fixed rather
+ * than derived from the Lite card — a skeleton that mirrors the shape of the data
+ * it stands in for is the point, and the Lite card has no genres, no studio and no
+ * seasons to mirror.
+ */
+@Composable
+private fun AnimeDetailHeaderSkeleton(modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(4.dp)
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = PAGE_PADDING_HORIZONTAL, vertical = 10.dp),
+    ) {
+        // Title row + the trailing chevron
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .height(22.dp)
+                        .shimmerEffect(shape),
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Box(modifier = Modifier.size(20.dp).shimmerEffect(shape))
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // "1.7M views • Tập tiếp theo..." line
+        Box(modifier = Modifier.fillMaxWidth(0.45f).height(14.dp).shimmerEffect(shape))
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        // Author " | " Studio
+        Box(modifier = Modifier.fillMaxWidth(0.6f).height(14.dp).shimmerEffect(shape))
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Quality / year / updated-to badges
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(modifier = Modifier.width(38.dp).height(18.dp).shimmerEffect(RoundedCornerShape(4.dp)))
+            Box(modifier = Modifier.width(48.dp).height(22.dp).shimmerEffect(RoundedCornerShape(6.dp)))
+            Box(modifier = Modifier.width(64.dp).height(22.dp).shimmerEffect(RoundedCornerShape(6.dp)))
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Rating, its count and the "season of" link
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.width(22.dp).height(14.dp).shimmerEffect(shape))
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(modifier = Modifier.width(46.dp).height(14.dp).shimmerEffect(shape))
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Genres
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            repeat(4) { index ->
+                Box(
+                    modifier =
+                        Modifier
+                            // Ragged right edge, the way a genre line wraps.
+                            .width((58 + index * 14).dp)
+                            .height(14.dp)
+                            .shimmerEffect(shape),
+                )
+            }
+        }
+    }
+}
