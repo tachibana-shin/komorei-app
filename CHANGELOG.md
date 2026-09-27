@@ -1,3 +1,10 @@
+## [1.1.6](https://github.com/tachibana-shin/komorei-app/compare/v1.1.5...v1.1.6) (2026-09-27)
+
+
+### Bug Fixes
+
+* **player:** stop rendering the Lite card, and stop upgrading the anime three times ([1029537](https://github.com/tachibana-shin/komorei-app/commit/10295372f91097f2e7afe39944fe7f0db12f4429))
+
 ## [1.1.5](https://github.com/tachibana-shin/komorei-app/compare/v1.1.4...v1.1.5) (2026-09-27)
 
 
