@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/tachibana-shin/komorei-app/compare/v1.1.2...v1.1.3) (2026-09-27)
+
+
+### Bug Fixes
+
+* **runner:** build wasmi with the portable dispatch backend ([0e4cde1](https://github.com/tachibana-shin/komorei-app/commit/0e4cde163c261dba22f863cf3c8554a3804a25f4)), closes [#00](https://github.com/tachibana-shin/komorei-app/issues/00) [#01](https://github.com/tachibana-shin/komorei-app/issues/01) [#02](https://github.com/tachibana-shin/komorei-app/issues/02) [#03](https://github.com/tachibana-shin/komorei-app/issues/03)
+
 ## [1.1.2](https://github.com/tachibana-shin/komorei-app/compare/v1.1.1...v1.1.2) (2026-09-27)
 
 
