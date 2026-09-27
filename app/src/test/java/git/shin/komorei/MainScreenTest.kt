@@ -74,6 +74,10 @@ class MainScreenTest {
     @Before
     fun setUp() =
         runBlocking {
+            // Before anything that can reach `Dispatchers.Main`: the test
+            // dispatcher has to be installed first, or whichever test class
+            // happens to run first in a fresh JVM fails on it.
+            Dispatchers.setMain(mainDispatcher)
             val context = ApplicationProvider.getApplicationContext<Context>()
             val host = KrxHostImpl(context)
             val registry = KrxSourceRegistry(context, host)
@@ -81,7 +85,6 @@ class MainScreenTest {
             repository = AnimeRepository(registry)
             val db = Room.inMemoryDatabaseBuilder(context, KomoreiDatabase::class.java).build()
             libraryRepository = LibraryRepository(db.animeDao())
-            Dispatchers.setMain(mainDispatcher)
         }
 
     @After

@@ -57,6 +57,10 @@ class SourcesScreenTest {
     @Before
     fun setUp() =
         runBlocking {
+            // Before anything that can reach `Dispatchers.Main`: the test
+            // dispatcher has to be installed first, or whichever test class
+            // happens to run first in a fresh JVM fails on it.
+            Dispatchers.setMain(mainDispatcher)
             val context = ApplicationProvider.getApplicationContext<Context>()
             val host = KrxHostImpl(context)
             val registry = KrxSourceRegistry(context, host)
@@ -77,7 +81,6 @@ class SourcesScreenTest {
                     git.shin.komorei.data
                         .SourceReposRepository(OkHttpClient()),
                 )
-            Dispatchers.setMain(mainDispatcher)
         }
 
     @After

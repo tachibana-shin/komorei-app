@@ -57,6 +57,10 @@ class SourceSearchViewModelTest {
     @Before
     fun setUp() =
         runBlocking {
+            // Before anything that can reach `Dispatchers.Main`: the test
+            // dispatcher has to be installed first, or whichever test class
+            // happens to run first in a fresh JVM fails on it.
+            Dispatchers.setMain(mainDispatcher)
             assertNotNull(
                 "missing uniffi.component.komorei_runner.libraryOverride (set by app/build.gradle.kts)",
                 System.getProperty("uniffi.component.komorei_runner.libraryOverride"),
@@ -66,7 +70,6 @@ class SourceSearchViewModelTest {
             val runner = registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
             assertNotNull("fake source should load", runner)
             repository = AnimeRepository(registry)
-            Dispatchers.setMain(mainDispatcher)
         }
 
     @After

@@ -68,13 +68,16 @@ class DiscoverScreenTest {
     @Before
     fun setUp() =
         runBlocking {
+            // Before anything that can reach `Dispatchers.Main`: the test
+            // dispatcher has to be installed first, or whichever test class
+            // happens to run first in a fresh JVM fails on it.
+            Dispatchers.setMain(mainDispatcher)
             val context = ApplicationProvider.getApplicationContext<Context>()
             registry = KrxSourceRegistry(context, KrxHostImpl(context))
             val runner = registry.loadKrx("vi.fake-source", File(fakeKrx).readBytes())
             checkNotNull(runner) { "fake source should load" }
             repository = AnimeRepository(registry)
             searchHistoryStore = SearchHistoryStore(context)
-            Dispatchers.setMain(mainDispatcher)
         }
 
     @After
