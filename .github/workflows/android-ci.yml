@@ -94,8 +94,15 @@ jobs:
           # repository alone and cannot read a private sibling. Nothing is
           # published from this workflow — the .krx is built only so the source
           # integration tests have a fixture to load.
-          token: ${{ secrets.PAT_TOKEN }}
-          submodules: recursive
+          #
+          # Guarded on the secret existing: this repository is public, so a pull
+          # request from a fork runs with no access to secrets at all and the
+          # checkout below would fail on a 404 rather than on anything the
+          # contributor did. `submodules: false` still gets the public sources
+          # repository itself, so a fork PR builds and tests everything that is
+          # not private.
+          token: ${{ secrets.PAT_TOKEN || '' }}
+          submodules: ${{ secrets.PAT_TOKEN != '' }}
 
       - name: Set up JDK
         uses: actions/setup-java@v6

@@ -1,5 +1,12 @@
 # Komorei
 
+> [!WARNING]
+> **Komorei is under active development and is only basically functional.**
+> Expect rough edges, incomplete features, and behaviour that changes between
+> releases. The feature list below describes what the app is being built towards,
+> not a guarantee of what any given build does. Please do not treat a release as
+> stable, and report what breaks rather than assuming it is a bug you introduced.
+
 Komorei is an Aidoku-compatible Android application for watching anime from multiple sources. It is built with modern Jetpack Compose and supports Android phones, tablets, and Android TV.
 
 Releases are distributed directly as signed APK/AAB files through GitHub Releases. Komorei does not depend on Google Play for installation.
