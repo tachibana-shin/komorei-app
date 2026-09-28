@@ -43,6 +43,14 @@ jobs:
           repository: tachibana-shin/komorei-sources
           path: sources
           fetch-depth: 0
+          # vi.animevietsub lives in a private repository and is pulled in here as
+          # a submodule, so this needs a token that can read that repository and
+          # the submodules turned on. The default GITHUB_TOKEN is scoped to this
+          # repository alone and cannot read a private sibling. Nothing is
+          # published from this workflow — the .krx is built only so the source
+          # integration tests have a fixture to load.
+          token: ${{ secrets.PAT_TOKEN }}
+          submodules: recursive
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
