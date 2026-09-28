@@ -14,6 +14,18 @@ jobs:
     uses: ./.github/workflows/android-ci.yml
     permissions:
       contents: read
+    # A called workflow gets an EMPTY secrets context unless the caller forwards
+    # them — the default GITHUB_TOKEN is not a secret and simply is not there.
+    # The gate checks out komorei-sources, which has vi.animevietsub as a submodule
+    # into a private repository, so it needs PAT_TOKEN. Without this the gate runs
+    # with an empty secret, passes an empty `token` to actions/checkout, and fails
+    # with "Input required and not supplied: token" — which is not a useful thing
+    # to read when the release build looks otherwise fine.
+    #
+    # Named rather than `secrets: inherit`, so what crosses the boundary is
+    # visible here instead of being whatever the repository happens to hold.
+    secrets:
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
 
   release:
     name: Build and publish release
