@@ -6,6 +6,15 @@ on:
   pull_request:
     branches: [main]
   workflow_call:
+    # Declared so the release workflow can forward it. A caller that passes a
+    # secret the called workflow has not declared is rejected before the run
+    # starts, with a bare "workflow file issue" and no log to read.
+    #
+    # Optional, because the direct push and pull_request triggers have no caller
+    # to forward anything, and a fork pull request gets no secrets at all.
+    secrets:
+      PAT_TOKEN:
+        required: false
 
 permissions:
   contents: read
