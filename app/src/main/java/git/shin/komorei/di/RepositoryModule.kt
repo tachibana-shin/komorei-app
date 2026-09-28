@@ -22,12 +22,23 @@ import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import java.util.concurrent.TimeUnit
 import javax.inject.Qualifier
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
+    /**
+     * Whole-call budget for every request the shared client makes, in seconds.
+     *
+     * Generous enough for a large listing page over a slow connection, short
+     * enough that a server trickling bytes cannot pin the runner's engine mutex
+     * — and with it every source in the app — indefinitely. See
+     * [provideOkHttpClient] for why that coupling exists.
+     */
+    private const val HTTP_CALL_TIMEOUT_SECONDS = 60L
+
     @Provides
     @Singleton
     fun provideUserAgent(
@@ -60,6 +71,21 @@ object RepositoryModule {
             .cookieJar(WebViewCookieJar())
             .followRedirects(true)
             .followSslRedirects(true)
+            // OkHttp's per-socket timeouts (10s connect/read/write) are all
+            // RESETS by every byte that arrives, and callTimeout defaults to 0 —
+            // no overall budget at all. So a server that trickles one byte just
+            // under the read timeout holds a request open forever.
+            //
+            // That is not merely a slow request here: a source's `net_request` is
+            // a host callback, so it runs on the runner's big-stack worker while
+            // that worker is still holding the engine mutex. One trickling
+            // response therefore wedges EVERY source — the next source blocks on
+            // the mutex, its skeleton never resolves, and the app looks like it
+            // cannot open any source at all rather than one slow site.
+            //
+            // A whole-call budget converts that into an ordinary IOException the
+            // source can handle or abort, which is what a timeout is for.
+            .callTimeout(HTTP_CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .build()
     }
 

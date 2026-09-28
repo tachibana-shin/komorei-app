@@ -283,55 +283,66 @@ fun LogsScreen(
     }
 }
 
-/** One log line: coloured level badge, optional source tag, monospace body. */
+/**
+ * One log line: a header of when / at what level / from where, then the message
+ * on a line of its own at the full width.
+ *
+ * These were siblings in one `Row` with the message weighted to take what was
+ * left. The message is the part worth reading and it is the longest part, so it
+ * was squeezed into a narrow column and wrapped into fragments of a few
+ * characters each — which made a single log line look like a stack of unrelated
+ * lines. Putting the header on its own row and letting the message have the
+ * whole width reads as one entry, and nothing here needs a weight to do it.
+ */
 @Composable
 private fun LogRow(
     entry: LogEntry,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Column(
         modifier =
             modifier
                 .fillMaxWidth()
                 .background(CardDark.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
                 .padding(horizontal = 8.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.Top,
     ) {
-        Text(
-            text = timeFormat(entry.timestamp),
-            color = TextMuted,
-            fontSize = 11.sp,
-            fontFamily = FontFamily.Monospace,
-            lineHeight = 15.sp,
-        )
-        if (entry.level != LogLevel.DEFAULT) {
-            Spacer(modifier = Modifier.width(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = entry.level.label,
-                color = levelColor(entry.level),
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 15.sp,
-            )
-        }
-        entry.sourceId?.let { source ->
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = source,
-                color = AnimeBlue,
+                text = timeFormat(entry.timestamp),
+                color = TextMuted,
                 fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,
                 lineHeight = 15.sp,
             )
+            if (entry.level != LogLevel.DEFAULT) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = entry.level.label,
+                    color = levelColor(entry.level),
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 15.sp,
+                )
+            }
+            entry.sourceId?.let { source ->
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = source,
+                    color = AnimeBlue,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    lineHeight = 15.sp,
+                )
+            }
         }
-        Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = entry.message,
             color = TextPrimary,
             fontSize = 12.sp,
             fontFamily = FontFamily.Monospace,
             lineHeight = 15.sp,
+            modifier = Modifier.padding(top = 2.dp),
         )
     }
 }

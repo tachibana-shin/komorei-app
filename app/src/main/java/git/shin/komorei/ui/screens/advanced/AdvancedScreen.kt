@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,6 +88,13 @@ fun AdvancedScreen(
     var confirmClearLogs by remember { mutableStateOf(false) }
     var logServerInput by rememberSaveable { mutableStateOf(viewModel.logServerUrl.value) }
     val context = LocalContext.current
+
+    // The log rows below used to carry a fixed "no lines at this level" subtitle,
+    // which is what the reader sees whether or not anything was ever logged — so
+    // a session with a hundred lines in it still announced itself as empty, and
+    // the obvious conclusion was that nothing was being recorded. Observed here
+    // so the summary can only ever state what is actually true.
+    val logEntries by LogStore.entries.collectAsState()
 
     // One-shot Toasts for the cache/cookie actions.
     LaunchedEffect(Unit) {
@@ -155,14 +163,19 @@ fun AdvancedScreen(
                 AdvancedRow(
                     icon = Icons.Default.ReceiptLong,
                     title = stringResource(R.string.advanced_open_logs),
-                    subtitle = stringResource(R.string.settings_advanced_logs_subtitle),
+                    subtitle = stringResource(R.string.logs_subtitle, logEntries.size),
                     onClick = onOpenLogs,
                     testTag = "advanced_open_logs",
                 )
                 AdvancedRow(
                     icon = Icons.Default.DeleteSweep,
                     title = stringResource(R.string.logs_clear),
-                    subtitle = stringResource(R.string.logs_empty_filtered),
+                    subtitle =
+                        if (logEntries.isEmpty()) {
+                            stringResource(R.string.logs_empty)
+                        } else {
+                            stringResource(R.string.logs_clear_subtitle, logEntries.size)
+                        },
                     onClick = { confirmClearLogs = true },
                     accent = AnimeRed,
                     testTag = "advanced_clear_logs",

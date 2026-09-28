@@ -1,6 +1,7 @@
 package git.shin.komorei.sdk
 
 import androidx.test.core.app.ApplicationProvider
+import git.shin.komorei.data.LogStore
 import git.shin.komorei.sdk.runner.Anime
 import git.shin.komorei.sdk.runner.AnimePageResult
 import git.shin.komorei.sdk.runner.Listing
@@ -126,6 +127,14 @@ class NguonphimeLivePlaybackE2ETest {
                     println("LIVE_E2E verdict: SITE REFUSED THE WHOLE LISTING — ${e.message}")
                     return
                 }
+                // A source error with no message at all says nothing about who
+                // is at fault: it is what a site refusal looks like when the
+                // refusal carries no text, and also what a request that died on
+                // the wire looks like. Dump what the host recorded so the
+                // difference is visible in the report instead of being a
+                // rethrown exception with nothing attached.
+                println("LIVE_E2E unclassified source failure: '${e.message}'")
+                println("LIVE_E2E host log:\n${LogStore.export()}")
                 throw e
             }
         val pai = servers.firstOrNull { it.key.equals("PAI", true) }
@@ -152,6 +161,8 @@ class NguonphimeLivePlaybackE2ETest {
                         )
                         continue
                     }
+                    println("LIVE_E2E ${server.key} unclassified source failure: '${e.message}'")
+                    println("LIVE_E2E host log:\n${LogStore.export()}")
                     throw e
                 }
             assertFalse("${server.key}: isContent should be false", data.isContent)

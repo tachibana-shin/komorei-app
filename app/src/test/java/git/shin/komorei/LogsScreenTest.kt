@@ -13,6 +13,7 @@ import git.shin.komorei.data.LogStore
 import git.shin.komorei.ui.screens.logs.LogsScreen
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -122,6 +123,43 @@ class LogsScreenTest {
 
         assertEquals(emptyList<Any>(), LogStore.entries.value)
         composeTestRule.onNodeWithTag("logs_empty").assertIsDisplayed()
+    }
+
+    /**
+     * The header and the message are two lines, not two things fighting over
+     * one. As siblings in a single `Row` the message took only what the header
+     * left and wrapped into fragments a few characters wide, so one log entry
+     * read like several — the source's output was the part that mattered, and it
+     * was the part that got squeezed.
+     */
+    @Test
+    fun theMessageGetsTheFullWidthOnItsOwnLine() {
+        val message = "a long line of output from a source that needs the whole width to read"
+        LogStore.add(LogLevel.DEFAULT, message, "vi.some-source")
+        setContent()
+
+        val messageBounds =
+            composeTestRule
+                .onNodeWithText(message)
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val sourceBounds =
+            composeTestRule
+                .onNodeWithText("vi.some-source")
+                .fetchSemanticsNode()
+                .boundsInRoot
+
+        assertTrue(
+            "the message must start on the line below the header, " +
+                "tag ends at ${sourceBounds.bottom} and message starts at ${messageBounds.top}",
+            messageBounds.top >= sourceBounds.bottom,
+        )
+        // Sharing a row, the message was left with only what the header did not
+        // use — roughly a fifth of the width. It should now have the card.
+        assertTrue(
+            "the message should use the full width, was ${messageBounds.width}px",
+            messageBounds.width > sourceBounds.right - messageBounds.left,
+        )
     }
 
     @Test

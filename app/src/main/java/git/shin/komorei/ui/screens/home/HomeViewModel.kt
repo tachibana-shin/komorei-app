@@ -9,11 +9,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import git.shin.komorei.R
 import git.shin.komorei.data.AnimeRepository
+import git.shin.komorei.data.LogStore
 import git.shin.komorei.data.SourceStateStore
 import git.shin.komorei.model.Anime
 import git.shin.komorei.model.HomeComponent
 import git.shin.komorei.model.Listing
 import git.shin.komorei.model.Source
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
 
 /**
@@ -163,7 +166,19 @@ class HomeViewModel @Inject constructor(
             repository.awaitPartialHomeSubscribers(sourceId)
 
             runCatching {
-                val home = repository.getHome(sourceId)
+                // `getHome` blocks on the runner, which blocks on a native call
+                // that no coroutine cancellation can interrupt — so a source
+                // that never returns would leave `isLoading` true and the
+                // skeleton up for good, with no error and no way to retry. The
+                // HTTP client caps each request, which covers a slow site, but
+                // nothing covers a source that simply spins inside wasm. Cap the
+                // whole load so the page always reaches a state the reader can
+                // act on.
+                val home =
+                    withTimeout(HOME_LOAD_TIMEOUT_MS) {
+                        repository.getHome(sourceId)
+                    }
+                LogStore.info("home loaded: $sourceId (${home.size} row(s))", "home")
                 _sourceDataMap.update { map ->
                     val existing = map[sourceId] ?: SourceHomeData()
                     map + (
@@ -181,13 +196,24 @@ class HomeViewModel @Inject constructor(
                 }
             }.onFailure { e ->
                 Log.e(TAG, "home load failed for $sourceId", e)
+                val message =
+                    if (e is TimeoutCancellationException) {
+                        LogStore.error(
+                            "home load timed out after ${HOME_LOAD_TIMEOUT_MS}ms: $sourceId",
+                            "home",
+                        )
+                        appContext.getString(R.string.error_home_timeout)
+                    } else {
+                        LogStore.error("home load failed: $sourceId — ${e.message}", "home")
+                        e.message ?: appContext.getString(R.string.error_load_data)
+                    }
                 _sourceDataMap.update { map ->
                     val existing = map[sourceId] ?: SourceHomeData()
                     map + (
                         sourceId to
                             existing.copy(
                                 isLoading = false,
-                                error = e.message ?: appContext.getString(R.string.error_load_data),
+                                error = message,
                             )
                     )
                 }
@@ -428,5 +454,13 @@ class HomeViewModel @Inject constructor(
 
     private companion object {
         const val TAG = "HomeViewModel"
+
+        /**
+         * Backstop for a `get_home` that never returns. Generous, because a home
+         * page is several sequential requests and a slow-but-working source must
+         * not be cut off; it exists only so the page can never be stuck on the
+         * skeleton with nothing to retry.
+         */
+        const val HOME_LOAD_TIMEOUT_MS = 120_000L
     }
 }

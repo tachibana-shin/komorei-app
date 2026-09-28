@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import git.shin.komorei.R
 import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.ExternalSourceInfo
+import git.shin.komorei.data.LogStore
 import git.shin.komorei.data.RepoLoadResult
 import git.shin.komorei.data.SourceReposRepository
 import git.shin.komorei.data.SourceStateStore
@@ -15,6 +16,7 @@ import git.shin.komorei.data.compareVersions
 import git.shin.komorei.model.Source
 import git.shin.komorei.sdk.KrxManager
 import git.shin.komorei.sdk.KrxSourceRegistry
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -248,18 +250,42 @@ class SourcesViewModel @Inject constructor(
         _installingIds.update { it + info.id }
         viewModelScope.launch {
             val url = info.downloadURL
+            LogStore.info("install requested: ${info.id} from $url", "sources")
+            // The spinner is cleared in `finally`, and the body is guarded.
+            //
+            // `downloadPackage` already folds its own failures into `null`, so
+            // the throw that mattered came from `installKrx`: it writes a file
+            // and instantiates the wasm, and a package that turns out to be
+            // truncated or corrupt aborts in the middle of that. The id was only
+            // removed on the line after the work, so the throw skipped it and the
+            // row read "đang cài" for the rest of the process — with the guard
+            // above then turning every later tap into a silent no-op. Restarting
+            // the app was the only way to clear it.
             val ok =
-                url?.let { reposRepository.downloadPackage(it) }?.let { bytes ->
-                    val meta = registry.installKrx(bytes)
-                    if (meta != null) {
-                        stateStore.setDisabled(meta.id, false)
-                        updateMap.update { it - meta.id }
-                        true
-                    } else {
+                try {
+                    url?.let { reposRepository.downloadPackage(it) }?.let { bytes ->
+                        val meta = registry.installKrx(bytes)
+                        if (meta != null) {
+                            stateStore.setDisabled(meta.id, false)
+                            updateMap.update { it - meta.id }
+                            LogStore.info("installed ${meta.id}", "sources")
+                            true
+                        } else {
+                            LogStore.error("package rejected: ${info.id}", "sources")
+                            false
+                        }
+                    } ?: run {
+                        LogStore.error("no download URL for ${info.id}", "sources")
                         false
                     }
-                } ?: false
-            _installingIds.update { it - info.id }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    LogStore.error("install failed for ${info.id}: ${e.message}", "sources")
+                    false
+                } finally {
+                    _installingIds.update { it - info.id }
+                }
             if (ok) {
                 sendMessage(R.string.sources_import_success)
             } else {

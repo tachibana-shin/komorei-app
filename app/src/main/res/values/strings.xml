@@ -286,6 +286,7 @@
 
     <!-- Errors & fallback labels (display messages, not values) -->
     <string name="error_load_data">Lỗi tải dữ liệu</string>
+    <string name="error_home_timeout">Nguồn này tải quá lâu và đã bị dừng. Thử lại, hoặc kiểm tra nhật ký máy chủ.</string>
     <string name="error_source_playback">Lỗi tải nguồn phát</string>
     <string name="error_search">Lỗi tìm kiếm</string>
     <string name="season_fallback_full">Full Season</string>
@@ -453,6 +454,7 @@
     <string name="logs_level_all">Tất cả</string>
     <string name="logs_empty">Chưa có nhật ký nào</string>
     <string name="logs_empty_filtered">Không có dòng nào ở mức này</string>
+    <string name="logs_clear_subtitle">Xoá %1$d dòng đang lưu</string>
     <string name="logs_visible_count">%1$d dòng</string>
     <string name="logs_following">Đang theo</string>
     <string name="logs_follow">Theo dõi</string>

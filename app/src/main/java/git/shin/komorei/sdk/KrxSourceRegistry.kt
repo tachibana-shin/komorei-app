@@ -3,11 +3,13 @@ package git.shin.komorei.sdk
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import git.shin.komorei.data.LogStore
 import git.shin.komorei.data.backup.InstalledSourcePackage
 import git.shin.komorei.model.HomeComponent
 import git.shin.komorei.model.Source
 import git.shin.komorei.sdk.runner.HostDefaultValue
 import git.shin.komorei.sdk.runner.KomoreiRunner
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -321,7 +323,23 @@ class KrxSourceRegistry @Inject constructor(
         userInstalled += meta.id
         emitSources()
 
-        val runner = load(meta.id)
+        // The source is published above so the list updates the moment the
+        // package lands, which means the runner load below has to be able to
+        // take it back out again. It can fail two ways — a null result, or a
+        // throw from reading the archive or instantiating the wasm — and the
+        // throw used to escape with the half-installed source still listed: it
+        // appeared in the sources list, could not be opened, and only vanished
+        // on the next restart, when the startup scan failed to load it too.
+        val runner =
+            try {
+                load(meta.id)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Loading source ${meta.id} threw; rolling the install back", e)
+                LogStore.error("source ${meta.id} failed to load: ${e.message}", "sources")
+                null
+            }
         if (runner == null) {
             // Roll back — the wasm could not be loaded.
             metaMap.remove(meta.id)
@@ -335,6 +353,7 @@ class KrxSourceRegistry @Inject constructor(
                 Log.w(TAG, "Could not remove the stale icon at $icon")
             }
             emitSources()
+            LogStore.error("package ${meta.id} could not be loaded and was removed", "sources")
             return null
         }
         Log.i(TAG, "Installed source ${meta.id}")
