@@ -150,10 +150,48 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
+      - name: Cache Android SDK packages
+        uses: actions/cache@v6
+        with:
+          # The platforms, build-tools and platform-tools that `sdkmanager` pulls
+          # below, which is a few hundred megabytes on every run otherwise, in
+          # this job and again in the release job.
+          #
+          # Only those three subtrees, never `$ANDROID_HOME` wholesale: the
+          # action also manages cmdline-tools and its own state, and restoring
+          # those over a live install is how this pattern turns into a toolchain
+          # that reports a missing package it visibly has.
+          path: |
+            ${{ env.ANDROID_HOME }}/platforms
+            ${{ env.ANDROID_HOME }}/build-tools
+            ${{ env.ANDROID_HOME }}/platform-tools
+          # Keyed on the exact package names the install step requests, so a
+          # change to either invalidates it by construction. There is no lockfile
+          # to hash here: the versions are literals in the step below.
+          key: ${{ runner.os }}-android-sdk-buildtools36.0.0-platforms37
+          restore-keys: |
+            ${{ runner.os }}-android-sdk-
+
       - name: Install Android SDK packages
+        # Skipped when the cache restored them. `sdkmanager` re-resolves and
+        # rewrites the package metadata even when the files are already there,
+        # so the guard is what saves the download, not the cache alone.
         run: |
-          sdkmanager "platform-tools" "build-tools;36.0.0"
-          sdkmanager "platforms;android-37" || sdkmanager "platforms;android-37.0"
+          if [ -d "$ANDROID_HOME/platforms/android-37" ] || [ -d "$ANDROID_HOME/platforms/android-37.0" ]; then
+            echo "platforms already restored from cache"
+          else
+            sdkmanager "platforms;android-37" || sdkmanager "platforms;android-37.0"
+          fi
+          if [ -d "$ANDROID_HOME/build-tools/36.0.0" ]; then
+            echo "build-tools already restored from cache"
+          else
+            sdkmanager "build-tools;36.0.0"
+          fi
+          if [ -d "$ANDROID_HOME/platform-tools" ]; then
+            echo "platform-tools already restored from cache"
+          else
+            sdkmanager "platform-tools"
+          fi
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
