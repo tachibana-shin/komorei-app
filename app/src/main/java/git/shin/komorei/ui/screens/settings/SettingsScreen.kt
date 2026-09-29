@@ -26,10 +26,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,13 +39,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import git.shin.komorei.R
-import git.shin.komorei.data.update.UpdateInfo
 import git.shin.komorei.data.update.UpdateUiState
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
@@ -208,67 +204,6 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
-
-    (updateState as? UpdateUiState.Available)?.let { available ->
-        UpdateDialog(
-            info = available.info,
-            onDismiss = viewModel::dismissUpdate,
-            onConfirm = { viewModel.downloadAndInstall(available.info) },
-        )
-    }
-}
-
-@Composable
-private fun UpdateDialog(
-    info: UpdateInfo,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    val notes =
-        info.releaseNotes.ifBlank {
-            stringResource(R.string.settings_update_no_notes)
-        }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = CardDark,
-        title = { Text(stringResource(R.string.settings_update_available_title), color = TextPrimary) },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Text(
-                    text = stringResource(R.string.settings_update_version, info.version),
-                    color = TextSecondary,
-                    fontSize = 14.sp,
-                    lineHeight = 19.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = notes,
-                    color = TextSecondary,
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    maxLines = 16,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
-            ) {
-                Text(stringResource(R.string.settings_update_now), color = AnimeRed)
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
-            ) {
-                Text(stringResource(R.string.source_settings_cancel), color = TextSecondary)
-            }
-        },
-    )
 }
 
 @Composable

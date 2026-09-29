@@ -448,6 +448,10 @@ dependencies {
   implementation(libs.logging.interceptor)
   implementation(libs.moshi)
   implementation(libs.okhttp)
+  // Renders the release notes on the update sheet. They are Markdown generated
+  // by semantic-release, and this is the library the app's other project already
+  // uses for the same job.
+  implementation(libs.compose.markdown)
   // Phase 4 SDK — the `.krx` runner embedded in the app:
   implementation(libs.jsoup) // the runner's HTML DOM lives here (KrxHostImpl)
   // The uniffi-generated bindings (git.shin.komorei.sdk.runner) are JNA-based;

@@ -31,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import git.shin.komorei.data.update.UpdateNotifier
 import git.shin.komorei.model.Anime
 import git.shin.komorei.sdk.JsChallengeCoordinator
 import git.shin.komorei.ui.components.MAX_CONTENT_WIDTH
@@ -62,6 +63,8 @@ import git.shin.komorei.ui.screens.source.SourceHomeScreen
 import git.shin.komorei.ui.screens.source.SourceSettingsScreen
 import git.shin.komorei.ui.screens.sources.SourceReposScreen
 import git.shin.komorei.ui.screens.sources.SourcesScreen
+import git.shin.komorei.ui.screens.update.UpdateBottomSheet
+import git.shin.komorei.ui.screens.update.updateAvailableInfo
 import git.shin.komorei.ui.theme.BackgroundDark
 
 @Composable
@@ -80,10 +83,22 @@ fun MainScreen(
     // the start destination. The remaining routes are only composed once the
     // user navigates to them and keep their own `hiltViewModel()` defaults.
     homeViewModel: HomeViewModel = hiltViewModel(),
+    // Injected by MainActivity (required, no default): the notifier is a Hilt
+    // singleton rather than a view model, and there is no way to resolve one from
+    // a Composable. Keeping it required also means a test host has to hand in a
+    // real one instead of silently composing without update handling.
+    updateNotifier: UpdateNotifier,
     navController: NavHostController = rememberNavController(),
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Home.route
+
+    // Asked for once per composition of the shell. The notifier itself throttles
+    // this to once a day and skips any version already dismissed, so a
+    // configuration change or a tab switch does not turn into a request.
+    LaunchedEffect(Unit) {
+        updateNotifier.checkForUpdate(automatic = true)
+    }
 
     val playbackState by playerViewModel.playbackState.collectAsState()
 
@@ -270,6 +285,21 @@ fun MainScreen(
                     onDismiss = { JsChallengeCoordinator.cancelBypass() },
                 )
             }
+
+            // App update. Mounted at the end of the shell for the same reason
+            // the challenge dialog is: a new release is worth saying out loud
+            // wherever the reader happens to be, and a check fired on launch
+            // would otherwise land on whichever tab happened to be in front.
+            //
+            // The state comes from a singleton rather than a view model so it
+            // survives navigation, and the sheet only appears for a version the
+            // reader has not already waved away.
+            val updateState by updateNotifier.state.collectAsState()
+            UpdateBottomSheet(
+                state = updateState,
+                onDismiss = updateNotifier::dismiss,
+                onConfirm = { updateAvailableInfo(updateState)?.let(updateNotifier::downloadAndInstall) },
+            )
         }
     }
 }

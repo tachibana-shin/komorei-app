@@ -20,6 +20,7 @@ import git.shin.komorei.data.deeplink.ExternalDeepLinkHandler
 import git.shin.komorei.data.deeplink.ExternalDeepLinkParser
 import git.shin.komorei.data.deeplink.ExternalDeepLinkRequest
 import git.shin.komorei.data.deeplink.ExternalDeepLinkResult
+import git.shin.komorei.data.update.UpdateNotifier
 import git.shin.komorei.ui.screens.MainScreen
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.MyApplicationTheme
@@ -35,6 +36,11 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var externalDeepLinkHandler: ExternalDeepLinkHandler
+
+    // A singleton rather than a view model, so it is injected here and handed to
+    // the composable instead of being resolved from Hilt at compose time.
+    @Inject
+    lateinit var updateNotifier: UpdateNotifier
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,7 +62,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = BackgroundDark,
                     ) {
-                        MainScreen()
+                        MainScreen(updateNotifier = updateNotifier)
                     }
                 }
             }

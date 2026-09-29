@@ -19,6 +19,10 @@ dependencyResolutionManagement {
   repositories {
     google()
     mavenCentral()
+    // For `com.github.jeziellago:compose-markdown`, which is published through
+    // JitPack rather than to Maven Central — without this the dependency
+    // resolves nowhere and the build fails on a missing POM.
+    maven { url = uri("https://jitpack.io") }
   }
 }
 

@@ -9,17 +9,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import git.shin.komorei.BuildConfig
 import git.shin.komorei.R
 import git.shin.komorei.data.SearchHistoryStore
-import git.shin.komorei.data.update.UpdateCheckResult
 import git.shin.komorei.data.update.UpdateInfo
-import git.shin.komorei.data.update.UpdateManager
+import git.shin.komorei.data.update.UpdateNotifier
+import git.shin.komorei.data.update.UpdateOutcome
 import git.shin.komorei.data.update.UpdateUiState
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -35,71 +32,48 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val imageLoader: ImageLoader,
     private val searchHistoryStore: SearchHistoryStore,
-    private val updateManager: UpdateManager,
+    private val updateNotifier: UpdateNotifier,
 ) : ViewModel() {
     private val _messages = Channel<Int>(Channel.BUFFERED)
 
     /** One-shot string-resource ids to surface as a Toast. */
     val messages: Flow<Int> = _messages.receiveAsFlow()
 
-    private val _updateState = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
-    val updateState: StateFlow<UpdateUiState> = _updateState.asStateFlow()
-
     val appVersion: String = BuildConfig.VERSION_NAME
 
-    fun checkForUpdate() {
-        if (_updateState.value is UpdateUiState.Checking ||
-            _updateState.value is UpdateUiState.Downloading
-        ) {
-            return
-        }
+    /**
+     * The shared update state. Owned by a singleton rather than here, because the
+     * launch-time check sets it and the sheet that shows it lives on the app
+     * shell — a state held by this view model would be gone the moment the
+     * reader left the Settings tab, and the sheet would never appear.
+     */
+    val updateState: StateFlow<UpdateUiState> = updateNotifier.state
 
+    init {
+        // A tap on the row has always answered either way. Collecting the
+        // notifier's outcomes keeps that without a second check running: this
+        // used to call the release API itself and could race the launch-time
+        // check into disagreeing about what the latest version is.
         viewModelScope.launch {
-            _updateState.value = UpdateUiState.Checking
-            updateManager.checkForUpdate().fold(
-                onSuccess = { result ->
-                    when (result) {
-                        UpdateCheckResult.UpToDate -> {
-                            _updateState.value = UpdateUiState.Idle
-                            _messages.send(R.string.settings_update_latest)
-                        }
-                        is UpdateCheckResult.Available -> {
-                            _updateState.value = UpdateUiState.Available(result.info)
-                        }
+            updateNotifier.outcomes.collect { outcome ->
+                val message =
+                    when (outcome) {
+                        UpdateOutcome.UpToDate -> R.string.settings_update_latest
+                        UpdateOutcome.Available -> null // the sheet says this
+                        UpdateOutcome.Failed -> R.string.settings_update_failed
+                        UpdateOutcome.InstallStarted -> R.string.settings_update_install_started
+                        UpdateOutcome.InstallFailed -> R.string.settings_update_failed
                     }
-                },
-                onFailure = {
-                    _updateState.value = UpdateUiState.Idle
-                    _messages.send(R.string.settings_update_failed)
-                },
-            )
-        }
-    }
-
-    fun downloadAndInstall(info: UpdateInfo) {
-        if (_updateState.value is UpdateUiState.Downloading) return
-        viewModelScope.launch {
-            _updateState.value = UpdateUiState.Downloading(info, 0)
-            try {
-                updateManager.downloadAndInstall(info) { progress ->
-                    _updateState.value = UpdateUiState.Downloading(info, progress)
-                }
-                _messages.send(R.string.settings_update_install_started)
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                _messages.send(R.string.settings_update_failed)
-            } finally {
-                _updateState.value = UpdateUiState.Idle
+                if (message != null) _messages.send(message)
             }
         }
     }
 
-    fun dismissUpdate() {
-        if (_updateState.value is UpdateUiState.Available) {
-            _updateState.value = UpdateUiState.Idle
-        }
-    }
+    fun checkForUpdate() = updateNotifier.checkForUpdate()
+
+    fun downloadAndInstall(info: UpdateInfo) = updateNotifier.downloadAndInstall(info)
+
+    fun dismissUpdate() = updateNotifier.dismiss()
 
     @OptIn(ExperimentalCoilApi::class)
     fun clearImageCache() {

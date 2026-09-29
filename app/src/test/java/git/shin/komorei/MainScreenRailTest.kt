@@ -15,6 +15,8 @@ import git.shin.komorei.data.SourceStateStore
 import git.shin.komorei.data.deeplink.DeepLinkManager
 import git.shin.komorei.data.deeplink.DeepLinkResolver
 import git.shin.komorei.data.local.KomoreiDatabase
+import git.shin.komorei.data.update.UpdateManager
+import git.shin.komorei.data.update.UpdateNotifier
 import git.shin.komorei.sdk.KrxHostImpl
 import git.shin.komorei.sdk.KrxSourceRegistry
 import git.shin.komorei.ui.deeplink.DeepLinkViewModel
@@ -28,6 +30,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -97,6 +100,16 @@ class MainScreenRailTest {
             SavedStateHandle(),
         )
 
+    // The shell needs an update notifier because it fires the launch-time check
+    // and hosts the sheet. A real one is used rather than a stub: the check is
+    // throttled and quiet on failure, so an unattended launch inside a test
+    // cannot make noise or reach the network, and the state starts Idle.
+    private fun newUpdateNotifier(): UpdateNotifier =
+        UpdateNotifier(
+            ApplicationProvider.getApplicationContext(),
+            UpdateManager(ApplicationProvider.getApplicationContext(), OkHttpClient()),
+        )
+
     private fun newDeepLinkViewModel(): DeepLinkViewModel = DeepLinkViewModel(DeepLinkManager(), DeepLinkResolver(repository))
 
     @Test
@@ -106,6 +119,7 @@ class MainScreenRailTest {
                 playerViewModel = newPlayerViewModel(),
                 deepLinkViewModel = newDeepLinkViewModel(),
                 homeViewModel = newHomeViewModel(),
+                updateNotifier = newUpdateNotifier(),
             )
         }
         composeTestRule.onNodeWithTag("main_navigation_rail").assertIsDisplayed()
@@ -121,6 +135,7 @@ class MainScreenRailTest {
                 playerViewModel = newPlayerViewModel(),
                 deepLinkViewModel = newDeepLinkViewModel(),
                 homeViewModel = newHomeViewModel(),
+                updateNotifier = newUpdateNotifier(),
             )
         }
         composeTestRule.onNodeWithTag("rail_tab_home").performClick()

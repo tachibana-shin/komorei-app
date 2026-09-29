@@ -443,6 +443,12 @@
     <string name="settings_update_version">Phiên bản %1$s</string>
     <string name="settings_update_no_notes">Không có ghi chú phiên bản.</string>
     <string name="settings_update_now">Cập nhật</string>
+    <string name="update_sheet_title">Có bản cập nhật mới</string>
+    <string name="update_sheet_version">Phiên bản %1$s</string>
+    <string name="update_sheet_install">Cập nhật ngay</string>
+    <string name="update_sheet_later">Để sau</string>
+    <string name="update_sheet_downloading">Đang tải bản cập nhật…</string>
+    <string name="update_sheet_progress">Đã tải %1$d%%</string>
     <string name="settings_update_install_started">Đã tải xong, đang mở trình cài đặt</string>
 
     <!-- Logs Screen (Aidoku-style server log) -->
