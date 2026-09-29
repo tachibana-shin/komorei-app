@@ -1,3 +1,10 @@
+## [1.1.7](https://github.com/tachibana-shin/komorei-app/compare/v1.1.6...v1.1.7) (2026-09-29)
+
+
+### Bug Fixes
+
+* settle a source install that fails, and stop one slow site wedging all of them ([9426131](https://github.com/tachibana-shin/komorei-app/commit/94261315f02edb375fa3a9571f079c5cb2b769a9))
+
 ## [1.1.6](https://github.com/tachibana-shin/komorei-app/compare/v1.1.5...v1.1.6) (2026-09-27)
 
 
