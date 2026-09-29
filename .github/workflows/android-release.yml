@@ -115,14 +115,44 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-release-cargo-
 
+      - name: Cache installed Cargo binaries
+        uses: actions/cache@v6
+        with:
+          # The two binaries `cargo install` produces below. Kept out of the
+          # cache above on purpose: that key is the dependency lockfiles, and
+          # the uniffi CLI is pinned by a version string that no lockfile in
+          # this repository records, so a lockfile-keyed cache could not tell
+          # that the pinned version had changed.
+          #
+          # The prefix differs from android-ci.yml's on purpose. Sharing a key
+          # between the two jobs would have them evicting each other's entry, and
+          # this job runs on a different cadence from the gate it calls.
+          path: ~/.cargo/bin
+          key: ${{ runner.os }}-release-cargo-bin-uniffi0.32.1-${{ hashFiles('komorei-sdk/Cargo.lock', 'komorei-sdk/crates/cli/**') }}
+          restore-keys: |
+            ${{ runner.os }}-release-cargo-bin-uniffi0.32.1-
+
       - name: Install native tooling
         run: |
           # The `uniffi-bindgen` binary ships in the `uniffi` crate (there is no
           # `uniffi-bindgen` package on crates.io, and `uniffi_bindgen` is a
           # binless library). The binary is behind the crate's `cli` feature, and
           # the version must stay in lockstep with the runner's `uniffi` dep.
-          cargo install uniffi --version 0.32.1 --locked --features cli
-          cargo install --path komorei-sdk/crates/cli --locked
+          #
+          # Skipped when the cache already restored them. `cargo install` is not
+          # cheap and not additive: re-running it over a restored binary still
+          # recompiles and reinstalls, so the guard is what actually saves the
+          # time, not the cache.
+          if ! command -v uniffi-bindgen >/dev/null 2>&1; then
+            cargo install uniffi --version 0.32.1 --locked --features cli
+          else
+            echo "uniffi-bindgen already restored from cache"
+          fi
+          if ! command -v komorei >/dev/null 2>&1; then
+            cargo install --path komorei-sdk/crates/cli --locked
+          else
+            echo "komorei CLI already restored from cache"
+          fi
 
       - name: Build release fixtures
         run: |

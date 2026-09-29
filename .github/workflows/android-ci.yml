@@ -1,8 +1,19 @@
 name: Android CI
 
 on:
-  push:
-    branches: [main]
+  # No `push` trigger on purpose.
+  #
+  # android-release.yml already runs on every push to main and calls this file as
+  # a reusable workflow, so a `push` trigger here meant the whole gate ran twice
+  # per commit: once standalone, then again inside the release run. That is a
+  # full Rust build, a full Gradle test run and a debug APK, twice, for one
+  # commit — and the two copies can disagree, which makes it unclear which one
+  # a red build is talking about.
+  #
+  # Nothing is lost by dropping it: a push to main still runs the gate exactly
+  # once, through the release workflow that needs it before it publishes
+  # anything. Pull requests still trigger it directly, which is where a
+  # standalone run is actually wanted.
   pull_request:
     branches: [main]
   workflow_call:
@@ -10,8 +21,8 @@ on:
     # secret the called workflow has not declared is rejected before the run
     # starts, with a bare "workflow file issue" and no log to read.
     #
-    # Optional, because the direct push and pull_request triggers have no caller
-    # to forward anything, and a fork pull request gets no secrets at all.
+    # Optional, because a pull request trigger has no caller to forward anything,
+    # and a pull request from a fork gets no secrets at all.
     secrets:
       PAT_TOKEN:
         required: false
@@ -58,6 +69,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      - name: Cache installed Cargo binaries
+        uses: actions/cache@v6
+        with:
+          # The `komorei` CLI built below. Keyed on its own source rather than
+          # on the lockfiles the cache above uses, so editing the CLI
+          # invalidates the binary while an unrelated commit reuses it.
+          path: ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-bin-komorei-${{ hashFiles('komorei-sdk/Cargo.lock', 'komorei-sdk/crates/cli/**') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-bin-komorei-
+
       - name: Lint runner crate
         # --manifest-path WITHOUT --all on purpose: `komorei` is a path
         # dependency into the separate komorei-sdk checkout, and --all would
@@ -69,7 +91,13 @@ jobs:
 
       - name: Build SDK example fixture
         run: |
-          cargo install --path komorei-sdk/crates/cli --locked
+          # `cargo install` recompiles and reinstalls even over a restored
+          # binary, so the guard is what saves the time.
+          if ! command -v komorei >/dev/null 2>&1; then
+            cargo install --path komorei-sdk/crates/cli --locked
+          else
+            echo "komorei CLI already restored from cache"
+          fi
           komorei package komorei-sdk/examples/example-source
 
       - name: Rust tests
@@ -148,14 +176,45 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      - name: Cache installed Cargo binaries
+        uses: actions/cache@v6
+        with:
+          # The two binaries `cargo install` produces below. Kept out of the
+          # cache above on purpose: that key is the dependency lockfiles, and
+          # the uniffi CLI is pinned by a version string that no lockfile in
+          # this repository records, so a lockfile-keyed cache could not tell
+          # that the pinned version had changed.
+          #
+          # Keyed on the uniffi version and the SDK CLI's own source, so bumping
+          # either rebuilds it while an unrelated commit reuses it. Without this
+          # every run compiles uniffi from scratch, which is minutes of the job
+          # spent producing a byte-identical binary.
+          path: ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-bin-uniffi0.32.1-${{ hashFiles('komorei-sdk/Cargo.lock', 'komorei-sdk/crates/cli/**') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-bin-uniffi0.32.1-
+
       - name: Install native tooling
         run: |
           # The `uniffi-bindgen` binary ships in the `uniffi` crate (there is no
           # `uniffi-bindgen` package on crates.io, and `uniffi_bindgen` is a
           # binless library). The binary is behind the crate's `cli` feature, and
           # the version must stay in lockstep with the runner's `uniffi` dep.
-          cargo install uniffi --version 0.32.1 --locked --features cli
-          cargo install --path komorei-sdk/crates/cli --locked
+          #
+          # Skipped when the cache already restored them. `cargo install` is not
+          # cheap and not additive: re-running it over a restored binary still
+          # recompiles and reinstalls, so the guard is what actually saves the
+          # time, not the cache.
+          if ! command -v uniffi-bindgen >/dev/null 2>&1; then
+            cargo install uniffi --version 0.32.1 --locked --features cli
+          else
+            echo "uniffi-bindgen already restored from cache"
+          fi
+          if ! command -v komorei >/dev/null 2>&1; then
+            cargo install --path komorei-sdk/crates/cli --locked
+          else
+            echo "komorei CLI already restored from cache"
+          fi
 
       - name: Build test fixtures
         run: |
