@@ -184,6 +184,7 @@
     <string name="sources_import_subtitle">Nhập tệp hoặc duyệt kho nguồn</string>
     <string name="sources_import_cd">Nhập tệp</string>
     <string name="sources_import_success">Cài đặt nguồn thành công</string>
+    <string name="sources_update_success">Đã cập nhật nguồn</string>
     <string name="sources_import_fail">Không thể cài đặt tệp này</string>
     <string name="sources_import_existing">Nguồn này đã tồn tại</string>
     <string name="sources_import_invalid">Tệp không phải gói nguồn hợp lệ</string>

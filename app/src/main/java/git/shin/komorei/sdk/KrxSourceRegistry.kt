@@ -305,23 +305,61 @@ class KrxSourceRegistry @Inject constructor(
     /**
      * Installs a `.krx` package: validates the manifest, persists the bytes to
      * `filesDir/sources/<id>.krx`, registers metadata and returns the loaded
-     * source. Returns null when the package is invalid, the id is reserved,
-     * or the source already exists (bundled or installed).
+     * source. Returns null when the package is invalid, the id is reserved, the
+     * id belongs to a bundled source, or the new package fails to load.
+     *
+     * An id that is already **user-installed** is replaced, not rejected: that
+     * is the update path, and the "Get"/"Update" pill in the sources list had no
+     * way to upgrade anything before, because the duplicate-id check below
+     * rejected every package for a source that was already there — which is
+     * every package an update ever offers. Replacing on the same id also means
+     * a republished source keeps its id, its settings and its history, instead
+     * of the reader having to uninstall (losing those) and reinstall.
+     *
+     * A **bundled** id is still rejected. Those ship inside the APK, are not
+     * ours to replace, and writing one to `filesDir` would shadow the shipped
+     * package for as long as the entry existed — an update that outlived the app
+     * version that shipped it.
+     *
+     * If the new package fails to load, the previous version is put back rather
+     * than the source being removed: a broken upgrade should leave the reader
+     * with the version they already had, not with no source at all.
      */
     suspend fun installKrx(krxBytes: ByteArray): KrxSourceMeta? {
         val meta = KrxManager.readInfo(krxBytes) ?: return null
         if (!KEY_PATTERN.matches(meta.id)) return null
         if (meta.id in RESERVED_IDS) return null
-        if (metaMap.containsKey(meta.id)) return null
 
         bundledMetas() // ensure startup scan is done before mutating maps
+
+        val replacing = meta.id in userInstalled
+        if (metaMap.containsKey(meta.id) && !replacing) return null
+
         val file = File(installedDir(), "${meta.id}.krx")
+        val iconFile = File(File(context.filesDir, ICONS_DIR), "${meta.id}.png")
+        // Kept so a failed load can be undone. Only a replacement has something
+        // to go back to; a first install has nothing and is removed outright.
+        val previousBytes = if (replacing && file.exists()) file.readBytes() else null
+        val previousMeta = if (replacing) metaMap[meta.id] else null
+        val previousIcon = if (replacing && iconFile.exists()) iconFile.readBytes() else null
+        val previousFileName = if (replacing) krxFileNames[meta.id] else null
+
         file.writeBytes(krxBytes)
 
         metaMap[meta.id] = meta.toAppSource(persistIcon(meta.id, krxBytes))
         krxFileNames[meta.id] = file.name
         userInstalled += meta.id
         emitSources()
+
+        // The cached runner is the previous version's, and `load` hands it back
+        // as-is — so without dropping it here the new package is never even
+        // read, the install reports success, and the reader keeps the old
+        // version while the sources list claims a new one. Closed rather than
+        // just dropped because it holds the wasm module and its engine state.
+        // The per-source host and dispatcher are kept: they are keyed by source,
+        // not by version, and reloading them would drop the source's session.
+        runners.remove(meta.id)?.close()
+        inFlight.remove(meta.id)
 
         // The source is published above so the list updates the moment the
         // package lands, which means the runner load below has to be able to
@@ -341,22 +379,44 @@ class KrxSourceRegistry @Inject constructor(
                 null
             }
         if (runner == null) {
-            // Roll back — the wasm could not be loaded.
-            metaMap.remove(meta.id)
-            krxFileNames.remove(meta.id)
-            userInstalled.remove(meta.id)
-            if (!file.delete()) {
-                Log.w(TAG, "Could not remove the failed package at $file")
+            runners.remove(meta.id)?.close()
+            inFlight.remove(meta.id)
+            if (previousBytes != null) {
+                // Put the working version back. Best effort: a source that cannot
+                // be reloaded is still better listed than silently gone, and the
+                // startup scan will try it again on the next launch.
+                runCatching {
+                    file.writeBytes(previousBytes)
+                    previousIcon?.let { iconFile.writeBytes(it) }
+                    previousMeta?.let { metaMap[meta.id] = it }
+                    previousFileName?.let { krxFileNames[meta.id] = it }
+                    load(meta.id)
+                }.onFailure {
+                    Log.w(TAG, "Could not restore the previous package for ${meta.id}", it)
+                }
+                emitSources()
+                LogStore.error(
+                    "update for ${meta.id} failed to load; kept the previous version",
+                    "sources",
+                )
+            } else {
+                // First install and the wasm could not be loaded: nothing to go
+                // back to, so the half-written source is removed again.
+                metaMap.remove(meta.id)
+                krxFileNames.remove(meta.id)
+                userInstalled.remove(meta.id)
+                if (!file.delete()) {
+                    Log.w(TAG, "Could not remove the failed package at $file")
+                }
+                if (iconFile.exists() && !iconFile.delete()) {
+                    Log.w(TAG, "Could not remove the stale icon at $iconFile")
+                }
+                emitSources()
+                LogStore.error("package ${meta.id} could not be loaded and was removed", "sources")
             }
-            val icon = File(File(context.filesDir, ICONS_DIR), "${meta.id}.png")
-            if (icon.exists() && !icon.delete()) {
-                Log.w(TAG, "Could not remove the stale icon at $icon")
-            }
-            emitSources()
-            LogStore.error("package ${meta.id} could not be loaded and was removed", "sources")
             return null
         }
-        Log.i(TAG, "Installed source ${meta.id}")
+        Log.i(TAG, "Installed source ${meta.id}${if (replacing) " (replaced)" else ""}")
         return meta
     }
 

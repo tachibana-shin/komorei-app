@@ -261,37 +261,62 @@ class SourcesViewModel @Inject constructor(
             // row read "đang cài" for the rest of the process — with the guard
             // above then turning every later tap into a silent no-op. Restarting
             // the app was the only way to clear it.
-            val ok =
+            val result =
                 try {
                     url?.let { reposRepository.downloadPackage(it) }?.let { bytes ->
+                        // Read before installing: after it, the source is
+                        // user-installed either way, and `updateMap` has just been
+                        // cleared — so anything sampled afterwards says "replaced"
+                        // about every install.
+                        val replaced = registry.isUserInstalled(info.id)
                         val meta = registry.installKrx(bytes)
                         if (meta != null) {
                             stateStore.setDisabled(meta.id, false)
                             updateMap.update { it - meta.id }
-                            LogStore.info("installed ${meta.id}", "sources")
-                            true
+                            LogStore.info(
+                                if (replaced) "updated ${meta.id}" else "installed ${meta.id}",
+                                "sources",
+                            )
+                            InstallResult.Done(replaced)
                         } else {
                             LogStore.error("package rejected: ${info.id}", "sources")
-                            false
+                            InstallResult.Rejected
                         }
                     } ?: run {
                         LogStore.error("no download URL for ${info.id}", "sources")
-                        false
+                        InstallResult.Rejected
                     }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
                     LogStore.error("install failed for ${info.id}: ${e.message}", "sources")
-                    false
+                    InstallResult.Rejected
                 } finally {
                     _installingIds.update { it - info.id }
                 }
-            if (ok) {
-                sendMessage(R.string.sources_import_success)
-            } else {
-                sendMessage(R.string.sources_external_get_failed)
+            when (result) {
+                is InstallResult.Done ->
+                    sendMessage(
+                        if (result.replaced) R.string.sources_update_success else R.string.sources_import_success,
+                    )
+                is InstallResult.Rejected -> sendMessage(R.string.sources_external_get_failed)
             }
         }
+    }
+
+    /**
+     * How an install ended. [replaced] distinguishes a fresh install from an
+     * upgrade of a source that was already there, so the two can say so — the
+     * single "installed" message was wrong for an update, and the generic
+     * failure message for a failed update said nothing about the reader's
+     * existing source having been kept.
+     */
+    private sealed interface InstallResult {
+        data class Done(
+            val replaced: Boolean,
+        ) : InstallResult
+
+        data object Rejected : InstallResult
     }
 
     // ── repos ───────────────────────────────────────────────────────────────
