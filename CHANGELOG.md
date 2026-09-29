@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/tachibana-shin/komorei-app/compare/v1.1.8...v1.2.0) (2026-09-29)
+
+
+### Features
+
+* check for app updates on launch and show the changelog in a bottom sheet ([4317ae8](https://github.com/tachibana-shin/komorei-app/commit/4317ae86e79b9f31c236fd55cc688a5cb0f402d9))
+
 ## [1.1.8](https://github.com/tachibana-shin/komorei-app/compare/v1.1.7...v1.1.8) (2026-09-29)
 
 
