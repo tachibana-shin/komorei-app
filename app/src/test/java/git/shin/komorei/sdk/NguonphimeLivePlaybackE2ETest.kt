@@ -209,14 +209,32 @@ class NguonphimeLivePlaybackE2ETest {
         data: StreamData,
         label: String,
     ): String {
-        val master =
-            fetch(data.url, data.headers)
-                .also { assertTrue("$label: master started with #EXTM3U\n${it.take(200)}", it.startsWith("#EXTM3U")) }
+        // Every level of the ladder is fetched with its status in hand, and a
+        // non-2xx is reported rather than asserted — at the playlists as well as
+        // at the segment. The streamc/grab CDNs grant per IP/geo, so a GitHub
+        // runner can be refused on the very first request; treating that as a
+        // failure while tolerating the identical refusal three lines later was
+        // an inconsistency, and it is the one that actually fired.
+        //
+        // What stays a hard assertion is the structure of what came back: a 200
+        // that is not an HLS playlist, or a media playlist with no segment in it,
+        // is the source's contract failing, not the site's CDN.
+        val (masterStatus, masterBytes) = fetchWithStatus(data.url, data.headers)
+        if (masterStatus !in 200..299) {
+            return "SITE REFUSED THE MASTER PLAYLIST (CDN grants per IP/geo) — " +
+                "status=$masterStatus @ ${data.url}"
+        }
+        val master = masterBytes.toString(Charsets.UTF_8).removePrefix("\uFEFF")
+        assertTrue("$label: master started with #EXTM3U\n${master.take(200)}", master.startsWith("#EXTM3U"))
 
         val mediaUrl = firstVariantUri(master)?.let { absolutize(data.url, it) } ?: data.url
-        val media =
-            fetch(mediaUrl, data.headers)
-                .also { assertTrue("$label: media playlist missing #EXTM3U", it.startsWith("#EXTM3U")) }
+        val (mediaStatus, mediaBytes) = fetchWithStatus(mediaUrl, data.headers)
+        if (mediaStatus !in 200..299) {
+            return "SITE REFUSED THE MEDIA PLAYLIST (CDN grants per IP/geo) — " +
+                "status=$mediaStatus @ $mediaUrl"
+        }
+        val media = mediaBytes.toString(Charsets.UTF_8).removePrefix("\uFEFF")
+        assertTrue("$label: media playlist missing #EXTM3U", media.startsWith("#EXTM3U"))
 
         val segmentUri =
             firstSegmentUri(media)
@@ -229,15 +247,6 @@ class NguonphimeLivePlaybackE2ETest {
                 "status=$status bytes=${bytes.size} @ $segmentUrl"
         }
         return "master+media+segments ok — first segment ${bytes.size} bytes ($status)"
-    }
-
-    private fun fetch(
-        url: String,
-        headers: Map<String, String>,
-    ): String {
-        val (status, bytes) = fetchWithStatus(url, headers)
-        assertTrue("GET $url -> $status", status in 200..299)
-        return bytes.toString(Charsets.UTF_8).removePrefix("\uFEFF")
     }
 
     private fun fetchWithStatus(
