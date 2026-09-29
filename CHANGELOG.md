@@ -1,3 +1,10 @@
+## [1.1.8](https://github.com/tachibana-shin/komorei-app/compare/v1.1.7...v1.1.8) (2026-09-29)
+
+
+### Bug Fixes
+
+* let an installed source actually be updated ([2565f3b](https://github.com/tachibana-shin/komorei-app/commit/2565f3bba9c01b2eb9bab1ba217e2eeaed717be2))
+
 ## [1.1.7](https://github.com/tachibana-shin/komorei-app/compare/v1.1.6...v1.1.7) (2026-09-29)
 
 
