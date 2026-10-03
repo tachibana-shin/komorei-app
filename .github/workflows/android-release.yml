@@ -115,10 +115,11 @@ jobs:
             ${{ env.ANDROID_HOME }}/platforms
             ${{ env.ANDROID_HOME }}/build-tools
             ${{ env.ANDROID_HOME }}/platform-tools
+            ${{ env.ANDROID_HOME }}/ndk
           # Keyed on the exact package names the install step requests, so a
           # change to either invalidates it by construction. There is no lockfile
           # to hash here: the versions are literals in the step below.
-          key: ${{ runner.os }}-release-android-sdk-buildtools36.0.0-platforms37
+          key: ${{ runner.os }}-release-android-sdk-buildtools36.0.0-platforms37-ndk28.2.13676358
           restore-keys: |
             ${{ runner.os }}-release-android-sdk-
 
@@ -142,6 +143,11 @@ jobs:
           else
             sdkmanager "platform-tools"
           fi
+          if [ -d "$ANDROID_HOME/ndk/28.2.13676358" ]; then
+            echo "ndk already restored from cache"
+          else
+            sdkmanager "ndk;28.2.13676358"
+          fi
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
@@ -149,7 +155,9 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.98.1
         with:
-          targets: wasm32-unknown-unknown
+          # wasm32 for `komorei package` fixtures; the Android triples to
+          # cross-compile libkomorei_runner.so for the APK's jniLibs.
+          targets: wasm32-unknown-unknown, aarch64-linux-android, armv7-linux-androideabi, x86_64-linux-android
           # Not needed by this job today, but kept identical to android-ci.yml
           # so `bun run lint:ci` behaves the same in both — the pinned
           # toolchain does not include these components by default.
@@ -164,7 +172,7 @@ jobs:
             runner/target
             komorei-sdk/target
             sources/target
-          key: ${{ runner.os }}-release-cargo-${{ hashFiles('runner/Cargo.lock', 'komorei-sdk/Cargo.lock', 'sources/Cargo.lock') }}
+          key: ${{ runner.os }}-release-cargo-${{ hashFiles('runner/Cargo.lock', 'komorei-sdk/Cargo.lock', 'sources/Cargo.lock') }}-androidtargets
           restore-keys: |
             ${{ runner.os }}-release-cargo-
 
@@ -181,7 +189,7 @@ jobs:
           # between the two jobs would have them evicting each other's entry, and
           # this job runs on a different cadence from the gate it calls.
           path: ~/.cargo/bin
-          key: ${{ runner.os }}-release-cargo-bin-uniffi0.32.1-${{ hashFiles('komorei-sdk/Cargo.lock', 'komorei-sdk/crates/cli/**') }}
+          key: ${{ runner.os }}-release-cargo-bin-uniffi0.32.1-cargondk-${{ hashFiles('komorei-sdk/Cargo.lock', 'komorei-sdk/crates/cli/**') }}
           restore-keys: |
             ${{ runner.os }}-release-cargo-bin-uniffi0.32.1-
 
@@ -205,6 +213,11 @@ jobs:
             cargo install --path komorei-sdk/crates/cli --locked
           else
             echo "komorei CLI already restored from cache"
+          fi
+          if ! command -v cargo-ndk >/dev/null 2>&1; then
+            cargo install cargo-ndk --locked
+          else
+            echo "cargo-ndk already restored from cache"
           fi
 
       - name: Build release fixtures
@@ -292,6 +305,17 @@ jobs:
           test -n "$GOOGLE_WEB_CLIENT_ID"
           echo "GOOGLE_ANDROID_CLIENT_ID=$GOOGLE_ANDROID_CLIENT_ID" >> "$GITHUB_ENV"
           echo "GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" >> "$GITHUB_ENV"
+
+      - name: Build Android runner native libs
+        # Without libkomorei_runner.so in jniLibs the APK builds and installs
+        # fine, but every source call dies inside the uniffi library load
+        # (UnsatisfiedLinkError) and the UI spins on the loading state
+        # forever. This is the release profile the phone actually runs.
+        if: steps.semantic.outputs.new_release_published == 'true'
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/28.2.13676358"
+          cd runner
+          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o ../app/src/main/jniLibs build -p komorei-runner --release
 
       - name: Build signed AAB and APK
         if: steps.semantic.outputs.new_release_published == 'true'

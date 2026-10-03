@@ -250,9 +250,15 @@ class KrxSourceRegistry @Inject constructor(
             runner
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load source $sourceId", e)
+            null
+        } finally {
+            // Always settle the in-flight entry: catching only `Exception`
+            // still leaked the deferred when loading threw an `Error` (e.g.
+            // UnsatisfiedLinkError when libkomorei_runner.so is missing from
+            // the APK), and every later load() then awaited it forever —
+            // the "source spins forever" hang seen in the v1.2.0 release.
             deferred.complete(null)
             inFlight.remove(sourceId)
-            null
         }
     }
 
@@ -285,12 +291,13 @@ class KrxSourceRegistry @Inject constructor(
                 }
             runners[sourceId] = runner
             deferred.complete(runner)
-            inFlight.remove(sourceId)
             runner
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to load krx $sourceId", e)
+            null
+        } finally {
             deferred.complete(null)
             inFlight.remove(sourceId)
-            null
         }
     }
 

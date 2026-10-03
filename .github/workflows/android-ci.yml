@@ -165,10 +165,11 @@ jobs:
             ${{ env.ANDROID_HOME }}/platforms
             ${{ env.ANDROID_HOME }}/build-tools
             ${{ env.ANDROID_HOME }}/platform-tools
+            ${{ env.ANDROID_HOME }}/ndk
           # Keyed on the exact package names the install step requests, so a
           # change to either invalidates it by construction. There is no lockfile
           # to hash here: the versions are literals in the step below.
-          key: ${{ runner.os }}-android-sdk-buildtools36.0.0-platforms37
+          key: ${{ runner.os }}-android-sdk-buildtools36.0.0-platforms37-ndk28.2.13676358
           restore-keys: |
             ${{ runner.os }}-android-sdk-
 
@@ -192,6 +193,11 @@ jobs:
           else
             sdkmanager "platform-tools"
           fi
+          if [ -d "$ANDROID_HOME/ndk/28.2.13676358" ]; then
+            echo "ndk already restored from cache"
+          else
+            sdkmanager "ndk;28.2.13676358"
+          fi
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
@@ -199,7 +205,9 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.98.1
         with:
-          targets: wasm32-unknown-unknown
+          # wasm32 for `komorei package` fixtures; the Android triples to
+          # cross-compile libkomorei_runner.so for the APK's jniLibs.
+          targets: wasm32-unknown-unknown, aarch64-linux-android, armv7-linux-androideabi, x86_64-linux-android
 
       - name: Cache Cargo
         uses: actions/cache@v6
@@ -210,7 +218,7 @@ jobs:
             runner/target
             komorei-sdk/target
             sources/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('runner/Cargo.lock', 'komorei-sdk/Cargo.lock', 'sources/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('runner/Cargo.lock', 'komorei-sdk/Cargo.lock', 'sources/Cargo.lock') }}-androidtargets
           restore-keys: |
             ${{ runner.os }}-cargo-
 
@@ -228,7 +236,7 @@ jobs:
           # every run compiles uniffi from scratch, which is minutes of the job
           # spent producing a byte-identical binary.
           path: ~/.cargo/bin
-          key: ${{ runner.os }}-cargo-bin-uniffi0.32.1-${{ hashFiles('komorei-sdk/Cargo.lock', 'komorei-sdk/crates/cli/**') }}
+          key: ${{ runner.os }}-cargo-bin-uniffi0.32.1-cargondk-${{ hashFiles('komorei-sdk/Cargo.lock', 'komorei-sdk/crates/cli/**') }}
           restore-keys: |
             ${{ runner.os }}-cargo-bin-uniffi0.32.1-
 
@@ -253,6 +261,11 @@ jobs:
           else
             echo "komorei CLI already restored from cache"
           fi
+          if ! command -v cargo-ndk >/dev/null 2>&1; then
+            cargo install cargo-ndk --locked
+          else
+            echo "cargo-ndk already restored from cache"
+          fi
 
       - name: Build test fixtures
         run: |
@@ -274,6 +287,15 @@ jobs:
 
       - name: Kotlin unit tests
         run: ./gradlew :app:testDebugUnitTest
+
+      - name: Build Android runner native libs
+        # Without libkomorei_runner.so in jniLibs the APK still builds and
+        # installs, but every source call aborts in the uniffi library load
+        # (UnsatisfiedLinkError) and the UI hangs on the loading state.
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/28.2.13676358"
+          cd runner
+          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o ../app/src/main/jniLibs build -p komorei-runner --release
 
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug
