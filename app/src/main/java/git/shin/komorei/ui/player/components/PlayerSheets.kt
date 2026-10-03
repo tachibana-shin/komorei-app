@@ -1197,7 +1197,7 @@ fun TrackSelectionPane(
             availableTracks?.groups?.filter { it.type == type }?.forEach { group ->
                 items(group.length) { index ->
                     val track = group.getTrackFormat(index)
-                    val label = track.label ?: track.language ?: "Track ${index + 1}"
+                    val label = track.label ?: track.language ?: stringResource(R.string.player_track_fallback, index + 1)
                     SelectableItem(
                         label = label,
                         isSelected = group.isTrackSelected(index),

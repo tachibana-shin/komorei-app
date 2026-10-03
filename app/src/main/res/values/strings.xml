@@ -94,6 +94,7 @@
     <string name="library_title">Tủ Phim Của Bạn</string>
     <string name="library_tab_following">Đang Theo Dõi</string>
     <string name="library_tab_history">Lịch Sử Xem</string>
+    <string name="library_subtabs_combined">%1$s &amp; %2$s</string>
     <string name="empty_following_title">Chưa có anime nào được lưu</string>
     <string name="empty_following_subtitle">Nhấn nút \'Theo dõi\' khi xem anime để lưu vào đây</string>
     <string name="empty_history_title">Chưa có lịch sử xem phim</string>
@@ -389,6 +390,7 @@
     <string name="player_stream_source">Nguồn phát</string>
     <string name="player_track_none">Không có</string>
     <string name="player_track_default">Mặc định</string>
+    <string name="player_track_fallback">Track %1$d</string>
     <string name="player_settings_unified">Cài đặt trình phát</string>
     <string name="player_settings_auto_next">Tự động phát tập tiếp theo</string>
     <string name="player_skip_intro">Bỏ qua mở đầu</string>

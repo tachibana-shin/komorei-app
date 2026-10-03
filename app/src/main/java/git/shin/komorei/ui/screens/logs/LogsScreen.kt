@@ -143,6 +143,7 @@ fun LogsScreen(
                     text = stringResource(R.string.logs_subtitle, entries.size),
                     color = TextMuted,
                     fontSize = 12.sp,
+                    lineHeight = 15.sp,
                 )
             }
             IconButton(
@@ -178,6 +179,7 @@ fun LogsScreen(
                 text = stringResource(R.string.logs_share_failed),
                 color = AnimeRed,
                 fontSize = 12.sp,
+                lineHeight = 15.sp,
                 modifier =
                     Modifier
                         .fillMaxWidth()
@@ -260,6 +262,7 @@ fun LogsScreen(
                 text = stringResource(R.string.logs_visible_count, visible.size),
                 color = TextSecondary,
                 fontSize = 12.sp,
+                lineHeight = 15.sp,
                 modifier = Modifier.weight(1f),
             )
             TextButton(
@@ -276,6 +279,7 @@ fun LogsScreen(
                         ),
                     color = if (followTail) AnimeBlue else TextMuted,
                     fontSize = 12.sp,
+                    lineHeight = 15.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }

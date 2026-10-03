@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -595,7 +596,12 @@ private fun ClickableRow(
                 Text(it, color = TextMuted, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        Text("›", color = TextSecondary, fontSize = 16.sp)
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.size(16.dp),
+        )
     }
 }
 
@@ -892,7 +898,7 @@ private fun SourceInfoCard(source: Source) {
                 Text(source.languages.joinToString(", ").uppercase(), color = TextMuted, fontSize = 11.sp, lineHeight = 14.sp)
             }
         }
-        if (source.contentRating != 0) {
+        if (source.contentRating >= 2) {
             Box(
                 modifier =
                     Modifier
@@ -900,7 +906,7 @@ private fun SourceInfoCard(source: Source) {
                         .background(SurfaceVariantDark)
                         .padding(horizontal = 6.dp, vertical = 3.dp),
             ) {
-                Text("18+", color = AnimeRed, fontSize = 10.sp)
+                Text(stringResource(R.string.sources_badge_nsfw), color = AnimeRed, fontSize = 10.sp)
             }
         }
     }

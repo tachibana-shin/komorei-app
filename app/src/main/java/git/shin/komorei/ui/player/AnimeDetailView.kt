@@ -809,20 +809,11 @@ fun AnimeDetailView(
                                         modifier = Modifier.weight(1f),
                                         contentAlignment = Alignment.Center,
                                     ) {
-//                                        if (isSelected) {
-//                                            Icon(
-//                                                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-//                                                contentDescription = null,
-//                                                tint = AnimeRed,
-//                                                modifier = Modifier.size(14.dp)
-//                                            )
-//                                        } else {
                                         Text(
                                             text = ep.episodeNumber,
                                             color = TextPrimary,
                                             fontSize = 12.sp,
                                         )
-//                                        }
                                     }
                                     history?.let {
                                         EpisodeProgressBar(

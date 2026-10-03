@@ -76,7 +76,7 @@ fun LibraryScreen(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
         )
         Text(
-            text = stringResource(R.string.library_tab_following) + " & " + stringResource(R.string.library_tab_history),
+            text = stringResource(R.string.library_subtabs_combined, stringResource(R.string.library_tab_following), stringResource(R.string.library_tab_history)),
             color = TextMuted,
             fontSize = 12.sp,
             modifier = Modifier.padding(horizontal = 16.dp),

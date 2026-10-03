@@ -115,6 +115,7 @@ fun NotificationsScreen(
                         },
                     color = TextMuted,
                     fontSize = 12.sp,
+                    lineHeight = 15.sp,
                 )
             }
         }
@@ -140,6 +141,7 @@ fun NotificationsScreen(
                         text = stringResource(R.string.notifications_mark_all_read),
                         color = if (unreadCount > 0) AnimeRed else TextMuted,
                         fontSize = 12.sp,
+                        lineHeight = 15.sp,
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -154,6 +156,7 @@ fun NotificationsScreen(
                         text = stringResource(R.string.notifications_clear_all),
                         color = TextMuted,
                         fontSize = 12.sp,
+                        lineHeight = 15.sp,
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -244,6 +247,7 @@ private fun NotificationRow(
                 text = notification.body,
                 color = TextMuted,
                 fontSize = 12.sp,
+                lineHeight = 15.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -252,6 +256,7 @@ private fun NotificationRow(
                 text = timeAgoLabel(notification.minutesAgo),
                 color = accent,
                 fontSize = 11.sp,
+                lineHeight = 14.sp,
                 fontWeight = FontWeight.Bold,
             )
         }
@@ -286,6 +291,7 @@ private fun NotificationsEmptyState() {
                 text = stringResource(R.string.notifications_empty_subtitle),
                 color = TextMuted,
                 fontSize = 12.sp,
+                lineHeight = 15.sp,
                 textAlign = TextAlign.Center,
             )
         }

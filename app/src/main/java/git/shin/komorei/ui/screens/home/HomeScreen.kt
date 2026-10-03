@@ -176,6 +176,7 @@ fun HomeScreen(
                         text = activeSource.name,
                         color = AnimeRed,
                         fontSize = 11.sp,
+                        lineHeight = 14.sp,
                         fontWeight = FontWeight.Bold,
                     )
                 }
