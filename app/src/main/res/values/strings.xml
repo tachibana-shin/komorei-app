@@ -133,6 +133,9 @@
     <string name="sources_updated_none">Chưa có kho nào để kiểm tra cập nhật</string>
     <string name="sources_confirm_uninstall_title">Gỡ nguồn?</string>
     <string name="sources_confirm_uninstall_message">Bạn có chắc muốn gỡ \"%1$s\"?</string>
+    <string name="sources_confirm_uninstall_message_many">Bạn có chắc muốn gỡ %1$d nguồn đã chọn?</string>
+    <string name="sources_selected_count">%1$d đã chọn</string>
+    <string name="sources_select_cancel_cd">Hủy chọn</string>
     <string name="sources_cancel">Hủy</string>
     <string name="sources_uninstall">Gỡ</string>
     <string name="sources_language_label">Ngôn ngữ: %1$s</string>

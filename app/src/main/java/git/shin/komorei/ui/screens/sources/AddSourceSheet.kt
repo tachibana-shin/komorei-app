@@ -67,9 +67,9 @@ import androidx.compose.ui.unit.sp
 import git.shin.komorei.R
 import git.shin.komorei.data.ExternalSourceInfo
 import git.shin.komorei.ui.components.ExternalSourceIcon
-import git.shin.komorei.ui.components.ShimmerLoadingRow
 import git.shin.komorei.ui.components.rememberSystemNavigationBarBottom
 import git.shin.komorei.ui.components.search.CompactInput
+import git.shin.komorei.ui.components.shimmerEffect
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.CardBorderDark
 import git.shin.komorei.ui.theme.CardDark
@@ -401,11 +401,10 @@ fun AddSourceSheet(
                     catalog.sources.isEmpty() && catalog.loading -> {
                         item(key = "loading") {
                             Column(
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                modifier = Modifier.padding(vertical = 4.dp),
                             ) {
                                 repeat(4) {
-                                    ShimmerLoadingRow()
-                                    Spacer(modifier = Modifier.height(12.dp))
+                                    ExternalSourceRowSkeleton()
                                 }
                             }
                         }
@@ -468,9 +467,7 @@ fun AddSourceSheet(
                         // Remaining repos still resolving → inline skeleton.
                         if (catalog.loading) {
                             item(key = "loading_more") {
-                                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                    ShimmerLoadingRow()
-                                }
+                                ExternalSourceRowSkeleton()
                             }
                         }
                         // Some repos went down — notice + retry.
@@ -700,6 +697,51 @@ private fun FailedNotice(onRetry: () -> Unit) {
                     .clickable(onClick = onRetry)
                     .padding(horizontal = 10.dp, vertical = 4.dp)
                     .testTag("external_retry_button"),
+        )
+    }
+}
+
+/** Shimmer placeholder that mirrors [ExternalSourceRow]'s shape. */
+@Composable
+private fun ExternalSourceRowSkeleton() {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .size(44.dp)
+                    .shimmerEffect(RoundedCornerShape(10.dp)),
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth(0.5f)
+                        .height(15.dp)
+                        .shimmerEffect(RoundedCornerShape(4.dp)),
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth(0.3f)
+                        .height(12.dp)
+                        .shimmerEffect(RoundedCornerShape(4.dp)),
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Box(
+            modifier =
+                Modifier
+                    .width(58.dp)
+                    .height(28.dp)
+                    .shimmerEffect(RoundedCornerShape(100)),
         )
     }
 }

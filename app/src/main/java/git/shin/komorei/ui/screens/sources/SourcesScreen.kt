@@ -25,9 +25,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
@@ -77,7 +80,8 @@ import git.shin.komorei.ui.tv.tvFocus
 /**
  * The "Nguồn" tab — a port of Aidoku's Browse tab:
  *  - searchable source list with **Updates / Pinned / Installed** sections;
- *  - long-press (or ⋮) context menu: enable/disable, pin/unpin, uninstall;
+ *  - long-press a row to multi-select sources (bulk enable/disable/uninstall),
+ *    tap the ⋮ button for the per-source context menu;
  *  - "Update" pill rows in the Updates section;
  *  - Add-source sheet (import .aix/.krx + browse repos) via the "+" button.
  */
@@ -95,7 +99,9 @@ fun SourcesScreen(
     val refreshing by viewModel.refreshing.collectAsState()
 
     var showAddSheet by remember { mutableStateOf(false) }
-    var uninstallCandidate by remember { mutableStateOf<SourceUiState?>(null) }
+    var uninstallCandidates by remember { mutableStateOf<List<SourceUiState>>(emptyList()) }
+    var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val selecting = selectedIds.isNotEmpty()
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { msg ->
@@ -118,61 +124,111 @@ fun SourcesScreen(
                 .statusBarsPadding()
                 .testTag("sources_screen"),
     ) {
-        // Header
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
+        // Header — replaced by the bulk-action bar while sources are selected.
+        if (selecting) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(
+                    onClick = { selectedIds = emptySet() },
+                    modifier = Modifier.testTag("sources_select_close"),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.sources_select_cancel_cd),
+                        tint = TextSecondary,
+                    )
+                }
                 Text(
-                    text = stringResource(R.string.sources_title),
+                    text = stringResource(R.string.sources_selected_count, selectedIds.size),
                     color = TextPrimary,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Black,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text =
-                        stringResource(
-                            R.string.sources_header_count_format,
-                            sources.size,
-                            sources.count { it.enabled },
-                        ),
-                    color = TextSecondary,
-                    fontSize = 12.sp,
-                )
+                TextButton(onClick = {
+                    sources.filter { it.source.id in selectedIds }.forEach {
+                        viewModel.setEnabled(it.source, true)
+                    }
+                    selectedIds = emptySet()
+                }) {
+                    Text(stringResource(R.string.sources_action_enable), color = AnimeRed)
+                }
+                TextButton(onClick = {
+                    sources.filter { it.source.id in selectedIds }.forEach {
+                        viewModel.setEnabled(it.source, false)
+                    }
+                    selectedIds = emptySet()
+                }) {
+                    Text(stringResource(R.string.sources_action_disable), color = TextSecondary)
+                }
+                TextButton(onClick = {
+                    uninstallCandidates = sources.filter { it.source.id in selectedIds && it.isUserInstalled }
+                    selectedIds = emptySet()
+                }) {
+                    Text(stringResource(R.string.sources_action_uninstall), color = AnimeRed)
+                }
             }
-            IconButton(
-                onClick = { viewModel.checkForUpdates() },
+        } else {
+            Row(
                 modifier =
                     Modifier
-                        // TV focus highlight (no-op on phones).
-                        .tvFocus(shape = CircleShape, scale = 1.15f)
-                        .testTag("sources_refresh_button"),
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Refresh,
-                    contentDescription = stringResource(R.string.sources_refresh_cd),
-                    tint = TextSecondary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            IconButton(
-                onClick = { showAddSheet = true },
-                modifier =
-                    Modifier
-                        // TV focus highlight (no-op on phones).
-                        .tvFocus(shape = CircleShape, scale = 1.15f)
-                        .testTag("sources_add_source_button"),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = stringResource(R.string.sources_add_cd),
-                    tint = AnimeRed,
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.sources_title),
+                        color = TextPrimary,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Black,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text =
+                            stringResource(
+                                R.string.sources_header_count_format,
+                                sources.size,
+                                sources.count { it.enabled },
+                            ),
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                    )
+                }
+                IconButton(
+                    onClick = { viewModel.checkForUpdates() },
+                    modifier =
+                        Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = CircleShape, scale = 1.15f)
+                            .testTag("sources_refresh_button"),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Refresh,
+                        contentDescription = stringResource(R.string.sources_refresh_cd),
+                        tint = TextSecondary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                IconButton(
+                    onClick = { showAddSheet = true },
+                    modifier =
+                        Modifier
+                            // TV focus highlight (no-op on phones).
+                            .tvFocus(shape = CircleShape, scale = 1.15f)
+                            .testTag("sources_add_source_button"),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = stringResource(R.string.sources_add_cd),
+                        tint = AnimeRed,
+                    )
+                }
             }
         }
 
@@ -281,7 +337,17 @@ fun SourcesScreen(
                                 onUpdate = { viewModel.updateSource(item.source) },
                                 onToggleEnabled = { viewModel.setEnabled(item.source, !item.enabled) },
                                 onTogglePinned = { viewModel.togglePinned(item.source) },
-                                onRequestUninstall = { uninstallCandidate = item },
+                                onRequestUninstall = { uninstallCandidates = listOf(item) },
+                                selecting = selecting,
+                                selected = item.source.id in selectedIds,
+                                onToggleSelect = {
+                                    selectedIds =
+                                        if (item.source.id in selectedIds) {
+                                            selectedIds - item.source.id
+                                        } else {
+                                            selectedIds + item.source.id
+                                        }
+                                },
                             )
                         }
                     }
@@ -296,7 +362,17 @@ fun SourcesScreen(
                                 onUpdate = { viewModel.updateSource(item.source) },
                                 onToggleEnabled = { viewModel.setEnabled(item.source, !item.enabled) },
                                 onTogglePinned = { viewModel.togglePinned(item.source) },
-                                onRequestUninstall = { uninstallCandidate = item },
+                                onRequestUninstall = { uninstallCandidates = listOf(item) },
+                                selecting = selecting,
+                                selected = item.source.id in selectedIds,
+                                onToggleSelect = {
+                                    selectedIds =
+                                        if (item.source.id in selectedIds) {
+                                            selectedIds - item.source.id
+                                        } else {
+                                            selectedIds + item.source.id
+                                        }
+                                },
                             )
                         }
                     }
@@ -310,7 +386,17 @@ fun SourcesScreen(
                             onUpdate = { viewModel.updateSource(item.source) },
                             onToggleEnabled = { viewModel.setEnabled(item.source, !item.enabled) },
                             onTogglePinned = { viewModel.togglePinned(item.source) },
-                            onRequestUninstall = { uninstallCandidate = item },
+                            onRequestUninstall = { uninstallCandidates = listOf(item) },
+                            selecting = selecting,
+                            selected = item.source.id in selectedIds,
+                            onToggleSelect = {
+                                selectedIds =
+                                    if (item.source.id in selectedIds) {
+                                        selectedIds - item.source.id
+                                    } else {
+                                        selectedIds + item.source.id
+                                    }
+                            },
                         )
                     }
                 }
@@ -318,13 +404,18 @@ fun SourcesScreen(
         }
     }
 
-    uninstallCandidate?.let { candidate ->
+    if (uninstallCandidates.isNotEmpty()) {
         AlertDialog(
-            onDismissRequest = { uninstallCandidate = null },
+            onDismissRequest = { uninstallCandidates = emptyList() },
             title = { Text(stringResource(R.string.sources_confirm_uninstall_title)) },
             text = {
+                val names = uninstallCandidates.joinToString(", ") { it.source.name }
                 Text(
-                    stringResource(R.string.sources_confirm_uninstall_message, candidate.source.name),
+                    if (uninstallCandidates.size == 1) {
+                        stringResource(R.string.sources_confirm_uninstall_message, names)
+                    } else {
+                        stringResource(R.string.sources_confirm_uninstall_message_many, uninstallCandidates.size)
+                    },
                     color = TextSecondary,
                     fontSize = 14.sp,
                 )
@@ -332,8 +423,8 @@ fun SourcesScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.uninstall(candidate.source)
-                        uninstallCandidate = null
+                        uninstallCandidates.forEach { viewModel.uninstall(it.source) }
+                        uninstallCandidates = emptyList()
                     },
                     modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
                 ) {
@@ -342,7 +433,7 @@ fun SourcesScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { uninstallCandidate = null },
+                    onClick = { uninstallCandidates = emptyList() },
                     modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f),
                 ) {
                     Text(stringResource(R.string.sources_cancel))
@@ -383,6 +474,9 @@ private fun SourceRow(
     onToggleEnabled: () -> Unit,
     onTogglePinned: () -> Unit,
     onRequestUninstall: () -> Unit,
+    selecting: Boolean = false,
+    selected: Boolean = false,
+    onToggleSelect: () -> Unit = {},
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -409,13 +503,23 @@ private fun SourceRow(
                 // TV focus highlight (no-op on phones) — ring around the whole row.
                 .tvFocus(shape = RoundedCornerShape(14.dp), scale = 1.02f)
                 .combinedClickable(
-                    // Tap opens the source's home screen (Aidoku NewSourceViewController).
-                    onClick = onOpen,
-                    onLongClick = { menuExpanded = true },
+                    // In selection mode, tap toggles the row; a long-press enters
+                    // (or leaves, via another long-press) the multi-select flow.
+                    onClick = if (selecting) onToggleSelect else onOpen,
+                    onLongClick = onToggleSelect,
                 ).padding(horizontal = 16.dp, vertical = 8.dp)
                 .testTag("source_row_${item.source.id}"),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            if (selecting) {
+                Icon(
+                    imageVector = if (selected) Icons.Filled.Check else Icons.Outlined.Circle,
+                    contentDescription = null,
+                    tint = if (selected) AnimeRed else TextMuted,
+                    modifier = Modifier.size(22.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
             Box(
                 modifier =
                     Modifier
@@ -474,54 +578,56 @@ private fun SourceRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (item.updateAvailableVersion != null) {
+            if (item.updateAvailableVersion != null && !selecting) {
                 Spacer(modifier = Modifier.width(8.dp))
                 UpdatePill(onClick = { onUpdate() })
             }
-            Box {
-                IconButton(
-                    onClick = { menuExpanded = true },
-                    modifier = Modifier.testTag("source_row_menu_${item.source.id}"),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreVert,
-                        contentDescription = stringResource(R.string.sources_menu_cd),
-                        tint = TextMuted,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(enabledLabel) },
-                        onClick = {
-                            menuExpanded = false
-                            onToggleEnabled()
-                        },
-                        // TV focus highlight (no-op on phones) — material3 applies
-                        // the item modifier OUTSIDE its internal clickable.
-                        modifier = Modifier.tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f),
-                    )
-                    DropdownMenuItem(
-                        text = { Text(pinnedLabel) },
-                        onClick = {
-                            menuExpanded = false
-                            onTogglePinned()
-                        },
-                        modifier = Modifier.tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f),
-                    )
-                    if (item.isUserInstalled) {
-                        HorizontalDivider(color = CardBorderDark)
+            if (!selecting) {
+                Box {
+                    IconButton(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.testTag("source_row_menu_${item.source.id}"),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = stringResource(R.string.sources_menu_cd),
+                            tint = TextMuted,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.sources_action_uninstall), color = AnimeRed) },
+                            text = { Text(enabledLabel) },
                             onClick = {
                                 menuExpanded = false
-                                onRequestUninstall()
+                                onToggleEnabled()
+                            },
+                            // TV focus highlight (no-op on phones) — material3 applies
+                            // the item modifier OUTSIDE its internal clickable.
+                            modifier = Modifier.tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f),
+                        )
+                        DropdownMenuItem(
+                            text = { Text(pinnedLabel) },
+                            onClick = {
+                                menuExpanded = false
+                                onTogglePinned()
                             },
                             modifier = Modifier.tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f),
                         )
+                        if (item.isUserInstalled) {
+                            HorizontalDivider(color = CardBorderDark)
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.sources_action_uninstall), color = AnimeRed) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onRequestUninstall()
+                                },
+                                modifier = Modifier.tvFocus(shape = RoundedCornerShape(10.dp), scale = 1.0f),
+                            )
+                        }
                     }
                 }
             }

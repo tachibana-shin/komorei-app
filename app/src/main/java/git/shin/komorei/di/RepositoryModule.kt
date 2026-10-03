@@ -9,7 +9,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import git.shin.komorei.data.AnimeRepository
 import git.shin.komorei.data.backup.DriveBackupApi
 import git.shin.komorei.data.backup.GoogleDriveBackupApi
 import git.shin.komorei.data.local.KomoreiDatabase
@@ -180,9 +179,7 @@ object RepositoryModule {
         krxHost: KrxHostImpl,
     ): KrxSourceRegistry = KrxSourceRegistry(context, krxHost)
 
-    @Provides
-    @Singleton
-    fun provideAnimeRepository(registry: KrxSourceRegistry): AnimeRepository = AnimeRepository(registry)
+    // AnimeRepository is provided via its @Inject constructor; just the cache.
 }
 
 @Qualifier

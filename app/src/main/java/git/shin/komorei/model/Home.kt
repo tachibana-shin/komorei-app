@@ -42,6 +42,7 @@ sealed class LinkValue {
 }
 
 /** A link used inside home components (image scrollers, rails, header rows, ...). */
+@JsonClass(generateAdapter = true)
 data class Link(
     val title: String,
     val subtitle: String? = null,
@@ -57,18 +58,21 @@ data class Link(
 }
 
 /** A link to a filtered listing (entries of the `Filters` component). */
+@JsonClass(generateAdapter = true)
 data class FilterItem(
     val title: String,
     val values: List<FilterValue>? = null,
 )
 
 /** A paired anime + episode (entries of the `AnimeEpisodeList` component). */
+@JsonClass(generateAdapter = true)
 data class AnimeWithEpisode(
     val anime: Anime,
     val episode: Episode,
 )
 
 /** One row of a source's home layout. */
+@JsonClass(generateAdapter = true)
 data class HomeComponent(
     val title: String? = null,
     val subtitle: String? = null,

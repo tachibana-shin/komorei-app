@@ -49,6 +49,7 @@ import javax.inject.Singleton
 @Singleton
 open class AnimeRepository @Inject constructor(
     private val registry: KrxSourceRegistry,
+    private val homeLayoutCache: HomeLayoutCache? = null,
 ) {
     private companion object {
         const val TAG = "AnimeRepository"
@@ -605,15 +606,20 @@ open class AnimeRepository @Inject constructor(
      */
     open suspend fun getHome(sourceId: String): List<HomeComponent> {
         if (sourceId == AGGREGATOR_ID) {
+            homeLayoutCache?.get(AGGREGATOR_ID)?.let { return it }
             return coroutineScope {
                 sources
                     .filter { !it.isAggregator }
                     .map { s -> async { getHome(s.id) } }
                     .awaitAll()
                     .flatten()
-            }
+            }.also { homeLayoutCache?.set(AGGREGATOR_ID, it) }
         }
         homeCache[sourceId]?.let { return it.await() }
+        homeLayoutCache?.get(sourceId)?.let {
+            homeCache[sourceId] = CompletableDeferred<List<HomeComponent>>().apply { complete(it) }
+            return it
+        }
         val deferred = CompletableDeferred<List<HomeComponent>>()
         val existing = homeCache.putIfAbsent(sourceId, deferred)
         if (existing != null) return existing.await()
@@ -623,6 +629,7 @@ open class AnimeRepository @Inject constructor(
                     runner.home().components.map { it.toAppModel() }
                 } ?: emptyList()
             deferred.complete(components)
+            homeLayoutCache?.set(sourceId, components)
             components
         } catch (e: Exception) {
             homeCache.remove(sourceId, deferred)
