@@ -1,3 +1,11 @@
+## [1.2.1](https://github.com/tachibana-shin/komorei-app/compare/v1.2.0...v1.2.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* layout weight and loading-state cleanup in source/library/update UI ([c527068](https://github.com/tachibana-shin/komorei-app/commit/c5270681f941f37891249699adcb0c2ee3f2adc4))
+* package libkomorei_runner.so into release APKs and stop source-load hangs ([d6681e0](https://github.com/tachibana-shin/komorei-app/commit/d6681e0b2f9c406ab181afd0365801c0175484ac))
+
 # [1.2.0](https://github.com/tachibana-shin/komorei-app/compare/v1.1.8...v1.2.0) (2026-09-29)
 
 
