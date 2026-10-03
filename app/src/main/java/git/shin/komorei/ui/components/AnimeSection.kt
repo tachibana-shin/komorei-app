@@ -45,7 +45,7 @@ fun AnimeSection(
             // Responsive columns per width bucket (3 phone / 4 tablet / 5-6
             // TV) so the Library grid never stretches giant cards on a big
             // screen.
-            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            BoxWithConstraints(modifier = Modifier.weight(1f)) {
                 LazyVerticalGrid(
                     columns = animeGridColumns(),
                     contentPadding = PaddingValues(horizontal = 16.dp),

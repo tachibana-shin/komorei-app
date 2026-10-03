@@ -16,7 +16,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SystemUpdateAlt
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -177,12 +176,6 @@ fun UpdateBottomSheet(
                     // sheet only reports progress, so it has no action to offer
                     // and must not offer a dismiss that would abandon a download
                     // whose result the reader cannot see.
-                    CircularProgressIndicator(
-                        color = AnimeRed,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.size(10.dp))
                     Text(
                         text = stringResource(R.string.update_sheet_downloading),
                         color = TextSecondary,

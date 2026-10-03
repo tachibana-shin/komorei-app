@@ -203,7 +203,7 @@ fun LibraryScreen(
                         )
                     }
                 },
-                modifier = Modifier.padding(bottom = 114.dp),
+                modifier = Modifier.weight(1f).padding(bottom = 114.dp),
             )
         }
     }

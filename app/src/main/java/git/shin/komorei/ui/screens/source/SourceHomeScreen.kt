@@ -193,7 +193,7 @@ fun SourceHomeScreen(
             // The scoped Source is still resolving (or the source vanished) —
             // show the same skeleton the Home tab uses while home data loads.
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = 120.dp),
             ) {
                 item { BannerCarouselSkeleton() }
