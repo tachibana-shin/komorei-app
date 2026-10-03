@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/tachibana-shin/komorei-app/compare/v1.2.1...v1.3.0) (2026-10-03)
+
+
+### Features
+
+* multi-select sources, row-shaped add-source skeleton, persistent home cache ([eb36f7a](https://github.com/tachibana-shin/komorei-app/commit/eb36f7a57a52e54aa87251d3ad0a6d28597349ab))
+
 ## [1.2.1](https://github.com/tachibana-shin/komorei-app/compare/v1.2.0...v1.2.1) (2026-10-03)
 
 
