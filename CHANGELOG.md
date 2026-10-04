@@ -1,3 +1,11 @@
+## [1.3.1](https://github.com/tachibana-shin/komorei-app/compare/v1.3.0...v1.3.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* default player box to 3:4 before video size is known ([93eaa4c](https://github.com/tachibana-shin/komorei-app/commit/93eaa4cf11e55320534be1f0690cb9853ccd4a85))
+* server-list hiding for single stream, video aspect, search sources refresh, tab selection ([79ac224](https://github.com/tachibana-shin/komorei-app/commit/79ac2244613b70d2601239a7e6d6f4c74d1fbeae))
+
 # [1.3.0](https://github.com/tachibana-shin/komorei-app/compare/v1.2.1...v1.3.0) (2026-10-03)
 
 
