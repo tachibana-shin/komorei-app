@@ -175,16 +175,17 @@ fun VideoPlayerSheet(
     val currentIndex = detailEpisodes.indexOfFirst { it.id == currentEp.id }
     val nextEpisode = detailEpisodes.getOrNull(currentIndex + 1)
 
-    // The non-fullscreen video window follows the *actual* video aspect
-    // (e.g. 3:4 for tall sources) instead of a hardcoded 16:9 with a black
-    // letterbox band around it. Falls back to 16:9 before Media3 has reported
-    // the size.
+    // The non-fullscreen video window follows the stream's real rendered aspect,
+    // with a 3:4 (width:height, taller side) as the *smallest* fallback while
+    // Media3 has not reported a size yet. A source whose own aspect would make
+    // the player box taller than 3:4 (portrait sources) simply uses its own
+    // aspect for the box.
     val videoAspect =
         playbackState.videoSize.let { vs ->
             if (vs.width > 0 && vs.height > 0 && vs.pixelWidthHeightRatio > 0f) {
                 (vs.width.toFloat() * vs.pixelWidthHeightRatio) / vs.height.toFloat()
             } else {
-                16f / 9f
+                3f / 4f
             }
         }
 
