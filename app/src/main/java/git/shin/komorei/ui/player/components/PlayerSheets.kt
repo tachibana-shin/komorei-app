@@ -890,13 +890,15 @@ fun SettingsContent(
                                 onClick = { currentPane = SettingsPane.QUALITY },
                             )
                         }
-                        item {
-                            SettingsItem(
-                                icon = Icons.Default.Dns,
-                                title = stringResource(R.string.player_stream_source),
-                                value = playbackState.streams.find { it.id == playbackState.selectedStreamId }?.name ?: stringResource(R.string.unknown),
-                                onClick = { currentPane = SettingsPane.STREAM },
-                            )
+                        if (playbackState.streams.size > 1) {
+                            item {
+                                SettingsItem(
+                                    icon = Icons.Default.Dns,
+                                    title = stringResource(R.string.player_stream_source),
+                                    value = playbackState.streams.find { it.id == playbackState.selectedStreamId }?.name ?: stringResource(R.string.unknown),
+                                    onClick = { currentPane = SettingsPane.STREAM },
+                                )
+                            }
                         }
                         item {
                             SettingsItem(

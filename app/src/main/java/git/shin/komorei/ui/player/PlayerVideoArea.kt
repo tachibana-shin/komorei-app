@@ -134,6 +134,7 @@ fun PlayerVideoArea(
     skipHint: SkipHint? = null,
     onSkip: () -> Unit = {},
     modifier: Modifier = Modifier,
+    streamCount: Int = 0,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val widthPx = constraints.maxWidth.toFloat()
@@ -749,6 +750,7 @@ fun PlayerVideoArea(
                         onOpenServers = onOpenServers,
                         onOpenSettings = onOpenSettings,
                         onInteraction = { interactionCounter++ },
+                        streamCount = streamCount,
                         modifier = Modifier.fillMaxWidth().onSizeChanged { footerHeightPx = it.height },
                     )
                 }

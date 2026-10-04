@@ -98,8 +98,7 @@ class AnimeDetailViewModel @Inject constructor(
         _uiState
             .flatMapLatest { state ->
                 val anime = state.masterAnime ?: return@flatMapLatest flowOf(emptyList())
-                val seasonId = state.selectedSeason?.animeId ?: anime.id
-
+                val seasonId = anime.id
                 libraryRepository
                     .getWatchHistoryForAnime(seasonId, anime.sourceId)
                     .map { entities ->

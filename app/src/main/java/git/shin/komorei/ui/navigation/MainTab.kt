@@ -30,7 +30,9 @@ data class MainTab(
     val unselectedIcon: ImageVector,
 )
 
-/** Every top-level destination, in bottom-bar / rail order. */
+/**
+ * Every top-level destination, in bottom-bar / rail order.
+ */
 val mainTabs: List<MainTab> =
     listOf(
         MainTab(
@@ -69,3 +71,20 @@ val mainTabs: List<MainTab> =
             unselectedIcon = Icons.Outlined.Settings,
         ),
     )
+
+/**
+ * Which top-level tab a route belongs to: a tab is only "selected" when the
+ * current destination is that tab itself OR a sub-page reached from it.
+ * Opening a source's home / settings / search (or a repo manager) keeps the
+ * Sources tab highlighted instead of leaving every tab blind; a Listing
+ * inside the source navigation belongs to Sources the same way.
+ */
+fun MainTab.ownsCurrentRoute(currentRoute: String): Boolean =
+    when (route) {
+        Screen.Sources.route ->
+            currentRoute == Screen.Sources.route ||
+                currentRoute.startsWith("sources/") ||
+                currentRoute.startsWith("source_") ||
+                currentRoute.startsWith("listing/")
+        else -> currentRoute == route
+    }

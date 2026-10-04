@@ -96,7 +96,7 @@ fun SearchDiscoveryScreen(
     val searchUiState by viewModel.searchUiState.collectAsState()
     val searchHistory by viewModel.searchHistory.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val sources = viewModel.sources
+    val sources by viewModel.sources.collectAsState()
 
     Column(
         modifier =

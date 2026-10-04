@@ -42,6 +42,7 @@ import git.shin.komorei.ui.deeplink.DeepLinkAction
 import git.shin.komorei.ui.deeplink.DeepLinkViewModel
 import git.shin.komorei.ui.navigation.Screen
 import git.shin.komorei.ui.navigation.mainTabs
+import git.shin.komorei.ui.navigation.ownsCurrentRoute
 import git.shin.komorei.ui.player.PlayerSheetValue
 import git.shin.komorei.ui.player.PlayerViewModel
 import git.shin.komorei.ui.player.VideoPlayerSheet
@@ -163,10 +164,15 @@ fun MainScreen(
                         currentRoute = currentRoute,
                         onSelect = { tab ->
                             if (currentRoute != tab.route) {
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                when {
+                                    tab.ownsCurrentRoute(currentRoute) &&
+                                        navController.popBackStack(tab.route, inclusive = false) -> Unit
+                                    else ->
+                                        navController.navigate(tab.route) {
+                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
                                 }
                             }
                         },

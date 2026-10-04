@@ -175,6 +175,19 @@ fun VideoPlayerSheet(
     val currentIndex = detailEpisodes.indexOfFirst { it.id == currentEp.id }
     val nextEpisode = detailEpisodes.getOrNull(currentIndex + 1)
 
+    // The non-fullscreen video window follows the *actual* video aspect
+    // (e.g. 3:4 for tall sources) instead of a hardcoded 16:9 with a black
+    // letterbox band around it. Falls back to 16:9 before Media3 has reported
+    // the size.
+    val videoAspect =
+        playbackState.videoSize.let { vs ->
+            if (vs.width > 0 && vs.height > 0 && vs.pixelWidthHeightRatio > 0f) {
+                (vs.width.toFloat() * vs.pixelWidthHeightRatio) / vs.height.toFloat()
+            } else {
+                16f / 9f
+            }
+        }
+
     // SponsorBlock-style skip: while the playhead is inside the intro/outro range a
     // pill is shown; tapping it jumps to the end of the range. Dismissed per range per
     // episode, so it doesn't nag again after being skipped (e.g. user seeks back).
@@ -359,7 +372,7 @@ fun VideoPlayerSheet(
                                     if (isFullscreen) {
                                         Modifier.weight(1f)
                                     } else {
-                                        Modifier.aspectRatio(16f / 9f).statusBarsPadding()
+                                        Modifier.aspectRatio(videoAspect).statusBarsPadding()
                                     },
                                 )
                                 // Opaque black behind the video. NO offset, NO graphicsLayer —
@@ -415,6 +428,7 @@ fun VideoPlayerSheet(
                                 onNextEpisode = nextEpisode?.let { ep -> { onEpisodeSelected(ep) } },
                                 skipHint = skipHint,
                                 onSkip = onSkipSegment,
+                                streamCount = playbackState.streams.size,
                                 modifier = Modifier.fillMaxSize(),
                             )
                         }
@@ -531,7 +545,7 @@ fun VideoPlayerSheet(
                     }
 
                     PlayerSideSheet(
-                        visible = activeMenu == PlayerMenu.SERVERS,
+                        visible = activeMenu == PlayerMenu.SERVERS && playbackState.streams.size > 1,
                         onDismiss = { activeMenu = null },
                         title = stringResource(R.string.streaming_server_header),
                     ) {

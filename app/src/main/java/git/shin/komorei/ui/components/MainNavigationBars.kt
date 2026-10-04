@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import git.shin.komorei.ui.navigation.MainTab
+import git.shin.komorei.ui.navigation.ownsCurrentRoute
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.SurfaceDark
 import git.shin.komorei.ui.theme.TextMuted
@@ -72,7 +73,7 @@ fun MainBottomNavigation(
         tabs.forEach { tab ->
             BottomNavItem(
                 tab = tab,
-                selected = tab.route == currentRoute,
+                selected = tab.ownsCurrentRoute(currentRoute),
                 onClick = { onSelect(tab) },
                 modifier =
                     Modifier
@@ -145,7 +146,7 @@ fun MainNavigationRail(
     val listState = rememberLazyListState()
     val selectedIndex =
         remember(tabs, currentRoute) {
-            tabs.indexOfFirst { it.route == currentRoute }.coerceAtLeast(0)
+            tabs.indexOfFirst { it.ownsCurrentRoute(currentRoute) }.coerceAtLeast(0)
         }
     LaunchedEffect(selectedIndex) { listState.animateScrollToItem(selectedIndex) }
 
@@ -165,7 +166,7 @@ fun MainNavigationRail(
         items(items = tabs, key = { it.key }) { tab ->
             RailNavItem(
                 tab = tab,
-                selected = tab.route == currentRoute,
+                selected = tab.ownsCurrentRoute(currentRoute),
                 onClick = { onSelect(tab) },
                 modifier = Modifier.testTag("rail_tab_${tab.key}"),
             )

@@ -18,6 +18,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
@@ -26,7 +27,9 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -63,8 +66,16 @@ class SearchViewModel @Inject constructor(
 
     val genres: List<Genre> = repository.genres
 
-    /** Non-aggregator sources (the "Sources" filter options). */
-    val sources: List<Source> = repository.sources.filter { !it.isAggregator }
+    /** Non-aggregator sources (the "Sources" filter options). Collected from the
+     * reactive source list so the Discovery tab reflects installs/removals. */
+    val sources: StateFlow<List<Source>> =
+        repository.sourcesFlow
+            .map { all -> all.filter { !it.isAggregator } }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                repository.sources.filter { !it.isAggregator },
+            )
 
     /** Recent search queries (most recent first), persisted across sessions. */
     val searchHistory: StateFlow<List<String>> = searchHistoryStore.history

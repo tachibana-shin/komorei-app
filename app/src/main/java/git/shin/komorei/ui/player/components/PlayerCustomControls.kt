@@ -429,6 +429,7 @@ fun PlayerControlFooter(
     onOpenSettings: () -> Unit,
     onInteraction: () -> Unit = {},
     modifier: Modifier = Modifier,
+    streamCount: Int = 0,
 ) {
     val textStyle =
         TextStyle(
@@ -573,22 +574,24 @@ fun PlayerControlFooter(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(
-                        onClick = onOpenServers,
-                        modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f, borderColor = Color.White),
-                    ) {
-                        Icon(
-                            Icons.Default.Dns,
-                            null,
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            stringResource(R.string.streaming_server_short),
-                            color = Color.White,
-                            fontSize = 13.sp,
-                        )
+                    if (streamCount > 1) {
+                        TextButton(
+                            onClick = onOpenServers,
+                            modifier = Modifier.tvFocus(shape = RoundedCornerShape(8.dp), scale = 1.05f, borderColor = Color.White),
+                        ) {
+                            Icon(
+                                Icons.Default.Dns,
+                                null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                stringResource(R.string.streaming_server_short),
+                                color = Color.White,
+                                fontSize = 13.sp,
+                            )
+                        }
                     }
                     TextButton(
                         onClick = onOpenSettings,
