@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/tachibana-shin/komorei-app/compare/v1.3.1...v1.3.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* Cloudflare challenges skip the headless WebView entirely ([e4515f4](https://github.com/tachibana-shin/komorei-app/commit/e4515f47b91a3011e7fe72293e583fe6ba1a0586))
+
 ## [1.3.1](https://github.com/tachibana-shin/komorei-app/compare/v1.3.0...v1.3.1) (2026-10-04)
 
 
