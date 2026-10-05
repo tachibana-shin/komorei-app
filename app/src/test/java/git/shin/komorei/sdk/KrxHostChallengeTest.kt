@@ -58,6 +58,11 @@ class KrxHostChallengeTest {
         "<html><head><title>Just a moment...</title></head>" +
             "<body><span class=\"cf-challenge\">Checking your browser before accessing</span></body></html>"
 
+    /** A plain JS redirect page WITHOUT Cloudflare markers — currently still treated as a challenge. */
+    private fun jsRedirectHtml(): String =
+        "<html><head><title></title></head>" +
+            "<body>redirecting…</body></html>"
+
     private fun response(
         request: okhttp3.Request,
         code: Int,
@@ -125,7 +130,7 @@ class KrxHostChallengeTest {
                 context(),
                 scriptedClient { call, request ->
                     if (call == 1) {
-                        response(request, 403, "Forbidden", challengeHtml(), "text/html")
+                        response(request, 403, "Forbidden", jsRedirectHtml(), "text/html")
                     } else {
                         response(request, 200, "OK", "{\"ok\":true}", "application/json")
                     }
@@ -146,6 +151,50 @@ class KrxHostChallengeTest {
         assertEquals("X-Requested-With must be emptied on the challenge load", "", headers[HEADER_X_REQUESTED_WITH])
     }
 
+    // ---- cloudflare: directly visible, no headless attempt ------------------
+
+    @Test
+    fun `cloudflare challenge jumps straight to the visible browser (no headless)`() {
+        val headlessStarted = AtomicBoolean(false)
+        val host =
+            KrxHostImpl(
+                context(),
+                scriptedClient { call, request ->
+                    if (call == 1) {
+                        response(request, 403, "Forbidden", challengeHtml(), "text/html")
+                    } else {
+                        response(request, 200, "OK", "{\"ok\":true}", "application/json")
+                    }
+                },
+            )
+        host.onChallengeWebViewCreated = { headlessStarted.set(true) }
+
+        val completer =
+            Thread {
+                // publish the bypass dialog first, then complete it — a Completer
+                // fired before the host reaches this stage would be a no-op
+                val end = System.currentTimeMillis() + WATCH_TIMEOUT_MS
+                var seen = false
+                while (System.currentTimeMillis() < end) {
+                    if (JsChallengeCoordinator.pending.value != null) {
+                        seen = true
+                        break
+                    }
+                    Thread.sleep(15)
+                }
+                if (seen) JsChallengeCoordinator.completeBypass()
+            }
+        completer.start()
+
+        val resp = get(host)
+
+        completer.join(2_000)
+
+        assertEquals("no headless attempt for cloudflare", false, headlessStarted.get())
+        assertEquals(200, resp.status)
+        assertEquals("initial 403 + bypass-retry", 2, calls.get())
+    }
+
     // ---- headless stall → visible browser ----------------------------------
 
     @Test
@@ -156,7 +205,7 @@ class KrxHostChallengeTest {
                 context(),
                 scriptedClient { call, request ->
                     if (call == 1) {
-                        response(request, 403, "Forbidden", challengeHtml(), "text/html")
+                        response(request, 403, "Forbidden", jsRedirectHtml(), "text/html")
                     } else {
                         response(request, 200, "OK", "ok", "text/plain")
                     }
@@ -184,8 +233,18 @@ class KrxHostChallengeTest {
         watcher.start()
         val completer =
             Thread {
-                Thread.sleep(120)
-                JsChallengeCoordinator.completeBypass()
+                // publish the bypass dialog first, then complete it — a Completer
+                // fired before the host reaches this stage would be a no-op
+                val end = System.currentTimeMillis() + WATCH_TIMEOUT_MS
+                var seen = false
+                while (System.currentTimeMillis() < end) {
+                    if (JsChallengeCoordinator.pending.value != null) {
+                        seen = true
+                        break
+                    }
+                    Thread.sleep(15)
+                }
+                if (seen) JsChallengeCoordinator.completeBypass()
             }
         completer.start()
 

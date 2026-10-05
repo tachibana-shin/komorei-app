@@ -314,16 +314,23 @@ class KrxHostImpl(
         // the shared CookieManager automatically).
         var retries = 0
         while (isChallengeResponse(result) && retries < MAX_403_RETRIES) {
-            val solvedHeadless =
-                runBlocking {
-                    JsChallengeCoordinator.withHeadlessLock { solveHeadlessOnce(url) }
-                }
+            // Cloudflare's own challenge pages are never clearable headless —
+            // the WebView must show the verification to the user. Anything else
+            // (e.g. an empty-title JS redirect) is solved silently first.
             val solved =
-                if (solvedHeadless) {
-                    true
-                } else {
-                    Log.w(TAG, "headless challenge not cleared for $url — asking the user")
+                if (isCloudflareResponse(result)) {
                     runBlocking { JsChallengeCoordinator.requestUserBypass(url) }
+                } else {
+                    val solvedHeadless =
+                        runBlocking {
+                            JsChallengeCoordinator.withHeadlessLock { solveHeadlessOnce(url) }
+                        }
+                    if (solvedHeadless) {
+                        true
+                    } else {
+                        Log.w(TAG, "headless challenge not cleared for $url — asking the user")
+                        runBlocking { JsChallengeCoordinator.requestUserBypass(url) }
+                    }
                 }
             if (!solved) break
             retries++
@@ -338,6 +345,22 @@ class KrxHostImpl(
         }
 
         return result
+    }
+
+    /** True when [result] is Cloudflare's own anti-bot page (never auto-solvable). */
+    private fun isCloudflareResponse(result: HostNetResponse): Boolean {
+        if (!result.ok) return false
+        if (result.status !in 403..503) return false
+        val contentType =
+            result.headers.entries
+                .firstOrNull { (name, _) ->
+                    name.equals("Content-Type", ignoreCase = true)
+                }?.value
+                .orEmpty()
+                .lowercase()
+        if (!contentType.contains("text/html")) return false
+        val body = String(result.data, Charsets.UTF_8)
+        return CLOUDFLARE_BODY_MARKERS.any { body.contains(it, ignoreCase = true) }
     }
 
     /**
@@ -1451,6 +1474,19 @@ class KrxHostImpl(
                 "Xác minh khu vực",
                 "Lỗi Server",
                 "captcha",
+            )
+
+        /** Body markers exclusive to Cloudflare challenge pages (never auto-solvable headless). */
+        val CLOUDFLARE_BODY_MARKERS =
+            listOf(
+                "cf-challenge",
+                "cf-browser-verification",
+                "cf-error-details",
+                "challenge-platform",
+                "Just a moment",
+                "Xác Minh An Toàn",
+                "Xác minh khu vực",
+                "cf_chl",
             )
 
         /**
