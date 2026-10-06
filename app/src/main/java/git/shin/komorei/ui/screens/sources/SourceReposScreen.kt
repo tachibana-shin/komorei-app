@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import git.shin.komorei.R
+import git.shin.komorei.ui.components.shimmerEffect
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
 import git.shin.komorei.ui.theme.TextMuted
@@ -207,14 +208,26 @@ private fun RepoManageRow(
         }
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = (state as? RepoSectionState.Loaded)?.name ?: url.removePrefix("https://").removePrefix("http://"),
-                color = TextPrimary,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (state == null || state is RepoSectionState.Loading) {
+                // The manifest hasn't landed yet, so the name is unknown —
+                // shimmer where it will appear instead of "Đang tải…".
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(0.45f)
+                            .height(14.dp)
+                            .shimmerEffect(RoundedCornerShape(4.dp)),
+                )
+            } else {
+                Text(
+                    text = (state as? RepoSectionState.Loaded)?.name ?: url.removePrefix("https://").removePrefix("http://"),
+                    color = TextPrimary,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = url,
@@ -232,6 +245,7 @@ private fun RepoManageRow(
                     text = stringResource(R.string.sources_repos_fetch_sources),
                     color = TextSecondary,
                     fontSize = 12.sp,
+                    lineHeight = 14.sp,
                 )
             }
             is RepoSectionState.Unavailable -> {
@@ -239,12 +253,14 @@ private fun RepoManageRow(
                     text = stringResource(R.string.sources_repos_unavailable),
                     color = TextMuted,
                     fontSize = 12.sp,
+                    lineHeight = 14.sp,
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = stringResource(R.string.sources_repos_retry),
                     color = AnimeRed,
                     fontSize = 12.sp,
+                    lineHeight = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier =
                         Modifier
@@ -256,10 +272,13 @@ private fun RepoManageRow(
                 )
             }
             null, is RepoSectionState.Loading -> {
-                Text(
-                    text = stringResource(R.string.sources_repos_loading),
-                    color = TextMuted,
-                    fontSize = 12.sp,
+                // Manifest still loading — shimmer where the state label goes.
+                Box(
+                    modifier =
+                        Modifier
+                            .width(72.dp)
+                            .height(24.dp)
+                            .shimmerEffect(RoundedCornerShape(100)),
                 )
             }
         }

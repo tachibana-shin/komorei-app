@@ -138,6 +138,7 @@ fun BannerCarousel(
                             text = stringResource(R.string.badge_hot),
                             color = AnimeRed,
                             fontSize = 10.sp,
+                            lineHeight = 12.sp,
                             fontWeight = FontWeight.ExtraBold,
                             letterSpacing = 1.sp,
                         )
@@ -176,6 +177,7 @@ fun BannerCarousel(
                                 text = String.format("%.2f", anime.rating),
                                 color = TextPrimary,
                                 fontSize = 12.sp,
+                                lineHeight = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                             )
 
@@ -252,6 +254,7 @@ fun BannerCarousel(
                             Text(
                                 text = stringResource(R.string.play_now),
                                 fontSize = 12.sp,
+                                lineHeight = 14.sp,
                                 fontWeight = FontWeight.Bold,
                             )
                         }

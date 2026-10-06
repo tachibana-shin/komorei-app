@@ -213,7 +213,7 @@ class SourceSearchViewModel @Inject constructor(
                     .onSuccess { result ->
                         _uiState.update {
                             it.copy(
-                                items = result.entries,
+                                items = result.entries.distinctBy { it.sourceId to it.id },
                                 hasNextPage = result.hasNextPage,
                                 loadedPage = 1,
                                 isLoading = false,
@@ -254,7 +254,7 @@ class SourceSearchViewModel @Inject constructor(
                         _uiState.update { s ->
                             if (reset) {
                                 s.copy(
-                                    items = result.entries,
+                                    items = result.entries.distinctBy { it.sourceId to it.id },
                                     hasNextPage = result.hasNextPage,
                                     loadedPage = 1,
                                     isLoading = false,
@@ -264,7 +264,7 @@ class SourceSearchViewModel @Inject constructor(
                                 )
                             } else {
                                 s.copy(
-                                    items = (s.items + result.entries).distinctBy { it.id },
+                                    items = (s.items + result.entries).distinctBy { it.sourceId to it.id },
                                     hasNextPage = result.hasNextPage,
                                     loadedPage = page,
                                     isLoading = false,

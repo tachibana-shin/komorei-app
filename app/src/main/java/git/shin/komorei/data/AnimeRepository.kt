@@ -62,6 +62,9 @@ open class AnimeRepository @Inject constructor(
          * for a source that will never stream.
          */
         const val PARTIAL_HOME_SUBSCRIBER_TIMEOUT_MS = 3_000L
+
+        // Data-model default for the virtual source's name; the Home tab
+        // renders the localized copy (R.string.home_tab_aggregator) instead.
         const val AGGREGATOR_NAME = "Tổng hợp"
 
         // The aggregator is a virtual source with no krx artwork; SourceIcon
@@ -113,6 +116,12 @@ open class AnimeRepository @Inject constructor(
             }
         }
 
+    /**
+     * The Discover genre cards/chips. [Genre.name] doubles as the filter VALUE
+     * handed back to sources — their select/multi-select options are literally
+     * these labels — so it is source-facing data and deliberately NOT a
+     * string resource.
+     */
     val genres: List<Genre> =
         listOf(
             Genre("action", "Hành Động", "⚔️", 0xFFE53935, 142),
@@ -441,7 +450,7 @@ open class AnimeRepository @Inject constructor(
                     }.awaitAll()
                     .let { pages ->
                         KrxPage(
-                            entries = pages.flatMap { it.entries }.distinctBy { it.id },
+                            entries = pages.flatMap { it.entries }.distinctBy { it.sourceId to it.id },
                             hasNextPage = pages.any { it.hasNextPage },
                         )
                     }
@@ -516,9 +525,24 @@ open class AnimeRepository @Inject constructor(
             }
         } ?: emptyList()
 
-    /** Drops the cached `home()` layout for [sourceId] — the next read re-fetches. */
+    /**
+     * Drops the cached `home()` layout for [sourceId] — the next read re-fetches.
+     *
+     * BOTH layers go: clearing only [homeCache] just re-seeds it from the 6h
+     * disk copy on the next read, which is exactly what made "Xoá bộ nhớ đệm
+     * nguồn" a no-op. The merged "all" entry unions every source, so a
+     * single-source clear drops it too, and clearing "all" itself drops every
+     * source's layout — that is what the tab is built from.
+     */
     fun clearCachedHome(sourceId: String) {
+        if (sourceId == AGGREGATOR_ID) {
+            homeCache.clear()
+            homeLayoutCache?.clearAll()
+            return
+        }
         homeCache.remove(sourceId)
+        homeLayoutCache?.clear(sourceId)
+        homeLayoutCache?.clear(AGGREGATOR_ID)
     }
 
     /**
@@ -698,7 +722,7 @@ open class AnimeRepository @Inject constructor(
     suspend fun getFeaturedAnime(sourceId: String): List<Anime> =
         getHome(sourceId)
             .flatMap { comp -> (comp.value as? HomeComponentValue.BigScroller)?.entries ?: emptyList() }
-            .distinctBy { it.id }
+            .distinctBy { it.sourceId to it.id }
 
     /**
      * Grouped sections for the Home hub, built from [getHome]: anime rails
@@ -719,7 +743,7 @@ open class AnimeRepository @Inject constructor(
             if (items.isEmpty()) return@forEach
             combined.getOrPut(title) { mutableListOf() }.addAll(items)
         }
-        return combined.mapValues { (_, list) -> list.distinctBy { it.id } }
+        return combined.mapValues { (_, list) -> list.distinctBy { it.sourceId to it.id } }
     }
 
     /**

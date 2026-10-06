@@ -106,6 +106,7 @@ fun SettingsScreen(
             text = stringResource(R.string.settings_subtitle),
             color = TextMuted,
             fontSize = 12.sp,
+            lineHeight = 14.sp,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
 
@@ -216,6 +217,7 @@ private fun SettingsSection(
             text = title.uppercase(),
             color = AnimeRed,
             fontSize = 11.sp,
+            lineHeight = 14.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 20.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
         )
@@ -266,6 +268,7 @@ private fun SettingsRow(
                     text = subtitle,
                     color = TextSecondary,
                     fontSize = 12.sp,
+                    lineHeight = 14.sp,
                 )
             }
         }

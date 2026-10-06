@@ -236,6 +236,7 @@ private fun AnimeListGridCell(
                     text = subtitle,
                     color = TextMuted,
                     fontSize = 11.sp,
+                    lineHeight = 14.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

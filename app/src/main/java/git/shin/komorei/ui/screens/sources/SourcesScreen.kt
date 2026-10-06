@@ -167,7 +167,7 @@ fun SourcesScreen(
                     Text(stringResource(R.string.sources_action_disable), color = TextSecondary)
                 }
                 TextButton(onClick = {
-                    uninstallCandidates = sources.filter { it.source.id in selectedIds && it.isUserInstalled }
+                    viewModel.uninstallSelected(sources.filter { it.source.id in selectedIds })
                     selectedIds = emptySet()
                 }) {
                     Text(stringResource(R.string.sources_action_uninstall), color = AnimeRed)
@@ -198,6 +198,7 @@ fun SourcesScreen(
                             ),
                         color = TextSecondary,
                         fontSize = 12.sp,
+                        lineHeight = 14.sp,
                     )
                 }
                 IconButton(
@@ -377,7 +378,9 @@ fun SourcesScreen(
                         }
                     }
                     item(key = "header_installed") {
-                        SectionLabel(stringResource(R.string.sources_section_installed))
+                        if (installed.isNotEmpty()) {
+                            SectionLabel(stringResource(R.string.sources_section_installed))
+                        }
                     }
                     items(installed, key = { it.source.id }) { item ->
                         SourceRow(

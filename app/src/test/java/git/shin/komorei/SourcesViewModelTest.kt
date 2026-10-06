@@ -81,7 +81,7 @@ class SourcesViewModelTest {
             repository = repository,
             registry = registry,
             stateStore = stateStore,
-            reposRepository = SourceReposRepository(OkHttpClient.Builder().build()),
+            reposRepository = SourceReposRepository(OkHttpClient.Builder().build(), ApplicationProvider.getApplicationContext()),
         )
 
     @Test

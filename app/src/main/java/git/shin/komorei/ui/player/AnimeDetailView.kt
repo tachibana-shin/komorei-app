@@ -1173,15 +1173,23 @@ fun AnimeDetailView(
                                 fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                             )
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                            val releaseLine =
+                                displayAnime.releaseYear?.name?.let { "${stringResource(R.string.metadata_year)} $it" }
+                            val studioLine =
+                                displayAnime.studio?.name?.let { stringResource(R.string.metadata_studio_format, it) }
+                            val metaLine = listOfNotNull(releaseLine, studioLine).joinToString(" • ")
+                            if (metaLine.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(8.dp))
 
-                            Text(
-                                text = "${stringResource(R.string.metadata_year)} ${displayAnime.releaseYear?.name ?: ""} • Studio: ${displayAnime.studio?.name ?: ""}",
-                                color = TextSecondary,
-                                fontSize = 12.sp,
-                            )
+                                Text(
+                                    text = metaLine,
+                                    color = TextSecondary,
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp,
+                                )
 
-                            Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
+                            }
 
                             Text(
                                 text =

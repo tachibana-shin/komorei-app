@@ -253,6 +253,7 @@ fun SearchDiscoveryScreen(
                                     text = stringResource(R.string.search_hint),
                                     color = TextSecondary,
                                     fontSize = 12.sp,
+                                    lineHeight = 14.sp,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 )
                             }
@@ -291,6 +292,7 @@ fun SearchDiscoveryScreen(
                                                 text = stringResource(R.string.search_history_latest),
                                                 color = AnimeRed,
                                                 fontSize = 11.sp,
+                                                lineHeight = 14.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 modifier = Modifier.padding(end = 4.dp),
                                             )
@@ -324,6 +326,7 @@ fun SearchDiscoveryScreen(
                                     text = stringResource(R.string.search_history_clear_all),
                                     color = AnimeRed,
                                     fontSize = 12.sp,
+                                    lineHeight = 14.sp,
                                     fontWeight = FontWeight.Medium,
                                 )
                             }
@@ -345,6 +348,7 @@ fun SearchDiscoveryScreen(
                                     text = stringResource(R.string.filter_genre_label, selectedGenre!!.name),
                                     color = AnimeRed,
                                     fontSize = 12.sp,
+                                    lineHeight = 14.sp,
                                 )
                             }
                         }
@@ -405,6 +409,7 @@ fun SearchDiscoveryScreen(
                             text = stringResource(R.string.no_results_subtitle),
                             color = TextMuted,
                             fontSize = 12.sp,
+                            lineHeight = 14.sp,
                         )
                     }
                 } else {
@@ -449,6 +454,7 @@ fun SearchDiscoveryScreen(
                             text = stringResource(R.string.action_retry),
                             color = AnimeRed,
                             fontSize = 12.sp,
+                            lineHeight = 14.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                         )
@@ -599,6 +605,7 @@ private fun SearchSourceSections(
                                         text = stringResource(R.string.source_search_error),
                                         color = AnimeRed,
                                         fontSize = 12.sp,
+                                        lineHeight = 14.sp,
                                         fontWeight = FontWeight.Medium,
                                     )
                                     if (error.isNotBlank()) {
@@ -623,6 +630,7 @@ private fun SearchSourceSections(
                                         text = stringResource(R.string.action_retry),
                                         color = AnimeRed,
                                         fontSize = 11.sp,
+                                        lineHeight = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                     )
@@ -636,6 +644,7 @@ private fun SearchSourceSections(
                                 text = stringResource(R.string.search_source_empty),
                                 color = TextMuted,
                                 fontSize = 12.sp,
+                                lineHeight = 14.sp,
                                 modifier =
                                     Modifier
                                         .padding(horizontal = 4.dp, vertical = 2.dp)

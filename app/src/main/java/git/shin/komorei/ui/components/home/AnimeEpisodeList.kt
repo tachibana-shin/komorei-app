@@ -164,6 +164,7 @@ private fun AnimeEpisodeListRowCell(
                     text = formatTimeAgo(Instant.ofEpochMilli(timestamp)),
                     color = TextMuted,
                     fontSize = 12.sp,
+                    lineHeight = 14.sp,
                     maxLines = 1,
                 )
             }
@@ -211,6 +212,7 @@ private fun AnimeEpisodeListGridCell(
                     ),
                 color = TextMuted,
                 fontSize = 11.sp,
+                lineHeight = 14.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

@@ -225,6 +225,11 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 executeSearch(currentParams())
+                // `executeSearch` only hands back the job it just started, so
+                // without the join the indicator cleared the moment the gesture
+                // ended — the old results sat on screen for another second or
+                // two and the pull looked like it did nothing.
+                searchJob?.join()
             } finally {
                 _isRefreshing.value = false
             }
@@ -302,7 +307,8 @@ class SearchViewModel @Inject constructor(
                             when (event) {
                                 is SourceSearchEvent.Completed -> {
                                     if (event.results.isNotEmpty()) {
-                                        resultsBySource[event.source] = event.results
+                                        resultsBySource[event.source] =
+                                            event.results.distinctBy { it.sourceId to it.id }
                                     } else {
                                         // Finished with zero matches — record it so the
                                         // section shows "không có kết quả" instead of

@@ -128,6 +128,7 @@ fun ListingScreen(
                                     text = stringResource(R.string.action_retry),
                                     color = AnimeRed,
                                     fontSize = 12.sp,
+                                    lineHeight = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                                 )
@@ -157,7 +158,7 @@ fun ListingScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier.fillMaxSize().testTag("listing_grid"),
                         ) {
-                            items(uiState.items, key = { it.id }) { anime ->
+                            items(uiState.items, key = { "${it.sourceId}:${it.id}" }) { anime ->
                                 AnimeCard(
                                     anime = anime,
                                     onClick = { onAnimeClick(anime) },
@@ -219,6 +220,7 @@ private fun ListingTopBar(
                 text = subtitle,
                 color = TextMuted,
                 fontSize = 12.sp,
+                lineHeight = 14.sp,
                 maxLines = 1,
             )
         }
@@ -238,6 +240,7 @@ private fun ListingEndRow() {
         text = stringResource(R.string.listing_end_of_list),
         color = TextMuted,
         fontSize = 12.sp,
+        lineHeight = 14.sp,
         modifier =
             Modifier
                 .fillMaxWidth()

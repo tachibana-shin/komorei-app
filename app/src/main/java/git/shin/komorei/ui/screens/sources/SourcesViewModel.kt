@@ -143,6 +143,21 @@ class SourcesViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Bulk uninstall for the selection bar: drops every USER-INSTALLED source
+     * in [items] — and says so when nothing qualified, which the old filter
+     * didn't: selecting only bundled sources cleared the selection and showed
+     * no dialog, no toast, nothing.
+     */
+    fun uninstallSelected(items: List<SourceUiState>) {
+        val targets = items.filter { it.isUserInstalled }
+        if (targets.isEmpty()) {
+            sendMessage(R.string.sources_uninstall_bundled_hint)
+            return
+        }
+        targets.forEach { uninstall(it.source) }
+    }
+
     // ── update checks ───────────────────────────────────────────────────────
 
     /**
@@ -175,22 +190,31 @@ class SourcesViewModel @Inject constructor(
             sendMessage(R.string.sources_updated_none)
             return
         }
-        var found = 0
+        val found = linkedMapOf<String, String>()
+        var checked = false
         repoUrls.forEach { url ->
             when (val result = reposRepository.fetchSourceList(url)) {
                 is RepoLoadResult.Success -> {
+                    checked = true
                     result.repo.sources.forEach { ext ->
                         val installed = repository.sources.firstOrNull { it.id == ext.id } ?: return@forEach
                         if (compareVersions(ext.version, installed.version) > 0) {
-                            updateMap.update { it + (ext.id to ext.version) }
-                            found++
+                            found[ext.id] = ext.version
                         }
                     }
                 }
                 RepoLoadResult.Unavailable -> Unit
             }
         }
-        if (found == 0) sendMessage(R.string.sources_updated_all)
+        // Rebuild, never accumulate: a repo that dropped an advertised version
+        // — or went down after an earlier success — must not keep its
+        // "Cập nhật" pill for the rest of the session. When NO repo answered
+        // this pass the previous pills are left alone: that is a fetch
+        // failure, not a "nothing to update".
+        if (checked) {
+            updateMap.value = found
+            if (found.isEmpty()) sendMessage(R.string.sources_updated_all)
+        }
     }
 
     fun dismissUpdate(source: Source) {

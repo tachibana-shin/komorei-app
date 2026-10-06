@@ -79,6 +79,7 @@ fun LinksRow(
                                 text = link.subtitle,
                                 color = TextMuted,
                                 fontSize = 12.sp,
+                                lineHeight = 14.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )

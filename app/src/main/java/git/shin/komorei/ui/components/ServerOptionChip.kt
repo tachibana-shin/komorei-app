@@ -44,6 +44,7 @@ fun ServerOptionChip(
             text = name,
             color = if (isSelected) AnimeRed else TextSecondary,
             fontSize = 12.sp,
+            lineHeight = 14.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
         )
     }

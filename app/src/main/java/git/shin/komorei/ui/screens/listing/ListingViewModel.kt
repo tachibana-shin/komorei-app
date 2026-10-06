@@ -99,7 +99,7 @@ class ListingViewModel @Inject constructor(
                     ListingUiState(
                         items =
                             (if (reset) page.entries else current.items + page.entries)
-                                .distinctBy { it.id },
+                                .distinctBy { it.sourceId to it.id },
                         hasNextPage = page.hasNextPage,
                     )
                 }
@@ -129,7 +129,7 @@ class ListingViewModel @Inject constructor(
                 val page = repository.getListing(sourceId, listing, 1)
                 _uiState.update {
                     ListingUiState(
-                        items = page.entries,
+                        items = page.entries.distinctBy { it.sourceId to it.id },
                         hasNextPage = page.hasNextPage,
                     )
                 }

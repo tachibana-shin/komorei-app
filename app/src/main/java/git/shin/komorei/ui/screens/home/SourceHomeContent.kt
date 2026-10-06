@@ -193,6 +193,7 @@ fun SourceHomeContent(
                                         text = stringResource(R.string.action_retry),
                                         color = AnimeRed,
                                         fontSize = 12.sp,
+                                        lineHeight = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                     )
                                 }

@@ -817,8 +817,18 @@ private fun StepperDialog(
                     colors = SliderDefaults.colors(thumbColor = AnimeRed, activeTrackColor = AnimeRed),
                 )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(String.format("%.0f", min), color = TextMuted, fontSize = 11.sp)
-                    Text(String.format("%.0f", max), color = TextMuted, fontSize = 11.sp)
+                    Text(
+                        String.format("%.0f", min),
+                        color = TextMuted,
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp,
+                    )
+                    Text(
+                        String.format("%.0f", max),
+                        color = TextMuted,
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp,
+                    )
                 }
             }
         },
@@ -906,7 +916,12 @@ private fun SourceInfoCard(source: Source) {
                         .background(SurfaceVariantDark)
                         .padding(horizontal = 6.dp, vertical = 3.dp),
             ) {
-                Text(stringResource(R.string.sources_badge_nsfw), color = AnimeRed, fontSize = 10.sp)
+                Text(
+                    stringResource(R.string.sources_badge_nsfw),
+                    color = AnimeRed,
+                    fontSize = 10.sp,
+                    lineHeight = 12.sp,
+                )
             }
         }
     }

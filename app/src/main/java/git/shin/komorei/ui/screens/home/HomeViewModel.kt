@@ -237,6 +237,11 @@ class HomeViewModel @Inject constructor(
             _refreshingIds.update { it + sourceId }
 
             // 1. Home layout (keeps the existing rows visible while reloading).
+            //    The layout lives in a process-lifetime map AND a 6h disk copy,
+            //    so without this the pull-to-refresh spinner re-read the exact
+            //    same rows it just showed — new episodes only ever appeared
+            //    after a process restart.
+            repository.clearCachedHome(sourceId)
             runCatching { repository.getHome(sourceId) }
                 .onSuccess { home ->
                     _sourceDataMap.update { it + (sourceId to SourceHomeData(home = home)) }
@@ -287,7 +292,7 @@ class HomeViewModel @Inject constructor(
                                         existing.copy(
                                             page =
                                                 ListingPageState(
-                                                    items = result.entries,
+                                                    items = result.entries.distinctBy { it.sourceId to it.id },
                                                     hasNextPage = result.hasNextPage,
                                                     loadedPage = 1,
                                                 ),
@@ -422,7 +427,7 @@ class HomeViewModel @Inject constructor(
                                         ListingPageState(
                                             items =
                                                 (if (reset) result.entries else existing.page.items + result.entries)
-                                                    .distinctBy { it.id },
+                                                    .distinctBy { it.sourceId to it.id },
                                             hasNextPage = result.hasNextPage,
                                             loadedPage = nextPage,
                                         ),

@@ -1,5 +1,8 @@
 package git.shin.komorei.data
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import git.shin.komorei.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -59,6 +62,7 @@ sealed interface RepoLoadResult {
 @Singleton
 class SourceReposRepository @Inject constructor(
     private val okHttp: OkHttpClient,
+    @ApplicationContext private val context: Context,
 ) {
     suspend fun fetchSourceList(url: String): RepoLoadResult {
         return try {
@@ -104,7 +108,7 @@ class SourceReposRepository @Inject constructor(
             val root = JSONObject(text)
             val name =
                 root.optString("name").ifBlank {
-                    root.optString("repoName").ifBlank { "Kho nguồn" }
+                    root.optString("repoName").ifBlank { context.getString(R.string.repos_default_name) }
                 }
             val feedback =
                 root
@@ -132,9 +136,9 @@ class SourceReposRepository @Inject constructor(
 
     private fun findRepoName(arr: JSONArray): String {
         // Best-effort: reuse the first source's name family when no manifest name.
-        if (arr.length() == 0) return "Kho nguồn"
+        if (arr.length() == 0) return context.getString(R.string.repos_default_name)
         val first = arr.getJSONObject(0)
-        return "Kho nguồn (${first.optString("name").ifBlank { "?" }})"
+        return context.getString(R.string.repos_default_name_format, first.optString("name").ifBlank { "?" })
     }
 
     /**

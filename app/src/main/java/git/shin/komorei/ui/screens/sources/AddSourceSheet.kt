@@ -682,12 +682,14 @@ private fun FailedNotice(onRetry: () -> Unit) {
             text = stringResource(R.string.sources_external_repos_partial_failed),
             color = TextMuted,
             fontSize = 12.sp,
+            lineHeight = 14.sp,
             modifier = Modifier.weight(1f),
         )
         Text(
             text = stringResource(R.string.sources_repos_retry),
             color = AnimeRed,
             fontSize = 12.sp,
+            lineHeight = 14.sp,
             fontWeight = FontWeight.SemiBold,
             modifier =
                 Modifier
@@ -841,6 +843,7 @@ private fun ExternalSourceRow(
                     text = stringResource(R.string.sources_external_getting),
                     color = TextMuted,
                     fontSize = 12.sp,
+                    lineHeight = 14.sp,
                 )
             }
             hasUpdate -> {
@@ -943,6 +946,7 @@ fun AddRepoDialog(
                     text = stringResource(R.string.sources_repos_add_hint),
                     color = TextMuted,
                     fontSize = 11.sp,
+                    lineHeight = 14.sp,
                 )
             }
         },

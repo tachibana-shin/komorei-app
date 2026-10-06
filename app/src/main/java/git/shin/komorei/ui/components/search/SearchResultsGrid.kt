@@ -81,6 +81,7 @@ fun SearchResultsGrid(
                             text = stringResource(R.string.action_retry),
                             color = AnimeRed,
                             fontSize = 12.sp,
+                            lineHeight = 14.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                         )
@@ -139,7 +140,7 @@ fun SearchResultsGrid(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxSize().testTag("source_search_grid"),
                     ) {
-                        items(state.items, key = { it.id }) { anime ->
+                        items(state.items, key = { "${it.sourceId}:${it.id}" }) { anime ->
                             AnimeCard(
                                 anime = anime,
                                 onClick = { onAnimeClick(anime) },
@@ -156,6 +157,7 @@ fun SearchResultsGrid(
                                     text = stringResource(R.string.source_search_end),
                                     color = TextMuted,
                                     fontSize = 12.sp,
+                                    lineHeight = 14.sp,
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                                 )

@@ -162,6 +162,7 @@ fun AnimeCard(
                         text = String.format("%.1f", anime.rating),
                         color = TextPrimary,
                         fontSize = 10.sp,
+                        lineHeight = 12.sp,
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -188,6 +189,7 @@ fun AnimeCard(
             text = "${anime.releaseYear?.name ?: ""} • ${anime.genres.firstOrNull()?.name ?: getSourceName(anime.sourceId)}",
             color = TextMuted,
             fontSize = 11.sp,
+            lineHeight = 14.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

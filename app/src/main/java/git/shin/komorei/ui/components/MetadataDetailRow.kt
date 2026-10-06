@@ -25,11 +25,17 @@ fun MetadataDetailRow(
                 .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(text = label, color = TextMuted, fontSize = 12.sp)
+        Text(
+            text = label,
+            color = TextMuted,
+            fontSize = 12.sp,
+            lineHeight = 14.sp,
+        )
         Text(
             text = value,
             color = TextPrimary,
             fontSize = 12.sp,
+            lineHeight = 14.sp,
             fontWeight = FontWeight.Medium,
         )
     }

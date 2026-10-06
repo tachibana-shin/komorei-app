@@ -90,6 +90,7 @@ fun GenreGridCard(
                     text = stringResource(R.string.anime_count_format, genre.count),
                     color = if (isSelected) Color.White.copy(alpha = 0.85f) else TextMuted,
                     fontSize = 11.sp,
+                    lineHeight = 14.sp,
                 )
             }
 
@@ -138,6 +139,7 @@ fun GenreChipCompact(
             text = genre.name,
             color = if (isSelected) Color.White else TextPrimary,
             fontSize = 12.sp,
+            lineHeight = 14.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
         )
     }

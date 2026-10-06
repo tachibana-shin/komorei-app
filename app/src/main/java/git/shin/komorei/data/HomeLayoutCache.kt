@@ -83,6 +83,19 @@ class HomeLayoutCache
             }
         }
 
+        /**
+         * Drops one source's cached layout — the next [get] misses and the
+         * caller re-fetches.
+         */
+        fun clear(sourceId: String) {
+            runCatching { fileFor(sourceId).delete() }
+        }
+
+        /** Drops every cached layout, the merged "all" entry included. */
+        fun clearAll() {
+            runCatching { cacheDir.listFiles()?.forEach { it.delete() } }
+        }
+
         private fun fileFor(sourceId: String): File = File(cacheDir, "${sourceId.replace(SAFE_ID_CHARS, "_")}.json")
 
         @JsonClass(generateAdapter = true)

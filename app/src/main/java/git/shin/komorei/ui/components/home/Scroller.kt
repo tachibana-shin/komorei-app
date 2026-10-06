@@ -41,7 +41,7 @@ fun ScrollerRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            items(items = animes, key = { it.id }) { anime ->
+            items(items = animes, key = { "${it.sourceId}:${it.id}" }) { anime ->
                 AnimeCard(
                     anime = anime,
                     onClick = { onAnimeClick(anime) },

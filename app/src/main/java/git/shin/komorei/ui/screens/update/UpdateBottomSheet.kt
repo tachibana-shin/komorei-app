@@ -206,6 +206,7 @@ private fun DownloadProgress(
             text = stringResource(R.string.update_sheet_progress, progress),
             color = TextMuted,
             fontSize = 12.sp,
+            lineHeight = 14.sp,
         )
     }
 }

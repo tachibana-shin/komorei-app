@@ -79,7 +79,7 @@ class SourcesScreenTest {
                     registry,
                     stateStore,
                     git.shin.komorei.data
-                        .SourceReposRepository(OkHttpClient()),
+                        .SourceReposRepository(OkHttpClient(), ApplicationProvider.getApplicationContext()),
                 )
         }
 

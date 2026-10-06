@@ -19,9 +19,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import git.shin.komorei.R
 import git.shin.komorei.model.Source
 import git.shin.komorei.ui.theme.AnimeRed
 import git.shin.komorei.ui.theme.BackgroundDark
@@ -81,13 +83,21 @@ fun SourceTabBar(
                         .tvFocus(shape = RoundedCornerShape(12.dp), scale = 1.04f)
                         .testTag("source_tab_${source.id}"),
                 text = {
+                    // The aggregator's label is app copy, not manifest data —
+                    // Source.name only carries the data-model default.
+                    val label =
+                        if (source.isAggregator) {
+                            stringResource(R.string.home_tab_aggregator)
+                        } else {
+                            source.name
+                        }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
                     ) {
                         SourceIcon(
                             source = source,
-                            contentDescription = source.name,
+                            contentDescription = label,
                             fallbackTint = if (isSelected) AnimeRed else TextMuted,
                             iconSize = 16.dp,
                             fallbackIconSize = 16.dp,
@@ -95,7 +105,7 @@ fun SourceTabBar(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = source.name,
+                            text = label,
                             fontSize = 14.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = if (isSelected) AnimeRed else TextMuted,

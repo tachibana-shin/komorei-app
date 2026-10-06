@@ -210,7 +210,7 @@ fun AdvancedScreen(
             title = { Text(stringResource(R.string.logs_clear), color = TextPrimary, fontSize = 16.sp) },
             text = {
                 Text(
-                    text = stringResource(R.string.logs_empty),
+                    text = stringResource(R.string.logs_clear_confirm),
                     color = TextSecondary,
                     fontSize = 14.sp,
                 )
@@ -308,6 +308,7 @@ private fun AdvancedSection(
             text = title,
             color = TextMuted,
             fontSize = 12.sp,
+            lineHeight = 14.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 6.dp),
         )

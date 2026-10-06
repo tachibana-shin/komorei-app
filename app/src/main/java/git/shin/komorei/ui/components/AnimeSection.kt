@@ -53,7 +53,7 @@ fun AnimeSection(
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    items(items = animeList, key = { it.id }) { anime ->
+                    items(items = animeList, key = { "${it.sourceId}:${it.id}" }) { anime ->
                         AnimeCard(
                             anime = anime,
                             onClick = { onAnimeClick(anime) },
@@ -69,7 +69,7 @@ fun AnimeSection(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                items(items = animeList, key = { it.id }) { anime ->
+                items(items = animeList, key = { "${it.sourceId}:${it.id}" }) { anime ->
                     AnimeCard(
                         anime = anime,
                         onClick = { onAnimeClick(anime) },

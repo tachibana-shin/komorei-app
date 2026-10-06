@@ -19,6 +19,7 @@
     <string name="active_source_label">Nguồn: %1$s</string>
     <string name="home_source_empty">Không có nội dung từ nguồn này</string>
     <string name="home_source_error">Không thể tải nội dung từ nguồn này</string>
+    <string name="home_tab_aggregator">Tổng hợp</string>
 
     <!-- Listing Screen -->
     <string name="listing_default_title">Danh sách</string>
@@ -199,10 +200,11 @@
     <string name="sources_repos_add_hint">URL kho nguồn (JSON)</string>
     <string name="sources_repos_remove_cd">Xóa kho</string>
     <string name="sources_repos_manage">Quản lý kho</string>
-    <string name="sources_repos_loading">Đang tải…</string>
     <string name="sources_repos_unavailable">Không thể tải kho này</string>
     <string name="sources_repos_retry">Thử lại</string>
     <string name="sources_repos_fetch_sources">Tải danh sách nguồn</string>
+    <string name="repos_default_name">Kho nguồn</string>
+    <string name="repos_default_name_format">Kho nguồn (%1$s)</string>
     <string name="source_repos_title">Quản lý kho nguồn</string>
     <string name="sources_invalid_url">URL không hợp lệ</string>
     <string name="sources_feedback_hint">Báo cáo lỗi</string>
@@ -312,6 +314,7 @@
     <string name="metadata_seasons">Số phần (Seasons):</string>
     <string name="metadata_seasons_count">%1$d phần</string>
     <string name="metadata_year">Năm phát hành:</string>
+    <string name="metadata_studio_format">Studio: %1$s</string>
     <string name="metadata_genres">Thể loại:</string>
     <string name="metadata_belongs_to_series">Thuộc series</string>
     <string name="metadata_country">Quốc gia</string>
@@ -462,6 +465,7 @@
     <string name="logs_share_cd">Chia sẻ nhật ký</string>
     <string name="logs_share">Chia sẻ nhật ký</string>
     <string name="logs_clear">Xoá nhật ký</string>
+    <string name="logs_clear_confirm">Mọi dòng nhật ký đang lưu sẽ bị xoá vĩnh viễn.</string>
     <string name="logs_share_failed">Không thể chia sẻ nhật ký lúc này</string>
     <string name="logs_level_all">Tất cả</string>
     <string name="logs_empty">Chưa có nhật ký nào</string>
