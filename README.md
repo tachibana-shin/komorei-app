@@ -11,6 +11,9 @@ Komorei is an Aidoku-compatible Android application for watching anime from mult
 
 Releases are distributed directly as signed APK/AAB files through GitHub Releases. Komorei does not depend on Google Play for installation.
 
+<img width="1080" height="2310" alt="1000056866" src="https://github.com/user-attachments/assets/6844e2dd-b6bb-4366-90b7-305e79232f09" />
+
+
 ## Features
 
 - Dark Material 3 interface with native D-pad navigation on TV.
