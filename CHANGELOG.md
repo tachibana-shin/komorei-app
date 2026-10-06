@@ -1,3 +1,10 @@
+## [1.3.4](https://github.com/tachibana-shin/komorei-app/compare/v1.3.3...v1.3.4) (2026-10-06)
+
+
+### Bug Fixes
+
+* shrink AnimeEpisodeList covers to 64x92 ([709a29b](https://github.com/tachibana-shin/komorei-app/commit/709a29b09bdcc35b810add55f3d75508bb4e7d19))
+
 ## [1.3.3](https://github.com/tachibana-shin/komorei-app/compare/v1.3.2...v1.3.3) (2026-10-06)
 
 
