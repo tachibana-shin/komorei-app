@@ -1,3 +1,10 @@
+## [1.3.3](https://github.com/tachibana-shin/komorei-app/compare/v1.3.2...v1.3.3) (2026-10-06)
+
+
+### Bug Fixes
+
+* player starts at 16:9 like YouTube; bigger VSMov updated-episode cells ([8597057](https://github.com/tachibana-shin/komorei-app/commit/8597057c73f79e2dd9da2e0ac7a1f5ad7a6b1b78))
+
 ## [1.3.2](https://github.com/tachibana-shin/komorei-app/compare/v1.3.1...v1.3.2) (2026-10-05)
 
 
