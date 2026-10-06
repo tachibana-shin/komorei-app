@@ -1,3 +1,10 @@
+## [1.3.5](https://github.com/tachibana-shin/komorei-app/compare/v1.3.4...v1.3.5) (2026-10-06)
+
+
+### Bug Fixes
+
+* real home refresh, source-scoped list keys, and UI audit fixes ([13f655e](https://github.com/tachibana-shin/komorei-app/commit/13f655e1f65762b1f026e019dbc7de67ebe73131))
+
 ## [1.3.4](https://github.com/tachibana-shin/komorei-app/compare/v1.3.3...v1.3.4) (2026-10-06)
 
 
