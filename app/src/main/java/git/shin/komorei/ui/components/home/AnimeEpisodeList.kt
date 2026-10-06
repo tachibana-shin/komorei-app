@@ -129,7 +129,7 @@ private fun AnimeEpisodeListRowCell(
                 .clickable { onAnimeClick(entry.anime) }
                 .padding(vertical = 6.dp),
     ) {
-        AnimeEpisodeThumb(entry = entry, modifier = Modifier.size(width = 66.dp, height = 92.dp))
+        AnimeEpisodeThumb(entry = entry, modifier = Modifier.size(width = 80.dp, height = 114.dp))
         Column(
             modifier =
                 Modifier
@@ -185,7 +185,7 @@ private fun AnimeEpisodeListGridCell(
                 .clickable { onAnimeClick(entry.anime) }
                 .padding(vertical = 6.dp),
     ) {
-        AnimeEpisodeThumb(entry = entry, modifier = Modifier.size(width = 52.dp, height = 74.dp))
+        AnimeEpisodeThumb(entry = entry, modifier = Modifier.size(width = 80.dp, height = 114.dp))
         Column(
             modifier =
                 Modifier

@@ -185,7 +185,7 @@ fun VideoPlayerSheet(
             if (vs.width > 0 && vs.height > 0 && vs.pixelWidthHeightRatio > 0f) {
                 (vs.width.toFloat() * vs.pixelWidthHeightRatio) / vs.height.toFloat()
             } else {
-                3f / 4f
+                16f / 9f
             }
         }
 
