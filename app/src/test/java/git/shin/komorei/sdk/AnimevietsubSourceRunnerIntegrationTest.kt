@@ -2,6 +2,7 @@ package git.shin.komorei.sdk
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import git.shin.komorei.sdk.runner.Episode
 import git.shin.komorei.sdk.runner.KomoreiRunner
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -34,7 +35,7 @@ import git.shin.komorei.sdk.runner.Anime as RunnerAnime
  * thing worth testing: that the wasm builds, upgrades and hands back what the
  * app then renders.
  *
- * What this covers that the 73 in-crate tests cannot: that `get_anime_update`
+ * What this covers that the 76 in-crate tests cannot: that `get_anime_update`
  * survives the real host and the real ABI, and that the `extra` bag a detail
  * page stashes actually arrives in Kotlin intact — it is a `HashMap` on a
  * postcard-encoded struct, so a mismatch shows up nowhere else.
@@ -70,6 +71,14 @@ class AnimevietsubSourceRunnerIntegrationTest {
 
         /** A card key the captured front page links to, for the upgrade path. */
         private const val ANIME_KEY = "thieu-chu-gioi-chay-tron-2024-a5304"
+
+        /**
+         * The signed episode pair from the episode capture: `data-id` and
+         * `data-hash` of its first anchor, which is what `POST /ajax/player`
+         * demands and what the redirect test asserts arrives byte for byte.
+         */
+        private const val EPISODE_ID = "114607"
+        private const val EPISODE_HASH = "5qC6TJh-JJ3nEYX3062ISEf_AWJ8gq86y_9BYWB52I8FR393Aoj-WkLT2um5GIrIqWMoz-xLcX5uCp83IJ0oxePHQ9sVCqVXAYphxL2cfzMsXXp6c8iZmpZJEzgAWlqV"
     }
 
     @Before
@@ -112,35 +121,7 @@ class AnimevietsubSourceRunnerIntegrationTest {
 
     @Test
     fun `the detail upgrade fills the fields the detail screen renders`() {
-        val lite =
-            RunnerAnime(
-                key = ANIME_KEY,
-                sourceId = "vi.animevietsub",
-                title = "Lite card title",
-                originalTitle = "",
-                cover = "https://example.test/cover.jpg",
-                banner = null,
-                description = null,
-                episodeCount = 0,
-                currentEpisode = null,
-                rating = null,
-                ratingCount = null,
-                status = git.shin.komorei.sdk.runner.AnimeStatus.UNKNOWN,
-                releaseYear = null,
-                genres = emptyList(),
-                authors = emptyList(),
-                studio = null,
-                seasonOf = null,
-                countries = emptyList(),
-                isFeatured = false,
-                views = 0,
-                nextEpisodeAirInfo = null,
-                qualityTag = null,
-                seasons = emptyList(),
-                episodes = null,
-                url = null,
-                extra = emptyMap(),
-            )
+        val lite = liteAnime()
 
         val full = runner.animeUpdate(lite, true, false)
 
@@ -156,35 +137,7 @@ class AnimevietsubSourceRunnerIntegrationTest {
 
     @Test
     fun `the detail page hands its recommendation rail over in extra`() {
-        val lite =
-            RunnerAnime(
-                key = ANIME_KEY,
-                sourceId = "vi.animevietsub",
-                title = "Lite card title",
-                originalTitle = "",
-                cover = "https://example.test/cover.jpg",
-                banner = null,
-                description = null,
-                episodeCount = 0,
-                currentEpisode = null,
-                rating = null,
-                ratingCount = null,
-                status = git.shin.komorei.sdk.runner.AnimeStatus.UNKNOWN,
-                releaseYear = null,
-                genres = emptyList(),
-                authors = emptyList(),
-                studio = null,
-                seasonOf = null,
-                countries = emptyList(),
-                isFeatured = false,
-                views = 0,
-                nextEpisodeAirInfo = null,
-                qualityTag = null,
-                seasons = emptyList(),
-                episodes = null,
-                url = null,
-                extra = emptyMap(),
-            )
+        val lite = liteAnime()
 
         val full = runner.animeUpdate(lite, true, false)
 
@@ -200,35 +153,7 @@ class AnimevietsubSourceRunnerIntegrationTest {
 
     @Test
     fun `recommended anime is served from the stash without a second request`() {
-        val lite =
-            RunnerAnime(
-                key = ANIME_KEY,
-                sourceId = "vi.animevietsub",
-                title = "Lite card title",
-                originalTitle = "",
-                cover = "https://example.test/cover.jpg",
-                banner = null,
-                description = null,
-                episodeCount = 0,
-                currentEpisode = null,
-                rating = null,
-                ratingCount = null,
-                status = git.shin.komorei.sdk.runner.AnimeStatus.UNKNOWN,
-                releaseYear = null,
-                genres = emptyList(),
-                authors = emptyList(),
-                studio = null,
-                seasonOf = null,
-                countries = emptyList(),
-                isFeatured = false,
-                views = 0,
-                nextEpisodeAirInfo = null,
-                qualityTag = null,
-                seasons = emptyList(),
-                episodes = null,
-                url = null,
-                extra = emptyMap(),
-            )
+        val lite = liteAnime()
         val detail = runner.animeUpdate(lite, true, false)
         val before = fixture.requestCount()
 
@@ -252,6 +177,94 @@ class AnimevietsubSourceRunnerIntegrationTest {
         )
     }
 
+    /**
+     * The signed player call survives a base host that answers 301.
+     *
+     * The site moved from `animevietsub.li` to `animevietsub.nl` and kept the
+     * old host answering 301 on **every** path rather than going dark. Both
+     * OkHttp and a browser follow that the way RFC 7231 says — by repeating a
+     * redirected POST as a GET *with no body* — so the signed `id`/`link` pair
+     * never arrived, the endpoint answered for a request the source had not
+     * made, and the parse failure that came back was the bare "trả về dữ liệu
+     * không hợp lệ" with nothing to say why. The fixture reproduces the
+     * redirect; the assertions are the POST arriving intact at the url it was
+     * redirected to, and the `link` that answer carries being fetched next.
+     */
+    @Test
+    fun `the signed player POST survives a redirecting base host`() {
+        val anime = liteAnime()
+        val episode =
+            Episode(
+                key = "1-$EPISODE_ID-$EPISODE_HASH",
+                episodeNumber = "1",
+                title = null,
+                dateUploaded = null,
+                thumbnail = null,
+                quality = null,
+                durationSeconds = null,
+                url = null,
+                language = null,
+                locked = false,
+            )
+        val server = runner.streamList(anime, episode).first()
+
+        val failure = runCatching { runner.stream(anime, episode, server) }.exceptionOrNull()
+
+        assertTrue(
+            "the signed POST never reached the moved endpoint: ${fixture.posts}",
+            fixture.posts.any {
+                it.first == "/ajax/player-v2" && it.second == "id=$EPISODE_ID&link=$EPISODE_HASH"
+            },
+        )
+        // The link that POST answered with is fetched next, which only happens
+        // once its JSON parsed — the empty body a downgraded GET gets fails
+        // long before this.
+        assertTrue(
+            "the link from /ajax/player-v2 was never fetched: ${fixture.requests}",
+            fixture.requests.contains("/player.html"),
+        )
+        val messages = generateSequence(failure) { it.cause }.mapNotNull { it.message }.toList()
+        assertTrue(
+            "the player step still reports the parse failure: $messages",
+            messages.none { it.contains("trả về dữ liệu không hợp lệ") },
+        )
+    }
+
+    /**
+     * The Lite card before any upgrade, shared by every test here: what is
+     * under test is what the source does with it, not which fields a stub
+     * happens to carry.
+     */
+    private fun liteAnime() =
+        RunnerAnime(
+            key = ANIME_KEY,
+            sourceId = "vi.animevietsub",
+            title = "Lite card title",
+            originalTitle = "",
+            cover = "https://example.test/cover.jpg",
+            banner = null,
+            description = null,
+            episodeCount = 0,
+            currentEpisode = null,
+            rating = null,
+            ratingCount = null,
+            status = git.shin.komorei.sdk.runner.AnimeStatus.UNKNOWN,
+            releaseYear = null,
+            genres = emptyList(),
+            authors = emptyList(),
+            studio = null,
+            seasonOf = null,
+            countries = emptyList(),
+            isFeatured = false,
+            views = 0,
+            nextEpisodeAirInfo = null,
+            qualityTag = null,
+            seasons = emptyList(),
+            episodes = null,
+            url = null,
+            extra = emptyMap(),
+        )
+
     // ── animevietsub.li fixture server (plain ServerSocket HTTP) ─────────────
 
     private class FixtureServer : Closeable {
@@ -259,6 +272,9 @@ class AnimevietsubSourceRunnerIntegrationTest {
 
         @Volatile private var closed = false
         val requests = CopyOnWriteArrayList<String>()
+
+        /** Every POST as `path` → body, so a test can assert what was sent. */
+        val posts = CopyOnWriteArrayList<Pair<String, String>>()
         val baseUrl: String get() = "http://127.0.0.1:${server.localPort}"
 
         /**
@@ -317,24 +333,49 @@ class AnimevietsubSourceRunnerIntegrationTest {
                 sock.use { s ->
                     val input = s.getInputStream().bufferedReader(Charsets.ISO_8859_1)
                     val requestLine = input.readLine() ?: return
-                    val target = requestLine.split(" ").getOrNull(1) ?: "/"
+                    val parts = requestLine.split(" ")
+                    val method = parts.getOrNull(0) ?: "GET"
+                    val target = parts.getOrNull(1) ?: "/"
+                    var contentLength = 0
                     var line = input.readLine()
-                    while (line != null && line.isNotEmpty()) line = input.readLine()
+                    while (line != null && line.isNotEmpty()) {
+                        if (line.startsWith("Content-Length:", ignoreCase = true)) {
+                            contentLength = line.substringAfter(':').trim().toIntOrNull() ?: 0
+                        }
+                        line = input.readLine()
+                    }
+                    // ISO-8859-1 is byte-preserving, so the N chars read here
+                    // are exactly the N bytes of the form body the source
+                    // signed. (`Reader.readNChars` is not in the android.jar
+                    // this compiles against, hence the manual loop.)
+                    val bodyChars = CharArray(contentLength)
+                    var bodyRead = 0
+                    while (bodyRead < contentLength) {
+                        val read = input.read(bodyChars, bodyRead, contentLength - bodyRead)
+                        if (read <= 0) break
+                        bodyRead += read
+                    }
+                    val body = String(bodyChars, 0, bodyRead)
                     requests += target
+                    if (method == "POST") posts += target.substringBefore('?') to body
 
-                    val page = route(target)
-                    val bytes = (page ?: "").toByteArray(Charsets.UTF_8)
+                    val reply = route(method, target)
+                    val bytes = reply.body.toByteArray(Charsets.UTF_8)
+                    val headers =
+                        listOf(
+                            "Content-Type: text/html; charset=utf-8",
+                            "Content-Length: ${bytes.size}",
+                            "Connection: close",
+                        ) + reply.headers
                     val out = s.getOutputStream()
                     // A 404 rather than an empty 200: an unrouted url is a gap in
                     // the fixture, and saying so beats a source that quietly
                     // parses nothing.
-                    val status = if (page == null) "404 Not Found" else "200 OK"
                     out.write(
                         (
-                            "HTTP/1.1 $status\r\n" +
-                                "Content-Type: text/html; charset=utf-8\r\n" +
-                                "Content-Length: ${bytes.size}\r\n" +
-                                "Connection: close\r\n\r\n"
+                            "HTTP/1.1 ${reply.status}\r\n" +
+                                headers.joinToString("\r\n") { it } +
+                                "\r\n\r\n"
                         ).toByteArray(Charsets.US_ASCII),
                     )
                     out.write(bytes)
@@ -345,16 +386,58 @@ class AnimevietsubSourceRunnerIntegrationTest {
             }
         }
 
+        /** A routed answer: status line, extra headers, body. */
+        private data class Reply(
+            val status: String = "200 OK",
+            val headers: List<String> = emptyList(),
+            val body: String = "",
+        )
+
         /**
-         * Route the source's own urls to the captured page each one produced.
+         * Route the source's own urls to the captured page each one produced,
+         * plus the `POST /ajax/player` handshake.
          *
          * The detail capture is served for every `/phim/…` path, including the
          * episode list, because the two requests are independent and a 404 on
          * either would only prove the fixture is wrong.
          */
-        private fun route(target: String): String? {
+        private fun route(
+            method: String,
+            target: String,
+        ): Reply {
             val path = target.substringBefore('?')
-            return pages[path] ?: byPrefix.firstOrNull { path.startsWith(it.first) }?.second
+            // The site's own redirect: the superseded host answers 301 to the
+            // live one instead of going dark, and that is exactly what breaks a
+            // POST — both OkHttp and a browser repeat it as a GET *with no
+            // body*, so the endpoint answers for a request the source never
+            // made. Both halves are reproduced here, including the empty body
+            // the downgraded GET gets: what the source used to JSON-parse.
+            if (path == "/ajax/player" && method == "POST") {
+                return Reply(
+                    status = "301 Moved Permanently",
+                    headers = listOf("Location: $baseUrl/ajax/player-v2"),
+                    body = "<html><head><title>301 Moved Permanently</title></head></html>",
+                )
+            }
+            if (path == "/ajax/player-v2") {
+                return if (method == "POST") {
+                    Reply(
+                        body =
+                            """{"_fxStatus":1,"success":1,"title":"AnimeVsub",""" +
+                                """"link":"$baseUrl/player.html","playTech":"iframe"}""",
+                    )
+                } else {
+                    Reply()
+                }
+            }
+            // The handshake's `link` is fetched — the test asserts on that — but
+            // deliberately not served: what is under test ends there, and past
+            // it the playlist fetch asks for https, which this plain-HTTP
+            // fixture can only stall on.
+            if (path == "/player.html") return Reply(status = "404 Not Found")
+
+            val page = pages[path] ?: byPrefix.firstOrNull { path.startsWith(it.first) }?.second
+            return if (page == null) Reply(status = "404 Not Found") else Reply(body = page)
         }
     }
 }
